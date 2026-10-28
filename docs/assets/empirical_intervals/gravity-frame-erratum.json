@@ -1,0 +1,13 @@
+{
+  "reason": "Synthetic bag gravity is in an odometry-local world frame; injected gravity is in the generator world frame. No independent gauge alignment was recorded.",
+  "excluded_axes": [
+    "gravity[0]",
+    "gravity[1]",
+    "gravity[2]"
+  ],
+  "affected": "All raw synthetic_bag gravity coverage rows in P0 and this archive, including superseded_gauge_mismatch/model.json and evaluation.json.",
+  "unchanged": "Other parameter errors, formal std, all fitted results and seeds. No non-gravity widths or thresholds were retuned after evaluating the holdout.",
+  "remedy": "Exclude world-gravity axes for synthetic_bag models and future collection until frame alignment and its uncertainty are explicitly available.",
+  "final_model_sha256": "06a9e7c592a0c23f5aabcd90584cde5d6d96513887354638e4ab270d58ebc62c",
+  "final_evaluation_sha256": "de64afcc1fabc4c538c1723f742efa3401b902202f5e3a5ee6b35ed9fad88f13"
+}

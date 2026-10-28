@@ -37,6 +37,8 @@ def run_synthetic_sliding_window_recovery(
     seed: int = _SYNTHETIC_SEED,
     command: list[str] | None = None,
     recovery_id: str = "ct-sliding-window-synthetic",
+    project_observable_subspace: bool = False,
+    square_root_marginalization: bool = False,
 ) -> ContinuousTimeSlidingWindowArtifact:
     """Recover a knot path with sliding-window marginalization and controls."""
 
@@ -66,12 +68,15 @@ def run_synthetic_sliding_window_recovery(
         initial_knot_poses=initial,
         point_to_plane_measurements=train,
     )
-    options = ContinuousTimeTrajectoryFitOptions(max_iterations=80)
+    options = ContinuousTimeTrajectoryFitOptions(
+        max_iterations=80, project_observable_subspace=project_observable_subspace,
+    )
     sliding = fit_sliding_window_trajectory(
         problem,
         window_knot_counts=_WINDOW_KNOT_COUNTS,
         overlap_knot_count=_OVERLAP_KNOT_COUNT,
         options=options,
+        square_root_marginalization=square_root_marginalization,
         apply_marginalization=True,
     )
     known_bad = fit_sliding_window_trajectory(
@@ -79,6 +84,7 @@ def run_synthetic_sliding_window_recovery(
         window_knot_counts=_WINDOW_KNOT_COUNTS,
         overlap_knot_count=_OVERLAP_KNOT_COUNT,
         options=options,
+        square_root_marginalization=square_root_marginalization,
         apply_marginalization=False,
         bad_overlap_translation_m=_KNOWN_BAD_TRANSLATION_M,
     )
@@ -102,6 +108,7 @@ def run_synthetic_sliding_window_recovery(
     )
     policy_status, policy_reason = _policy(
         batch_status=sliding.batch_result.status,
+        sliding_status=sliding.sliding_result.status,
         max_overlap_translation=sliding.max_overlap_translation_error_m,
         max_overlap_rotation=sliding.max_overlap_rotation_error_rad,
         sliding_holdout=sliding_holdout,
@@ -110,6 +117,8 @@ def run_synthetic_sliding_window_recovery(
     )
     return ContinuousTimeSlidingWindowArtifact(
         recovery_id=recovery_id,
+        project_observable_subspace=project_observable_subspace,
+        square_root_marginalization=square_root_marginalization,
         interpolation="screw_linear",
         seed=seed,
         knot_count=len(truth),
@@ -119,6 +128,9 @@ def run_synthetic_sliding_window_recovery(
         holdout_measurement_count=len(holdout),
         batch_fit_status=sliding.batch_result.status,
         sliding_fit_status=sliding.sliding_result.status,
+        window_observability=list(sliding.window_observability),
+        window_fit_statuses=[result.status for result in sliding.window_results],
+        sliding_fit_diagnostics=sliding.sliding_result.diagnostics,
         max_overlap_translation_error_m=sliding.max_overlap_translation_error_m,
         max_overlap_rotation_error_rad=sliding.max_overlap_rotation_error_rad,
         batch_holdout_rmse_m=batch_holdout,
@@ -130,7 +142,7 @@ def run_synthetic_sliding_window_recovery(
         policy_reason=policy_reason,
         provenance=ContinuousTimeSlidingWindowProvenance(
             generator=__name__,
-            generator_version="0.1",
+            generator_version="0.11",
             git_commit=git_commit(),
             command=command or [],
             seed=seed,
@@ -156,6 +168,7 @@ def _max_overlap_translation_error(
 def _policy(
     *,
     batch_status: str,
+    sliding_status: str,
     max_overlap_translation: float,
     max_overlap_rotation: float,
     sliding_holdout: float,
@@ -166,6 +179,12 @@ def _policy(
         return (
             "fail",
             f"batch reference fit status {batch_status!r} is not converged",
+        )
+    if sliding_status != "converged":
+        return (
+            "fail",
+            f"sliding fit status {sliding_status!r} is not converged across all windows "
+            "and the stitched trajectory",
         )
     if max_overlap_translation >= 0.05:
         return (

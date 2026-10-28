@@ -153,11 +153,11 @@ def test_fitter_clock_normal_gradient_uses_the_declared_one_sided_column(window,
     class Captured(Exception):
         pass
 
-    def capture(normal, negative_gradient):
-        assert normal.shape == (31, 31)
-        assert negative_gradient[-1] == pytest.approx(-expected_gradient, rel=1e-11, abs=1e-12)
+    def capture(gradient, diagonal, residual_norm):
+        assert gradient.shape == (31,)
+        assert gradient[-1] == pytest.approx(expected_gradient, rel=1e-11, abs=1e-12)
         raise Captured
 
-    monkeypatch.setattr(sparse, "spsolve", capture)
+    monkeypatch.setattr(sparse, "normalized_gradient_norm", capture)
     with pytest.raises(Captured):
         sparse.fit_continuous_trajectory(problem)

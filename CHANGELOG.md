@@ -2,6 +2,287 @@
 
 ## Unreleased
 
+- Add an opt-in camera–LiDAR research profile mode that chooses each fold's
+  initialization from training frames only, without a pooled conditional report.
+  Preserve archived report serialization and default numerical behavior. Add a
+  reproducible archived-audit/development-input inventory; no new SOTA claim.
+
+- Bounds-check ROS 1 message integers, strings and PointCloud2 byte fields/data
+  before reading. Reject zero point strides explicitly instead of dividing by
+  zero; retain compatibility with an omitted trailing PointCloud2 `is_dense` byte.
+
+- Reject truncated ROS 1 Livox CustomMsg point sequences instead of returning
+  partial clouds. Use the serialized array length for decoded points and retain
+  `point_num` as producer metadata, matching the ROS 2 reader's behavior.
+
+- Validate ROS 1 PointCloud2, Livox CustomMsg and PoseStamped header nanoseconds
+  before decoding sensor content. Reject values outside [0, 1e9), including empty
+  Livox scans, while retaining zero-header fallback to the bag record time.
+
+- Reject ROS 1 record timestamps whose nanosecond component is at least one
+  billion instead of silently converting them to a different second. Preserve
+  valid zero timestamps and the full uint32 seconds range.
+
+- Reject duplicate ROS 1 header field names instead of silently taking the last
+  value, including connection metadata and inner message records. Reject empty
+  field names while preserving unknown fields, empty values and binary values.
+
+- Report malformed ROS 1 header text as field-specific `DatasetError` with the
+  original decoding cause. Reject invalid UTF-8 in message definitions instead
+  of replacing bytes; preserve valid Unicode names and binary message payloads.
+
+- Require exact ROS 1 header widths for opcodes, connection IDs, index positions,
+  chunk counts and timestamps. Reject short or oversized present values instead
+  of treating them as missing or silently ignoring trailing bytes; keep absent
+  optional-field behavior unchanged.
+
+- Validate MCAP channel metadata as complete UTF-8 key/value pairs within the
+  map's declared extent. Reject missing values, partial length prefixes and
+  oversized strings even when bytes remain elsewhere in the enclosing record.
+
+- Validate the entire required MCAP schema record layout, including its UTF-8
+  encoding label and binary definition length. Reject truncated schema records
+  both at the top level and inside chunks before registering their names.
+
+- Validate serialization in GNSS, vehicle-motion, static-TF and sensor-probing
+  inputs used by checks, plus camera–LiDAR frame pairing. Incompatible streams
+  fail before decoding or are marked unreadable by existing diagnostic handlers.
+
+- Check CDR serialization before camera/IMU, Livox and RTK-SLAM sensor adapters
+  decode selected images, IMU samples or point clouds. Reject incompatible
+  declarations even when their payload bytes happen to look like valid CDR.
+
+- Validate selected ROS 2 LiDAR connection formats before offline pair loading.
+  Suppress the recording-motion recommendation when IMU serialization is not
+  CDR, rather than deriving recording advice from an unsupported encoding.
+
+- Reject non-CDR topics before creating or overwriting bags in timestamp-shift,
+  IMU-rotation and Velodyne conversion tools. Validate copied topics as well as
+  transformed ones to avoid relabelling bytes as CDR; excluded topics remain skippable.
+
+- Validate selected ROS 2 LiDAR and odometry connection formats before online
+  replay decoding, including capture-window sampling and cross-segment checks.
+  Non-CDR inputs now fail with a topic-specific error before calibration.
+
+- Check declared serialization before decoding capture-inventory samples, so
+  non-CDR streams cannot gain supported decode status from CDR-shaped bytes.
+  Add an optional serialization-format argument to the generic rosbag2 decoder,
+  retaining CDR as its default for existing callers.
+
+- Preserve MCAP channel message encodings instead of labelling every payload CDR.
+  Typed rosbag2 sensor readers and inspection reject selected non-CDR sensor
+  messages before decoding; raw message iteration still returns their bytes.
+
+- Reject invalid UTF-8 in parsed MCAP string fields as `DatasetError` instead
+  of silently replacing malformed bytes in schema names, topics, message
+  encodings and compression labels. Preserve valid Unicode and binary payloads.
+
+- Verify nonzero MCAP chunk CRCs against decompressed records before parsing,
+  including uncompressed, LZ4 and Zstandard chunks. Preserve CRC-zero inputs
+  and reject mismatches in message reads and scanned connection listings.
+
+- Validate all bz2 streams in ROS 1 chunks instead of accepting trailing junk
+  after a valid stream. Preserve concatenated streams and compressed empty data;
+  reject missing compressed data and incomplete or corrupt later streams.
+
+- Validate every LZ4 frame in ROS 1 chunks, MCAP chunks and ROS 2 compressed
+  messages. Decode concatenated and skippable frames, reject damaged trailing
+  data, and retain MCAP raw-block compatibility and total-size validation.
+
+- Consume every Zstandard frame in compressed messages and MCAP chunks instead
+  of silently discarding bytes after the first frame. Preserve concatenated and
+  skippable frames; reject trailing garbage and incomplete or corrupt later frames.
+
+- Read MCAP outer record payloads in bounded blocks so invalid uint64 lengths
+  produce `DatasetError` instead of oversized read requests or overflow errors,
+  including file-compressed MCAP streams. Validate short chunk timestamps before
+  unpacking them in the public message reader.
+
+- Bounds-check ROS 1 inner record headers and payloads against their expanded
+  chunk. Report truncated length prefixes and oversized lengths as `DatasetError`;
+  cover public reads through uncompressed, bz2 and LZ4 chunks.
+
+- Bounds-check MCAP integer, string, byte-array and metadata-map fields before
+  reading them. Reject incomplete headers and oversized declared payload lengths
+  as `DatasetError` instead of leaking unpacking errors or accepting short slices.
+
+- Verify declared MCAP and ROS 1 chunk sizes before parsing their records,
+  including uncompressed/bz2 chunks and explicit zero sizes. Reject malformed
+  ROS 1 size fields while preserving the existing absent-size compatibility path.
+
+- Reject incomplete Zstandard message/chunk frames instead of accepting partial
+  decompression, including frames missing checksum bytes. Normalize codec errors
+  from Zstandard, LZ4 and ROS 1 bz2 chunks to `DatasetError`, retaining their causes.
+  Exercise corruption and public-reader rejection in compressed-bag CI.
+
+- Check that unit-test files using literal optional CPU `pytest.importorskip`
+  dependencies are registered in the matching extra-enabled CI job. Detect
+  missing test paths and coverage omissions without importing optional packages;
+  exclude files explicitly gated on CuPy at module scope.
+
+- Expand Numba adapter CI coverage to LiDAR deskew, residual summaries, rig
+  linearization caching, parallel summaries and online bag deskew. Require the
+  Numba import before tests so missing optional dependencies fail explicitly.
+
+- Expand the OpenCV CI job beyond hand-eye, visual rotation and focal tests to
+  initialization, probabilistic PnP, fisheye and correspondence-provider coverage.
+  Require a successful OpenCV import before tests to prevent silent adapter skips.
+
+- Add CI coverage for optional MCAP, LZ4 and Zstandard bag interoperability.
+  Require the adapters before testing and simulate missing codecs independently
+  of installed extras, covering successful reads and missing-dependency errors
+  in the same environment.
+
+- Validate sliding-window fault-injection translations as exactly three finite
+  real components before fitting. Prevent scalar/single-component broadcasting
+  from silently changing controls; preserve intended anchor and overlap shifts
+  in both normal and residual-space marginalization modes.
+
+- Validate sliding-window layout integer types before the batch reference fit.
+  Reject boolean/fractional sizes and overlaps, and convert NumPy integer counts
+  to Python integers before coverage arithmetic to avoid fixed-width overflow.
+
+- Require integer elimination dimensions and knot counts across marginalization
+  APIs, rejecting booleans and oversized requests before arithmetic. Validate
+  Schur input symmetry even for zero elimination; preserve valid no-op copies.
+
+- Validate native and B-spline solver settings before optimization: finite
+  damping/tolerances, integer iteration budgets and non-reversing native damping
+  scales. Preserve zero-iteration B-spline evaluation, zero B-spline stall
+  tolerances and unit native damping multipliers.
+
+- Reject nonfinite interior knot timestamps, mismatched knot states in dense
+  factor assembly, and out-of-range single-knot priors before fit evaluation.
+  Audit mixed weighted observations and all supported knot prior representations
+  against the native fitter's objective, normal gradient and manifold derivatives.
+
+- Exclude rows unrelated to eliminated variables and exactly absent columns from
+  residual-space rank decisions. Prevent zero-row padding from manufacturing
+  retained information while preserving unrelated observations and constant
+  costs. Generator 0.11 records total and involved residual row counts.
+
+- Replace the full residual-space SVD basis with thin SVD and implicit
+  Householder projection during square-root marginalization. Avoid quadratic
+  storage in residual rows at fixed column counts, preserving the rank rule
+  and complete profiled cost within floating-point accuracy (generator 0.10).
+
+- Compress outgoing residual-space window priors with QR of the augmented
+  Jacobian and residual, preserving constant cost and bounding stored rows by
+  retained variables plus one. Record before/after row counts in generator 0.9
+  evidence. Elimination itself still uses the dense residual-space SVD.
+
+- Add experimental `--square-root-marginalization` sliding-window mode. Transfer
+  rectangular residual factors directly between anchored knot windows without
+  converting them back to information priors. Record separate SVD elimination
+  evidence and the selected mode in generator 0.8 artifacts. Keep normal Schur
+  elimination as the default and the existing failed control gate unchanged.
+
+- Add a dense residual-space marginalization reference API that retains weighted
+  Jacobian and residual factors, avoiding cancellation from Schur subtraction.
+  Record normalized-column SVD rank and threshold; test weak retained information,
+  coupled nullspaces and complete profiled cost. Sliding-window fitting continues
+  to use its existing normal-equation path.
+
+- Compute Schur corrections in diagonally scaled coordinates, avoiding an
+  overflowing eliminated solution when the retained information and gradient
+  remain representable. Cover full-rank and coupled-nullspace systems with
+  subnormal weights; reject nonfinite retained results explicitly.
+
+- Add opt-in `project_observable_subspace` updates to the native sparse fitter.
+  Solve the damped model only within the diagonally scaled observed eigenspace;
+  reject a material gradient in numerical null directions. Record each attempted
+  projected step's rank, threshold and range check in window evidence. The
+  default solver is unchanged; synthetic generator 0.7 records the selected mode.
+
+- Support coupled numerical nullspaces in Schur elimination with diagonally
+  scaled rank and range checks. Reject retained coupling or gradients outside
+  the eliminated information range instead of silently projecting them away.
+  Keep full-rank solves and exact-zero handling, and record elimination rank,
+  thresholds and range errors in optional per-window evidence (generator 0.6).
+
+- Allow Schur elimination of exactly unobserved coordinates when their complete
+  rows, columns, and gradient entries are zero. Eliminate only the informative
+  subblock, preserving weak positive information without a pseudoinverse cutoff
+  or artificial prior. Reject inconsistent missing-information normal equations;
+  coupled singular active blocks remain unsupported.
+
+- Solve sparse trajectory updates only on columns with nonzero information,
+  keeping exactly unobserved coordinates unchanged without adding priors or
+  diagonal floors. Reassess the active columns every iteration and record the
+  frozen coordinates in per-window evidence. Generator 0.5 solves the previously
+  singular development window but retains the failed no-marginalization control.
+  Make scalar and batched screw-interpolation endpoint Jacobians exactly zero
+  or identity to prevent roundoff from manufacturing information on absent knots.
+
+- Add per-window local information diagnostics, separately for observations and
+  observations plus inherited marginal priors. Record scaled spectra, numerical
+  rank/nullity, exact zero-information coordinates, and coupled-nullspace
+  participation with global knot indices. Generator 0.4 exposes the synthetic
+  first window's unobserved terminal knot without adding artificial constraints.
+
+- Recompute sliding-trajectory costs, plane/pose errors, gradients, and final
+  stationarity from its returned knots instead of copying batch diagnostics.
+  Retain every window result, aggregate step maxima, and preserve earlier
+  failures in the overall status. Add optional per-window statuses and stitched
+  diagnostics to recovery artifacts. Generator 0.3 rejects nonconverged sliding
+  fits; the retained development seed exposes an earlier singular window.
+
+- Remove implicit initial-pose penalties from sliding-window fits against
+  world-frame planes. Preserve caller-supplied pose observations, admitting
+  each once when an incoming marginal prior is used. Retain the gauge audit's
+  paired seed: the unchanged no-marginalization control gate now fails, so the
+  synthetic recovery CLI reports failure rather than claiming demonstrated
+  marginalization benefit. Bump its generator version to 0.2.
+
+- Prevent repeated point-to-plane observations in sliding-window marginalization:
+  an incoming prior replaces all rows through the preceding window endpoint,
+  including that endpoint. Admit only later rows when the prior is used, while
+  preserving raw overlap observations in no-prior controls. Validate advancing
+  windows before fitting and allow prior-only trajectory problems.
+
+- Preserve cross-knot curvature and retained gradients with joint anchored
+  marginalization priors. Use the complete Schur prior in sliding-window fits
+  and include its coupled columns in both normal-equation builders and candidate
+  scoring. Keep the single-knot API and explicit block-diagonal helper available.
+
+- Preserve the retained normal-equation gradient in single-knot marginalization
+  priors. Evaluate the same shifted residual in linearization and candidate
+  scoring; reject gradients outside the information range. Use a linear solve
+  for Schur elimination. Multi-knot splitting remains a block-diagonal
+  approximation that drops cross-knot curvature.
+
+- Audit B-spline final stationarity with both feasible one-sided clock gradients
+  at exact internal IMU knot ties. Central-difference cancellation no longer
+  certifies convergence; report `stationarity_not_confirmed` when necessary.
+  Retain the existing optimization steps and covariance calculation.
+
+- Guard B-spline clock estimation with the common gyro/accelerometer time
+  domain. Reject infeasible coupled updates before constructing candidates,
+  retry with higher damping, and use inward finite differences at boundaries.
+  Record clock-domain diagnostics and reject zero-width estimation domains;
+  fixed-clock fitting remains supported.
+
+- Guard screw-linear clock updates with a shared feasible time domain, retry
+  rejected coupled candidates with more damping, and record domain diagnostics.
+  Unify derivative sides across IMU factors and check both feasible sides before
+  certifying stationarity at exact gyro knot ties. Retain three paired synthetic
+  development runs and boundary/knot regression tests.
+
+- Add frozen empirical per-axis error intervals using a finite-sample order
+  statistic on independent complete-pipeline recordings. Reject calibration/test
+  overlap and incompatible scopes; abstain with insufficient data and retain
+  failed attempts. Register model/evaluation schemas and retain the 20+10 bag
+  cohort, including three undercovered axes. Correct the P0 gravity comparison:
+  unaligned synthetic and odometry world frames cannot be compared component-wise.
+
+- Distinguish stalled continuous-time fits from stationary solutions in both
+  screw-linear and B-spline solvers. Use unit-invariant gradient and step
+  diagnostics, retain explicit termination reasons, extend result schemas with
+  `stalled`, and warn for a nonstationary final bag fit. Historical results remain
+  readable. Add independent uncertainty-coverage evaluation with every failed
+  trial retained; 20 known-plane and five full-pipeline synthetic bag draws
+  expose fixed-map covariance undercoverage without retuning intervals.
+
 - Add a method demo gallery for LiDAR–LiDAR, IMU deskew, Camera–IMU,
   Camera–LiDAR and fisheye stereo, with provenance and real/synthetic labels.
 - Support unified/MEI and Double Sphere cameras in native stereo rectification

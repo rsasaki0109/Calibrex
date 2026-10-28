@@ -1,0 +1,62 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.camera_lidar_initialization_summary/v0.1",
+      "default": "calibrex.camera_lidar_initialization_summary/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    },
+    "expected_inputs": {
+      "default": 14,
+      "title": "Expected Inputs",
+      "type": "integer"
+    },
+    "expected_axis_controls": {
+      "default": 42,
+      "title": "Expected Axis Controls",
+      "type": "integer"
+    },
+    "code_parity_matches": {
+      "title": "Code Parity Matches",
+      "type": "integer"
+    },
+    "historical_parity_matches": {
+      "title": "Historical Parity Matches",
+      "type": "integer"
+    },
+    "arms": {
+      "additionalProperties": true,
+      "title": "Arms",
+      "type": "object"
+    },
+    "controls": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Controls",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "provenance",
+    "code_parity_matches",
+    "historical_parity_matches",
+    "arms"
+  ],
+  "title": "Summary",
+  "type": "object"
+}

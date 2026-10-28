@@ -183,6 +183,38 @@ The v2 camera-lidar runs also read the Velodyne and OXTS of the first 600 frames
 
 ## Next candidates
 
+### Development restart, 2026-10-27
+
+The [training-only initialization work](research/camera_lidar_training_initialization.md)
+reproduces all twelve archived audit verdicts from their stored scores and adds
+an opt-in, per-fold training-only initialization mode to the camera–LiDAR profile
+probe. It removes the pooled conditional-start dependency; synthetic tests are
+not real-data accuracy evidence. All fourteen snapshot metadata files remain,
+but their local NPZ arrays are absent in this workspace. Restore and hash-check
+them before the fixed fourteen-input paired comparison. No new evaluation data,
+audit verdict, threshold or estimator default changes; capture remains 2/55.
+
+Follow-up recovery reacquired the two spent raw archives and matched their member
+inventories/CRCs and calibration SHA-256 pins. All fourteen native captures
+completed, with matching options/frame metadata, but all NPZ hashes differ.
+Native evidence has small objective/control-statistic differences exceeding the
+existing `1e-9` parity tolerance; transforms and discrete decisions match under
+that rule. The linked development page retains every difference and the failed
+download-cap attempt. Inputs now exist under
+`/workspace/work/camera-lidar-recovery-20261027/capture/`; resolve numerical parity
+before interpreting the initialization ablation. No new SOTA evidence is claimed.
+
+The subsequent same-input code control at `78eeeae6` matches archived/current
+pooled profile evidence on all fourteen reacquired inputs at the unchanged
+`1e-9` tolerance. Historical cross-capture profile parity still fails on all
+fourteen. A separately scoped training-only comparison completes all arms and
+changes detected controls from 20/42 to 19/42: only 0005 roll +3's yaw control
+is lost, with two training-fold fits in distant yaw basins. Both arms retain
+zero detections on 0002, including missed pitch +3. Results and every fold are
+linked from the development page. Do not promote or retune thresholds from this
+result; investigate fold/basin stability and nuisance ambiguity next. Capture
+remains 2/55 and the historical numerical drift remains unresolved.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).

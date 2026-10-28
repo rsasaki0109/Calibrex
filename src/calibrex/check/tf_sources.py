@@ -30,6 +30,7 @@ from calibrex.data.rosbag2 import (
     TF_MESSAGE_TYPE,
     iter_topic_messages,
     list_rosbag2_connections,
+    require_cdr_connection,
 )
 
 IMU_FRAME_NAME = "imu"
@@ -87,6 +88,7 @@ def load_bag_tf_static(bag: str | Path) -> LoadedSource | None:
     for connection, count in topics:
         limit = count if count else _MAX_TF_STATIC_MESSAGES
         for _conn, timestamp_ns, data in iter_topic_messages(bag, connection.topic, limit=limit):
+            require_cdr_connection(_conn)
             message_count += 1
             digest.update(connection.topic.encode("utf-8"))
             digest.update(data)

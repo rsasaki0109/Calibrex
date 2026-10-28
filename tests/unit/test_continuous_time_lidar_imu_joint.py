@@ -70,10 +70,12 @@ def test_recovery_retains_actual_optimizer_status_and_iteration_budget(recovery:
     artifact = recovery.artifact
     assert artifact.fit_status == recovery.fit_status
     assert artifact.iterations == recovery.iterations
-    assert artifact.fit_status in ("converged", "max_iterations")
+    assert artifact.fit_status in ("converged", "max_iterations", "stalled")
+    assert artifact.fit_diagnostics is not None
+    assert (artifact.fit_status == "converged") == artifact.fit_diagnostics.stationary
     assert 1 <= artifact.iterations <= recovery.max_iterations == 60
     # A quality-policy pass is not a stationarity certificate. In particular,
-    # the native fitter also uses max_iterations for early damping exhaustion.
+    # early damping exhaustion is now retained as stalled.
 
 
 @pytest.mark.parametrize("status,expected", [

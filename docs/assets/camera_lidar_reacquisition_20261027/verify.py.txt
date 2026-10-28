@@ -1,0 +1,48 @@
+import hashlib, json, math, subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+from tools.kitti_camera_lidar_v3_replay import load_snapshot
+from calibrex.core.camera_lidar_edge import load_camera_lidar_edge
+from calibrex.core.result import StrictModel
+from pydantic import Field
+from typing import Any, Literal
+
+class Report(StrictModel):
+    schema_version: Literal['calibrex.camera_lidar_reacquisition/v0.1']='calibrex.camera_lidar_reacquisition/v0.1'
+    provenance: dict[str, Any]
+    inputs: list[dict[str, Any]]=Field(default_factory=list)
+    status: str='investigation_required'
+    limitations: list[str]=Field(default_factory=lambda: ['Reacquired spent inputs are not the original NPZ cache.', 'Native evidence parity is a prerequisite diagnostic, not the paired profile experiment.', 'No new accuracy claim, evaluation data, threshold, or estimator default change.'])
+
+def digest(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+def differences(a,b,path=''):
+    rows=[]
+    if isinstance(a,dict) and isinstance(b,dict):
+        if a.keys()!=b.keys(): rows.append(dict(path=path,kind='keys'))
+        for k in a.keys() & b.keys(): rows+=differences(a[k],b[k],path+'/'+k)
+    elif isinstance(a,list) and isinstance(b,list):
+        if len(a)!=len(b): rows.append(dict(path=path,kind='length'))
+        for i,(x,y) in enumerate(zip(a,b)): rows+=differences(x,y,path+'/'+str(i))
+    elif type(a) in (int,float) and type(b) in (int,float):
+        if not math.isclose(a,b,rel_tol=0,abs_tol=1e-9):rows.append(dict(path=path,kind='numeric',new=a,archived=b,absolute_delta=abs(a-b)))
+    elif a!=b: rows.append(dict(path=path,kind='value',new=a,archived=b))
+    return rows
+root=Path.cwd(); base=Path('/workspace/work/camera-lidar-recovery-20261027')
+report=Report(provenance=dict(created_at=datetime.now(timezone.utc).isoformat(),git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),driver_sha256=digest(Path(__file__)),acquisition_sha256=digest(base/'acquisition.json'),retry_sha256=digest(base/'acquisition_retry.json'),calibration_sha256=digest(base/'calibration.json'),sensor_data_read=True,new_evaluation_started=False,comparison_absolute_tolerance=1e-9))
+for drive,folder in [('2011_09_26_0005','native_pilot_0005/attempt_2'),('2011_09_28_0002','native_development_20110928_0002/attempt_1')]:
+    current=base/'capture'/drive
+    archived=root/'docs/assets/kitti_camera_lidar_v3'/folder/'capture'
+    manifest=json.loads((current/'capture_manifest.json').read_text())
+    if not manifest['complete']: raise ValueError('incomplete capture: '+drive)
+    for run in ['baseline','inject_x+3','inject_y+3','inject_z+3','inject_x+1','inject_y+1','inject_z+1']:
+        p=current/run; old=archived/run
+        meta,frames,_,_,_=load_snapshot(p)
+        oldmeta=json.loads((old/'snapshot.json').read_text())
+        a=load_camera_lidar_edge(p/'captured_edge.json').model_dump(mode='json',exclude={'provenance'})
+        b=load_camera_lidar_edge(old/'captured_edge.json').model_dump(mode='json',exclude={'provenance'})
+        diff=differences(a,b)
+        report.inputs.append(dict(drive=drive,run=run,snapshot_path=str(p),snapshot_sha256=digest(p/'snapshot.json'),arrays_sha256=meta.arrays_sha256,archived_arrays_sha256=oldmeta['arrays_sha256'],arrays_byte_identical=meta.arrays_sha256==oldmeta['arrays_sha256'],frame_count=len(frames),options_match=meta.options==oldmeta['options'],frame_metadata_match=meta.model_dump(mode='json')['frames']==oldmeta['frames'],native_evidence_sha256=digest(p/'captured_edge.json'),archived_evidence_sha256=digest(old/'captured_edge.json'),native_numerical_parity=not diff,differences=diff))
+report.status='native_parity_verified' if all(r['native_numerical_parity'] for r in report.inputs) else 'investigation_required'
+(base/'verification.json').write_text(report.model_dump_json(indent=2)+'\n')
+(base/'verification.schema.json').write_text(json.dumps(Report.model_json_schema(),indent=2)+'\n')
+print(report.status,len(report.inputs),'inputs',sum(r['native_numerical_parity'] for r in report.inputs),'native parity matches')

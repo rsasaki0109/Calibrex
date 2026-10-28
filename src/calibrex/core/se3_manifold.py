@@ -325,6 +325,10 @@ class _ScrewSegment:
         return self._jacobian_factors
 
     def jacobians(self, alpha: float) -> tuple[FloatArray, FloatArray]:
+        if alpha == 0.:
+            return np.eye(6), np.zeros((6, 6))
+        if alpha == 1.:
+            return np.zeros((6, 6)), np.eye(6)
         inverse_u, inverse_adjoint_u = self._factors()
         scaled, rotation, translation, v_block = self._sample(alpha)
         v_scaled, w_scaled = scaled[:3], scaled[3:]

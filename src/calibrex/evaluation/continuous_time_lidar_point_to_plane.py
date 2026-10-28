@@ -105,6 +105,7 @@ def run_synthetic_lidar_point_to_plane_recovery(
         train_measurement_count=len(train),
         holdout_measurement_count=len(holdout),
         fit_status=result.status,
+        fit_diagnostics=result.diagnostics,
         max_knot_error=max_knot_error,
         train_point_to_plane_rmse_m=train_rmse,
         holdout_point_to_plane_rmse_m=holdout_rmse,

@@ -16,7 +16,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from calibrex.core.exceptions import DatasetError
-from calibrex.data.rosbag2 import decode_imu, iter_topic_messages
+from calibrex.data.rosbag2 import decode_imu, iter_topic_messages, require_cdr_connection
 
 # Heuristic: a rotation axis counts as excited by an excursion of this many degrees.
 EXCITED_EXCURSION_DEG = 10.0
@@ -78,7 +78,8 @@ def recording_motion_note(
     times: list[float] = []
     rates: list[list[float]] = []
     try:
-        for _conn, timestamp_ns, payload in iter_topic_messages(bag, imu_topic):
+        for connection, timestamp_ns, payload in iter_topic_messages(bag, imu_topic):
+            require_cdr_connection(connection)
             message = decode_imu(imu_topic, timestamp_ns, payload)
             time_s = message.timestamp_ns * 1.0e-9
             if max_duration_s is not None and times and time_s - times[0] > max_duration_s:

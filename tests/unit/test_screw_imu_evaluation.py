@@ -51,7 +51,7 @@ def _measurement(window: tuple[float, float], magnitude: float):
 
 def _previous_gyro(
     knots, timestamps, measurement, gyro_bias, clock_offset_sec=0.0, gyro_scale=None, *,
-    imu_rotation=None, interpolation=None, rotation_jacobian=False,
+    imu_rotation=None, interpolation=None, rotation_jacobian=False, clock_side=None,
 ):
     """Pre-change factor and separate mounting helper, with all three integrals."""
     scale = np.ones(3) if gyro_scale is None else np.asarray(gyro_scale).reshape(3)
@@ -70,8 +70,13 @@ def _previous_gyro(
     log = manifold.so3_left_jacobian_inverse(-residual)
     start_block, end_block = -log @ delta.T, manifold.so3_left_jacobian_inverse(residual)
     jb, js = -log @ jb, -log @ js
-    ws = sparse._angular_rate_at(knots, timestamps, start_time, interpolation=interpolation)
-    we = sparse._angular_rate_at(knots, timestamps, end_time, interpolation=interpolation)
+    side = clock_side if clock_side is not None else "left"
+    ws = sparse._angular_rate_at(
+        knots, timestamps, start_time, side=side, interpolation=interpolation,
+    )
+    we = sparse._angular_rate_at(
+        knots, timestamps, end_time, side=side, interpolation=interpolation,
+    )
     clock = (start_block @ (-ws) + end_block @ (-we)).reshape(3, 1)
     combined = {}
     for index, block in (*sparse._interpolate_rotation_blocks(

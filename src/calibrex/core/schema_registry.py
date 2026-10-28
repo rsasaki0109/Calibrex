@@ -250,6 +250,21 @@ _ENTRY_SPECS: Final = (
         "calibrex.core.continuous_time_lidar_imu_joint:continuous_time_lidar_imu_joint_json_schema",
     ),
     _EntrySpec(
+        "empirical-interval-model",
+        "calibrex.core.empirical_intervals:EmpiricalIntervalModel",
+        "calibrex.core.empirical_intervals:empirical_interval_model_json_schema",
+    ),
+    _EntrySpec(
+        "empirical-interval-evaluation",
+        "calibrex.core.empirical_intervals:EmpiricalIntervalEvaluation",
+        "calibrex.core.empirical_intervals:empirical_interval_evaluation_json_schema",
+    ),
+    _EntrySpec(
+        "uncertainty-coverage",
+        "calibrex.evaluation.uncertainty_coverage:UncertaintyCoverageReport",
+        "calibrex.evaluation.uncertainty_coverage:uncertainty_coverage_json_schema",
+    ),
+    _EntrySpec(
         "lidar-imu-bag-calibration",
         "calibrex.core.lidar_imu_bag_calibration:LidarImuBagCalibrationArtifact",
         "calibrex.core.lidar_imu_bag_calibration:lidar_imu_bag_calibration_json_schema",

@@ -391,6 +391,7 @@ def _calibrate_lidar_imu_bag(
                 map_planes=map_size,
                 plane_returns=len(planes.times_sec),
                 fit_status=result.status,
+                fit_diagnostics=result.diagnostics,
                 iterations=result.iterations,
                 rotation_change_deg=change,
             )
@@ -776,6 +777,8 @@ def _policy(
     warnings = [
         f"{record.name} is weak: {record.reason}" for record in blocks if record.verdict == "weak"
     ]
+    if fit_status != "converged":
+        warnings.append(f"the final inner fit is {fit_status}; stationarity was not established")
     if not converged:
         warnings.append(
             "the map rounds did not converge: the rotation still moved "

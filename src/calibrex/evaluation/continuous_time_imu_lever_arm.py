@@ -121,6 +121,7 @@ def run_synthetic_imu_lever_arm_recovery(
         train_measurement_count=len(train),
         holdout_measurement_count=len(holdout),
         fit_status=result.status,
+        fit_diagnostics=result.diagnostics,
         max_knot_translation_error_m=max_translation_error,
         lever_arm_error_m=lever_error,
         train_lever_arm_rmse_m_s2=train_rmse,

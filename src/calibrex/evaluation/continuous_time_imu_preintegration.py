@@ -132,6 +132,7 @@ def run_synthetic_imu_preintegration_recovery(
         train_measurement_count=len(train),
         holdout_measurement_count=len(holdout),
         fit_status=result.status,
+        fit_diagnostics=result.diagnostics,
         max_knot_rotation_error_rad=max_rotation_error,
         gyro_bias_error_rad_s=bias_error,
         train_imu_rotation_rmse_rad=train_rmse,

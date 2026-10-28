@@ -1,0 +1,32 @@
+import hashlib
+import json
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+from tools.kitti_drive_fetch import fetch_drive
+root = Path.cwd()
+out = Path('/workspace/work/camera-lidar-recovery-20261027')
+sources = [('2011_09_28', '0002', 'native_development_20110928_0002/attempt_1')]
+report = {'status': 'running', 'created_at': datetime.now(timezone.utc).isoformat(), 'git_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(), 'driver_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), 'purpose': 'Reacquire two spent development recordings; no fresh evaluation.', 'runs': []}
+def save():
+    (out / 'acquisition_retry.json').write_text(json.dumps(report, indent=2) + '\n')
+save()
+for date, drive, folder in sources:
+    source = root / 'docs/assets/kitti_camera_lidar_v3' / folder / 'fetch.json'
+    old = json.loads(source.read_text())
+    item = {'drive': date + '_' + drive, 'source': str(source.relative_to(root)), 'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest(), 'status': 'running'}
+    report['runs'].append(item)
+    save()
+    try:
+        result = fetch_drive(date, drive, old['max_frames'], out / 'raw', (old['size_bytes'], old['etag']), max_fetch_bytes=1073741824, curl_retries=0)
+        path = out / (date + '_' + drive + '_fetch.json')
+        path.write_text(json.dumps(result, indent=2) + '\n')
+        item.update(status='completed', receipt_sha256=hashlib.sha256(path.read_bytes()).hexdigest(), fetched_bytes=result['fetched_bytes'], frames=result['frames'], members_match_archive=result['members_sha256'] == old['members_sha256'], crc_verified=result['crc_verified'])
+        if not item['members_match_archive']:
+            raise ValueError('selected member inventory differs from archived capture')
+    except Exception as exc:
+        item.update(status='failed', error=f'{type(exc).__name__}: {exc}')
+    save()
+report['status'] = 'completed' if all(r['status'] == 'completed' for r in report['runs']) else 'failed'
+save()
+print(json.dumps(report, indent=2), flush=True)

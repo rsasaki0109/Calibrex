@@ -284,3 +284,166 @@ def test_holdout_session_eviction_and_independent_measurements_remain_exact(
     assert not np.array_equal(train.residual("gyro", calibration),
                               session.residual("gyro", calibration))
     assert _controls(actual, calibration, 9.) == _controls(reference, calibration, 9.)
+
+
+@pytest.mark.parametrize("boundary", ["lower", "upper"])
+@pytest.mark.parametrize("cached", [False, True])
+def test_clock_boundary_probes_stay_in_shared_domain(problem, monkeypatch, boundary, cached):
+    # Keep this step-size comparison away from interior knots; the shared-work
+    # tests above separately exercise knot-crossing probes.
+    gyro_times, accel_times = problem.gyro.times_sec.copy(), problem.accel.times_sec.copy()
+    gyro_times[10:13] = accel_times[10:13] = [.12, .13, .14]
+    problem = replace(problem, gyro=replace(problem.gyro, times_sec=gyro_times),
+                      accel=replace(problem.accel, times_sec=accel_times))
+    path = problem.initial_trajectory
+    if boundary == "upper":
+        times = problem.gyro.times_sec.copy()
+        times[0] = path.start_time_sec
+        problem = replace(problem, gyro=replace(problem.gyro, times_sec=times))
+        direction = -1
+    else:
+        times = problem.accel.times_sec.copy()
+        times[-1] = path.end_time_sec
+        problem = replace(problem, accel=replace(problem.accel, times_sec=times))
+        direction = 1
+    original = fit._gather
+    probes = []
+
+    def gather(trajectory, times, **kwargs):
+        assert np.all(times >= trajectory.start_time_sec)
+        assert np.all(times <= trajectory.end_time_sec)
+        probes.append(times.copy())
+        return original(trajectory, times, **kwargs)
+
+    monkeypatch.setattr(fit, "_gather", gather)
+    families = fit._families(problem.planes, problem.gyro, problem.accel)
+    cache = fit._EvaluationCache(families) if cached else None
+    jacobian, residual = fit._linearize(
+        path, problem.initial_calibration, families, ("imu_clock_offset",), cache=cache,
+    )
+    # Independent inward difference at a smaller step checks sign and scale.
+    step = direction * 2e-7
+    moved = problem.initial_calibration.stepped("imu_clock_offset", np.array([step]))
+    shifted = fit.lidar_imu_residuals(path, moved, problem.planes, problem.gyro, problem.accel)
+    vector = np.concatenate([shifted[name].ravel() for name in families])
+    np.testing.assert_allclose(jacobian.toarray()[:, -1], (vector - residual) / step,
+                               rtol=2e-3, atol=.1)
+    assert probes
+    result = fit.fit_bspline_lidar_imu(problem, fit.BSplineLidarImuFitOptions(max_iterations=0))
+    assert np.sign(result.diagnostics.clock_domain.derivative_step_sec) == direction
+
+
+@pytest.mark.parametrize("estimate", [("imu_clock_offset",), fit.CALIBRATION_BLOCKS])
+def test_outside_clock_candidate_is_rejected_before_apply(problem, monkeypatch, estimate):
+    problem = replace(problem, estimate=estimate)
+    clock_column = 6 * problem.initial_trajectory.control_point_count + sum(
+        fit._BLOCK_WIDTH[block] for block in estimate[:estimate.index("imu_clock_offset")]
+    )
+    def solve(matrix, rhs):
+        step = np.zeros_like(rhs)
+        step[clock_column] = 100.
+        return step
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("out-of-domain candidate must be rejected before applying any update")
+
+    monkeypatch.setattr(fit, "spsolve", solve)
+    monkeypatch.setattr(fit, "_apply_step", forbidden)
+    result = fit.fit_bspline_lidar_imu(problem)
+    assert result.status == "stalled"
+    assert result.diagnostics.termination_reason == "clock_domain_limit"
+    assert result.diagnostics.clock_domain.rejected_steps > 1
+    assert result.final_cost == result.initial_cost
+
+
+def test_clock_domain_rejection_can_retry(problem, monkeypatch):
+    original = fit.spsolve
+    calls = 0
+
+    def solve(matrix, rhs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            step = np.zeros_like(rhs)
+            step[6 * problem.initial_trajectory.control_point_count + 9] = 100.
+            return step
+        return original(matrix, rhs)
+
+    monkeypatch.setattr(fit, "spsolve", solve)
+    result = fit.fit_bspline_lidar_imu(problem, fit.BSplineLidarImuFitOptions(max_iterations=2))
+    assert calls > 1
+    assert result.diagnostics.clock_domain.rejected_steps >= 1
+    assert result.final_cost < result.initial_cost
+
+
+def test_zero_width_clock_domain_requires_fixed_clock(problem):
+    times = problem.gyro.times_sec.copy()
+    times[0], times[-1] = 0., problem.initial_trajectory.end_time_sec
+    problem = replace(problem, gyro=replace(problem.gyro, times_sec=times))
+    with pytest.raises(ValueError, match="positive-width"):
+        fit.fit_bspline_lidar_imu(problem)
+    result = fit.fit_bspline_lidar_imu(
+        replace(problem, estimate=("gyro_bias",)), fit.BSplineLidarImuFitOptions(max_iterations=0),
+    )
+    assert result.diagnostics.clock_domain is None
+
+
+def test_initial_clock_outside_shared_domain_is_rejected(problem):
+    problem = replace(problem, initial_calibration=replace(
+        problem.initial_calibration, imu_clock_offset_sec=10.,
+    ))
+    with pytest.raises(ValueError, match="outside the shared time domain"):
+        fit.fit_bspline_lidar_imu(problem)
+
+
+def test_central_clock_cancellation_at_knot_is_not_convergence(problem):
+    # Construct residuals orthogonal to the entire central Jacobian, but not to
+    # the positive one-sided clock column. Control points remain free in the fit.
+    path, calibration = problem.initial_trajectory, problem.initial_calibration
+    families = fit._families(problem.planes, problem.gyro, problem.accel)
+    estimate = ("imu_clock_offset",)
+    central, original = fit._linearize(path, calibration, families, estimate)
+    positive, _ = fit._linearize(path, calibration, families, estimate, clock_direction=1)
+    matrix = central.toarray()
+    target = positive.toarray()[:, -1]
+    residual = target - matrix @ np.linalg.lstsq(matrix, target, rcond=1e-10)[0]
+    assert np.linalg.norm(residual) > 1.
+    residual *= -1. / np.linalg.norm(residual)
+    difference = original - residual
+    count = len(problem.planes.times_sec)
+    planes = replace(problem.planes, plane_points_world_m=(
+        problem.planes.plane_points_world_m
+        + difference[:count, None] * problem.planes.sigma_m * problem.planes.plane_normals_world
+    ))
+    gyro_count = problem.gyro.values.size
+    gyro = replace(problem.gyro, values=(problem.gyro.values
+        + difference[count:count + gyro_count].reshape(-1, 3) * problem.gyro.sigma))
+    accel = replace(problem.accel, values=(problem.accel.values
+        + difference[count + gyro_count:].reshape(-1, 3) * problem.accel.sigma))
+    problem = replace(problem, planes=planes, gyro=gyro, accel=accel, estimate=estimate)
+    families = fit._families(planes, gyro, accel)
+    jacobian, actual = fit._linearize(path, calibration, families, estimate)
+    central_gradient = fit.normalized_gradient_norm(
+        jacobian.T @ actual, np.asarray(jacobian.power(2).sum(axis=0)).ravel(),
+        float(np.linalg.norm(actual)),
+    )
+    assert central_gradient < 1e-6
+    # Verify actual descent independently of the stopping diagnostics.
+    shifted = calibration.stepped("imu_clock_offset", np.array([1e-8]))
+    assert fit._cost(path, shifted, families) < fit._cost(path, calibration, families)
+    result = fit.fit_bspline_lidar_imu(problem, fit.BSplineLidarImuFitOptions(
+        gradient_tolerance=1e-6,
+    ))
+    assert result.status == "stalled"
+    assert result.diagnostics.termination_reason == "stationarity_not_confirmed"
+    assert not result.diagnostics.stationary
+    assert result.diagnostics.normalized_gradient_norm > 1e-6
+    assert result.diagnostics.clock_domain.opposite_gradient_norm > 1e-6
+
+
+def test_exact_zero_residual_at_knot_remains_stationary(problem):
+    calibration = replace(problem.initial_calibration, gyro_bias_rad_s=np.zeros(3))
+    result = fit.fit_bspline_lidar_imu(replace(problem, initial_calibration=calibration))
+    assert result.status == "converged"
+    assert result.diagnostics.stationary
+    assert result.diagnostics.clock_domain.opposite_gradient_norm is not None

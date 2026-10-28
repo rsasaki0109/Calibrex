@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import sqlite3
 import struct
+import sys
 from pathlib import Path
 
 import pytest
@@ -646,24 +647,17 @@ def test_rosbag2_livox_custommsg_is_a_normalized_lidar_stream(tmp_path: Path) ->
     assert Rosbag2Reader(bag).streams()[0].kind == "pointcloud"
 
 
-def test_rosbag2_missing_lz4_codec_error() -> None:
-    if importlib_available("lz4"):
-        pytest.skip("lz4 is installed in this environment")
+def test_rosbag2_missing_lz4_codec_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("lz4", "lz4.block", "lz4.frame"):
+        monkeypatch.setitem(sys.modules, name, None)
     with pytest.raises(DatasetError, match=r"calibrex\[rosbag2-compression\]"):
         _lz4_decompress(b"\x00", 1)
 
 
-def test_rosbag2_missing_zstd_codec_error() -> None:
-    if importlib_available("zstandard"):
-        pytest.skip("zstandard is installed in this environment")
+def test_rosbag2_missing_zstd_codec_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(sys.modules, "zstandard", None)
     with pytest.raises(DatasetError, match=r"calibrex\[rosbag2-compression\]"):
         _zstd_decompress(b"\x00", 1)
-
-
-def importlib_available(name: str) -> bool:
-    import importlib.util
-
-    return importlib.util.find_spec(name) is not None
 
 
 def test_rosbag2_bare_db3_entry_point(tmp_path: Path) -> None:

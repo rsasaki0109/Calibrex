@@ -51,11 +51,24 @@ from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import spsolve
 
 from calibrex.core._se3_batch import _point_jacobians, _sample_segment, _transform_points
+from calibrex.core.clock_domain import ClockDomainEvidence, ClockOffsetDomain
 from calibrex.core.continuous_time_marginalization import (
+    JointKnotMarginalizationPrior,
     KnotMarginalizationPrior,
+    SquareRootKnotMarginalizationPrior,
+    joint_marginalization_prior_blocks,
+    joint_marginalization_prior_residual,
     marginalization_prior_blocks,
+    marginalization_prior_residual,
+)
+from calibrex.core.fit_diagnostics import (
+    FitDiagnostics,
+    FitTermination,
+    normalized_gradient_norm,
+    normalized_step_norm,
 )
 from calibrex.core.geometry import SE3
+from calibrex.core.observable_step import ProjectedStepEvidence, observable_subspace_step
 from calibrex.core.se3_manifold import (
     _cross3,
     _rotation_log,
@@ -74,7 +87,7 @@ from calibrex.core.se3_manifold import (
 
 FloatArray: TypeAlias = NDArray[np.float64]
 
-FitStatus = Literal["converged", "max_iterations", "singular_system"]
+FitStatus = Literal["converged", "max_iterations", "singular_system", "stalled"]
 
 
 @dataclass(frozen=True)
@@ -331,6 +344,9 @@ class ContinuousTimeTrajectoryFitProblem:
     estimate_imu_rotation: bool = False
     knot_marginalization_priors: tuple[KnotMarginalizationPrior, ...] = ()
     interpolation: Literal["screw_linear"] = "screw_linear"
+    joint_knot_marginalization_priors: tuple[
+        JointKnotMarginalizationPrior | SquareRootKnotMarginalizationPrior, ...
+    ] = ()
 
     def __post_init__(self) -> None:
         if len(self.knot_timestamps) < 2:
@@ -342,9 +358,7 @@ class ContinuousTimeTrajectoryFitProblem:
             for left, right in pairwise(self.knot_timestamps)
         ):
             raise ValueError("knot timestamps must be strictly increasing")
-        if not math.isfinite(self.knot_timestamps[0]) or not math.isfinite(
-            self.knot_timestamps[-1]
-        ):
+        if not all(math.isfinite(timestamp) for timestamp in self.knot_timestamps):
             raise ValueError("knot timestamps must be finite")
         if (
             not self.point_measurements
@@ -352,6 +366,8 @@ class ContinuousTimeTrajectoryFitProblem:
             and not self.pose_measurements
             and not self.imu_preintegration_measurements
             and not self.imu_lever_arm_measurements
+            and not self.knot_marginalization_priors
+            and not self.joint_knot_marginalization_priors
         ):
             raise ValueError("trajectory fit requires at least one measurement")
         if not all(math.isfinite(value) for value in self.initial_gyro_bias_rad_s):
@@ -406,16 +422,21 @@ class ContinuousTimeTrajectoryFitOptions:
     convergence_step_norm: float = 1.0e-9
     damping_scale_down: float = 0.5
     damping_scale_up: float = 10.0
+    project_observable_subspace: bool = False
 
     def __post_init__(self) -> None:
-        if self.max_iterations < 1:
-            raise ValueError("max_iterations must be at least one")
-        if self.initial_damping <= 0.0:
-            raise ValueError("initial_damping must be positive")
-        if self.convergence_gradient_norm <= 0.0:
-            raise ValueError("convergence_gradient_norm must be positive")
-        if self.convergence_step_norm <= 0.0:
-            raise ValueError("convergence_step_norm must be positive")
+        if (isinstance(self.max_iterations, (bool, np.bool_))
+                or not isinstance(self.max_iterations, (int, np.integer))
+                or self.max_iterations < 1):
+            raise ValueError("max_iterations must be an integer of at least one")
+        for name in ("initial_damping", "convergence_gradient_norm", "convergence_step_norm"):
+            value = getattr(self, name)
+            if not math.isfinite(value) or value <= 0.:
+                raise ValueError(f"{name} must be finite and positive")
+        if not math.isfinite(self.damping_scale_down) or not 0. < self.damping_scale_down <= 1.:
+            raise ValueError("damping_scale_down must be finite and in (0, 1]")
+        if not math.isfinite(self.damping_scale_up) or self.damping_scale_up < 1.:
+            raise ValueError("damping_scale_up must be finite and at least one")
 
 
 @dataclass(frozen=True)
@@ -424,7 +445,9 @@ class ContinuousTimeTrajectoryFitResult:
 
     ``gradient_norm`` is the infinity norm of the final weighted normal
     right-hand side, half the squared-objective gradient at the returned state.
-    A small accepted step is a separate existing convergence criterion.
+    Small damped steps alone do not establish stationarity.
+    ``frozen_parameter_indices`` records columns with exactly zero information
+    at any iteration, not a claim that those coordinates remain unobservable.
     """
 
     status: FitStatus
@@ -452,6 +475,9 @@ class ContinuousTimeTrajectoryFitResult:
     calibration_parameter_names: tuple[str, ...] = ()
     calibration_covariance: tuple[tuple[float, ...], ...] | None = None
     residual_variance: float | None = None
+    diagnostics: FitDiagnostics | None = None
+    frozen_parameter_indices: tuple[int, ...] = ()
+    projected_step_diagnostics: tuple[ProjectedStepEvidence, ...] = ()
 
 
 _ANCHOR_POINTS: tuple[tuple[float, float, float], ...] = (
@@ -550,6 +576,7 @@ def _prepare_evaluation(
     clock_offset: float,
     *,
     jacobians: bool,
+    clock_step: float = 1.0e-6,
 ) -> None:
     if interpolation is None:
         return
@@ -577,7 +604,7 @@ def _prepare_evaluation(
             body_time = _imu_body_time(time, clock_offset)
             request(body_time, jacobians)
     for lever in lever_rows:
-        offsets = (clock_offset, clock_offset + 1.0e-6) if jacobians else (clock_offset,)
+        offsets = (clock_offset, clock_offset + clock_step) if jacobians else (clock_offset,)
         for index, offset in enumerate(offsets):
             try:
                 times = _body_motion_sample_times(
@@ -599,6 +626,9 @@ def fit_continuous_trajectory(
     settings = options or ContinuousTimeTrajectoryFitOptions()
     timestamps = problem.knot_timestamps
     knots = list(problem.initial_knot_poses)
+    if any(prior.knot_index < 0 or prior.knot_index >= len(knots)
+           for prior in problem.knot_marginalization_priors):
+        raise ValueError("marginalization prior knot index is out of range")
     gyro_bias = np.asarray(problem.initial_gyro_bias_rad_s, dtype=float)
     lever_arm = np.asarray(problem.initial_lever_arm_body_m, dtype=float)
     clock_offset = float(problem.initial_imu_clock_offset_sec)
@@ -673,6 +703,18 @@ def fit_continuous_trajectory(
             )
         lever_rows.append(lever_measurement)
 
+    clock_domain = None
+    rejected_clock_steps = 0
+    if estimate_clock:
+        observed_times = [m.start_time_sec for m in imu_rows]
+        observed_times.extend(m.end_time_sec for m in imu_rows)
+        observed_times.extend(m.timestamp_sec for m in lever_rows)
+        clock_domain = ClockOffsetDomain(
+            timestamps[0], timestamps[-1], min(observed_times), max(observed_times),
+        )
+        if not clock_domain.contains(clock_offset):
+            raise ValueError("initial IMU clock offset is outside the shared time domain")
+
     damping = settings.initial_damping
     gradient_norm = math.inf
     plane_batch = _plane_batch(timestamps, plane_rows)
@@ -707,6 +749,7 @@ def fit_continuous_trajectory(
     max_step_translation = 0.0
     max_step_rotation_deg = 0.0
     status: FitStatus = "max_iterations"
+    termination: FitTermination = "iteration_limit"
     iterations = 0
     knot_count = len(knots)
     parameter_count = (
@@ -740,13 +783,21 @@ def fit_continuous_trajectory(
         gyro_scale: FloatArray,
         accel_scale: FloatArray,
         imu_rotation_vector: FloatArray,
+        clock_step_override: float | None = None,
     ) -> tuple[
         list[tuple[int, int, NDArray[np.float64]]], FloatArray, FloatArray, csc_matrix
     ]:
         interpolation = _ScrewInterpolation(knots)
+        clock_step = (clock_domain.difference_step(clock_offset)
+                      if clock_domain is not None else 1.0e-6)
+        if clock_step_override is not None:
+            clock_step = clock_step_override
+        clock_side: Literal["left", "right"] | None = (
+            ("left" if clock_step > 0 else "right") if clock_domain is not None else None
+        )
         _prepare_evaluation(
             interpolation, problem, point_rows, plane_rows, pose_rows, imu_rows, lever_rows,
-            clock_offset, jacobians=True,
+            clock_offset, jacobians=True, clock_step=clock_step,
         )
         imu_rotation = _imu_rotation_matrix(imu_rotation_vector)
         blocks: list[tuple[int, int, NDArray[np.float64]]] = []
@@ -813,6 +864,7 @@ def fit_continuous_trajectory(
                 imu_rotation=imu_rotation,
                 interpolation=interpolation,
                 rotation_jacobian=estimate_imu_rot,
+                clock_side=clock_side,
             )
             residuals.extend(float(value) for value in factor.residual)
             weights.extend([imu_measurement.weight] * 3)
@@ -853,6 +905,7 @@ def fit_continuous_trajectory(
                 accel_scale,
                 imu_rotation=imu_rotation,
                 interpolation=interpolation,
+                clock_step=clock_step,
             )
             residuals.extend(float(value) for value in residual)
             weights.extend([lever_measurement.weight] * 3)
@@ -915,6 +968,14 @@ def fit_continuous_trajectory(
                 )
                 row_offset += 1
 
+        for joint_prior in problem.joint_knot_marginalization_priors:
+            prior_residual, prior_blocks = joint_marginalization_prior_blocks(joint_prior, knots)
+            residuals.extend(float(value) for value in prior_residual)
+            weights.extend([1.0] * len(prior_residual))
+            for index, block in prior_blocks:
+                blocks.append((row_offset, 6 * index, block))
+            row_offset += len(prior_residual)
+
         residual_array = np.asarray(residuals, dtype=float)
         weight_array = np.asarray(weights, dtype=float)
         jacobian = _assemble_sparse_jacobian(
@@ -924,6 +985,8 @@ def fit_continuous_trajectory(
         )
         return blocks, residual_array, weight_array, jacobian
 
+    projected_step_diagnostics: list[ProjectedStepEvidence] = []
+    frozen_parameter_indices: set[int] = set()
     linearization_is_current = False
     for iteration in range(settings.max_iterations):
         iterations = iteration + 1
@@ -941,24 +1004,57 @@ def fit_continuous_trajectory(
         weighted_jacobian = jacobian.multiply(weight_array[:, None])
         normal = weighted_jacobian.T @ weighted_jacobian
         rhs = weighted_jacobian.T @ (weight_array * residual_array)
+        active_columns = normal.diagonal() > 0.
+        frozen_parameter_indices.update(int(i) for i in np.flatnonzero(~active_columns))
         gradient_norm = float(np.max(np.abs(rhs)))
         linearization_is_current = True
 
-        if gradient_norm < settings.convergence_gradient_norm:
+        scaled_gradient = normalized_gradient_norm(
+            rhs, normal.diagonal(), float(np.linalg.norm(weight_array * residual_array))
+        )
+        if scaled_gradient < settings.convergence_gradient_norm:
             status = "converged"
+            termination = "gradient_tolerance"
             break
 
         damping_matrix = normal + damping * _block_diagonal_scale(
             normal, knot_count, parameter_count
         )
         try:
-            delta = spsolve(damping_matrix.tocsc(), -rhs)
+            if settings.project_observable_subspace:
+                delta, projection = observable_subspace_step(
+                    normal.toarray(), rhs, damping_matrix.toarray(),
+                )
+                projected_step_diagnostics.append(projection)
+            elif np.all(active_columns):
+                delta = spsolve(damping_matrix.tocsc(), -rhs)
+            else:
+                # Exactly zero weighted Jacobian columns carry no information.
+                # Keep their current values; do not add a prior or diagonal floor.
+                reduced = damping_matrix.tocsc()[active_columns, :][:, active_columns]
+                delta = np.zeros(parameter_count, dtype=float)
+                delta[active_columns] = spsolve(reduced, -rhs[active_columns])
         except RuntimeError:
             status = "singular_system"
+            termination = "singular_system"
             break
         if not np.all(np.isfinite(delta)):
             status = "singular_system"
+            termination = "singular_system"
             break
+
+        if clock_domain is not None and not clock_domain.contains(
+            clock_offset + float(delta[clock_offset_index])
+        ):
+            # Reject the complete coupled candidate before evaluating any factor.
+            # More damping may yield a feasible proposal; never clip timestamps.
+            rejected_clock_steps += 1
+            damping *= settings.damping_scale_up
+            if damping > 1.0e12:
+                status = "stalled"
+                termination = "clock_domain_limit"
+                break
+            continue
 
         candidate = [
             se3_exp(knot, delta[6 * i : 6 * i + 6]) for i, knot in enumerate(knots)
@@ -1057,15 +1153,17 @@ def fit_continuous_trajectory(
             max_step_translation = max(max_step_translation, step_translation)
             max_step_rotation_deg = max(max_step_rotation_deg, step_rotation)
             damping = max(damping * settings.damping_scale_down, 1.0e-12)
-            if (
-                step_translation < settings.convergence_step_norm
-                and step_rotation_rad < settings.convergence_step_norm
-            ):
-                status = "converged"
+            if normalized_step_norm(
+                delta, normal.diagonal(), float(np.linalg.norm(weight_array * residual_array))
+            ) < settings.convergence_step_norm:
+                status = "stalled"
+                termination = "small_step"
                 break
         else:
             damping *= settings.damping_scale_up
             if damping > 1.0e12:
+                status = "stalled"
+                termination = "damping_limit"
                 break
 
     if status != "converged" and best_objective < objective:
@@ -1101,6 +1199,53 @@ def fit_continuous_trajectory(
         final_weighted_jacobian = final_jacobian.multiply(final_weights[:, None])
         final_rhs = final_weighted_jacobian.T @ (final_weights * final_residuals)
         gradient_norm = float(np.max(np.abs(final_rhs)))
+    final_weighted = final_jacobian.multiply(final_weights[:, None])
+    scaled_gradient = normalized_gradient_norm(
+        final_weighted.T @ (final_weights * final_residuals),
+        np.asarray(final_weighted.power(2).sum(axis=0)).ravel(),
+        float(np.linalg.norm(final_weights * final_residuals)),
+    )
+    stationary = scaled_gradient < settings.convergence_gradient_norm
+    opposite_gradient = None
+    if stationary and clock_domain is not None and any(
+        _imu_body_time(time, clock_offset) in timestamps[1:-1]
+        for measurement in imu_rows
+        for time in (measurement.start_time_sec, measurement.end_time_sec)
+    ):
+        # At an internal screw knot, one vanishing one-sided clock column can
+        # hide descent on the other side. Check both sides when both are feasible.
+        primary_step = clock_domain.difference_step(clock_offset)
+        direction: Literal[-1, 1] = -1 if primary_step > 0 else 1
+        if clock_domain.contains(math.nextafter(clock_offset, math.inf * direction)):
+            opposite_step = clock_domain.difference_step(clock_offset, direction=direction)
+            _other_blocks, other_residual, other_weights, other_jacobian = _linearize(
+                knots, gyro_bias, lever_arm, clock_offset, accel_bias, gravity,
+                gyro_scale, accel_scale, imu_rotation_vector,
+                clock_step_override=opposite_step,
+            )
+            other_weighted = other_jacobian.multiply(other_weights[:, None])
+            opposite_gradient = normalized_gradient_norm(
+                other_weighted.T @ (other_weights * other_residual),
+                np.asarray(other_weighted.power(2).sum(axis=0)).ravel(),
+                float(np.linalg.norm(other_weights * other_residual)),
+            )
+            stationary = opposite_gradient < settings.convergence_gradient_norm
+    if status == "converged" and not stationary:
+        status = "stalled"
+        termination = "stationarity_not_confirmed"
+    if stationary and status != "singular_system":
+        status = "converged"
+        termination = "gradient_tolerance"
+    diagnostics = FitDiagnostics(
+        termination_reason=termination, normalized_gradient_norm=scaled_gradient,
+        gradient_tolerance=settings.convergence_gradient_norm, stationary=stationary,
+        clock_domain=(ClockDomainEvidence(
+            lower_sec=clock_domain.lower, upper_sec=clock_domain.upper,
+            rejected_steps=rejected_clock_steps,
+            derivative_step_sec=clock_domain.difference_step(clock_offset),
+            opposite_gradient_norm=opposite_gradient,
+        ) if clock_domain is not None else None),
+    )
     if layout and status != "singular_system":
         covariance, residual_variance = _marginal_calibration_covariance(
             final_jacobian, final_residuals, final_weights, knot_count
@@ -1136,6 +1281,7 @@ def fit_continuous_trajectory(
     )
     return ContinuousTimeTrajectoryFitResult(
         status=status,
+        diagnostics=diagnostics,
         iterations=iterations,
         knot_poses=tuple(knots),
         initial_knot_poses=problem.initial_knot_poses,
@@ -1182,6 +1328,8 @@ def fit_continuous_trajectory(
         max_step_rotation_deg=max_step_rotation_deg,
         gradient_norm=gradient_norm,
         nonzero_jacobian_blocks=len(blocks),
+        frozen_parameter_indices=tuple(sorted(frozen_parameter_indices)),
+        projected_step_diagnostics=tuple(projected_step_diagnostics),
         imu_rotation_vector_rad=(
             (
                 float(imu_rotation_vector[0]),
@@ -1432,6 +1580,7 @@ def _lever_arm_residual(
     *,
     imu_rotation: NDArray[np.float64] | None = None,
     interpolation: _ScrewInterpolation | None = None,
+    clock_step: float = 1.0e-6,
 ) -> tuple[
     FloatArray,
     NDArray[np.float64],
@@ -1463,7 +1612,7 @@ def _lever_arm_residual(
             interpolation=interpolation,
         )
     )
-    epsilon = 1.0e-6
+    epsilon = clock_step
     perturbed, _kinematic, _omega, _alpha, _rotation = _evaluate_lever_arm(
         knots,
         timestamps,
@@ -1829,6 +1978,7 @@ def _linearize_imu_preintegration(
     imu_rotation: NDArray[np.float64] | None = None,
     interpolation: _ScrewInterpolation | None = None,
     rotation_jacobian: bool = False,
+    clock_side: Literal["left", "right"] | None = None,
 ) -> _ImuPreintegrationLinearization:
     """Prepare every requested block from one factor-local gyro integral."""
     scale = np.ones(3, dtype=float) if gyro_scale is None else np.asarray(
@@ -1858,7 +2008,10 @@ def _linearize_imu_preintegration(
     # A positive clock update moves both endpoints to the left in body time.
     # At the first domain endpoint only the opposite clock side is feasible;
     # select that same side for both endpoints, including internal knot ties.
-    side: Literal["left", "right"] = "right" if start_time == timestamps[0] else "left"
+    side: Literal["left", "right"] = (
+        clock_side if clock_side is not None
+        else ("right" if start_time == timestamps[0] else "left")
+    )
     omega_start = _angular_rate_at(
         knots, timestamps, start_time, side=side, interpolation=interpolation,
     )
@@ -2348,8 +2501,11 @@ def _objective(
             return math.inf
         objective += lever_measurement.weight**2 * float(np.sum(residual * residual))
     for prior in problem.knot_marginalization_priors:
-        delta = se3_log(prior.anchor_pose, knots[prior.knot_index])
-        objective += float(delta.T @ prior.information @ delta)
+        residual = marginalization_prior_residual(prior, knots[prior.knot_index])
+        objective += float(residual @ residual)
+    for joint_prior in problem.joint_knot_marginalization_priors:
+        residual = joint_marginalization_prior_residual(joint_prior, knots)
+        objective += float(residual @ residual)
     return objective
 
 
@@ -2437,6 +2593,37 @@ def build_dense_knot_normal_equations(
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Return a dense knot-only normal system ``(H, g)`` at the current linearization."""
 
+    normal, gradient, _objective_value, _block_count = _knot_normal_evidence(problem, knots)
+    return normal, gradient
+
+
+def _knot_normal_evidence(
+    problem: ContinuousTimeTrajectoryFitProblem, knots: list[SE3],
+) -> tuple[NDArray[np.float64], NDArray[np.float64], float, int]:
+    """Return normal equations, squared residual cost and block count at fixed knots."""
+
+    jacobian, residual, block_count = _knot_residual_system(problem, knots)
+    normal = (jacobian.T @ jacobian).toarray()
+    gradient = np.asarray(jacobian.T @ residual, dtype=float).reshape(-1)
+    return normal, gradient, float(np.sum(residual ** 2)), block_count
+
+
+def build_dense_knot_residual_equations(
+    problem: ContinuousTimeTrajectoryFitProblem, knots: list[SE3],
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """Return already weighted knot factors without forming normal equations."""
+    jacobian, residual, _blocks = _knot_residual_system(problem, knots)
+    return jacobian.toarray(), residual
+
+
+def _knot_residual_system(
+    problem: ContinuousTimeTrajectoryFitProblem, knots: list[SE3],
+) -> tuple[csc_matrix, NDArray[np.float64], int]:
+    """Assemble supported knot-only factors once for both representations."""
+    if len(knots) != len(problem.knot_timestamps):
+        raise ValueError("knot poses must match the knot timestamps")
+    if problem.imu_preintegration_measurements or problem.imu_lever_arm_measurements:
+        raise ValueError("knot residual assembly does not support IMU factors")
     if (
         problem.estimate_gyro_bias
         or problem.estimate_lever_arm
@@ -2514,6 +2701,8 @@ def build_dense_knot_normal_equations(
             blocks.append((row_offset, 6 * (interval + 1), jacobian_right))
             row_offset += 3
     for prior in problem.knot_marginalization_priors:
+        if prior.knot_index < 0 or prior.knot_index >= knot_count:
+            raise ValueError("marginalization prior knot index is out of range")
         weighted_residual, weighted_jacobian = marginalization_prior_blocks(
             prior, knots[prior.knot_index]
         )
@@ -2528,6 +2717,13 @@ def build_dense_knot_normal_equations(
                 )
             )
             row_offset += 1
+    for joint_prior in problem.joint_knot_marginalization_priors:
+        prior_residual, prior_blocks = joint_marginalization_prior_blocks(joint_prior, knots)
+        residuals.extend(float(value) for value in prior_residual)
+        weights.extend([1.0] * len(prior_residual))
+        for index, block in prior_blocks:
+            blocks.append((row_offset, 6 * index, block))
+        row_offset += len(prior_residual)
     parameter_count = 6 * knot_count
     jacobian = _assemble_sparse_jacobian(
         blocks,
@@ -2537,9 +2733,7 @@ def build_dense_knot_normal_equations(
     residual_array = np.asarray(residuals, dtype=float)
     weight_array = np.asarray(weights, dtype=float)
     weighted_jacobian = jacobian.multiply(weight_array[:, None])
-    normal = (weighted_jacobian.T @ weighted_jacobian).toarray()
-    gradient = weighted_jacobian.T @ (weight_array * residual_array)
-    return normal, np.asarray(gradient, dtype=float).reshape(-1)
+    return csc_matrix(weighted_jacobian), weight_array * residual_array, len(blocks)
 
 
 

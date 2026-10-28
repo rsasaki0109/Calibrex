@@ -320,6 +320,133 @@ def test_rosbag1_decodes_pose_stamped() -> None:
     assert message.orientation_xyzw == (0.0, 0.0, 0.0, 1.0)
 
 
+@pytest.mark.parametrize('kind', ['pointcloud', 'livox', 'empty_livox', 'pose'])
+@pytest.mark.parametrize('secs,nsecs', [(0, 0), (2, 999_999_999),
+                                       (2**32 - 1, 999_999_999),
+                                       (0, 1_000_000_000), (2, 2**32 - 1)])
+def test_sensor_header_timestamp_range(kind, secs, nsecs):
+    points = [(1.0, 2.0, 3.0, 10.0)]
+    if kind == 'pointcloud':
+        payload = _serialize_pointcloud2(points, frame_id='sensor', secs=secs,
+                                         nsecs=nsecs, with_intensity=True)
+        decode = decode_pointcloud2
+    elif kind in ('livox', 'empty_livox'):
+        payload = _serialize_livox_custommsg(points if kind == 'livox' else [],
+                                            frame_id='sensor', secs=secs, nsecs=nsecs,
+                                            timebase_ns=123)
+        decode = decode_livox_custommsg
+    else:
+        payload = (struct.pack('<IIII', 0, secs, nsecs, 6) + b'sensor'
+                   + struct.pack('<7d', 1, 2, 3, 0, 0, 0, 1))
+        decode = decode_pose_stamped
+    if nsecs >= 1_000_000_000:
+        with pytest.raises(DatasetError, match='header nanoseconds are outside'):
+            decode('/sensor', 99, payload)
+    else:
+        message = decode('/sensor', 99, payload)
+        assert message.timestamp_ns == (secs * 1_000_000_000 + nsecs or 99)
+        assert message.frame_id == 'sensor'
+
+
+def test_bag_reader_rejects_bad_sensor_time_even_with_valid_record_time(tmp_path):
+    payload = _serialize_pointcloud2([(1.0, 2.0, 3.0, 10.0)], frame_id='lidar',
+                                     secs=2, nsecs=1_000_000_000, with_intensity=True)
+    inner = (_connection_record(1, '/points', 'sensor_msgs/PointCloud2')
+             + _message_record(1, 2, 3, payload))
+    chunk = _record({'op': b'\x05', 'compression': b'none',
+                     'size': struct.pack('<I', len(inner))}, inner)
+    bag = tmp_path / 'sensor-time.bag'
+    bag.write_bytes(BAG_MAGIC + chunk)
+    with pytest.raises(DatasetError, match='header nanoseconds are outside'):
+        list(read_pointcloud2_messages(bag))
+
+
+def test_livox_rejects_every_incomplete_point_sequence():
+    payload = _serialize_livox_custommsg(
+        [(1.0, 2.0, 3.0, 10.0), (4.0, 5.0, 6.0, 20.0)],
+        frame_id='sensor', secs=2, nsecs=3)
+    points_start = len(payload) - 2 * 19
+    for end in range(points_start, len(payload)):
+        with pytest.raises(DatasetError, match=r'truncated .* point sequence'):
+            decode_livox_custommsg('/points', 0, payload[:end])
+    oversized = bytearray(payload)
+    struct.pack_into('<I', oversized, points_start - 4, 2**32 - 1)
+    with pytest.raises(DatasetError, match=r'truncated .* point sequence'):
+        decode_livox_custommsg('/points', 0, bytes(oversized))
+
+
+@pytest.mark.parametrize('point_num', [0, 1, 2, 3, 2**32 - 1])
+def test_livox_sequence_length_governs_points_independent_of_point_num(point_num):
+    payload = bytearray(_serialize_livox_custommsg(
+        [(1.0, 2.0, 3.0, 10.0), (4.0, 5.0, 6.0, 20.0)],
+        frame_id='sensor', secs=2, nsecs=3))
+    # Header (16 + frame length), then uint64 timebase, then point_num.
+    struct.pack_into('<I', payload, 16 + len('sensor') + 8, point_num)
+    message = decode_livox_custommsg('/points', 0, bytes(payload))
+    assert message.point_num == point_num
+    assert message.point_count == 2
+    assert message.xyz.tolist() == [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
+    assert message.offset_time_ns.tolist() == [0, 1000]
+
+
+def test_bag_reader_rejects_truncated_livox_points(tmp_path):
+    payload = _serialize_livox_custommsg([(1.0, 2.0, 3.0, 10.0)],
+                                         frame_id='sensor', secs=2, nsecs=3)[:-1]
+    inner = (_connection_record(1, '/points', 'livox_ros_driver/CustomMsg')
+             + _message_record(1, 2, 3, payload))
+    bag = tmp_path / 'short-livox.bag'
+    bag.write_bytes(BAG_MAGIC + _record(
+        {'op': b'\x05', 'compression': b'none', 'size': struct.pack('<I', len(inner))}, inner))
+    summary = summarize_rosbag1(bag)
+    assert summary.status == 'malformed'
+    assert 'truncated livox_ros_driver/CustomMsg point sequence' in summary.reason
+
+
+def test_pointcloud_rejects_every_incomplete_required_prefix():
+    payload = _serialize_pointcloud2([(1.0, 2.0, 3.0, 10.0)], frame_id='lidar',
+                                     secs=2, nsecs=3, with_intensity=True)
+    for end in range(len(payload) - 1):
+        with pytest.raises(DatasetError, match='truncated'):
+            decode_pointcloud2('/points', 0, payload[:end])
+    # Preserve the existing compatibility path for an omitted trailing is_dense.
+    assert decode_pointcloud2('/points', 0, payload[:-1]).xyz.tolist() == [[1.0, 2.0, 3.0]]
+
+
+@pytest.mark.parametrize('length', [18, 2**32 - 1])
+def test_pointcloud_declared_data_length_must_fit_payload(tmp_path, length):
+    payload = bytearray(_serialize_pointcloud2([(1.0, 2.0, 3.0, 10.0)], frame_id='lidar',
+                                               secs=2, nsecs=3, with_intensity=True))
+    points_start = len(payload) - 1 - 16
+    struct.pack_into('<I', payload, points_start - 4, length)
+    with pytest.raises(DatasetError, match=r'truncated .* point data'):
+        decode_pointcloud2('/points', 0, bytes(payload))
+    inner = (_connection_record(1, '/points', 'sensor_msgs/PointCloud2')
+             + _message_record(1, 2, 3, bytes(payload)))
+    bag = tmp_path / 'short-cloud.bag'
+    bag.write_bytes(BAG_MAGIC + _record(
+        {'op': b'\x05', 'compression': b'none', 'size': struct.pack('<I', len(inner))}, inner))
+    with pytest.raises(DatasetError, match=r'truncated .* point data'):
+        list(read_pointcloud2_messages(bag))
+
+
+@pytest.mark.parametrize('empty', [False, True])
+def test_pointcloud_rejects_zero_point_step_without_dividing(empty):
+    points = [] if empty else [(1.0, 2.0, 3.0, 10.0)]
+    payload = bytearray(_serialize_pointcloud2(points, frame_id='lidar',
+                                               secs=2, nsecs=3, with_intensity=True))
+    points_start = len(payload) - 1 - len(points) * 16
+    struct.pack_into('<I', payload, points_start - 12, 0)
+    with pytest.raises(DatasetError, match='point_step must be positive'):
+        decode_pointcloud2('/points', 0, bytes(payload))
+
+
+def test_livox_and_pose_reject_short_fixed_headers_as_dataset_errors():
+    for decode in (decode_livox_custommsg, decode_pose_stamped):
+        for end in range(16):
+            with pytest.raises(DatasetError, match='truncated'):
+                decode('/sensor', 0, b'\x00' * end)
+
+
 def test_rosbag1_records_normalize_ros_time(tmp_path: Path) -> None:
     bag = _sample_bag(tmp_path / "sample.bag")
     records = list(Rosbag1Reader(bag).records("/livox/lidar"))

@@ -1,0 +1,17 @@
+from pathlib import Path
+import json,hashlib,sys,subprocess
+import calibrex
+from calibrex.evaluation.continuous_time_lidar_imu_joint import run_synthetic_lidar_imu_joint_recovery
+folder=Path(sys.argv[1]);folder.mkdir(parents=True,exist_ok=False)
+source_root=Path(calibrex.__file__).parent
+sources={str(p.relative_to(source_root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(source_root.rglob('*.py'))}
+protocol={'seeds':[20261010,1,2],'trajectory':'screw_linear','source_sha256':sources,'base':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'command':sys.argv}
+(folder/'protocol.json').write_text(json.dumps(protocol,indent=2)+'\n')
+for seed in protocol['seeds']:
+ try:
+  r=run_synthetic_lidar_imu_joint_recovery(seed=seed,command=sys.argv)
+  r.save(folder/f'result-{seed}.json')
+  print(seed,r.fit_status,r.iterations,r.policy_status,flush=True)
+ except Exception as exc:
+  (folder/f'failure-{seed}.json').write_text(json.dumps({'seed':seed,'error':str(exc),'type':type(exc).__name__})+'\n')
+  print(seed,type(exc).__name__,str(exc),flush=True)

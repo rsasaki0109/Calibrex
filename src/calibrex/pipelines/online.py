@@ -175,6 +175,7 @@ from calibrex.data.rosbag2 import (
 from calibrex.data.rosbag2 import (
     ODOMETRY_TYPE,
     decode_odometry,
+    require_cdr_connection,
 )
 from calibrex.data.rosbag2 import (
     decode_lidar_message as decode_rosbag2_lidar_message,
@@ -1527,6 +1528,7 @@ def _select_rosbag2_capture_record_timestamps(
         if connection.message_type not in ROS2_LIDAR_MESSAGE_TYPES:
             continue
         if connection.topic == source_topic:
+            require_cdr_connection(connection)
             message = decode_rosbag2_lidar_message(
                 connection.topic,
                 connection.message_type,
@@ -1538,6 +1540,7 @@ def _select_rosbag2_capture_record_timestamps(
                 (timestamp_ns, _rosbag2_message_timestamp_ns(message, timestamp_ns))
             )
         elif connection.topic == target_topic:
+            require_cdr_connection(connection)
             message = decode_rosbag2_lidar_message(
                 connection.topic,
                 connection.message_type,
@@ -2954,6 +2957,7 @@ def _load_rosbag2_online_pair(
         if topic == source_topic:
             if evenly_spaced_sampling and timestamp_ns not in selected_source_record_timestamps:
                 continue
+            require_cdr_connection(connection)
             message = _decode_rosbag2_online_lidar(
                 topic,
                 connection.message_type,
@@ -3109,6 +3113,7 @@ def _load_rosbag2_online_pair(
         if evenly_spaced_sampling and timestamp_ns not in selected_target_record_timestamps:
             continue
 
+        require_cdr_connection(connection)
         message = _decode_rosbag2_online_lidar(
             topic,
             connection.message_type,
@@ -3411,6 +3416,7 @@ def _load_rosbag2_odometry_track(
     ):
         if connection.message_type != ODOMETRY_TYPE:
             continue
+        require_cdr_connection(connection)
         message = decode_odometry(connection.topic, timestamp_ns, data)
         if not world_frame_id:
             world_frame_id = message.frame_id
@@ -3521,6 +3527,7 @@ def collect_rosbag2_cross_segment_scans(
                 margin_s=capture_window_record_prefilter_margin_s,
             ):
                 continue
+            require_cdr_connection(connection)
             message = decode_rosbag2_lidar_message(
                 connection.topic,
                 connection.message_type,
@@ -3592,6 +3599,7 @@ def collect_rosbag2_cross_segment_scans(
             continue
         if timestamp_ns not in selected_record_ns:
             continue
+        require_cdr_connection(connection)
         message = decode_rosbag2_lidar_message(
             connection.topic,
             connection.message_type,

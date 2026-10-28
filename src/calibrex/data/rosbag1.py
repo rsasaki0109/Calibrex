@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import BinaryIO
 
 from calibrex.core.exceptions import DatasetError
+from calibrex.data._compression import decompress_lz4_frames
 from calibrex.data.base import StreamSummary, TimestampedRecord
 from calibrex.data.ros_messages import (
     MAX_CAMERA_INFO_DISTORTION_COEFFICIENTS,
@@ -324,6 +325,13 @@ def _read_exact(source: BinaryIO, size: int) -> bytes:
     return data
 
 
+def _decode_header_text(value: bytes, field: str, encoding: str = "utf-8") -> str:
+    try:
+        return value.decode(encoding)
+    except UnicodeDecodeError as exc:
+        raise DatasetError(f"invalid {encoding} in ROS bag {field}") from exc
+
+
 def _read_header_fields(header: bytes) -> dict[str, bytes]:
     fields: dict[str, bytes] = {}
     offset = 0
@@ -343,7 +351,11 @@ def _read_header_fields(header: bytes) -> dict[str, bytes]:
         if separator < 0:
             msg = "malformed ROS bag header field (missing '=')"
             raise DatasetError(msg)
-        name = chunk[:separator].decode("ascii", errors="strict")
+        name = _decode_header_text(chunk[:separator], "header field name", "ascii")
+        if not name:
+            raise DatasetError("malformed ROS bag header field (empty name)")
+        if name in fields:
+            raise DatasetError(f"duplicate ROS bag header field: {name!r}")
         fields[name] = chunk[separator + 1 :]
     return fields
 
@@ -352,7 +364,19 @@ def _decompress_chunk(compression: str, size: int, data: bytes) -> bytes:
     if compression == "none":
         return data
     if compression == "bz2":
-        return bz2.decompress(data)
+        parts: list[bytes] = []
+        remaining = data
+        try:
+            while True:
+                decoder = bz2.BZ2Decompressor()
+                parts.append(decoder.decompress(remaining))
+                if not decoder.eof:
+                    raise EOFError("incomplete bz2 stream")
+                remaining = decoder.unused_data
+                if not remaining:
+                    return b"".join(parts)
+        except (OSError, ValueError, EOFError) as exc:
+            raise DatasetError("invalid or truncated bz2-compressed ROS bag chunk") from exc
     if compression == "lz4":
         return _lz4_decompress(data, size)
     msg = f"unsupported ROS bag chunk compression: {compression!r}"
@@ -361,14 +385,15 @@ def _decompress_chunk(compression: str, size: int, data: bytes) -> bytes:
 
 def _lz4_decompress(data: bytes, size: int) -> bytes:
     try:
-        import lz4.frame
+        decompressed = decompress_lz4_frames(data)
     except ImportError as exc:  # pragma: no cover - exercised via error path test
         msg = (
             "lz4-compressed ROS bags require the optional dependency "
             "calibrex[rosbag1-lz4]"
         )
         raise DatasetError(msg) from exc
-    decompressed: bytes = lz4.frame.decompress(data)
+    except (RuntimeError, ValueError) as exc:
+        raise DatasetError("invalid or truncated lz4-compressed ROS bag chunk") from exc
     if size and len(decompressed) != size:  # pragma: no cover - defensive
         msg = "lz4 chunk decompressed to an unexpected size"
         raise DatasetError(msg)
@@ -379,12 +404,20 @@ def _iter_inner_records(buffer: bytes) -> Iterator[tuple[dict[str, bytes], bytes
     offset = 0
     total = len(buffer)
     while offset < total:
+        if total - offset < 4:
+            raise DatasetError("truncated ROS bag inner record header length")
         (header_len,) = struct.unpack_from("<I", buffer, offset)
         offset += 4
+        if header_len > total - offset:
+            raise DatasetError("truncated ROS bag inner record header")
         header = buffer[offset : offset + header_len]
         offset += header_len
+        if total - offset < 4:
+            raise DatasetError("truncated ROS bag inner record data length")
         (data_len,) = struct.unpack_from("<I", buffer, offset)
         offset += 4
+        if data_len > total - offset:
+            raise DatasetError("truncated ROS bag inner record data")
         data = buffer[offset : offset + data_len]
         offset += data_len
         yield _read_header_fields(header), data
@@ -466,6 +499,8 @@ def _record_op(header: dict[str, bytes]) -> int:
     if op_bytes is None or len(op_bytes) < 1:
         msg = "ROS bag record header missing 'op' field"
         raise DatasetError(msg)
+    if len(op_bytes) != 1:
+        raise DatasetError("invalid ROS bag op header field length")
     return op_bytes[0]
 
 
@@ -512,9 +547,15 @@ def _iter_chunk_messages(
     connections: dict[int, Rosbag1Connection],
     topics: set[str] | None,
 ) -> Iterator[tuple[Rosbag1Connection, int, bytes]]:
-    compression = chunk_header.get("compression", b"none").decode("ascii")
-    size = _uint32(chunk_header.get("size")) or 0
-    buffer = _decompress_chunk(compression, size, chunk_data)
+    compression = _decode_header_text(chunk_header.get("compression", b"none"),
+                                      "compression field", "ascii")
+    raw_size = chunk_header.get("size")
+    if raw_size is not None and len(raw_size) != 4:
+        raise DatasetError("invalid ROS bag chunk size field")
+    declared_size = _uint32(raw_size)
+    buffer = _decompress_chunk(compression, declared_size or 0, chunk_data)
+    if declared_size is not None and len(buffer) != declared_size:
+        raise DatasetError("ROS bag chunk decompressed to an unexpected size")
     pending: list[tuple[int, int, bytes]] = []
     for header, data in _iter_inner_records(buffer):
         op = _record_op(header)
@@ -539,45 +580,55 @@ def _iter_chunk_messages(
 
 def _parse_connection(header: dict[str, bytes], data: bytes) -> Rosbag1Connection:
     conn_id = _uint32(header.get("conn"))
-    topic = header.get("topic", b"").decode("utf-8")
+    topic = _decode_header_text(header.get("topic", b""), "topic field")
     if conn_id is None:
         msg = "ROS bag connection record missing 'conn'"
         raise DatasetError(msg)
     data_header = _read_header_fields(data)
-    message_type = data_header.get("type", b"").decode("utf-8")
+    message_type = _decode_header_text(data_header.get("type", b""), "type field")
     if not topic:
-        topic = data_header.get("topic", b"").decode("utf-8")
+        topic = _decode_header_text(data_header.get("topic", b""), "topic field")
     md5 = data_header.get("md5sum")
     definition = data_header.get("message_definition")
     return Rosbag1Connection(
         conn_id=conn_id,
         topic=topic,
         message_type=message_type,
-        md5sum=md5.decode("ascii") if md5 is not None else None,
-        message_definition=definition.decode("utf-8", errors="replace")
+        md5sum=_decode_header_text(md5, "md5sum field", "ascii") if md5 is not None else None,
+        message_definition=_decode_header_text(definition, "message_definition field")
         if definition is not None
         else None,
     )
 
 
 def _uint32(value: bytes | None) -> int | None:
-    if value is None or len(value) < 4:
+    if value is None:
         return None
-    return int(struct.unpack("<I", value[:4])[0])
+    if len(value) != 4:
+        raise DatasetError("invalid ROS bag uint32 header field length")
+    return int(struct.unpack("<I", value)[0])
 
 
 def _uint64(value: bytes | None) -> int | None:
     """Decode a little-endian unsigned 64-bit field when present."""
 
-    if value is None or len(value) < 8:
+    if value is None:
         return None
-    return int(struct.unpack("<Q", value[:8])[0])
+    if len(value) != 8:
+        raise DatasetError("invalid ROS bag uint64 header field length")
+    return int(struct.unpack("<Q", value)[0])
 
 
 def _time_field_to_ns(value: bytes | None) -> int | None:
-    if value is None or len(value) < 8:
+    if value is None:
         return None
-    secs, nsecs = struct.unpack("<II", value[:8])
+    if len(value) != 8:
+        raise DatasetError("invalid ROS bag time header field length")
+    secs, nsecs = struct.unpack("<II", value)
+    if nsecs >= 1_000_000_000:
+        raise DatasetError(
+            "invalid ROS bag time header field: nanoseconds must be below 1000000000"
+        )
     return int(secs) * 1_000_000_000 + int(nsecs)
 
 
@@ -1046,6 +1097,8 @@ def decode_livox_custommsg(topic: str, timestamp_ns: int, data: bytes) -> LivoxC
     _seq, offset = _read_uint32(data, offset)
     stamp_secs, offset = _read_uint32(data, offset)
     stamp_nsecs, offset = _read_uint32(data, offset)
+    if stamp_nsecs >= 1_000_000_000:
+        raise DatasetError("livox_ros_driver/CustomMsg header nanoseconds are outside [0, 1e9)")
     frame_id, offset = _read_string(data, offset)
     if offset + 8 > len(data):
         msg = "truncated livox_ros_driver/CustomMsg (timebase)"
@@ -1060,9 +1113,11 @@ def decode_livox_custommsg(topic: str, timestamp_ns: int, data: bytes) -> LivoxC
     offset += 1
     offset += 3  # uint8[3] reserved
     array_len, offset = _read_uint32(data, offset)
-    count = min(int(point_num), int(array_len))
-    available = max(0, (len(data) - offset) // _LIVOX_CUSTOM_POINT_STEP)
-    count = min(count, available)
+    # The serialized sequence length governs the array, as in the ROS 2 reader.
+    # point_num is retained as producer metadata, not used to truncate the data.
+    count = int(array_len)
+    if count * _LIVOX_CUSTOM_POINT_STEP > len(data) - offset:
+        raise DatasetError("truncated livox_ros_driver/CustomMsg point sequence")
     if count <= 0:
         empty = numpy_module.empty((0, 3), dtype=numpy_module.float64)
         header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
@@ -1133,6 +1188,8 @@ def decode_pose_stamped(
     _sequence, offset = _read_uint32(data, offset)
     stamp_secs, offset = _read_uint32(data, offset)
     stamp_nsecs, offset = _read_uint32(data, offset)
+    if stamp_nsecs >= 1_000_000_000:
+        raise DatasetError("geometry_msgs/PoseStamped header nanoseconds are outside [0, 1e9)")
     frame_id, offset = _read_string(data, offset)
     if offset + 56 > len(data):
         msg = "truncated geometry_msgs/PoseStamped payload"
@@ -1168,6 +1225,8 @@ def decode_pointcloud2(
     _seq, offset = _read_uint32(data, offset)
     stamp_secs, offset = _read_uint32(data, offset)
     stamp_nsecs, offset = _read_uint32(data, offset)
+    if stamp_nsecs >= 1_000_000_000:
+        raise DatasetError("sensor_msgs/PointCloud2 header nanoseconds are outside [0, 1e9)")
     frame_id, offset = _read_string(data, offset)
     height, offset = _read_uint32(data, offset)
     width, offset = _read_uint32(data, offset)
@@ -1177,16 +1236,24 @@ def decode_pointcloud2(
     for _ in range(field_count):
         name, offset = _read_string(data, offset)
         field_offset, offset = _read_uint32(data, offset)
+        if offset >= len(data):
+            raise DatasetError("truncated sensor_msgs/PointCloud2 field datatype")
         datatype = data[offset]
         offset += 1
         count, offset = _read_uint32(data, offset)
         fields.append(PointField(name=name, offset=field_offset, datatype=datatype, count=count))
 
+    if offset >= len(data):
+        raise DatasetError("truncated sensor_msgs/PointCloud2 endianness")
     is_bigendian = data[offset]
     offset += 1
     point_step, offset = _read_uint32(data, offset)
+    if point_step == 0:
+        raise DatasetError("sensor_msgs/PointCloud2 point_step must be positive")
     _row_step, offset = _read_uint32(data, offset)
     payload_len, offset = _read_uint32(data, offset)
+    if payload_len > len(data) - offset:
+        raise DatasetError("truncated sensor_msgs/PointCloud2 point data")
     payload = data[offset : offset + payload_len]
     offset += payload_len
     # Trailing is_dense byte is intentionally not required for decoding.
@@ -1649,12 +1716,16 @@ def _elementwise_max(
 
 
 def _read_uint32(data: bytes, offset: int) -> tuple[int, int]:
+    if offset < 0 or offset + 4 > len(data):
+        raise DatasetError("truncated ROS 1 uint32 field")
     (value,) = struct.unpack_from("<I", data, offset)
     return int(value), offset + 4
 
 
 def _read_string(data: bytes, offset: int) -> tuple[str, int]:
     length, offset = _read_uint32(data, offset)
+    if length > len(data) - offset:
+        raise DatasetError("truncated ROS 1 string field")
     text = data[offset : offset + length].decode("utf-8", errors="replace")
     return text, offset + length
 

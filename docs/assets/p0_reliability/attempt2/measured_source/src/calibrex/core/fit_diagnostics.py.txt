@@ -1,0 +1,69 @@
+"""Dimensionless stationarity diagnostics for weighted least-squares fits."""
+
+from __future__ import annotations
+
+from typing import Literal
+
+import numpy as np
+from numpy.typing import NDArray
+from pydantic import Field
+
+from calibrex.core.result import StrictModel
+
+FitTermination = Literal[
+    "gradient_tolerance",
+    "small_step",
+    "small_cost_change",
+    "damping_limit",
+    "iteration_limit",
+    "singular_system",
+]
+
+
+class FitDiagnostics(StrictModel):
+    """Final-state evidence, not an observability or accuracy certificate.
+
+    The gradient is divided by each weighted Jacobian column norm and by
+    max(1, ||weighted residual||). This is invariant to independent linear
+    changes of parameter units, without adding information in weak directions.
+    Zero columns contribute zero (and must be assessed for observability
+    separately). The stationarity threshold is recorded with the measurement.
+    """
+
+    termination_reason: FitTermination
+    normalized_gradient_norm: float = Field(ge=0, allow_inf_nan=False)
+    gradient_tolerance: float = Field(gt=0, allow_inf_nan=False)
+    stationary: bool
+
+
+def normalized_gradient_norm(
+    gradient: NDArray[np.float64],
+    diagonal: NDArray[np.float64],
+    residual_norm: float,
+) -> float:
+    """Return the largest normalized column/residual inner product."""
+
+    g = np.asarray(gradient, dtype=float)
+    d = np.asarray(diagonal, dtype=float)
+    if (
+        not (np.all(np.isfinite(g)) and np.all(np.isfinite(d)) and np.isfinite(residual_norm))
+        or np.any(d < 0)
+        or residual_norm < 0
+    ):
+        raise ValueError("normal model must be finite with nonnegative diagonal and residual norm")
+    if np.any((d == 0) & (g != 0)):
+        raise ValueError("zero Jacobian columns cannot have a nonzero gradient")
+    scaled = np.divide(g, np.sqrt(d), out=np.zeros_like(g), where=d > 0)
+    return float(np.max(np.abs(scaled), initial=0.0) / max(1.0, residual_norm))
+
+
+def normalized_step_norm(
+    step: NDArray[np.float64], diagonal: NDArray[np.float64], residual_norm: float,
+) -> float:
+    """Measure a step in weighted residual units, invariant to parameter units.
+
+    This is only a stagnation trigger. Neither a small step nor a zero column
+    establishes stationarity, observability, or accurate calibration.
+    """
+    scaled = np.asarray(step) * np.sqrt(np.asarray(diagonal))
+    return float(np.max(np.abs(scaled), initial=0.0) / max(1.0, residual_norm))

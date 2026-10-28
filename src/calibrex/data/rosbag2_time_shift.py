@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from calibrex.core.exceptions import DatasetError
-from calibrex.data.rosbag2 import iter_messages, list_rosbag2_connections
+from calibrex.data.rosbag2 import iter_messages, list_rosbag2_connections, require_cdr_connection
 from calibrex.data.rosbag2_writer import Rosbag2Writer
 
 _NS = 1_000_000_000
@@ -87,6 +87,7 @@ def shift_stamps_in_bag(
     ``topics`` must name topics whose messages start with a ``std_msgs/Header``. With
     ``max_duration_s`` only messages within that many seconds of the first message are
     copied (an estimator run with the same ``--max-duration-s`` sees the same data).
+    All output topics, including unchanged copies, must use CDR serialization.
     """
 
     if not topics:
@@ -99,6 +100,8 @@ def shift_stamps_in_bag(
     shift_ns = round(shift_s * _NS)
     shifted = unstamped = copied = 0
     first_ns: int | None = None
+    for connection in connections:
+        require_cdr_connection(connection)
     with Rosbag2Writer(destination, overwrite=overwrite) as writer:
         for connection in connections:
             latched = "durability: 1" in (connection.offered_qos_profiles or "")
@@ -108,6 +111,7 @@ def shift_stamps_in_bag(
                 first_ns = timestamp_ns
             if max_duration_s is not None and timestamp_ns - first_ns > max_duration_s * 1e9:
                 break  # messages arrive in timestamp order: nothing later is in range
+            require_cdr_connection(connection)
             if connection.topic in chosen:
                 moved = shift_header_stamp(payload, shift_ns)
                 if moved is None:

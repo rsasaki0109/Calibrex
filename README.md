@@ -119,6 +119,28 @@ the format is detected from the file:
 | ROS 2 MCAP (`.mcap`) | chunks `none`, `zstd` or `lz4` |
 | ROS 1 `.bag` | chunks `none`, `bz2` or `lz4` (`calibrex[rosbag1-lz4]` for `lz4`) |
 
+Zstandard and LZ4 message and chunk readers consume and validate every frame, including
+concatenated and skippable frames, even when the uncompressed size is unspecified.
+They reject trailing garbage instead of ignoring it after the first frame.
+ROS 1 bz2 chunks likewise require complete streams and reject trailing garbage;
+concatenated streams and properly compressed empty data remain supported.
+Truncated frames and codec-reported corruption
+in Zstandard, LZ4 or ROS 1 bz2 chunks produce dataset read errors.
+MCAP chunk sizes and declared ROS 1 chunk sizes are checked against the actual
+expanded data, including explicit zero sizes, before their records are parsed.
+Nonzero MCAP chunk CRCs are verified against the expanded records; zero retains
+the format's checksum-omitted behavior.
+MCAP field lengths are also checked against the enclosing record, so short
+headers and payloads fail with a dataset read error.
+Parsed MCAP string fields require valid UTF-8; malformed names are rejected
+instead of silently replacing their bytes. Message payloads remain binary.
+MCAP connections retain their declared message encoding. Typed sensor readers
+and inspection require CDR for decoded sensor messages; raw iteration preserves
+payload bytes for other encodings.
+Outer MCAP payload reads use bounded blocks, including for `.mcap.zstd` streams,
+so declared lengths do not directly determine individual read allocations.
+ROS 1 inner record lengths are checked against the expanded chunk as well.
+
 `calibrex check my_bag/ --plan` prints which sensor pairs the bag can be checked for, and why the
 others are skipped, without running an estimator. Vehicle pairs are opt-in with
 `--vehicle-frame base_link`. Details: [supported input formats](docs/tutorials/calibrex_check.md#supported-input-formats).

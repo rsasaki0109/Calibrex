@@ -1,5 +1,49 @@
 {
   "$defs": {
+    "ClockDomainEvidence": {
+      "additionalProperties": false,
+      "description": "Bounds and rejected candidates; not a constrained-optimality certificate.",
+      "properties": {
+        "derivative_step_sec": {
+          "title": "Derivative Step Sec",
+          "type": "number"
+        },
+        "lower_sec": {
+          "title": "Lower Sec",
+          "type": "number"
+        },
+        "opposite_gradient_norm": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Opposite Gradient Norm"
+        },
+        "rejected_steps": {
+          "minimum": 0,
+          "title": "Rejected Steps",
+          "type": "integer"
+        },
+        "upper_sec": {
+          "title": "Upper Sec",
+          "type": "number"
+        }
+      },
+      "required": [
+        "lower_sec",
+        "upper_sec",
+        "rejected_steps",
+        "derivative_step_sec"
+      ],
+      "title": "ClockDomainEvidence",
+      "type": "object"
+    },
     "ContinuousTimeLidarImuJointProvenance": {
       "additionalProperties": false,
       "description": "Seeded synthetic recovery lineage.",
@@ -46,6 +90,59 @@
         "seed"
       ],
       "title": "ContinuousTimeLidarImuJointProvenance",
+      "type": "object"
+    },
+    "FitDiagnostics": {
+      "additionalProperties": false,
+      "description": "Final-state evidence, not an observability or accuracy certificate.\n\nThe gradient is divided by each weighted Jacobian column norm and by\nmax(1, ||weighted residual||). This is invariant to independent linear\nchanges of parameter units, without adding information in weak directions.\nZero columns contribute zero (and must be assessed for observability\nseparately). The stationarity threshold is recorded with the measurement.",
+      "properties": {
+        "clock_domain": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ClockDomainEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "gradient_tolerance": {
+          "exclusiveMinimum": 0,
+          "title": "Gradient Tolerance",
+          "type": "number"
+        },
+        "normalized_gradient_norm": {
+          "minimum": 0,
+          "title": "Normalized Gradient Norm",
+          "type": "number"
+        },
+        "stationary": {
+          "title": "Stationary",
+          "type": "boolean"
+        },
+        "termination_reason": {
+          "enum": [
+            "gradient_tolerance",
+            "stationarity_not_confirmed",
+            "small_step",
+            "small_cost_change",
+            "damping_limit",
+            "clock_domain_limit",
+            "iteration_limit",
+            "singular_system"
+          ],
+          "title": "Termination Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "termination_reason",
+        "normalized_gradient_norm",
+        "gradient_tolerance",
+        "stationary"
+      ],
+      "title": "FitDiagnostics",
       "type": "object"
     },
     "LidarImuJointControlRecord": {
@@ -299,11 +396,23 @@
       "title": "Entangled Correlation Threshold",
       "type": "number"
     },
+    "fit_diagnostics": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FitDiagnostics"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "fit_status": {
       "enum": [
         "converged",
         "max_iterations",
-        "singular_system"
+        "singular_system",
+        "stalled"
       ],
       "title": "Fit Status",
       "type": "string"

@@ -1,0 +1,35 @@
+import hashlib,json,shutil,subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any,Literal
+import jsonschema
+from calibrex.core.result import StrictModel
+
+class Manifest(StrictModel):
+    schema_version: Literal['calibrex.camera_lidar_initialization_publication/v0.1']='calibrex.camera_lidar_initialization_publication/v0.1'
+    provenance: dict[str,Any]
+    files: dict[str,str]
+
+root=Path('/workspace/Calibrex'); source=Path('/workspace/work/camera-lidar-initialization-20261027')
+frozen=Path('/workspace/work/camera-lidar-initialization-source')
+out=root/'docs/assets/camera_lidar_initialization_20261027'
+shutil.copytree(source,out)
+shutil.copyfile(frozen/'tools/kitti_camera_lidar_initialization_compare.py',out/'driver-source.py.txt')
+shutil.copyfile('/workspace/work/summarize-initialization-20261027.py',out/'summary-source.py.txt')
+shutil.copyfile(__file__,out/'publication-source.py.txt')
+shutil.copyfile('/workspace/work/camera-lidar-initialization-20261027.log',out/'batch.log')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+comparison=json.loads((out/'report.json').read_text())
+source_checks=dict(provenance=dict(generator_sha256=sha(Path(__file__)),git_commit=comparison['provenance']['git_commit']),checks=json.loads(Path('/workspace/work/camera-lidar-source-comparison-20261027.json').read_text()))
+(out/'source_comparison.json').write_text(json.dumps(source_checks,indent=2)+'\n')
+validated=0
+for schema in out.rglob('*.schema.json'):
+    report=schema.with_name(schema.name.replace('.schema.json','.json'))
+    jsonschema.validate(json.loads(report.read_text()),json.loads(schema.read_text()))
+    validated+=1
+manifest=Manifest(provenance=dict(created_at=datetime.now(timezone.utc).isoformat(),experiment_git_commit=comparison['provenance']['git_commit'],publication_git_commit=subprocess.check_output(['git','-C',str(root),'rev-parse','HEAD'],text=True).strip(),generator_sha256=sha(Path(__file__)),validated_reports=validated),files={})
+(out/'manifest.schema.json').write_text(json.dumps(Manifest.model_json_schema(),indent=2)+'\n')
+manifest.files={p.relative_to(out).as_posix():sha(p) for p in sorted(out.rglob('*')) if p.is_file()}
+(out/'manifest.json').write_text(manifest.model_dump_json(indent=2)+'\n')
+jsonschema.validate(json.loads(manifest.model_dump_json()),Manifest.model_json_schema())
+print('Published',len(manifest.files),'bound files;',validated,'reports schema-validated')

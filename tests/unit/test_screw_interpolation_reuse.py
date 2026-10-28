@@ -48,7 +48,10 @@ def test_prepared_segment_preserves_previous_pose_and_jacobian_bits(
     delta[3:] /= np.linalg.norm([1.0, 0.2, 0.1])
     right = manifold.se3_exp(left, delta)
     segment = manifold._ScrewSegment(left, right)
-    expected = _previous_jacobians(left, right, alpha)
+    # Endpoint roundoff is intentionally removed; interior reuse remains bit-exact.
+    expected = ((np.eye(6), np.zeros((6, 6))) if alpha == 0. else
+                (np.zeros((6, 6)), np.eye(6)) if alpha == 1. else
+                _previous_jacobians(left, right, alpha))
     pairs = (segment.jacobians(alpha), manifold.interpolate_screw_jacobians(left, right, alpha))
     for pair in pairs:
         for actual, reference in zip(pair, expected, strict=True):
@@ -141,10 +144,11 @@ def test_reuse_keys_keep_signed_zero_distinct() -> None:
     knots = _knots()
     workspace = sparse._ScrewInterpolation(knots)
     for alpha in (0.0, -0.0, 0.0, -0.0):
-        expected = _previous_jacobians(knots[0], knots[1], alpha)
+        expected = (np.eye(6), np.zeros((6, 6)))
         for actual, reference in zip(workspace.jacobians(0, alpha), expected, strict=True):
             _bits(actual, reference)
         assert workspace.pose(0, alpha) == sparse._interpolate(knots[0], knots[1], alpha)
+    assert len(workspace._jacobians) == 2
 
 
 @pytest.mark.parametrize("angle", [-math.pi, -1e-8, 0.0, 1e-13, 0.7, math.pi])

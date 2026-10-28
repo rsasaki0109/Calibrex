@@ -1,0 +1,167 @@
+{
+  "calibration_artifact_sha256": [
+    "6013a330570aa9dbe716b74dc17fcc1f8474c5ecc479b3a3f9e50e10debfa99a",
+    "b4419c4d06cd03b88da9d8707eebc33560938aaaf3e1b6d15d2c33fc021ee9c6",
+    "8bf8f7704bcda3756b4a4f718e833513a6391010d5d86df8b53286245cd27e4f",
+    "c253650de97e36b6d51435aeb350aab30db9f4d98136463124de2784d89b8e52",
+    "0ea0372be50434736a9b253c96393f96bcd810732f6c773cc79883e5e273ccbc",
+    "1f8617b921f8716641821987c5f31ce3a07eb96e3045d5424ed5e6a7cad75ba2",
+    "47a72689541bb730862f473668a4c9d44f30030bf0a4491d734487a27abbf2f8",
+    "fab290f2b2381ed659872b9d46c9c7dd8c405afbc497b019542923cb451955b1",
+    "d3682b9dc81d464f7b34a81400d0352951604ddf5208e14fa2a6729360e3ccee",
+    "150dbbf24176ef35a1deeb0e409f85f981a23c12c08d59377fde44fe3a82552a",
+    "99b610ab24150c6918153eb6a63496c5ad283e33ef2b5898cd634c2741e9c516",
+    "d7aec1c9df963152727c8faeb81be19028e9fa1212e2a76025edf1a899cf602d",
+    "6a36a54ecde7728aa8303a896904015c7b889b8d7aae4368f07bd0e9bfc31a09",
+    "d0623748da50696168e2fd4434ae26d179fd789e493f129c5a7237432c757aac",
+    "36ebefe6a71cc18bf4033f892283a9ae09372393dff165795dd5fef72e3f21e9",
+    "d37b5fecdb1876f32336748fee5244eca0bd772094c90f8d68e94f51434abc04",
+    "984ab7909866273c64e10e75c2dcb5e0b46315eabd79a5b01dc100c86768c4c2",
+    "7d8692d07ebb4de2366c359c6d0328978bef51344cf417f73b0eef0ca616386b",
+    "f5049753fa20bcbe19436f0f78b6f890abf693229e55d34946b829d69bbb929f",
+    "a242c4e7fb4fe6d2638b9fdb9ad4ee17d5b48fb62006da07108c203846735173"
+  ],
+  "calibration_report_sha256": "cb117c6578adbffa87db25a9cee4559eadee03f5520ae70d4aee41de81f9f34a",
+  "calibration_seeds": [
+    43001,
+    43002,
+    43003,
+    43004,
+    43005,
+    43006,
+    43007,
+    43008,
+    43009,
+    43010,
+    43011,
+    43012,
+    43013,
+    43014,
+    43015,
+    43016,
+    43017,
+    43018,
+    43019,
+    43020
+  ],
+  "command": [
+    "tools/empirical_intervals.py",
+    "fit",
+    "/workspace/work/interval-calibration/coverage.json",
+    "--output",
+    "/workspace/work/empirical-intervals/relative-model.json"
+  ],
+  "git_commit": "e19f9b6cfa890f91ffc37e988a775e7bdde86d3c",
+  "intervals": [
+    {
+      "available": 20,
+      "axis": "imu_rotation[0]",
+      "half_width": 0.0010540125995370517,
+      "order_rank": 20,
+      "status": "finite"
+    },
+    {
+      "available": 20,
+      "axis": "imu_rotation[1]",
+      "half_width": 0.0005944258802669976,
+      "order_rank": 20,
+      "status": "finite"
+    },
+    {
+      "available": 20,
+      "axis": "imu_rotation[2]",
+      "half_width": 0.0023759979151835526,
+      "order_rank": 20,
+      "status": "finite"
+    },
+    {
+      "available": 20,
+      "axis": "gyro_bias[0]",
+      "half_width": 0.0005533567388209945,
+      "order_rank": 20,
+      "status": "finite"
+    },
+    {
+      "available": 20,
+      "axis": "gyro_bias[1]",
+      "half_width": 0.0004214732957642667,
+      "order_rank": 20,
+      "status": "finite"
+    },
+    {
+      "available": 20,
+      "axis": "gyro_bias[2]",
+      "half_width": 0.0003039272315492215,
+      "order_rank": 20,
+      "status": "finite"
+    },
+    {
+      "available": 20,
+      "axis": "lever_arm[0]",
+      "half_width": 0.00673492377071408,
+      "order_rank": 20,
+      "status": "finite"
+    },
+    {
+      "available": 20,
+      "axis": "lever_arm[1]",
+      "half_width": 0.017915558635213727,
+      "order_rank": 20,
+      "status": "finite"
+    },
+    {
+      "available": 20,
+      "axis": "lever_arm[2]",
+      "half_width": 0.01711286949213467,
+      "order_rank": 20,
+      "status": "finite"
+    },
+    {
+      "available": 20,
+      "axis": "imu_clock_offset[0]",
+      "half_width": 0.0006237660103432432,
+      "order_rank": 20,
+      "status": "finite"
+    },
+    {
+      "available": 20,
+      "axis": "accel_bias[0]",
+      "half_width": 0.013917996206866429,
+      "order_rank": 20,
+      "status": "finite"
+    },
+    {
+      "available": 20,
+      "axis": "accel_bias[1]",
+      "half_width": 0.00918240797578325,
+      "order_rank": 20,
+      "status": "finite"
+    },
+    {
+      "available": 20,
+      "axis": "accel_bias[2]",
+      "half_width": 0.053419735931272284,
+      "order_rank": 20,
+      "status": "finite"
+    }
+  ],
+  "limitations": [
+    "Marginal per-axis intervals; not simultaneous joint coverage or a covariance correction.",
+    "Exchangeability of pipeline errors is assumed, not proved by a matching scope digest.",
+    "Independent noise draws on one synthetic motion do not establish transfer to real rigs.",
+    "Unavailable calibration draws act as infinite errors; insufficient order statistics abstain.",
+    "Returned fits, including stalled fits and failed quality gates, remain in the cohort.",
+    "Intervals do not replace observability, holdout, stationarity or deployment policy gates.",
+    "Synthetic-bag world gravity is excluded: the local odometry gauge is not aligned to truth."
+  ],
+  "method": "absolute_error_order_statistic/v0.1",
+  "nominal_coverage": 0.95,
+  "schema_version": "slac.empirical_interval_model/v0.1",
+  "scope_sha256": "fecff428e0b96d9fb926ce8cdfa355196a27f4fea9bff4e410822a9142e0775b",
+  "source_sha256": {
+    "src/calibrex/core/empirical_intervals.py": "a619af393963063a9fa17d71ef57b8441c4bdfc76112c13003a810b84f0b6edf",
+    "src/calibrex/evaluation/empirical_intervals.py": "a272776d052e2ce748b81c2224cf7765529973f108ec92d671d111bc5c77570b",
+    "src/calibrex/evaluation/uncertainty_coverage.py": "5ef7ec00b046f359a1ac9c66e61ee6bbb45cb5a89d301bb0246ec169b34c2f3a",
+    "tools/empirical_intervals.py": "cb7cb25957a3e38f23e4e10fa6d226cbcf0ac8fbaed58222dc7457844e57215d"
+  }
+}

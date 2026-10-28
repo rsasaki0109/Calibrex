@@ -8,7 +8,9 @@ from typing import Any, Literal
 
 from pydantic import Field
 
+from calibrex.core.fit_diagnostics import FitDiagnostics
 from calibrex.core.io import write_mapping
+from calibrex.core.knot_observability import WindowObservabilityEvidence
 from calibrex.core.result import StrictModel
 
 CONTINUOUS_TIME_SLIDING_WINDOW_SCHEMA_VERSION: Literal[
@@ -43,8 +45,8 @@ class ContinuousTimeSlidingWindowArtifact(StrictModel):
     overlap_knot_count: int = Field(ge=1)
     train_measurement_count: int = Field(ge=1)
     holdout_measurement_count: int = Field(ge=1)
-    batch_fit_status: Literal["converged", "max_iterations", "singular_system"]
-    sliding_fit_status: Literal["converged", "max_iterations", "singular_system"]
+    batch_fit_status: Literal["converged", "max_iterations", "singular_system", "stalled"]
+    sliding_fit_status: Literal["converged", "max_iterations", "singular_system", "stalled"]
     max_overlap_translation_error_m: float = Field(ge=0.0)
     max_overlap_rotation_error_rad: float = Field(ge=0.0)
     batch_holdout_rmse_m: float = Field(ge=0.0)
@@ -54,6 +56,13 @@ class ContinuousTimeSlidingWindowArtifact(StrictModel):
     known_bad_skip_marginalization: bool
     policy_status: Literal["pass", "fail"]
     policy_reason: str
+    window_fit_statuses: list[
+        Literal["converged", "max_iterations", "singular_system", "stalled"]
+    ] = Field(default_factory=list)
+    project_observable_subspace: bool = False
+    square_root_marginalization: bool = False
+    sliding_fit_diagnostics: FitDiagnostics | None = None
+    window_observability: list[WindowObservabilityEvidence] = Field(default_factory=list)
     provenance: ContinuousTimeSlidingWindowProvenance
 
     def save(self, path: str | Path) -> None:

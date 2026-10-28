@@ -18,6 +18,57 @@ Core rules:
 - Follow [license boundary policy](docs/concepts/license_boundaries.md) for
   external tools and public datasets.
 
+## Optional adapter CI coverage
+
+`tests/unit/test_optional_adapter_ci_coverage.py` checks registration of optional
+CPU test files in CI without importing the adapters. A unit test containing a
+literal `pytest.importorskip` for `cv2`, `numba`, `lz4`, `zstandard` or `mcap`
+must be selected by its corresponding extra-enabled job in
+`.github/workflows/ci.yml`. Update that job when adding a dependent test file.
+Whole-file paths, directories and globs are supported; individual node selectors
+do not establish whole-file coverage. Missing paths also fail the check.
+
+Files gated by a top-level `pytest.importorskip("cupy")` are GPU-only and excluded
+from this CPU registration check. A per-test GPU skip does not exclude the whole
+file. This is a static guard for literal imports, not proof that every optional
+test executed; dynamic dependency checks and skip results still need review.
+
+## Compressed bag format tests
+
+The `compressed-bag-formats` CI job installs optional MCAP, LZ4 and Zstandard
+dependencies so their interoperability tests run rather than skip. Run it locally:
+
+```bash
+python -m pip install -e ".[dev,mcap,rosbag1-lz4,rosbag2-compression]"
+python -m pytest tests/unit/test_bag_formats.py tests/unit/test_rosbag2.py \
+  tests/unit/test_rosbag2_writer.py tests/unit/test_compressed_bag_corruption.py \
+  tests/unit/test_mcap_field_bounds.py tests/unit/test_mcap_chunk_crc.py \
+  tests/unit/test_rosbag1_record_bounds.py
+```
+
+These tests use synthetic fixtures and do not require ROS, GPU hardware or public
+dataset downloads. Missing-codec error tests simulate unavailable imports and
+therefore also run when the compression extras are installed.
+
+## OpenCV adapter tests
+
+The `opencv-adapter` CI job installs `.[dev,opencv]` and covers hand-eye
+calibration, visual rotation, focal estimation, camera/LiDAR initialization,
+probabilistic PnP, fisheye rectification and correspondence-provider plumbing.
+It verifies that `cv2` imports before running the tests. Hilti calibration-file
+checks and PyTorch-dependent provider cases remain conditional on those separate
+resources; this job does not download recordings, model weights or PyTorch.
+
+## Numba adapter tests
+
+The `numba-adapter` CI job installs `.[dev,numba]` and requires a successful Numba
+import before running its tests. It covers compiled interpolation and LiDAR
+linearization, deskew, residual summaries, rig caching, ordered parallel execution,
+depth-to-depth and online-edge processing. The selected tests use synthetic
+fixtures and compare compiled results with reference paths; GPU hardware and
+recording downloads are not required. See the job's test list to reproduce the
+same coverage locally.
+
 ## Schema Changes
 
 Every artifact kind is declared once in `src/calibrex/core/schema_registry.py`.

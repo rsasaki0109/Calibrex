@@ -400,8 +400,12 @@ def _fake_stream(monkeypatch: pytest.MonkeyPatch, count: int = 6) -> list[int]:
     reads: list[int] = []
 
     def messages(bag: Any, topics: Any) -> Any:
+        from calibrex.data.rosbag2 import POINTCLOUD2_TYPE, Rosbag2Connection
+
         reads.append(1)
-        return iter([(None, cloud.timestamp_ns, bytes([i])) for i, cloud in enumerate(clouds)])
+        connection = Rosbag2Connection(1, next(iter(topics)), POINTCLOUD2_TYPE)
+        return iter([(connection, cloud.timestamp_ns, bytes([i]))
+                     for i, cloud in enumerate(clouds)])
 
     monkeypatch.setattr(livox_ros2, "iter_messages", messages)
     monkeypatch.setattr(

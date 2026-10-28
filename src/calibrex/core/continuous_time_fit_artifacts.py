@@ -10,6 +10,7 @@ from typing import Any, Literal
 
 from pydantic import Field, model_validator
 
+from calibrex.core.fit_diagnostics import FitDiagnostics
 from calibrex.core.io import read_mapping, write_mapping
 from calibrex.core.result import StrictModel, TransformResult
 
@@ -353,7 +354,8 @@ class ContinuousTimeTrajectoryFitResultArtifact(StrictModel):
     fit_id: str
     trajectory_id: str
     interpolation: Literal["screw_linear"]
-    status: Literal["converged", "max_iterations", "singular_system"]
+    status: Literal["converged", "max_iterations", "singular_system", "stalled"]
+    fit_diagnostics: FitDiagnostics | None = None
     iterations: int = Field(ge=0)
     final_objective: float
     final_point_rmse: float | None = Field(default=None, ge=0.0)

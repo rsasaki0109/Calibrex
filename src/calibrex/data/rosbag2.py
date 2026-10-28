@@ -38,6 +38,7 @@ import math
 import sqlite3
 import struct
 import sys
+import zlib
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -51,6 +52,7 @@ from urllib.parse import quote
 import yaml
 
 from calibrex.core.exceptions import DatasetError
+from calibrex.data._compression import decompress_lz4_frames
 from calibrex.data.bag_formats import (
     ROSBAG1_STORAGE_ID,
     iter_ros1_messages,
@@ -958,7 +960,7 @@ def _iter_mcap_messages(
             elif opcode == OP_CHUNK:
                 # Chunks may overlap in time: hold messages in a heap and release those
                 # older than the next chunk's start so the output stays time-ordered.
-                (chunk_start,) = struct.unpack_from("<Q", content, 0)
+                chunk_start, _ = _read_mcap_uint64(content, 0)
                 while ordered and ordered[0][0] < chunk_start:
                     yield heapq.heappop(ordered)[2:]
                 _compression, records = _parse_mcap_chunk(content)
@@ -1036,13 +1038,24 @@ def _iter_mcap_records(source: Any) -> Iterator[tuple[int, bytes]]:
             raise DatasetError(msg)
         opcode = header[0]
         (length,) = struct.unpack("<Q", header[1:9])
-        content = source.read(length)
-        if len(content) != length:
-            msg = "truncated MCAP record content"
-            raise DatasetError(msg)
+        content = _read_mcap_record_content(source, length)
         yield opcode, content
         if opcode == OP_FOOTER:
             break
+
+
+def _read_mcap_record_content(source: Any, length: int) -> bytes:
+    # The uint64 length is untrusted. Bound each allocation request, including
+    # for non-seekable decompression streams, without limiting valid record sizes.
+    parts: list[bytes] = []
+    remaining = length
+    while remaining:
+        part = source.read(min(remaining, 1024 * 1024))
+        if not part:
+            raise DatasetError("truncated MCAP record content")
+        parts.append(part)
+        remaining -= len(part)
+    return b"".join(parts)
 
 
 def _iter_mcap_record_bytes(buffer: bytes) -> Iterator[tuple[int, bytes]]:
@@ -1066,7 +1079,10 @@ def _iter_mcap_record_bytes(buffer: bytes) -> Iterator[tuple[int, bytes]]:
 def _parse_mcap_schema(content: bytes) -> tuple[int, str]:
     offset = 0
     schema_id, offset = _read_mcap_uint16(content, offset)
-    name, _offset = _read_mcap_string(content, offset)
+    name, offset = _read_mcap_string(content, offset)
+    _encoding, offset = _read_mcap_string(content, offset)
+    data_length, offset = _read_mcap_uint32(content, offset)
+    _require_mcap_range(content, offset, data_length)
     return schema_id, name
 
 
@@ -1078,13 +1094,13 @@ def _parse_mcap_channel(
     channel_id, offset = _read_mcap_uint16(content, offset)
     schema_id, offset = _read_mcap_uint16(content, offset)
     topic, offset = _read_mcap_string(content, offset)
-    _encoding, offset = _read_mcap_string(content, offset)
+    encoding, offset = _read_mcap_string(content, offset)
     offset = _skip_mcap_string_map(content, offset)
     return Rosbag2Connection(
         topic_id=channel_id,
         topic=topic,
         message_type=schemas.get(schema_id, ""),
-        serialization_format="cdr",
+        serialization_format=encoding,
     )
 
 
@@ -1103,11 +1119,15 @@ def _parse_mcap_chunk(content: bytes) -> tuple[str, bytes]:
     _start, offset = _read_mcap_uint64(content, offset)
     _end, offset = _read_mcap_uint64(content, offset)
     uncompressed_size, offset = _read_mcap_uint64(content, offset)
-    _crc, offset = _read_mcap_uint32(content, offset)
+    crc, offset = _read_mcap_uint32(content, offset)
     compression, offset = _read_mcap_string(content, offset)
     records, _offset = _read_mcap_length_prefixed_bytes(content, offset)
     if compression:
         records = _decompress_mcap_chunk(compression, records, int(uncompressed_size))
+    if len(records) != uncompressed_size:
+        raise DatasetError("MCAP chunk decompressed to an unexpected size")
+    if crc and zlib.crc32(records) != crc:
+        raise DatasetError("MCAP chunk CRC mismatch")
     return compression, records
 
 
@@ -1137,10 +1157,15 @@ def _lz4_decompress(data: bytes, size: int) -> bytes:
             "calibrex[rosbag2-compression]"
         )
         raise DatasetError(msg) from exc
-    if data.startswith(_LZ4_FRAME_MAGIC):
-        decompressed: bytes = lz4.frame.decompress(data)
-    else:
-        decompressed = lz4.block.decompress(data, uncompressed_size=size)
+    try:
+        if data.startswith(_LZ4_FRAME_MAGIC) or (
+            len(data) >= 4 and 0x50 <= data[0] <= 0x5F and data[1:4] == b"\x2a\x4d\x18"
+        ):
+            decompressed = decompress_lz4_frames(data)
+        else:
+            decompressed = lz4.block.decompress(data, uncompressed_size=size)
+    except (RuntimeError, ValueError, lz4.block.LZ4BlockError) as exc:
+        raise DatasetError("invalid or truncated lz4-compressed MCAP chunk") from exc
     if size and len(decompressed) != size:
         msg = "lz4 chunk decompressed to an unexpected size"
         raise DatasetError(msg)
@@ -1148,88 +1173,120 @@ def _lz4_decompress(data: bytes, size: int) -> bytes:
 
 
 def _zstd_decompress(data: bytes, size: int) -> bytes:
-    try:
-        import zstandard
-    except ImportError as exc:  # pragma: no cover - exercised via error path test
-        msg = (
-            "zstd-compressed MCAP chunks require the optional dependency "
-            "calibrex[rosbag2-compression]"
-        )
-        raise DatasetError(msg) from exc
-    decompressor = zstandard.ZstdDecompressor()
-    try:
-        decompressed: bytes = decompressor.decompress(data, max_output_size=size or 0)
-    except zstandard.ZstdError:  # a frame without a content size, or a streamed frame
-        decompressed = decompressor.decompressobj().decompress(data)
+    decompressed = _zstd_decompress_payload(data, "MCAP chunks")
     if size and len(decompressed) != size:
         msg = "zstd chunk decompressed to an unexpected size"
         raise DatasetError(msg)
     return decompressed
 
 
-def _zstd_decompress_message(data: bytes) -> bytes:
+def _zstd_decompress_payload(data: bytes, context: str) -> bytes:
+    """Decode all Zstandard frames, requiring completion even for unknown sizes."""
     try:
         import zstandard
     except ImportError as exc:  # pragma: no cover - exercised via error path test
         msg = (
-            "zstd-compressed rosbag2 messages require the optional dependency "
+            f"zstd-compressed {context} require the optional dependency "
             "calibrex[rosbag2-compression]"
         )
         raise DatasetError(msg) from exc
-    decompressor = zstandard.ZstdDecompressor()
-    try:
-        decompressed: bytes = decompressor.decompress(data)
-        return decompressed
-    except zstandard.ZstdError:
-        streamed: bytes = decompressor.decompressobj().decompress(data)
-        return streamed
+    parts: list[bytes] = []
+    remaining = data
+    while True:
+        decoder = zstandard.ZstdDecompressor().decompressobj()
+        try:
+            parts.append(decoder.decompress(remaining))
+        except zstandard.ZstdError as exc:
+            raise DatasetError(f"invalid zstd-compressed {context}") from exc
+        if not decoder.eof:
+            raise DatasetError(f"truncated zstd-compressed {context}")
+        remaining = decoder.unused_data
+        if not remaining:
+            return b"".join(parts)
+
+
+def _zstd_decompress_message(data: bytes) -> bytes:
+    return _zstd_decompress_payload(data, "rosbag2 messages")
 
 
 def _lz4_decompress_message(data: bytes) -> bytes:
     try:
-        import lz4.frame
+        decompressed = decompress_lz4_frames(data)
     except ImportError as exc:  # pragma: no cover - exercised via error path test
         msg = (
             "lz4-compressed rosbag2 messages require the optional dependency "
             "calibrex[rosbag2-compression]"
         )
         raise DatasetError(msg) from exc
-    decompressed: bytes = lz4.frame.decompress(data)
+    except (RuntimeError, ValueError) as exc:
+        raise DatasetError("invalid or truncated lz4-compressed rosbag2 message") from exc
     return decompressed
 
 
+def _require_mcap_range(buffer: bytes, offset: int, size: int) -> None:
+    """Check declared fields before unpacking or silently shortening a slice."""
+    if offset < 0 or size < 0 or offset > len(buffer) or size > len(buffer) - offset:
+        raise DatasetError("truncated MCAP record field")
+
+
 def _read_mcap_uint16(buffer: bytes, offset: int) -> tuple[int, int]:
+    _require_mcap_range(buffer, offset, 2)
     (value,) = struct.unpack_from("<H", buffer, offset)
     return int(value), offset + 2
 
 
 def _read_mcap_uint32(buffer: bytes, offset: int) -> tuple[int, int]:
+    _require_mcap_range(buffer, offset, 4)
     (value,) = struct.unpack_from("<I", buffer, offset)
     return int(value), offset + 4
 
 
 def _read_mcap_uint64(buffer: bytes, offset: int) -> tuple[int, int]:
+    _require_mcap_range(buffer, offset, 8)
     (value,) = struct.unpack_from("<Q", buffer, offset)
     return int(value), offset + 8
 
 
 def _read_mcap_string(buffer: bytes, offset: int) -> tuple[str, int]:
-    (length,) = struct.unpack_from("<I", buffer, offset)
-    offset += 4
-    text = buffer[offset : offset + length].decode("utf-8", errors="replace")
+    length, offset = _read_mcap_uint32(buffer, offset)
+    _require_mcap_range(buffer, offset, length)
+    try:
+        text = buffer[offset : offset + length].decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise DatasetError("invalid UTF-8 in MCAP string field") from exc
     return text, offset + length
 
 
 def _read_mcap_length_prefixed_bytes(buffer: bytes, offset: int) -> tuple[bytes, int]:
-    (length,) = struct.unpack_from("<Q", buffer, offset)
-    offset += 8
+    length, offset = _read_mcap_uint64(buffer, offset)
+    _require_mcap_range(buffer, offset, length)
     payload = buffer[offset : offset + length]
     return payload, offset + length
 
 
 def _skip_mcap_string_map(buffer: bytes, offset: int) -> int:
-    (length,) = struct.unpack_from("<I", buffer, offset)
-    return offset + 4 + int(length)
+    length, offset = _read_mcap_uint32(buffer, offset)
+    _require_mcap_range(buffer, offset, length)
+    # Validate entries within the map's own boundary, not the enclosing record.
+    entries = buffer[offset : offset + length]
+    entry_offset = 0
+    while entry_offset < length:
+        _key, entry_offset = _read_mcap_string(entries, entry_offset)
+        _value, entry_offset = _read_mcap_string(entries, entry_offset)
+    return offset + length
+
+
+def require_cdr_connection(connection: Rosbag2Connection) -> None:
+    """Reject non-CDR connections before passing their bytes to a ROS decoder."""
+    _require_cdr_serialization(connection.topic, connection.serialization_format)
+
+
+def _require_cdr_serialization(topic: str, serialization_format: str) -> None:
+    if serialization_format != "cdr":
+        raise DatasetError(
+            f"unsupported serialization format {serialization_format!r} "
+            f"for topic {topic!r}; expected 'cdr'"
+        )
 
 
 def read_pointcloud2_messages(
@@ -1243,6 +1300,7 @@ def read_pointcloud2_messages(
     for connection, timestamp_ns, data in iter_messages(path, topics=topics):
         if connection.message_type != POINTCLOUD2_TYPE:
             continue
+        require_cdr_connection(connection)
         yield decode_pointcloud2(connection.topic, timestamp_ns, data)
 
 
@@ -1258,6 +1316,7 @@ def read_image_messages(
     for connection, timestamp_ns, data in iter_messages(path, topics=topics):
         if connection.message_type != IMAGE_TYPE:
             continue
+        require_cdr_connection(connection)
         yield decode_image(
             connection.topic,
             timestamp_ns,
@@ -1277,6 +1336,7 @@ def read_camera_info_messages(
     for connection, timestamp_ns, data in iter_messages(path, topics=topics):
         if connection.message_type != CAMERA_INFO_TYPE:
             continue
+        require_cdr_connection(connection)
         yield decode_camera_info(connection.topic, timestamp_ns, data)
 
 
@@ -1291,6 +1351,7 @@ def read_radar_scan_messages(
     for connection, timestamp_ns, data in iter_messages(path, topics=topics):
         if connection.message_type != RADAR_SCAN_TYPE:
             continue
+        require_cdr_connection(connection)
         yield decode_radar_scan(connection.topic, timestamp_ns, data)
 
 
@@ -1315,6 +1376,7 @@ def read_lidar_messages(
     for connection, timestamp_ns, data in iter_messages(path, topics=topics):
         if connection.message_type not in LIDAR_MESSAGE_TYPES:
             continue
+        require_cdr_connection(connection)
         yield decode_lidar_message(connection.topic, connection.message_type, timestamp_ns, data)
 
 
@@ -1325,13 +1387,17 @@ def decode_rosbag2_message(
     data: bytes,
     *,
     include_image_data: bool = False,
+    serialization_format: str = "cdr",
 ) -> Rosbag2DecodedMessage:
     """Decode a supported rosbag2 CDR payload.
 
     Image bytes are omitted by default so inspection remains bounded while
     still validating the serialized payload completely.
+    Pass the connection's serialization format when available; non-CDR formats
+    are rejected before interpreting the payload.
     """
 
+    _require_cdr_serialization(topic, serialization_format)
     if message_type == POINTCLOUD2_TYPE:
         return decode_pointcloud2(topic, timestamp_ns, data)
     if message_type in LIVOX_CUSTOMMSG_TYPES:
@@ -1468,6 +1534,7 @@ def read_imu_messages(
     for connection, timestamp_ns, data in iter_messages(path, topics=topics):
         if connection.message_type != IMU_TYPE:
             continue
+        require_cdr_connection(connection)
         yield decode_imu(connection.topic, timestamp_ns, data)
 
 
@@ -1536,6 +1603,7 @@ def summarize_rosbag2(
         for connection, timestamp_ns, data in iter_messages(bag_path):
             if connection.message_type not in _INSPECT_MESSAGE_TYPES:
                 continue
+            require_cdr_connection(connection)
             topic = connection.topic
             counts[topic] = counts.get(topic, 0) + 1
             connections.setdefault(topic, connection)

@@ -1,5 +1,49 @@
 {
   "$defs": {
+    "ClockDomainEvidence": {
+      "additionalProperties": false,
+      "description": "Bounds and rejected candidates; not a constrained-optimality certificate.",
+      "properties": {
+        "derivative_step_sec": {
+          "title": "Derivative Step Sec",
+          "type": "number"
+        },
+        "lower_sec": {
+          "title": "Lower Sec",
+          "type": "number"
+        },
+        "opposite_gradient_norm": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Opposite Gradient Norm"
+        },
+        "rejected_steps": {
+          "minimum": 0,
+          "title": "Rejected Steps",
+          "type": "integer"
+        },
+        "upper_sec": {
+          "title": "Upper Sec",
+          "type": "number"
+        }
+      },
+      "required": [
+        "lower_sec",
+        "upper_sec",
+        "rejected_steps",
+        "derivative_step_sec"
+      ],
+      "title": "ClockDomainEvidence",
+      "type": "object"
+    },
     "ContinuousTimeSlidingWindowProvenance": {
       "additionalProperties": false,
       "description": "Seeded synthetic recovery lineage.",
@@ -47,6 +91,376 @@
       ],
       "title": "ContinuousTimeSlidingWindowProvenance",
       "type": "object"
+    },
+    "FitDiagnostics": {
+      "additionalProperties": false,
+      "description": "Final-state evidence, not an observability or accuracy certificate.\n\nThe gradient is divided by each weighted Jacobian column norm and by\nmax(1, ||weighted residual||). This is invariant to independent linear\nchanges of parameter units, without adding information in weak directions.\nZero columns contribute zero (and must be assessed for observability\nseparately). The stationarity threshold is recorded with the measurement.",
+      "properties": {
+        "clock_domain": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ClockDomainEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "gradient_tolerance": {
+          "exclusiveMinimum": 0,
+          "title": "Gradient Tolerance",
+          "type": "number"
+        },
+        "normalized_gradient_norm": {
+          "minimum": 0,
+          "title": "Normalized Gradient Norm",
+          "type": "number"
+        },
+        "stationary": {
+          "title": "Stationary",
+          "type": "boolean"
+        },
+        "termination_reason": {
+          "enum": [
+            "gradient_tolerance",
+            "stationarity_not_confirmed",
+            "small_step",
+            "small_cost_change",
+            "damping_limit",
+            "clock_domain_limit",
+            "iteration_limit",
+            "singular_system"
+          ],
+          "title": "Termination Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "termination_reason",
+        "normalized_gradient_norm",
+        "gradient_tolerance",
+        "stationary"
+      ],
+      "title": "FitDiagnostics",
+      "type": "object"
+    },
+    "KnotInformationEvidence": {
+      "additionalProperties": false,
+      "description": "Numerical rank at a fixed linearization, not a global observability proof.",
+      "properties": {
+        "eigenvalue_threshold": {
+          "minimum": 0,
+          "title": "Eigenvalue Threshold",
+          "type": "number"
+        },
+        "nullspace_participation": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Nullspace Participation",
+          "type": "object"
+        },
+        "numerical_nullity": {
+          "minimum": 0,
+          "title": "Numerical Nullity",
+          "type": "integer"
+        },
+        "numerical_rank": {
+          "minimum": 0,
+          "title": "Numerical Rank",
+          "type": "integer"
+        },
+        "parameter_count": {
+          "minimum": 1,
+          "title": "Parameter Count",
+          "type": "integer"
+        },
+        "relative_eigenvalue_tolerance": {
+          "exclusiveMaximum": 1,
+          "exclusiveMinimum": 0,
+          "title": "Relative Eigenvalue Tolerance",
+          "type": "number"
+        },
+        "scaled_eigenvalues": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Scaled Eigenvalues",
+          "type": "array"
+        },
+        "zero_information_parameters": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Zero Information Parameters",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parameter_count",
+        "numerical_rank",
+        "numerical_nullity",
+        "relative_eigenvalue_tolerance",
+        "eigenvalue_threshold",
+        "scaled_eigenvalues",
+        "zero_information_parameters",
+        "nullspace_participation"
+      ],
+      "title": "KnotInformationEvidence",
+      "type": "object"
+    },
+    "ProjectedStepEvidence": {
+      "additionalProperties": false,
+      "description": "Rank selection at one attempted linear update, before candidate acceptance.",
+      "properties": {
+        "eigenvalue_threshold": {
+          "minimum": 0,
+          "title": "Eigenvalue Threshold",
+          "type": "number"
+        },
+        "numerical_rank": {
+          "minimum": 0,
+          "title": "Numerical Rank",
+          "type": "integer"
+        },
+        "parameter_count": {
+          "minimum": 1,
+          "title": "Parameter Count",
+          "type": "integer"
+        },
+        "relative_null_gradient": {
+          "minimum": 0,
+          "title": "Relative Null Gradient",
+          "type": "number"
+        },
+        "relative_tolerance": {
+          "exclusiveMinimum": 0,
+          "title": "Relative Tolerance",
+          "type": "number"
+        },
+        "zero_information_count": {
+          "minimum": 0,
+          "title": "Zero Information Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "parameter_count",
+        "numerical_rank",
+        "zero_information_count",
+        "eigenvalue_threshold",
+        "relative_tolerance",
+        "relative_null_gradient"
+      ],
+      "title": "ProjectedStepEvidence",
+      "type": "object"
+    },
+    "SchurEliminationEvidence": {
+      "additionalProperties": false,
+      "description": "Numerical elimination rank and range checks in diagonally scaled coordinates.",
+      "properties": {
+        "coupled_nullity": {
+          "minimum": 0,
+          "title": "Coupled Nullity",
+          "type": "integer"
+        },
+        "eigenvalue_threshold": {
+          "minimum": 0,
+          "title": "Eigenvalue Threshold",
+          "type": "number"
+        },
+        "eliminated_dimension": {
+          "minimum": 0,
+          "title": "Eliminated Dimension",
+          "type": "integer"
+        },
+        "max_relative_range_error": {
+          "minimum": 0,
+          "title": "Max Relative Range Error",
+          "type": "number"
+        },
+        "numerical_rank": {
+          "minimum": 0,
+          "title": "Numerical Rank",
+          "type": "integer"
+        },
+        "relative_range_tolerance": {
+          "exclusiveMinimum": 0,
+          "title": "Relative Range Tolerance",
+          "type": "number"
+        },
+        "zero_information_dimension": {
+          "minimum": 0,
+          "title": "Zero Information Dimension",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "eliminated_dimension",
+        "numerical_rank",
+        "zero_information_dimension",
+        "coupled_nullity",
+        "eigenvalue_threshold",
+        "relative_range_tolerance",
+        "max_relative_range_error"
+      ],
+      "title": "SchurEliminationEvidence",
+      "type": "object"
+    },
+    "SquareRootEliminationEvidence": {
+      "additionalProperties": false,
+      "description": "Rank decision for residual-space elimination, distinct from normal rank.",
+      "properties": {
+        "eliminated_dimension": {
+          "minimum": 0,
+          "title": "Eliminated Dimension",
+          "type": "integer"
+        },
+        "elimination_row_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Elimination Row Count"
+        },
+        "numerical_rank": {
+          "minimum": 0,
+          "title": "Numerical Rank",
+          "type": "integer"
+        },
+        "residual_row_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Residual Row Count"
+        },
+        "retained_rows_after_compression": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retained Rows After Compression"
+        },
+        "retained_rows_before_compression": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retained Rows Before Compression"
+        },
+        "singular_value_threshold": {
+          "minimum": 0,
+          "title": "Singular Value Threshold",
+          "type": "number"
+        },
+        "zero_information_dimension": {
+          "minimum": 0,
+          "title": "Zero Information Dimension",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "eliminated_dimension",
+        "numerical_rank",
+        "zero_information_dimension",
+        "singular_value_threshold"
+      ],
+      "title": "SquareRootEliminationEvidence",
+      "type": "object"
+    },
+    "WindowObservabilityEvidence": {
+      "additionalProperties": false,
+      "description": "Separate measurement information from information inherited through priors.",
+      "properties": {
+        "elimination": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SchurEliminationEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "frozen_parameters": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Frozen Parameters",
+          "type": "array"
+        },
+        "global_knot_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Global Knot Indices",
+          "type": "array"
+        },
+        "measurements": {
+          "$ref": "#/$defs/KnotInformationEvidence"
+        },
+        "projected_steps": {
+          "items": {
+            "$ref": "#/$defs/ProjectedStepEvidence"
+          },
+          "title": "Projected Steps",
+          "type": "array"
+        },
+        "square_root_elimination": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SquareRootEliminationEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "window_index": {
+          "minimum": 0,
+          "title": "Window Index",
+          "type": "integer"
+        },
+        "with_marginal_prior": {
+          "$ref": "#/$defs/KnotInformationEvidence"
+        }
+      },
+      "required": [
+        "window_index",
+        "global_knot_indices",
+        "measurements",
+        "with_marginal_prior"
+      ],
+      "title": "WindowObservabilityEvidence",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -56,7 +470,8 @@
       "enum": [
         "converged",
         "max_iterations",
-        "singular_system"
+        "singular_system",
+        "stalled"
       ],
       "title": "Batch Fit Status",
       "type": "string"
@@ -121,6 +536,11 @@
       "title": "Policy Status",
       "type": "string"
     },
+    "project_observable_subspace": {
+      "default": false,
+      "title": "Project Observable Subspace",
+      "type": "boolean"
+    },
     "provenance": {
       "$ref": "#/$defs/ContinuousTimeSlidingWindowProvenance"
     },
@@ -138,11 +558,23 @@
       "title": "Seed",
       "type": "integer"
     },
+    "sliding_fit_diagnostics": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FitDiagnostics"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "sliding_fit_status": {
       "enum": [
         "converged",
         "max_iterations",
-        "singular_system"
+        "singular_system",
+        "stalled"
       ],
       "title": "Sliding Fit Status",
       "type": "string"
@@ -151,6 +583,11 @@
       "minimum": 0.0,
       "title": "Sliding Holdout Rmse M",
       "type": "number"
+    },
+    "square_root_marginalization": {
+      "default": false,
+      "title": "Square Root Marginalization",
+      "type": "boolean"
     },
     "train_measurement_count": {
       "minimum": 1,
@@ -161,6 +598,26 @@
       "minimum": 2,
       "title": "Window Count",
       "type": "integer"
+    },
+    "window_fit_statuses": {
+      "items": {
+        "enum": [
+          "converged",
+          "max_iterations",
+          "singular_system",
+          "stalled"
+        ],
+        "type": "string"
+      },
+      "title": "Window Fit Statuses",
+      "type": "array"
+    },
+    "window_observability": {
+      "items": {
+        "$ref": "#/$defs/WindowObservabilityEvidence"
+      },
+      "title": "Window Observability",
+      "type": "array"
     }
   },
   "required": [

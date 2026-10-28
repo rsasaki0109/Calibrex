@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import struct
 from pathlib import Path
 
 import jsonschema
@@ -111,6 +112,58 @@ def test_rosbag2_inventory_keeps_unsupported_streams_and_unknown_integrity(
         check.status != "pass" or check.check_id != "streams.capability"
         for check in artifact.checks
     )
+
+
+@pytest.mark.parametrize('encoding', ['cdr', 'json', 'protobuf', '', 'CDR'])
+@pytest.mark.parametrize('storage', ['sqlite3', 'mcap'])
+def test_inventory_requires_declared_cdr_before_claiming_decode_support(
+    tmp_path, encoding, storage,
+):
+    from calibrex.data.ros_cdr_writer import encode_imu
+
+    bag = _write_rosbag2_fixture(tmp_path / 'encoding.db3')
+    payload = encode_imu(frame_id='imu', timestamp_ns=10,
+                         angular_velocity=(1.0, 2.0, 3.0),
+                         linear_acceleration=(0.0, 0.0, 9.8))
+    with sqlite3.connect(bag) as db:
+        db.execute('DELETE FROM messages')
+        db.execute('DELETE FROM topics')
+        db.execute('INSERT INTO topics VALUES (1, ?, ?, ?, ?)',
+                   ('/imu', 'sensor_msgs/msg/Imu', encoding, ''))
+        db.execute('INSERT INTO messages VALUES (1, 1, 10, ?)', (payload,))
+    if storage == 'mcap':
+        from calibrex.data.rosbag2 import MCAP_MAGIC
+
+        def string(value):
+            encoded = value.encode('utf-8')
+            return struct.pack('<I', len(encoded)) + encoded
+
+        def record(opcode, content):
+            return bytes([opcode]) + struct.pack('<Q', len(content)) + content
+
+        schema = (struct.pack('<H', 1) + string('sensor_msgs/msg/Imu')
+                  + string('ros2msg') + struct.pack('<I', 0))
+        channel = (struct.pack('<HH', 1, 1) + string('/imu') + string(encoding)
+                   + struct.pack('<I', 0))
+        message = struct.pack('<HIQQ', 1, 0, 10, 10) + payload
+        bag = tmp_path / 'encoding.mcap'
+        bag.write_bytes(MCAP_MAGIC + record(3, schema) + record(4, channel) + record(5, message))
+    artifact = inspect_capture(bag, source_format='rosbag2')
+    stream = artifact.streams[0]
+    assert stream.serialization_format == encoding
+    assert stream.message_count == 1
+    if encoding == 'cdr':
+        assert stream.decode_status == 'supported'
+        assert stream.frame_id == 'imu'
+    else:
+        assert stream.decode_status == 'unknown'
+        assert stream.frame_id is None
+        assert artifact.status == 'blocked'
+        assert 'unsupported serialization format' in artifact.model_dump_json()
+        assert not any(check.check_id == 'streams.capability' and check.status == 'pass'
+                       for check in artifact.checks)
+    jsonschema.validate(artifact.model_dump(mode='json', by_alias=True),
+                        capture_manifest_json_schema())
 
 
 def test_plain_file_inventory_does_not_claim_ready_for_image(tmp_path: Path) -> None:

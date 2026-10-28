@@ -1,0 +1,147 @@
+{
+  "$defs": {
+    "EmpiricalIntervalAxis": {
+      "additionalProperties": false,
+      "description": "Absolute-error order statistic; unavailable calibration draws count as infinity.",
+      "properties": {
+        "available": {
+          "minimum": 0,
+          "title": "Available",
+          "type": "integer"
+        },
+        "axis": {
+          "title": "Axis",
+          "type": "string"
+        },
+        "half_width": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Half Width"
+        },
+        "order_rank": {
+          "minimum": 1,
+          "title": "Order Rank",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "finite",
+            "inconclusive"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "axis",
+        "available",
+        "order_rank",
+        "status"
+      ],
+      "title": "EmpiricalIntervalAxis",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A frozen split-conformal marginal radius, not a corrected covariance matrix.\n\nAt nominal p and n calibration attempts, the order rank is ceil((n+1)*p).\nExchangeability of complete-pipeline calibration and future errors is an\nassumption, not established by this artifact or by matching scope hashes.",
+  "properties": {
+    "calibration_artifact_sha256": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Calibration Artifact Sha256",
+      "type": "array"
+    },
+    "calibration_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Calibration Report Sha256",
+      "type": "string"
+    },
+    "calibration_seeds": {
+      "items": {
+        "type": "integer"
+      },
+      "minItems": 1,
+      "title": "Calibration Seeds",
+      "type": "array"
+    },
+    "command": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Command",
+      "type": "array"
+    },
+    "git_commit": {
+      "title": "Git Commit",
+      "type": "string"
+    },
+    "intervals": {
+      "items": {
+        "$ref": "#/$defs/EmpiricalIntervalAxis"
+      },
+      "minItems": 1,
+      "title": "Intervals",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "method": {
+      "const": "absolute_error_order_statistic/v0.1",
+      "default": "absolute_error_order_statistic/v0.1",
+      "title": "Method",
+      "type": "string"
+    },
+    "nominal_coverage": {
+      "exclusiveMaximum": 1,
+      "exclusiveMinimum": 0,
+      "title": "Nominal Coverage",
+      "type": "number"
+    },
+    "schema_version": {
+      "const": "slac.empirical_interval_model/v0.1",
+      "default": "slac.empirical_interval_model/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scope Sha256",
+      "type": "string"
+    },
+    "source_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Source Sha256",
+      "type": "object"
+    }
+  },
+  "required": [
+    "nominal_coverage",
+    "scope_sha256",
+    "calibration_report_sha256",
+    "calibration_seeds",
+    "calibration_artifact_sha256",
+    "intervals",
+    "command",
+    "source_sha256",
+    "git_commit",
+    "limitations"
+  ],
+  "title": "EmpiricalIntervalModel",
+  "type": "object"
+}

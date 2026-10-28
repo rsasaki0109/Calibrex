@@ -11,9 +11,13 @@ from __future__ import annotations
 
 import importlib.util
 import math
+import sqlite3
 import struct
 from pathlib import Path
 
+import pytest
+
+from calibrex.core.exceptions import DatasetError
 from calibrex.solvers.native_lidar_point_to_plane_solver import (
     _load_rosbag2_lidar_pair,
     lidar_pair_solve_inputs,
@@ -197,6 +201,20 @@ def test_load_rosbag2_lidar_pair_returns_points(tmp_path: Path) -> None:
     assert len(pair.target_points) > 0, "target points should be non-empty"
     assert pair.source_path.endswith(_SOURCE_TOPIC)
     assert pair.target_path.endswith(_TARGET_TOPIC)
+
+
+@pytest.mark.parametrize('topic', [_SOURCE_TOPIC, _TARGET_TOPIC])
+@pytest.mark.parametrize('encoding', ['json', 'protobuf', ''])
+def test_offline_pair_rejects_non_cdr_before_point_decoding(tmp_path, topic, encoding):
+    bag_path = tmp_path / 'encoding.db3'
+    _write_two_lidar_bag(bag_path)
+    with sqlite3.connect(bag_path) as db:
+        db.execute('UPDATE topics SET serialization_format = ? WHERE name = ?', (encoding, topic))
+    config = _make_config(bag_path)
+    with pytest.raises(DatasetError, match='unsupported serialization format') as error:
+        _load_rosbag2_lidar_pair(config, lidar_pair_solve_inputs(config),
+                                source_sensor='lidar_left', target_sensor='lidar_right')
+    assert topic in str(error.value)
 
 
 def test_load_rosbag2_lidar_pair_missing_bag(tmp_path: Path) -> None:
