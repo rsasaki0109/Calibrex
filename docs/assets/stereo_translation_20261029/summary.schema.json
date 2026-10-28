@@ -1,0 +1,132 @@
+{
+  "$defs": {
+    "Diagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "title": "Case Id",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "accepted": {
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "baseline_translation_m": {
+          "title": "Baseline Translation M",
+          "type": "number"
+        },
+        "returned_translation_m": {
+          "title": "Returned Translation M",
+          "type": "number"
+        },
+        "raw_candidate_translation_m": {
+          "title": "Raw Candidate Translation M",
+          "type": "number"
+        },
+        "last_step_m": {
+          "title": "Last Step M",
+          "type": "number"
+        },
+        "last_condition_number": {
+          "title": "Last Condition Number",
+          "type": "number"
+        },
+        "last_support_counts": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Last Support Counts",
+          "type": "array"
+        }
+      },
+      "required": [
+        "case_id",
+        "status",
+        "accepted",
+        "baseline_translation_m",
+        "returned_translation_m",
+        "raw_candidate_translation_m",
+        "last_step_m",
+        "last_condition_number",
+        "last_support_counts"
+      ],
+      "title": "Diagnostic",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scheduled": {
+      "title": "Scheduled",
+      "type": "integer"
+    },
+    "completed": {
+      "title": "Completed",
+      "type": "integer"
+    },
+    "accepted": {
+      "title": "Accepted",
+      "type": "integer"
+    },
+    "stage_recovered": {
+      "title": "Stage Recovered",
+      "type": "integer"
+    },
+    "returned_pipeline_recovered": {
+      "title": "Returned Pipeline Recovered",
+      "type": "integer"
+    },
+    "baseline_recovered": {
+      "title": "Baseline Recovered",
+      "type": "integer"
+    },
+    "raw_candidate_translation_improved": {
+      "title": "Raw Candidate Translation Improved",
+      "type": "integer"
+    },
+    "raw_candidate_translation_worsened": {
+      "title": "Raw Candidate Translation Worsened",
+      "type": "integer"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/Diagnostic"
+      },
+      "title": "Cases",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "artifact_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Artifact Sha256",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scheduled",
+    "completed",
+    "accepted",
+    "stage_recovered",
+    "returned_pipeline_recovered",
+    "baseline_recovered",
+    "raw_candidate_translation_improved",
+    "raw_candidate_translation_worsened",
+    "cases",
+    "limitations",
+    "artifact_sha256"
+  ],
+  "title": "Summary",
+  "type": "object"
+}

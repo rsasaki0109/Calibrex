@@ -1,0 +1,115 @@
+{
+  "$defs": {
+    "StereoTranslationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "accepted": {
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "output_T_camera_lidar": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Output T Camera Lidar",
+          "type": "array"
+        },
+        "candidate_T_camera_lidar": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Candidate T Camera Lidar",
+          "type": "array"
+        },
+        "trace": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Trace",
+          "type": "array"
+        },
+        "options": {
+          "additionalProperties": true,
+          "title": "Options",
+          "type": "object"
+        }
+      },
+      "required": [
+        "status",
+        "accepted",
+        "output_T_camera_lidar",
+        "candidate_T_camera_lidar",
+        "trace",
+        "options"
+      ],
+      "title": "StereoTranslationResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "driver_sha256": {
+      "title": "Driver Sha256",
+      "type": "string"
+    },
+    "solver_sha256": {
+      "title": "Solver Sha256",
+      "type": "string"
+    },
+    "input_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Input Sha256",
+      "type": "object"
+    },
+    "initial_T_camera_lidar": {
+      "items": {
+        "items": {
+          "type": "number"
+        },
+        "type": "array"
+      },
+      "title": "Initial T Camera Lidar",
+      "type": "array"
+    },
+    "elapsed_seconds": {
+      "title": "Elapsed Seconds",
+      "type": "number"
+    },
+    "result": {
+      "$ref": "#/$defs/StereoTranslationResult"
+    }
+  },
+  "required": [
+    "scope",
+    "source_commit",
+    "driver_sha256",
+    "solver_sha256",
+    "input_sha256",
+    "initial_T_camera_lidar",
+    "elapsed_seconds",
+    "result"
+  ],
+  "title": "RefinementRun",
+  "type": "object"
+}

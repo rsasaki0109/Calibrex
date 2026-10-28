@@ -350,6 +350,17 @@ metric translation constraints together with depth/motion validity, not threshol
 relaxation or favorable-seed selection. Coverage remains only 4/55 with unequal
 stereo input; no superiority, independent-family or fresh-audit claim.
 
+The [metric stereo translation experiment](research/camera_lidar_stereo_translation.md)
+adds opt-in, ROS-independent translation-only point-to-plane refinement, with
+D2D rotation fixed and no target reference in the fitter. Plan/source `9d01486a`
+ran all eight joint initializers: all hit 15 outer iterations; none is accepted.
+Returned pipeline recovery stays 4/8 by exact D2D fallback, and new-stage success
+is 0/8. Raw candidates improve translation 5/8 and worsen 3/8, including 0011
+positive from 0.136 to 0.340 m. All inner fits succeed and retain 2,000 matches per
+frame, so sparse support/rank checks do not establish reliability. Retain this
+negative result; do not relax criteria or promote the module. Next diagnose
+association stability and stereo-surface validity before further method claims.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).

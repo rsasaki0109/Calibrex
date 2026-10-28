@@ -134,6 +134,11 @@ src = ["src", "tests"]
 select = ["E", "F", "I", "UP", "B", "C4", "SIM", "RUF"]
 ignore = ["B008"]
 
+# Immutable execution-source snapshots: preserve the bytes recorded in experiment hashes.
+[tool.ruff.lint.per-file-ignores]
+"docs/assets/external_comparison_reset_20261028/prepare_smoke.py" = ["E401", "I001", "E701", "E702", "E501", "C408"]
+"docs/assets/external_comparison_reset_20261028/seed_smoke.py" = ["E401", "I001", "E702", "E501", "C408", "SIM115"]
+
 [tool.mypy]
 python_version = "3.10"
 strict = true

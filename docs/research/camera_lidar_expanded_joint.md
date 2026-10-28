@@ -133,3 +133,9 @@ The calibration root contains `2011_09_26/` with the original camera and
 IMU–LiDAR calibration files. The output parent must match the existing container
 `/data` mount. Optional `--reuse-raw PREVIOUS_PREPARATION` reuses only member bytes
 that match the prior acquisition receipt; it does not reuse calibration outcomes.
+
+
+The [metric translation follow-up](camera_lidar_stereo_translation.md) is now
+implemented and executed. All eight cases hit the outer-iteration limit and
+return D2D unchanged; no correction is accepted. Raw candidates improve 5/8 and
+worsen 3/8, so no improvement claim or default promotion follows.

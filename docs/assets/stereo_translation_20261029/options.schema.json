@@ -1,0 +1,56 @@
+{
+  "properties": {
+    "max_iterations": {
+      "default": 15,
+      "title": "Max Iterations",
+      "type": "integer"
+    },
+    "max_points_per_frame": {
+      "default": 2000,
+      "title": "Max Points Per Frame",
+      "type": "integer"
+    },
+    "min_points_per_frame": {
+      "default": 64,
+      "title": "Min Points Per Frame",
+      "type": "integer"
+    },
+    "translation_bound_m": {
+      "default": 0.5,
+      "title": "Translation Bound M",
+      "type": "number"
+    },
+    "convergence_step_m": {
+      "default": 0.0001,
+      "title": "Convergence Step M",
+      "type": "number"
+    },
+    "max_depth_jump_fraction": {
+      "default": 0.05,
+      "title": "Max Depth Jump Fraction",
+      "type": "number"
+    },
+    "disparity_sigma_px": {
+      "default": 0.5,
+      "title": "Disparity Sigma Px",
+      "type": "number"
+    },
+    "lidar_sigma_m": {
+      "default": 0.02,
+      "title": "Lidar Sigma M",
+      "type": "number"
+    },
+    "depth_gate_floor_m": {
+      "default": 1.0,
+      "title": "Depth Gate Floor M",
+      "type": "number"
+    },
+    "max_condition_number": {
+      "default": 1000.0,
+      "title": "Max Condition Number",
+      "type": "number"
+    }
+  },
+  "title": "StereoTranslationOptions",
+  "type": "object"
+}
