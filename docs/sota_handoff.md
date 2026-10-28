@@ -550,3 +550,15 @@ reads.
 
 Draft PRs #202, #205, #206, #208, #211 and #213 (CUDA, B-spline and LiDAR-IMU
 performance) are being consolidated by another session. Leave them to it.
+
+
+### Stereo translation diagnostic follow-up (2026-10-29)
+
+Post-hoc replay of all eight rejected trajectories reproduced 120 saved inner
+costs. In each case's last five updates, selected-pair retention averaged only
+6.8–16.2%; 40.1–75.5% of previously selected exact pairs were still eligible but
+excluded by uniform-index resampling. This establishes sampling churn, not its
+causal share of non-convergence or calibration error. The next controlled
+spent-data comparison is deterministic point-identity sampling with all other
+settings fixed, across all eight cases. Original acceptance remains 0/8.
+See [the replay evidence](research/camera_lidar_stereo_translation.md#post-hoc-correspondence-replay-2026-10-29).

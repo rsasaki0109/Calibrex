@@ -127,3 +127,65 @@ A single fit can be replayed with `tools/run_stereo_translation_refinement.py
 BUNDLE OUTPUT`. That executable never opens `seed.json`; reference scoring is
 performed by the separate evaluator after fitting. The experiment is explicitly
 assisted-input development, not a fresh audit or a new production default.
+
+
+## Post-hoc correspondence replay (2026-10-29)
+
+The diagnostic was committed at `cbd0288b` before replaying the eight saved
+trajectories. It does not run an optimizer, inspect reference extrinsics, change
+thresholds or alter the original 0/8 accepted result. All input and frozen-source
+hashes are checked. At every recorded pose, reconstructed design matrices and
+targets must exactly equal the original matcher; fixed-set costs must reproduce
+the saved optimizer costs. These checks passed for all eight cases and 120 updates.
+
+A pair identity is `(frame, LiDAR point index, stereo pixel)`. We measure its
+retention before and after each saved translation step, both before the 2,000-point
+cap and after it. “Eligible but unsampled” means the previously selected **exact
+pair** still passes projection, visibility and depth gates, but is excluded by the
+next uniform-index sample. It is a subset of lost selected pairs, not an extra
+source of geometric rejection. Per-frame intersections are summed before dividing.
+
+The table reports arithmetic means over the **last five updates** of each case;
+this post-hoc window describes the end of the trajectory, not a decision threshold.
+All 15 transitions per case are published in the artifact.
+
+| Recording / seed | All-pair retention | Selected-pair retention | Previously selected, still eligible but unsampled |
+| --- | ---: | ---: | ---: |
+| 0005 positive | 90.3% | 15.0% | 75.2% |
+| 0005 negative | 88.5% | 12.7% | 75.5% |
+| 0002 positive | 71.9% | 10.3% | 61.5% |
+| 0002 negative | 46.7% | 6.8% | 40.1% |
+| 0009 positive | 85.5% | 16.2% | 69.1% |
+| 0009 negative | 83.9% | 13.9% | 69.6% |
+| 0011 positive | 83.8% | 13.7% | 70.2% |
+| 0011 negative | 64.9% | 9.1% | 55.7% |
+
+The fixed-correspondence soft-L1 cost never increased over any of the 120 saved
+updates (comparison tolerance 1e-8). Reassociation and resampling raised the cost
+relative to the just-optimized fixed set in 46/120 updates. The latter costs use
+different data and are **not** a monotonic objective or an accuracy comparison.
+
+Uniform-index subsampling contributes substantial avoidable membership turnover:
+only 6.8–16.2% of selected pairs survive in these late-update means, while
+40.1–75.5% of the previous selection remains geometrically eligible but is not
+selected again. This is direct evidence of sampling churn. It does **not** establish
+its causal share of the non-convergence or explain reference translation errors.
+Pixel switching, stereo surface/normal errors and frozen rotation error remain
+possible contributors. No claim about surface accuracy follows from these counts.
+
+The next controlled development comparison should replace only the sampling rule
+with a deterministic priority tied to LiDAR point identity, leaving geometry,
+iteration limits and acceptance criteria fixed. Compare convergence and reference
+errors on **all eight** cases, including failures. Stable membership may still
+converge to a biased solution; passing convergence alone would not justify promotion.
+
+[Full replay](../assets/stereo_translation_diagnostic_20261029/replay.json) and
+[typed schema](../assets/stereo_translation_diagnostic_20261029/replay.schema.json)
+include source identities, original trace hashes, input hashes and every transition.
+Reproduce from the repository root with the original local bundles:
+
+```sh
+PYTHONPATH=src:. OPENBLAS_NUM_THREADS=1 \
+  python tools/diagnose_stereo_translation.py \
+  docs/assets/stereo_translation_20261029 /tmp/stereo-replay.json
+```
