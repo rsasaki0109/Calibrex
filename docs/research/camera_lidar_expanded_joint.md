@@ -40,3 +40,20 @@ run. The native arm still has stereo depth while Koide does not; both share
 OXTS-assisted motion. This is not evidence of monocular superiority. Even after
 successful execution, current assisted-input coverage is only 4 of 55 drives,
 not an independent-family or fresh-data audit.
+
+## Preparation correction before calibration
+
+Plan `126ce961` acquired the sparse 0009 inputs but stopped before any optimizer
+ran: blank entries in the official timestamp file exposed an ordinal-index
+assumption in the frontend. The converter retains original line/frame indices,
+whereas list indexing skips blank lines. Frame 111 prepared, but the request for
+frame 223 did not match its cloud timestamp and was rejected. The failed plan,
+receipt and log remain under `preparation_attempt1/`.
+
+The corrected frontend selects both timestamps and clouds by original identity;
+it does not shift timestamps or substitute frames. A regression test with a
+missing timestamp line verifies that frame 2 stays frame 2 and missing frame 1
+fails explicitly. The revised source hashes are frozen before any calibration.
+Previously fetched members can be reused only after verifying their receipt
+hashes; acquisition records distinguish cached bytes from new downloads. This
+is a preparation correction, not an outcome-dependent optimizer retry.

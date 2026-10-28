@@ -52,3 +52,13 @@ def test_sparse_scan_selection_preserves_original_timestamp():
     for entries, timestamp in [(scans, 200), ([*scans, (900, b"duplicate")], 900)]:
         with pytest.raises(ValueError, match="exactly one"):
             select_scan(entries, timestamp)
+
+
+def test_timestamp_gaps_do_not_renumber_frames(tmp_path):
+    from tools.kitti_aligned_stereo_bundle import frame_timestamp
+
+    path = tmp_path / "timestamps.txt"
+    path.write_text("2011-09-26 13:00:00.000000000\n\n2011-09-26 13:00:00.200000000\n")
+    assert frame_timestamp(path, 2) - frame_timestamp(path, 0) == 200_000_000
+    with pytest.raises(ValueError, match="missing"):
+        frame_timestamp(path, 1)

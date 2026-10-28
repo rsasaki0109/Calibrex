@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/workspace/Calibrex/tools/prepare_sparse_joint_inputs.py", line 194, in <module>
+    prepare(a.plan, a.output, a.calibration)
+  File "/workspace/Calibrex/tools/prepare_sparse_joint_inputs.py", line 154, in prepare
+    build(
+  File "/workspace/Calibrex/tools/kitti_aligned_stereo_bundle.py", line 95, in build
+    payload = select_scan(scans, stamp)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Calibrex/tools/kitti_aligned_stereo_bundle.py", line 71, in select_scan
+    raise ValueError("expected exactly one cloud at the requested KITTI timestamp")
+ValueError: expected exactly one cloud at the requested KITTI timestamp

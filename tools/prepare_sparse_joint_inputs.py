@@ -26,12 +26,18 @@ class PreparationReport(BaseModel):
     drives: list[dict[str, Any]]
 
 
-def prepare(plan_path: Path, root: Path, calibration_root: Path) -> None:
+def prepare(
+    plan_path: Path, root: Path, calibration_root: Path, reuse_raw: Path | None = None
+) -> None:
     """Keep original frame IDs/timestamps and require complete local pose coverage."""
     plan = DevelopmentMatrixPlan.model_validate_json(plan_path.read_text())
     for filename, expected in plan.source_sha256.items():
         if digest(Path(filename)) != expected:
             raise ValueError(f"changed frozen source: {filename}")
+    cached = {}
+    if reuse_raw is not None:
+        old = PreparationReport.model_validate_json((reuse_raw / "preparation.json").read_text())
+        cached = {m["member"]: m["sha256"] for d in old.drives for m in d.get("members", [])}
     root.mkdir(exist_ok=False, parents=True)
     results = []
     report = PreparationReport(
@@ -110,14 +116,22 @@ def prepare(plan_path: Path, root: Path, calibration_root: Path) -> None:
                     + info.compress_size
                     + 4096,
                 )
-                payload = extract(
-                    fetch_range(url, info.header_offset, end, etag), info.header_offset, info
-                )
                 path = root / "raw" / name
                 path.parent.mkdir(parents=True, exist_ok=True)
+                cache_path = reuse_raw / "raw" / name if reuse_raw else None
+                cache_hit = cache_path is not None and name in cached
+                if cache_hit:
+                    if digest(cache_path) != cached[name]:
+                        raise ValueError("cached acquisition bytes changed")
+                    payload = cache_path.read_bytes()
+                else:
+                    payload = extract(
+                        fetch_range(url, info.header_offset, end, etag), info.header_offset, info
+                    )
                 path.write_bytes(payload)
                 return {
                     "member": name,
+                    "cached": cache_hit,
                     "sha256": digest(path),
                     "bytes": len(payload),
                     "range": [info.header_offset, end],
@@ -131,7 +145,10 @@ def prepare(plan_path: Path, root: Path, calibration_root: Path) -> None:
                 archive_size=size,
                 frame_ids=drive.frames,
                 pose_ids=pose_ids,
-                fetched_bytes=total,
+                planned_range_bytes=total,
+                fetched_bytes=sum(
+                    m["range"][1] - m["range"][0] + 1 for m in members if not m["cached"]
+                ),
                 members=members,
             )
             save()
@@ -190,5 +207,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ["plan", "output", "calibration"]:
         parser.add_argument(name, type=Path)
+    parser.add_argument("--reuse-raw", type=Path)
     a = parser.parse_args()
-    prepare(a.plan, a.output, a.calibration)
+    prepare(a.plan, a.output, a.calibration, a.reuse_raw)
