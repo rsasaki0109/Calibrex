@@ -117,3 +117,9 @@ baselines remain outstanding. No fresh evaluation sensor payload was read.
 
 Do not tune either optimizer on this one result. The next deliverable is broader,
 physically aligned comparison evidence, not another two-drive objective tweak.
+
+
+The [motion-aligned stereo follow-up](camera_lidar_aligned_stereo_d2d.md) establishes
+an explicit shared capture-time frame and independent stereo depth. Both D2D and
+Koide execute and miss the scoped event. This assisted-input result does not
+replace the monocular comparison or upgrade the earlier diagnostics.

@@ -1,0 +1,135 @@
+{
+  "scope": "single-frame, stereo-assisted OXTS-aligned development execution; no comparative audit",
+  "frame_id": "2011_09_26_drive_0005_sync/0000000001",
+  "reference_used_in_frontend": false,
+  "fresh_evaluation_payloads_read": 0,
+  "diagnostics": {
+    "initial": {
+      "rotation_reference_disagreement_deg": 1.502893399187307,
+      "translation_reference_disagreement_m": 0.12247448713915891,
+      "scoped_recovery_event": false,
+      "T_camera_lidar": [
+        [
+          -0.017155467132486488,
+          -0.9998513431491697,
+          -0.001713456542265028,
+          0.1570524478595304
+        ],
+        [
+          -0.007153617595801984,
+          0.0018364056973287737,
+          -0.9999727149163535,
+          -0.12546671853346003
+        ],
+        [
+          0.9998272556012965,
+          -0.017142741539027197,
+          -0.0071840598855728525,
+          -0.2193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    "stereo_d2d": {
+      "rotation_reference_disagreement_deg": 1.1097322606936515,
+      "translation_reference_disagreement_m": 0.2738612787525831,
+      "scoped_recovery_event": false,
+      "T_camera_lidar": [
+        [
+          -0.007658367062494231,
+          -0.9999360059542812,
+          -0.008326668609726973,
+          0.1570524478595304
+        ],
+        [
+          -0.007103646777456785,
+          0.008381104735788125,
+          -0.9999396458216212,
+          0.17453328146654
+        ],
+        [
+          0.9999454423199285,
+          -0.007598755135405977,
+          -0.007167377762816063,
+          -0.31938691240587325
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    "koide": {
+      "rotation_reference_disagreement_deg": 1.3735259786415057,
+      "translation_reference_disagreement_m": 0.19471377847833102,
+      "scoped_recovery_event": false,
+      "T_camera_lidar": [
+        [
+          -0.012300753728242799,
+          -0.9996631206095029,
+          -0.02285468772455387,
+          0.13482132433538146
+        ],
+        [
+          0.02683997280472749,
+          0.02251809092616003,
+          -0.9993860872760246,
+          -0.2397714560099296
+        ],
+        [
+          0.9995640586363426,
+          -0.012906621336002105,
+          0.02655394148013525,
+          -0.19960575002102332
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    }
+  },
+  "limitations": [
+    "D2D has a right image and stereo baseline; this is not equal-information monocular comparison.",
+    "Both arms use OXTS trajectory and IMU-to-LiDAR calibration for shared motion compensation.",
+    "Azimuth point times, linear pose interpolation and SLERP remain models, not measured per-point truth.",
+    "One frame, one common seed, no holdout; no success-rate or runtime superiority claim.",
+    "D2D uses existing solver defaults, not the exact integrated-r5 release configuration.",
+    "Shared custom frontend bypasses official Koide preprocessing; official optimizer source is unchanged.",
+    "No parameter tuning followed this result; all strict recovery events fail."
+  ],
+  "artifact_sha256": {
+    "aligned-job.sh": "85213181d410b703da513da968ad302582fa637c18bc0e8ffd76998b1d1499a5",
+    "seed.json": "d3c7c0d2f275e60d8db8133d5b30d3938a090f68188f2cba68e8854d848e8a76",
+    "frontend.schema.json": "da0807c83c882e917b5f708f89a3c4645dfdabf11086c055a7c35a9d1578ff6f",
+    "d2d.schema.json": "6446f896516fb33673af93394dd6f3180a54fba6bc9612ba6450ac6d292d1ed0",
+    "fetch_right.py.txt": "23a2e08695f50f1233ecc29037c902d8ad244c7b0bf6dffe4b47562e63d2e0ba",
+    "build.log": "d0d1e0377b8d4f8d23c0d3b1b9b5bdb4fb8055b581820cbf66c830c260acb6dc",
+    "d2d.json": "7a1094305896ceafaf9312953a1cfe3aad4a542ab756a33affa9a0d44613990d",
+    "runtime-entrypoint.sh": "0bc13d4ebc0176126c03c89829b41c9a899418b15fad6e840b8e86bb9f0f7c25",
+    "koide.log": "cb317106432c6961d2072caa413526205e996e88eb36a952d42228268655728f",
+    "publish.py.txt": "874e7b1a9db2fce633d925a9a6747d0f742d2842f91cc203255b58f022e9aa46",
+    "calib-frontend.json": "c6a71c386fda060316bd0681d42cb8d1130f3af025387faf2fd159ae63bb0a27",
+    "calib.json": "ff77da4e8dabc4dec27e5cd49bcdfa34fc97e47cf2fafcb812b2fa8f4c1603d4",
+    "calib-seeded.json": "ef44e4ac56763a108f1cd8e2828f834a38f108be0ce2fa289f127f256cee08c7",
+    "fetch-frame1.json": "678d619dad52ccb5fdea21cdbe9f050bc1ca369058758c6e239cbc37a30e4ab8",
+    "fetch.json": "08391bba41eb20a3621116ddffaca819807bd585d48b9e02fcc08a0642420399",
+    "d2d.log": "59a1bbeb14132fc14f384051f751d5c823529857917bc9040e88cdebe2d47795",
+    "frontend.json": "d0d1e0377b8d4f8d23c0d3b1b9b5bdb4fb8055b581820cbf66c830c260acb6dc"
+  },
+  "source_sha256": {
+    "tools/kitti_aligned_stereo_bundle.py": "c58790d26f65601ea05e97e6146a323ecf20a80d2f1e9a17edec43f669b62196",
+    "tools/run_aligned_stereo_d2d.py": "e8c8dbfa35f015b3ca3715bb6c89a2866f600ce54c94c74bd80d0b4e8a5f05b5",
+    "src/calibrex/solvers/borer_six_dof_solver.py": "930e6a5442488f6c2e7311b7e87f9302e44a9c02e55c3fd9c37255c7ade7b08f",
+    "src/calibrex/solvers/borer_depth_to_depth_solver.py": "bc8d223156ebd1be992b68b7559c1ac720a4fc84391a1c435dcc2ad7ba485b68"
+  }
+}

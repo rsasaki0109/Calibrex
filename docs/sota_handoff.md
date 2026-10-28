@@ -308,6 +308,16 @@ Next resolve cloud/camera reference-time alignment and independent image-depth
 input for the D2D release candidate, then expand spent-data coverage. Do not tune
 on the single shared bundle. Fresh evaluation data remains unread.
 
+The [motion-aligned stereo D2D execution](research/camera_lidar_aligned_stereo_d2d.md)
+now uses OXTS/IMU–LiDAR motion to express a scan at image time without the target
+camera–LiDAR reference, and stereo-only depth. On fixed spent-0005 frame 1, D2D
+has 1.110 deg / 0.274 m disagreement and Koide 1.374 deg / 0.195 m; both fail the
+scoped event. This is an assisted-input track, not an equal-information monocular
+comparison or the integrated-r5 release protocol. Next freeze a multi-interval,
+multi-drive development matrix; do not tune or repeat single-frame variants.
+Monocular depth/provider exposure, 55-drive coverage and learned baselines remain
+pending. Fresh evaluation payloads remain unread.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).

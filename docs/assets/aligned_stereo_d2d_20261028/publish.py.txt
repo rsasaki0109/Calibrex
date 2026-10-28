@@ -1,0 +1,83 @@
+"""Archive the stereo-assisted, motion-aligned development execution."""
+import hashlib
+import json
+import shutil
+from pathlib import Path
+import numpy as np
+from pydantic import BaseModel, ConfigDict
+from scipy.spatial.transform import Rotation
+from tools.kitti_aligned_stereo_bundle import BundleReport
+from tools.koide_shared_bundle_pandey import SharedBundleRun
+
+work=Path('/workspace/work/stereo-d2d-20261028')
+bundle=Path('/workspace/work/external-comparison-20261028/preprocessed/aligned-stereo')
+out=Path('/workspace/Calibrex/docs/assets/aligned_stereo_d2d_20261028')
+class Diagnostic(BaseModel):
+    model_config=ConfigDict(extra='forbid',allow_inf_nan=False)
+    rotation_reference_disagreement_deg: float
+    translation_reference_disagreement_m: float
+    scoped_recovery_event: bool
+    T_camera_lidar: list[list[float]]
+class Report(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    scope: str
+    frame_id: str
+    reference_used_in_frontend: bool
+    fresh_evaluation_payloads_read: int
+    diagnostics: dict[str,Diagnostic]
+    limitations: list[str]
+    artifact_sha256: dict[str,str]
+    source_sha256: dict[str,str]
+
+for name in ['d2d.json','d2d.schema.json','d2d.log','koide.log','fetch.json','fetch-frame1.json','build.log']:
+    shutil.copyfile(work/name,out/name)
+for name in ['frontend.json','frontend.schema.json','calib.json','calib-seeded.json']:
+    shutil.copyfile(bundle/name,out/name)
+shutil.copyfile(bundle.parent/'aligned-job.sh',out/'aligned-job.sh')
+shutil.copyfile('/tmp/koide-aligned-entrypoint.sh',out/'runtime-entrypoint.sh')
+shutil.copyfile(work/'fetch_right_frame1.py',out/'fetch_right.py.txt')
+shutil.copyfile('/workspace/work/external-comparison-20261028/seed.json',out/'seed.json')
+shutil.copyfile(__file__,out/'publish.py.txt')
+frontend=BundleReport.model_validate_json((out/'frontend.json').read_text())
+d2d=SharedBundleRun.model_validate_json((out/'d2d.json').read_text())
+assert frontend.source_sha256['driver']==hashlib.sha256(Path('tools/kitti_aligned_stereo_bundle.py').read_bytes()).hexdigest()
+assert d2d.driver_sha256==hashlib.sha256(Path('tools/run_aligned_stereo_d2d.py').read_bytes()).hexdigest()
+assert d2d.input_sha256[str(bundle/'calib.json')]==frontend.output_sha256['calib.json']
+raw=json.loads((out/'calib.json').read_text())
+original={k:v for k,v in json.loads((out/'calib-seeded.json').read_text()).items() if k!='results'}
+original_bytes=(json.dumps(original,indent=2)+'\n').encode()
+assert hashlib.sha256(original_bytes).hexdigest()==frontend.output_sha256['calib.json']
+(out/'calib-frontend.json').write_bytes(original_bytes)
+reference=np.array(json.loads((out/'seed.json').read_text())['reference_T_camera_lidar'])
+def inverse(values):
+    assert np.isfinite(values).all() and abs(np.linalg.norm(values[3:])-1)<1e-6
+    matrix=np.eye(4);matrix[:3,:3]=Rotation.from_quat(values[3:]).as_matrix();matrix[:3,3]=values[:3]
+    return np.linalg.inv(matrix)
+np.testing.assert_allclose(d2d.initial_T_camera_lidar,inverse(raw['results']['init_T_lidar_camera']),atol=1e-6,rtol=0)
+matrices={'initial':np.array(d2d.initial_T_camera_lidar),'stereo_d2d':np.array(d2d.output_T_camera_lidar),
+          'koide':inverse(raw['results']['T_lidar_camera'])}
+diagnostics={}
+for name,matrix in matrices.items():
+    rotation=float(np.degrees(Rotation.from_matrix(matrix[:3,:3]@reference[:3,:3].T).magnitude()))
+    translation=float(np.linalg.norm(matrix[:3,3]-reference[:3,3]))
+    diagnostics[name]=Diagnostic(rotation_reference_disagreement_deg=rotation,
+        translation_reference_disagreement_m=translation,scoped_recovery_event=rotation<.5 and translation<.20,
+        T_camera_lidar=matrix.tolist())
+report=Report(scope='single-frame, stereo-assisted OXTS-aligned development execution; no comparative audit',
+    frame_id='2011_09_26_drive_0005_sync/0000000001',reference_used_in_frontend=False,
+    fresh_evaluation_payloads_read=0,diagnostics=diagnostics,
+    limitations=['D2D has a right image and stereo baseline; this is not equal-information monocular comparison.',
+        'Both arms use OXTS trajectory and IMU-to-LiDAR calibration for shared motion compensation.',
+        'Azimuth point times, linear pose interpolation and SLERP remain models, not measured per-point truth.',
+        'One frame, one common seed, no holdout; no success-rate or runtime superiority claim.',
+        'D2D uses existing solver defaults, not the exact integrated-r5 release configuration.',
+        'Shared custom frontend bypasses official Koide preprocessing; official optimizer source is unchanged.',
+        'No parameter tuning followed this result; all strict recovery events fail.'],
+    artifact_sha256={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in out.iterdir()},
+    source_sha256={p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in
+        ['tools/kitti_aligned_stereo_bundle.py','tools/run_aligned_stereo_d2d.py',
+         'src/calibrex/solvers/borer_six_dof_solver.py','src/calibrex/solvers/borer_depth_to_depth_solver.py']})
+(out/'comparison.json').write_text(report.model_dump_json(indent=2)+'\n')
+(out/'comparison.schema.json').write_text(json.dumps(Report.model_json_schema(),indent=2)+'\n')
+Report.model_validate_json((out/'comparison.json').read_text())
+print('All source identities, common seed, input calibration and report schemas verified.')
