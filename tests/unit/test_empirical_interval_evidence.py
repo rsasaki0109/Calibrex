@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from calibrex.core.empirical_intervals import EmpiricalIntervalEvaluation, EmpiricalIntervalModel
 from calibrex.core.validation import validate_file
 from calibrex.evaluation.empirical_intervals import (
@@ -58,7 +60,16 @@ def test_frozen_model_and_evaluation_replay_every_retained_draw() -> None:
         command=evaluation.command, source_sha256=evaluation.source_sha256,
         git_commit=evaluation.git_commit, control_width_scale=evaluation.control_width_scale,
     )
-    assert replay_evaluation == evaluation
+    # Float summation differs between Python 3.11 and 3.12. Keep all counts,
+    # decisions, fitted widths and provenance exact; tolerate only rounding
+    # in the diagnostic mean of formal interval widths.
+    assert replay_evaluation.model_dump(exclude={"axes"}) == evaluation.model_dump(exclude={"axes"})
+    for actual, expected in zip(replay_evaluation.axes, evaluation.axes, strict=True):
+        excluded = {"mean_formal_half_width"}
+        assert actual.model_dump(exclude=excluded) == expected.model_dump(exclude=excluded)
+        assert actual.mean_formal_half_width == pytest.approx(
+            expected.mean_formal_half_width, rel=1e-14, abs=0.0
+        ), actual.axis
     assert len(evaluation.axes) == 13
     assert all(not axis.axis.startswith("gravity[") for axis in evaluation.axes)
     assert sum(axis.verdict == "undercoverage" for axis in evaluation.axes) == 3

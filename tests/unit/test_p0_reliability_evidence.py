@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import jsonschema
+import pytest
 
 from calibrex.core.validation import validate_file
 from calibrex.evaluation.uncertainty_coverage import (
@@ -30,7 +31,16 @@ def test_retained_manifest_and_coverage_replay() -> None:
         replay = summarize_coverage(report.trials, [a.axis for a in report.axes],
                                     nominal=report.nominal_coverage,
                                     control_std_scale=report.control_std_scale)
-        assert replay == report.axes
+        # Python 3.12 changed float summation. Only aggregate statistics may
+        # differ at rounding precision; counts, coverage, verdicts and axes
+        # must still match exactly. No archived evidence or policy is changed.
+        aggregates = {"mean_error", "rms_error", "mean_std"}
+        for actual, expected in zip(replay, report.axes, strict=True):
+            assert actual.model_dump(exclude=aggregates) == expected.model_dump(exclude=aggregates)
+            for field in aggregates:
+                assert getattr(actual, field) == pytest.approx(
+                    getattr(expected, field), rel=1e-14, abs=0.0
+                ), (folder, actual.axis, field)
         for trial in report.trials:
             assert trial.artifact_sha256 == hashlib.sha256(
                 (directory / f"result-{trial.seed}.json").read_bytes()).hexdigest()
