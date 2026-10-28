@@ -1,0 +1,47 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.match_geometry_summary/v0.1",
+      "default": "calibrex.match_geometry_summary/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    },
+    "metrics": {
+      "additionalProperties": true,
+      "title": "Metrics",
+      "type": "object"
+    },
+    "changed_flags": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Changed Flags",
+      "type": "array"
+    },
+    "limitations": {
+      "default": [
+        "Two spent drives; correlated controls are not independent evaluations.",
+        "Reference disagreement of training folds is not a native calibration verdict."
+      ],
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "provenance",
+    "metrics",
+    "changed_flags"
+  ],
+  "title": "Summary",
+  "type": "object"
+}

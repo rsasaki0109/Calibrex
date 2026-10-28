@@ -257,6 +257,16 @@ before spending a full optimization batch. All six folds and eleven frames are
 retained. Component identity alone does not enforce neighboring-match geometry;
 direction, separation and collapse remain untested structural hypotheses.
 
+The [neighbor match geometry experiment](research/camera_lidar_match_geometry.md)
+adds direction/spacing preservation to the contour graph. Its fixed-pose screen
+reduces wrong-control wins from 5/6 to 1/6 folds. The frozen full fourteen-input
+paired search retains 19/42 detections (two gained, two lost); 0002 remains 0/21.
+Target pitch +3 worst full rotation error decreases 2.803 to 0.354 deg, but its
+control t=1.539 remains below 2.5. All-fold worst full rotation error is still
+12.067 deg and computation is substantially higher. Retain experimentally, do
+not promote. All original-arm parity checks pass; future reports include full
+rotation vectors/norms to avoid hiding nuisance-axis errors.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).
