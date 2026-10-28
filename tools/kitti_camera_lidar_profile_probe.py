@@ -131,10 +131,29 @@ def refit_nuisance(
     return fitted
 
 
+def refine_baseline_from_controls(
+    objective: edge.EdgeObjective, baseline: np.ndarray, controls: Sequence[np.ndarray],
+    options: edge.EdgeAlignmentOptions,
+) -> np.ndarray:
+    """One training-only restart per signed control; preserve the baseline on ties."""
+    best = baseline.copy()
+    score = objective.score(best)
+    for control in controls:
+        seed = control.copy()
+        seed[:3] = np.clip(seed[:3], -options.rotation_bound_deg, options.rotation_bound_deg)
+        fitted, _ = edge.search(objective, seed, options, axes=(0, 1, 2),
+                                first_level=options.jackknife_first_level)
+        value = objective.score(fitted)
+        if value > score:
+            best, score = fitted, value
+    return best
+
+
 def profile_axis(
     training: Sequence[edge.EdgeObjective], held_out: Sequence[edge.EdgeObjective],
     axis: int, conditional_start_deg: float, options: edge.EdgeAlignmentOptions,
     *, multi_start: bool = False, training_only_start: bool = False,
+    control_seeded_baseline: bool = False,
 ) -> ProfileAxis:
     """Optimize on training only; score fixed poses on the held-out blocks."""
     if axis not in (0, 1, 2) or len(training) != len(held_out) or len(training) < 3:
@@ -154,13 +173,24 @@ def profile_axis(
             start = training_profile_start(train, axis, options)
         base, _ = edge.search(train, start, options, axes=(0, 1, 2),
                               first_level=options.jackknife_first_level)
-        shifted, profiled = [], []
-        for sign in (-1, 1):
-            shift = base.copy()
-            shift[axis] += sign * options.rotation_control_deg
-            fitted = refit_nuisance(train, shift, axis, options, multi_start=multi_start)
-            shifted.append(shift)
-            profiled.append(fitted)
+        def controls_for(
+            pose: np.ndarray, objective: edge.EdgeObjective = train,
+        ) -> tuple[list[np.ndarray], list[np.ndarray]]:
+            shifted, profiled = [], []
+            for sign in (-1, 1):
+                shift = pose.copy()
+                shift[axis] += sign * options.rotation_control_deg
+                fitted = refit_nuisance(objective, shift, axis, options, multi_start=multi_start)
+                shifted.append(shift)
+                profiled.append(fitted)
+            return shifted, profiled
+
+        shifted, profiled = controls_for(base)
+        if control_seeded_baseline:
+            refined = refine_baseline_from_controls(train, base, profiled, options)
+            if not np.array_equal(refined, base):
+                base = refined
+                shifted, profiled = controls_for(base)
         # No held-out score is consulted until all parameters of this fold are fixed.
         base_score = held.score(base)
         folds.append(ProfileFold(
@@ -207,6 +237,7 @@ def profile_snapshot(
     spatial_balance: bool = False,
     azimuth_orientation: bool = False,
     training_only_start: bool = False,
+    control_seeded_baseline: bool = False,
 ) -> ProfileReport:
     """Verify a previously captured input and conditional receipt; retain partial failures."""
     from tools import kitti_camera_lidar_axis_probe as conditional
@@ -250,6 +281,11 @@ def profile_snapshot(
             "previous full-input conditional correction; folds are local jackknife fits"
         ),
         "training_only_start": training_only_start,
+        "control_seeded_baseline": control_seeded_baseline,
+        "baseline_restart_policy": (
+            "one pass, two signed controls, training score; ties keep original"
+            if control_seeded_baseline else "original"
+        ),
         "nuisance_search": "profile_multistart" if multi_start else "local",
         "nuisance_selection": "maximum training objective; original local fit retained on ties",
         "spatial_weights": "candidate_fixed_2x2" if spatial_balance else "original",
@@ -324,7 +360,8 @@ def profile_snapshot(
         for axis, correction in starts:
             report.axes.append(profile_axis(training, held, axis, correction, options,
                                             multi_start=multi_start,
-                                            training_only_start=training_only_start))
+                                            training_only_start=training_only_start,
+                                            control_seeded_baseline=control_seeded_baseline))
             write()
         report.status = "complete"
     except Exception as exc:
@@ -342,6 +379,8 @@ def main(argv: list[str] | None = None) -> int:
     starts.add_argument("--conditional-report", type=Path)
     starts.add_argument("--training-only-start", action="store_true",
                         help="initialize each fold from training frames only; no pooled receipt")
+    parser.add_argument("--control-seeded-baseline", action="store_true",
+                        help="one training-only baseline restart from each signed control")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--multi-start", action="store_true",
                         help="also refine training-only nuisance profile maxima")
@@ -353,7 +392,8 @@ def main(argv: list[str] | None = None) -> int:
     profile_snapshot(args.snapshot, args.conditional_report, args.output,
                      multi_start=args.multi_start, spatial_balance=args.spatial_balance,
                      azimuth_orientation=args.azimuth_orientation,
-                     training_only_start=args.training_only_start)
+                     training_only_start=args.training_only_start,
+                     control_seeded_baseline=args.control_seeded_baseline)
     return 0
 
 

@@ -49,7 +49,10 @@ def test_outside_bound_control_still_refits_bounded_nuisance_coordinates() -> No
 
 
 @pytest.mark.parametrize("multi_start", [False, True])
-def test_held_out_objective_only_scores_the_five_final_poses_per_fold(multi_start: bool) -> None:
+@pytest.mark.parametrize("control_seeded_baseline", [False, True])
+def test_held_out_objective_only_scores_the_five_final_poses_per_fold(
+    multi_start: bool, control_seeded_baseline: bool,
+) -> None:
     class HeldOut(_Ridge):
         def __init__(self) -> None:
             super().__init__(1)
@@ -61,7 +64,8 @@ def test_held_out_objective_only_scores_the_five_final_poses_per_fold(multi_star
 
     held = [HeldOut() for _ in range(3)]
     result = probe.profile_axis([_Ridge(1)] * 3, held, 0, 2.0, edge.EdgeAlignmentOptions(),
-                                multi_start=multi_start)
+                                multi_start=multi_start,
+                                control_seeded_baseline=control_seeded_baseline)
     for objective, fold in zip(held, result.folds, strict=True):
         assert objective.calls == [fold.base_theta, *fold.shifted_theta, *fold.profiled_theta]
 
@@ -214,3 +218,36 @@ def test_flat_training_profile_retains_zero_candidate():
 
     start = probe.training_profile_start(Flat(), 2, edge.EdgeAlignmentOptions())
     np.testing.assert_array_equal(start, np.zeros(6))
+
+
+def test_control_seed_can_escape_a_worse_baseline_basin_without_using_held_out_data() -> None:
+    class TwoBasins(edge.EdgeObjective):
+        def __init__(self) -> None:
+            pass
+
+        def score(self, theta: np.ndarray) -> float:
+            return float(max(-theta[0] ** 2, 1 - (theta[0] - 4) ** 2)
+                         - np.sum(theta[1:] ** 2))
+
+    baseline = np.zeros(6)
+    controls = [np.array([x, 0, 0, 0, 0, 0], dtype=float) for x in (-2, 2)]
+    fitted = probe.refine_baseline_from_controls(
+        TwoBasins(), baseline, controls, edge.EdgeAlignmentOptions())
+    assert fitted[0] == pytest.approx(4)
+    assert np.array_equal(baseline, np.zeros(6))
+
+
+def test_control_seed_retains_baseline_on_flat_scores_and_bounds_restarts() -> None:
+    class Flat(edge.EdgeObjective):
+        def __init__(self) -> None:
+            pass
+
+        def score(self, theta: np.ndarray) -> float:
+            assert np.all(np.abs(theta[:3]) <= 12)
+            return 0.0
+
+    baseline = np.zeros(6)
+    controls = [np.array([14, 0, 0, 0, 0, 0], dtype=float)]
+    fitted = probe.refine_baseline_from_controls(
+        Flat(), baseline, controls, edge.EdgeAlignmentOptions())
+    assert np.array_equal(fitted, baseline)
