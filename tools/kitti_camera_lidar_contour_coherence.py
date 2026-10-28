@@ -121,7 +121,7 @@ def score_frame(
     )
 
 
-def run(snapshot: Path, receipt: Path, output: Path) -> Screen:
+def run(snapshot: Path, receipt: Path, output: Path, *, geometry: bool = False) -> Screen:
     """Use all saved poses and held frames from the previous targeted diagnostic."""
     meta, frames, camera, candidate, options = replay.load_snapshot(snapshot)
     saved = diagnostics.Diagnostics.model_validate_json(receipt.read_bytes())
@@ -141,7 +141,12 @@ def run(snapshot: Path, receipt: Path, output: Path) -> Screen:
         for f in prepared
     ]
     graphs = [neighbor_links(f.points) for f in prepared]
-    maps = [contour_map(f.edge) for f in prepared]
+    if geometry:
+        from tools import kitti_camera_lidar_match_geometry as geometric
+
+        maps = [geometric.geometry_map(f.edge) for f in prepared]
+    else:
+        maps = [contour_map(f.edge) for f in prepared]
     report = Screen(
         provenance={
             "git_commit": git_commit(),
@@ -151,6 +156,9 @@ def run(snapshot: Path, receipt: Path, output: Path) -> Screen:
             "arrays_sha256": meta.arrays_sha256,
             "receipt_sha256": sha(receipt),
             "settings": SETTINGS,
+            "geometry": geometry,
+            "geometry_settings": geometric.SETTINGS if geometry else None,
+            "geometry_source_sha256": sha(Path(geometric.__file__)) if geometry else None,
             "new_evaluation_started": False,
             "new_accuracy_claim": False,
             "decision_rule": "do not integrate if a saved wrong control still beats the reference "
@@ -180,7 +188,9 @@ def run(snapshot: Path, receipt: Path, output: Path) -> Screen:
                 raise ValueError("prepared frame identity differs")
             objective = edge.EdgeObjective([frame], camera, candidate)
             scores = [
-                score_frame(objective, np.array(p), maps[i][0], graphs[i]) for p in fold["poses"]
+                (geometric.score_geometry(objective, np.array(p), maps[i][0], graphs[i], maps[i][2])
+                 if geometry else score_frame(objective, np.array(p), maps[i][0], graphs[i]))
+                for p in fold["poses"]
             ]
             old, new = [s[0] for s in scores], [s[1] for s in scores]
             np.testing.assert_allclose(old, previous["scores"], atol=1e-9, rtol=0)
@@ -235,8 +245,9 @@ def main() -> None:
     parser.add_argument("snapshot", type=Path)
     parser.add_argument("receipt", type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--geometry", action="store_true")
     args = parser.parse_args()
-    report = run(args.snapshot, args.receipt, args.output)
+    report = run(args.snapshot, args.receipt, args.output, geometry=args.geometry)
     print(json.dumps(report.summary, indent=2))
 
 
