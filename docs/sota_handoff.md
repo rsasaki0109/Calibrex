@@ -231,6 +231,15 @@ but worst active-axis fold reference disagreement among detected controls rises
 local direction penalties alone do not resolve correspondence ambiguity.
 All paired outcomes and the interrupted scheduling-only run are retained.
 
+The [bounded nearest-ridge distance ablation](research/camera_lidar_nearest_edge.md)
+then replaces the scalar image response with a truncated distance reward.
+All fourteen original-arm parity checks pass, but controls decrease 19/42 to
+13/42 (eight lost, two gained), with 0002 still 0/21. Worst detected fold
+reference disagreement decreases 0.350 to 0.246 deg, while target pitch +3
+still fails (t -1.764) despite fitted pitch errors within 0.052 deg.
+Reject promotion; inspect actual wrong-pose image matches and temporal persistence
+before another objective variant. No new evaluation or default change.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).
