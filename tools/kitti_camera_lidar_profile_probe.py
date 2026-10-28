@@ -237,6 +237,7 @@ def profile_snapshot(
     spatial_balance: bool = False,
     azimuth_orientation: bool = False,
     boundary_tangent: bool = False,
+    nearest_edge: bool = False,
     training_only_start: bool = False,
     control_seeded_baseline: bool = False,
 ) -> ProfileReport:
@@ -244,7 +245,7 @@ def profile_snapshot(
     from tools import kitti_camera_lidar_axis_probe as conditional
     from tools import kitti_camera_lidar_v3_replay as replay
 
-    if sum((spatial_balance, azimuth_orientation, boundary_tangent)) > 1:
+    if sum((spatial_balance, azimuth_orientation, boundary_tangent, nearest_edge)) > 1:
         raise ValueError("choose one objective ablation at a time")
     if training_only_start == (conditional_report is not None):
         raise ValueError("choose either training-only starts or a conditional report")
@@ -282,6 +283,7 @@ def profile_snapshot(
             "previous full-input conditional correction; folds are local jackknife fits"
         ),
         "training_only_start": training_only_start,
+        "nearest_edge": nearest_edge,
         "control_seeded_baseline": control_seeded_baseline,
         "baseline_restart_policy": (
             "one pass, two signed controls, training score; ties keep original"
@@ -321,6 +323,29 @@ def profile_snapshot(
                 "spatial_source_sha256": _sha(Path(spatial.__file__)),
                 "tile_support": [support.model_dump(mode="json") for _, support in balanced],
                 "spatial_scope": "per-frame fixed preprocessing on train and held-out frames",
+            })
+        if nearest_edge:
+            from dataclasses import replace
+
+            from tools import kitti_camera_lidar_nearest_edge as nearest
+
+            images = {frame.time_s: frame.image for frame in frames}
+            if len(images) != len(frames):
+                raise ValueError("nearest-edge lookup requires unique timestamps")
+            replaced, support = [], []
+            for frame in prepared:
+                response, factor, counts = nearest.prepare_nearest_edge(
+                    images[frame.time_s], options)
+                if factor != frame.scale or response.shape != frame.edge.shape:
+                    raise ValueError("nearest-edge field differs from prepared image geometry")
+                replaced.append(replace(frame, edge=response))
+                support.append(counts)
+            prepared = replaced
+            report.provenance.update({
+                "nearest_edge_source_sha256": _sha(Path(nearest.__file__)),
+                "nearest_edge_settings": nearest.SETTINGS, "nearest_edge_support": support,
+                "nearest_edge_scope": "fixed image ridges; nearest Euclidean distance reward",
+                "nearest_edge_limit": "many-to-one matches; no physical correspondence guarantee",
             })
         orientation_features = None
         if azimuth_orientation or boundary_tangent:
@@ -411,11 +436,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--azimuth-orientation", action="store_true",
                         help="penalize gradient/azimuth-direction mismatch (research only)")
     parser.add_argument("--boundary-tangent", action="store_true")
+    parser.add_argument("--nearest-edge", action="store_true")
     args = parser.parse_args(argv)
     profile_snapshot(args.snapshot, args.conditional_report, args.output,
                      multi_start=args.multi_start, spatial_balance=args.spatial_balance,
                      azimuth_orientation=args.azimuth_orientation,
-                     boundary_tangent=args.boundary_tangent,
+                     boundary_tangent=args.boundary_tangent, nearest_edge=args.nearest_edge,
                      training_only_start=args.training_only_start,
                      control_seeded_baseline=args.control_seeded_baseline)
     return 0

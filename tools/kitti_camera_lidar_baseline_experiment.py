@@ -19,12 +19,16 @@ from calibrex.core.provenance import git_commit
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def run(captures: Path, output: Path, *, boundary_tangent: bool = False) -> ComparisonReport:
+def run(captures: Path, output: Path, *, boundary_tangent: bool = False,
+        nearest_edge: bool = False) -> ComparisonReport:
     """Keep all fourteen inputs and failures; report controls and fold reference errors."""
+    if boundary_tangent and nearest_edge:
+        raise ValueError("choose one ablation")
     output.mkdir(parents=True, exist_ok=False)
     report = ComparisonReport(
         provenance={
             "experiment": (
+                "nearest_edge_distance" if nearest_edge else
                 "local_boundary_tangent" if boundary_tangent else "one_pass_control_seeded_baseline"
             ),
             "git_commit": git_commit(),
@@ -34,7 +38,8 @@ def run(captures: Path, output: Path, *, boundary_tangent: bool = False) -> Comp
             "new_evaluation_started": False,
             "new_accuracy_claim": False,
             "hypothesis": (
-                "Local boundary directions reject incorrect edge alignments."
+                "Bounded nearest-ridge distance reduces distant incorrect edge matches."
+                if nearest_edge else "Local boundary directions reject incorrect edge alignments."
                 if boundary_tangent
                 else "A baseline trapped in a local basin may underestimate pitch controls."
             ),
@@ -68,7 +73,8 @@ def run(captures: Path, output: Path, *, boundary_tangent: bool = False) -> Comp
                 reference = Rotation.from_rotvec(-vector).as_matrix() @ candidate[:3, :3]
                 for arm, enabled in [
                     ("original", False),
-                    ("boundary_tangent" if boundary_tangent else "control_seeded", True),
+                    ("nearest_edge" if nearest_edge else
+                     "boundary_tangent" if boundary_tangent else "control_seeded", True),
                 ]:
                     tick = time.monotonic()
                     dest = output / drive / name / arm
@@ -78,7 +84,8 @@ def run(captures: Path, output: Path, *, boundary_tangent: bool = False) -> Comp
                         dest,
                         multi_start=True,
                         training_only_start=True,
-                        control_seeded_baseline=enabled and not boundary_tangent,
+                        control_seeded_baseline=enabled and not (boundary_tangent or nearest_edge),
+                        nearest_edge=enabled and nearest_edge,
                         boundary_tangent=enabled and boundary_tangent,
                     )
                     values = []
