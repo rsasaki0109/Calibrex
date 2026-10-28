@@ -1,0 +1,85 @@
+import json
+from pathlib import Path
+import jsonschema
+import numpy as np
+root=Path('docs/assets/stereo_cycle_filter_20261029')
+r=json.loads((root/'comparison.json').read_text())
+jsonschema.validate(r,json.loads((root/'comparison.schema.json').read_text()))
+assert len(r['cases'])==8 and len(r['frames'])==12
+for c in r['cases']:
+    assert c['result']['status']=='max_iterations'
+    np.testing.assert_array_equal(c['result']['output_T_camera_lidar'],c['initial_T_camera_lidar'])
+    assert all(t['counts']==[2000,2000,2000] for t in c['result']['trace'])
+    assert len(c['result']['trace'])==15
+assert sum(c['returned']['recovered'] for c in r['cases'])==4
+text='''
+
+## Results
+
+Code and protocol were frozen at `0bb89aa4`. All 12 masked depth preparations
+and all eight fits completed. Unmasked depths reproduced the archived arrays
+exactly; every retained masked depth equals its unmasked value. No image,
+reference transform or calibration gate was changed after examining outcomes.
+
+- Accepted masked refinements: **0/8** (all `max_iterations`), same as unmasked.
+- Returned pipeline recovery: **4/8**, solely through exact D2D fallback.
+- Raw candidate translation improves in **5/8**, worsens in **3/8** relative to
+  the archived unmasked re-rectified control. These candidates are all rejected.
+- Every one of the 120 outer iterations retains **2,000 correspondences in each
+  frame**. Non-convergence is not a failure to reach the minimum point count.
+
+Translation columns below are distances to the dataset reference, in metres.
+They are not independent ground-truth accuracy estimates.
+
+| Recording / seed | Unmasked raw | Masked raw | Last masked step (mm) |
+| --- | ---: | ---: | ---: |
+'''
+for c in r['cases']:
+    text+=f"| {c['case_id'][11:].replace('-', ' ')} | {c['unmasked_raw_candidate']['translation_m']:.4f} | {c['raw_candidate']['translation_m']:.4f} | {c['result']['trace'][-1]['step_m']*1000:.3f} |\n"
+text+='''
+The difficult 0011-positive candidate worsens from **0.3244 to 0.4546 m**.
+This prevents selecting only favorable cases as evidence for the mask. Point
+counts alone do not measure useful geometry, accuracy of normals or observability.
+
+### Support cost
+
+Counts are for the entire restored image, not just projected LiDAR points.
+Surface pixels must satisfy the original five-pixel validity and depth-jump rules.
+The earlier 90.5% round-trip statistic used a different projected-point population;
+it does not predict these whole-image retention fractions.
+
+| Recording | Frame | Depth pixels before | After | Surface pixels before | After |
+| --- | --- | ---: | ---: | ---: | ---: |
+'''
+for f in r['frames']:
+    text+=f"| {f['case_id'][11:15]} | {f['frame_id']} | {f['depth_before']} | {f['depth_after']} | {f['surface_before']} | {f['surface_after']} |\n"
+text+='''
+Depth retention is **84.4–89.1%**, and valid-surface retention **83.7–88.9%**.
+The mask reduces support without producing an accepted calibration. This does not
+show that reverse consistency is generally useless; it shows that this fixed mask
+is insufficient in the present translation-refinement pipeline.
+
+### Decision
+
+Do not promote this mask or any of the tested translation-refinement variants.
+Keep the 15-iteration/0.1-mm acceptance rule and exact fallback. The sequence of
+controls now covers fixed sampling, reference rotation/pose, corrected stereo
+projection, re-rectification and reverse consistency. The projection formula bug
+has a geometric fix, but the later frontend changes have not demonstrated a
+usable calibration improvement.
+
+Further adjustment of thresholds on the same eight cases is not the next useful
+step. A broader comparison on other already-spent recordings and an alternative
+measurement model is needed before revisiting this experimental stage. Preserve
+0011-positive as a failure case and require both convergence and reference-error
+improvement, rather than optimizing descriptive depth statistics alone.
+
+[Complete comparison](../assets/stereo_cycle_filter_20261029/comparison.json) and
+[schema](../assets/stereo_cycle_filter_20261029/comparison.schema.json) retain
+all fit traces, source/input hashes, depth-output hashes, surface counts, raw
+candidates and fallbacks. Original depth arrays and historical verdicts remain
+unchanged. There is no fresh evaluation or SOTA claim from these experiments.
+'''
+p=Path('docs/research/stereo_cycle_filter_comparison.md')
+p.write_text(p.read_text().split('\n\n## Results')[0]+text)
+print('12 frames, eight fits, 120 support checks, exact fallback and schema validated')

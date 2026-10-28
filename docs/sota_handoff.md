@@ -619,3 +619,16 @@ per-frame consistent median z residuals are −6.71 to −3.53 m without a depth
 visibility/timing/reference effects remain unresolved. Next test the frozen
 reverse-consistency mask across all eight fits without fitting range cutoffs to
 these results. No optimizer rerun, production change or accuracy claim this step.
+
+### Fixed stereo round-trip mask comparison (2026-10-29)
+
+[Eight-case comparison](research/stereo_cycle_filter_comparison.md), frozen at
+`0bb89aa4`: the 1 px mask retains 84.4–89.1% of depth pixels and 83.7–88.9% of
+surface pixels. All eight fits still reach max iterations, despite 2,000 matches
+per frame at every update. Raw candidates improve in five/worsen in three versus
+unmasked; 0011-positive worsens from 0.3244 to 0.4546 m. Accepted stage 0/8,
+returned recovery 4/8 via exact D2D fallback. Do not promote the mask or relax
+convergence. Close this sequence of frontend tweaks: next broaden to other spent
+recordings and compare an alternative measurement model before further tuning.
+The projection formula fix remains valid, but downstream benefit of later
+frontend variants has not been established.
