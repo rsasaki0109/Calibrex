@@ -12,16 +12,17 @@ from tools import kitti_camera_lidar_v3_replay as replay
 from tools.kitti_camera_lidar_initialization_compare import ComparisonReport, sha
 
 
-def _worker(task: tuple[Path, Path, str, str, str | None, bool, bool]) -> dict:
-    captures, output, drive, name, injection, nearest, geometry = task
+def _worker(task: tuple[Path, Path, str, str, str | None, bool, bool, bool]) -> dict:
+    captures, output, drive, name, injection, nearest, geometry, restart = task
     experiment.DRIVES = (drive,)
     replay.RUNS = {name: injection}
     return experiment.run(
         captures,
         output,
-        boundary_tangent=not (nearest or geometry),
+        boundary_tangent=not (nearest or geometry or restart),
         nearest_edge=nearest,
         match_geometry=geometry,
+        geometry_restart=restart,
     ).model_dump(mode="json")
 
 
@@ -31,6 +32,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--nearest-edge", action="store_true")
     parser.add_argument("--match-geometry", action="store_true")
+    parser.add_argument("--geometry-restart", action="store_true")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     tasks = [
@@ -42,6 +44,7 @@ def main() -> int:
             injection,
             args.nearest_edge,
             args.match_geometry,
+            args.geometry_restart,
         )
         for drive in experiment.DRIVES
         for name, injection in replay.RUNS.items()
@@ -60,7 +63,7 @@ def main() -> int:
     # Preserve shard receipts and place arm reports at the usual publication paths.
     import shutil
 
-    for _, shard, drive, name, _, _, _ in tasks:
+    for _, shard, drive, name, _, _, _, _ in tasks:
         shutil.copytree(shard / drive / name, args.output / drive / name)
     (args.output / "report.json").write_text(report.model_dump_json(indent=2))
     (args.output / "report.schema.json").write_text(

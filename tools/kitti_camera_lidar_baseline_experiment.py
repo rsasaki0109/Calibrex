@@ -26,15 +26,20 @@ def run(
     boundary_tangent: bool = False,
     nearest_edge: bool = False,
     match_geometry: bool = False,
+    geometry_restart: bool = False,
 ) -> ComparisonReport:
     """Keep all fourteen inputs and failures; report controls and fold reference errors."""
+    if geometry_restart:
+        match_geometry = True
     if sum((boundary_tangent, nearest_edge, match_geometry)) > 1:
         raise ValueError("choose one ablation")
     output.mkdir(parents=True, exist_ok=False)
     report = ComparisonReport(
         provenance={
             "experiment": (
-                "neighbor_match_geometry"
+                "geometry_deficit_restarts"
+                if geometry_restart
+                else "neighbor_match_geometry"
                 if match_geometry
                 else "nearest_edge_distance"
                 if nearest_edge
@@ -49,7 +54,9 @@ def run(
             "new_evaluation_started": False,
             "new_accuracy_claim": False,
             "hypothesis": (
-                "Preserving neighbor match direction and spacing rejects incorrect alignments."
+                "Training-only restarts from better controls recover missed baseline basins."
+                if geometry_restart
+                else "Preserving neighbor match direction and spacing rejects incorrect alignments."
                 if match_geometry
                 else "Bounded nearest-ridge distance reduces distant incorrect edge matches."
                 if nearest_edge
@@ -90,7 +97,9 @@ def run(
                 for arm, enabled in [
                     ("original", False),
                     (
-                        "match_geometry"
+                        "geometry_restart"
+                        if geometry_restart
+                        else "match_geometry"
                         if match_geometry
                         else "nearest_edge"
                         if nearest_edge
@@ -109,9 +118,13 @@ def run(
                         multi_start=True,
                         training_only_start=True,
                         control_seeded_baseline=enabled
-                        and not (boundary_tangent or nearest_edge or match_geometry),
+                        and (
+                            geometry_restart
+                            or not (boundary_tangent or nearest_edge or match_geometry)
+                        ),
+                        baseline_deficit_only=enabled and geometry_restart,
                         nearest_edge=enabled and nearest_edge,
-                        match_geometry=enabled and match_geometry,
+                        match_geometry=geometry_restart or (enabled and match_geometry),
                         boundary_tangent=enabled and boundary_tangent,
                     )
                     values = []
@@ -142,6 +155,14 @@ def run(
                     if not enabled:
                         previous = ROOT / "docs/assets/camera_lidar_initialization_20261027"
                         path = previous / drive / name / "training_only/report.json"
+                        if geometry_restart:
+                            path = (
+                                ROOT
+                                / "docs/assets/match_geometry_20261028"
+                                / drive
+                                / name
+                                / "match_geometry/report.json"
+                            )
                         prior = probe.ProfileReport.model_validate_json(path.read_bytes())
                         row["original_parity"] = replay._same(
                             [a.model_dump(mode="json") for a in result.axes],

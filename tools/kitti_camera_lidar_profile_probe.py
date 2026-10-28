@@ -133,14 +133,17 @@ def refit_nuisance(
 
 def refine_baseline_from_controls(
     objective: edge.EdgeObjective, baseline: np.ndarray, controls: Sequence[np.ndarray],
-    options: edge.EdgeAlignmentOptions,
+    options: edge.EdgeAlignmentOptions, *, only_improving_seeds: bool = False,
 ) -> np.ndarray:
     """One training-only restart per signed control; preserve the baseline on ties."""
     best = baseline.copy()
     score = objective.score(best)
+    original_score = score
     for control in controls:
         seed = control.copy()
         seed[:3] = np.clip(seed[:3], -options.rotation_bound_deg, options.rotation_bound_deg)
+        if only_improving_seeds and objective.score(seed) <= original_score:
+            continue
         fitted, _ = edge.search(objective, seed, options, axes=(0, 1, 2),
                                 first_level=options.jackknife_first_level)
         value = objective.score(fitted)
@@ -154,6 +157,7 @@ def profile_axis(
     axis: int, conditional_start_deg: float, options: edge.EdgeAlignmentOptions,
     *, multi_start: bool = False, training_only_start: bool = False,
     control_seeded_baseline: bool = False,
+    baseline_deficit_only: bool = False,
 ) -> ProfileAxis:
     """Optimize on training only; score fixed poses on the held-out blocks."""
     if axis not in (0, 1, 2) or len(training) != len(held_out) or len(training) < 3:
@@ -187,7 +191,8 @@ def profile_axis(
 
         shifted, profiled = controls_for(base)
         if control_seeded_baseline:
-            refined = refine_baseline_from_controls(train, base, profiled, options)
+            refined = refine_baseline_from_controls(
+                train, base, profiled, options, only_improving_seeds=baseline_deficit_only)
             if not np.array_equal(refined, base):
                 base = refined
                 shifted, profiled = controls_for(base)
@@ -241,6 +246,7 @@ def profile_snapshot(
     match_geometry: bool = False,
     training_only_start: bool = False,
     control_seeded_baseline: bool = False,
+    baseline_deficit_only: bool = False,
 ) -> ProfileReport:
     """Verify a previously captured input and conditional receipt; retain partial failures."""
     from tools import kitti_camera_lidar_axis_probe as conditional
@@ -249,6 +255,8 @@ def profile_snapshot(
     if sum((spatial_balance, azimuth_orientation, boundary_tangent,
             nearest_edge, match_geometry)) > 1:
         raise ValueError("choose one objective ablation at a time")
+    if baseline_deficit_only and not control_seeded_baseline:
+        raise ValueError("deficit gate requires control-seeded baseline restarts")
     if training_only_start == (conditional_report is not None):
         raise ValueError("choose either training-only starts or a conditional report")
     if (output.resolve().is_relative_to(snapshot.resolve())
@@ -288,7 +296,10 @@ def profile_snapshot(
         "nearest_edge": nearest_edge,
         "match_geometry": match_geometry,
         "control_seeded_baseline": control_seeded_baseline,
+        "baseline_deficit_only": baseline_deficit_only,
         "baseline_restart_policy": (
+            "one pass, better bounded controls only; training score; ties keep original"
+            if baseline_deficit_only else
             "one pass, two signed controls, training score; ties keep original"
             if control_seeded_baseline else "original"
         ),
@@ -425,7 +436,8 @@ def profile_snapshot(
             report.axes.append(profile_axis(training, held, axis, correction, options,
                                             multi_start=multi_start,
                                             training_only_start=training_only_start,
-                                            control_seeded_baseline=control_seeded_baseline))
+                                            control_seeded_baseline=control_seeded_baseline,
+                                            baseline_deficit_only=baseline_deficit_only))
             write()
         report.status = "complete"
     except Exception as exc:

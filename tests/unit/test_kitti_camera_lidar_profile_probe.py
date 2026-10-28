@@ -251,3 +251,34 @@ def test_control_seed_retains_baseline_on_flat_scores_and_bounds_restarts() -> N
     fitted = probe.refine_baseline_from_controls(
         Flat(), baseline, controls, edge.EdgeAlignmentOptions())
     assert np.array_equal(fitted, baseline)
+
+
+def test_deficit_gate_skips_ties_and_worse_seeds_and_uses_original_score(monkeypatch) -> None:
+    class Linear(edge.EdgeObjective):
+        def __init__(self) -> None:
+            pass
+
+        def score(self, theta: np.ndarray) -> float:
+            assert abs(theta[0]) <= 12
+            return float(theta[0])
+
+    calls = []
+
+    def search(objective, seed, options, **kwargs):
+        calls.append(seed[0])
+        result = seed.copy()
+        result[0] = 10
+        return result, 10
+
+    monkeypatch.setattr(edge, 'search', search)
+    controls = [np.array([v, 0, 0, 0, 0, 0], dtype=float) for v in [-2, 0, 1, 2]]
+    fitted = probe.refine_baseline_from_controls(
+        Linear(), np.zeros(6), controls, edge.EdgeAlignmentOptions(), only_improving_seeds=True)
+    assert calls == [1, 2]  # Compare both seeds with the original baseline, not the first restart.
+    assert fitted[0] == 10
+    calls.clear()
+    baseline = np.array([12., 0, 0, 0, 0, 0])
+    result = probe.refine_baseline_from_controls(
+        Linear(), baseline, [baseline * 2], edge.EdgeAlignmentOptions(), only_improving_seeds=True)
+    assert calls == []  # Clipped seed ties the baseline and must not trigger a restart.
+    np.testing.assert_array_equal(result, baseline)
