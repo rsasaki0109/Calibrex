@@ -267,6 +267,15 @@ control t=1.539 remains below 2.5. All-fold worst full rotation error is still
 not promote. All original-arm parity checks pass; future reports include full
 rotation vectors/norms to avoid hiding nuisance-axis errors.
 
+The [geometry failure cross-scoring](research/camera_lidar_geometry_failures.md)
+finds explicit training-search deficits in the two lost 0005 controls: roll
+fold 1 and yaw fold 5 have roughly 2 deg baseline errors while saved scalar fits
+score about 0.092 higher under the geometry training objective. Their own
+profiled controls also beat the baseline on training frames. The 0002 pitch miss
+has no such deficit among inspected candidates; it remains a held-out ranking
+ambiguity. Next test bounded training-only control-seeded baseline restarts under
+the geometry objective; recovery is not established by cross-scoring alone.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).
