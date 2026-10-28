@@ -1,0 +1,66 @@
+{
+  "scope": "spent-data assisted-input development matrix, not a fresh audit",
+  "selection_rule": "floor((frame_count-1)*q/4), q=1,2,3; no image inspection",
+  "timeout_seconds": 180,
+  "expected_cases": 12,
+  "drives": [
+    {
+      "id": "2011_09_26_0005",
+      "frame_count": 154,
+      "frames": [
+        38,
+        76,
+        114
+      ],
+      "archive_size": 645940900,
+      "archive_etag": "6a880679a3e3eda8a0ef83abc5354eb1-78"
+    },
+    {
+      "id": "2011_09_28_0002",
+      "frame_count": 376,
+      "frames": [
+        93,
+        187,
+        281
+      ],
+      "archive_size": 1458258535,
+      "archive_etag": "57c9f403568ce97a5aeb70180b029c93-174"
+    }
+  ],
+  "perturbations": [
+    {
+      "id": "positive",
+      "rotation_deg": [
+        1.0,
+        -1.0,
+        0.5
+      ],
+      "translation_m": [
+        0.1,
+        -0.05,
+        0.05
+      ]
+    },
+    {
+      "id": "negative",
+      "rotation_deg": [
+        -1.0,
+        1.0,
+        -0.5
+      ],
+      "translation_m": [
+        -0.1,
+        0.05,
+        -0.05
+      ]
+    }
+  ],
+  "source_sha256": {
+    "tools/run_camera_lidar_development_matrix.py": "476ca936614e98e07b0d406d040eea6267818d226a08b7419208130461242fe8",
+    "tools/kitti_aligned_stereo_bundle.py": "c58790d26f65601ea05e97e6146a323ecf20a80d2f1e9a17edec43f669b62196",
+    "tools/run_aligned_stereo_d2d.py": "e8c8dbfa35f015b3ca3715bb6c89a2866f600ce54c94c74bd80d0b4e8a5f05b5",
+    "tools/koide_shared_bundle_pandey.py": "0c379e189365015dcef20d39019f3f6d6a960866d04b21ab265037fcf06bbf72",
+    "src/calibrex/solvers/borer_six_dof_solver.py": "930e6a5442488f6c2e7311b7e87f9302e44a9c02e55c3fd9c37255c7ade7b08f",
+    "src/calibrex/solvers/borer_depth_to_depth_solver.py": "bc8d223156ebd1be992b68b7559c1ac720a4fc84391a1c435dcc2ad7ba485b68"
+  }
+}
