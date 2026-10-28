@@ -1,0 +1,60 @@
+{
+  "scope": "spent-data runtime smoke; not a benchmark or SOTA audit",
+  "source_commit": "02a0dc039f5509708f384be4ff3228e0ae09352d",
+  "official_image_digest": "sha256:f7363cc3deadc2419f3527a7b9ec7bdabaa3031fd8e1b9c6cc46666ae1301bbb",
+  "runtime_exit_code": 0,
+  "fresh_sensor_payloads_read": 0,
+  "initial_rotation_error_deg": 1.502893399187307,
+  "output_rotation_error_deg": 2.2265178646081227,
+  "initial_translation_error_m": 0.12247448713915891,
+  "output_translation_error_m": 0.12229766585703493,
+  "output_T_camera_lidar": [
+    [
+      -0.0035706100310620693,
+      -0.9999075225843151,
+      0.013122386341784486,
+      0.15943343684425001
+    ],
+    [
+      0.04096990582022716,
+      -0.013257727869620234,
+      -0.9990724195316453,
+      -0.1199582527872653
+    ],
+    [
+      0.9991540009233247,
+      -0.0030296750703775453,
+      0.04101345520533648,
+      -0.21943337851354325
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "limitations": [
+    "Three frames from spent KITTI 0005 only; reference-derived seed.",
+    "Negative per-point timestamp warnings; temporal validity unresolved.",
+    "Wolfe line-search warnings; process completion does not imply convergence.",
+    "Derived flattened runtime with Xvfb and software Mesa; no native comparator.",
+    "Runtime container had network access during package installation and calibration."
+  ],
+  "artifact_sha256": {
+    "apt-image.log": "6d80b091eee5341aa9e971864b7511ac2bf658e281585921e97a80264f08e531",
+    "calib-output.json": "31c361506a94e5ad45b11e5d2e7bfdd973b288453888a4b78324d865fcd81189",
+    "calib-seeded.json": "b18b3088b7ee5c19cf42bd266a05f044f80a5eb6dd16bb5bc92ca62366804c22",
+    "calibrate-xvfb.log": "d1947371ca840954b75a08b7310826271f1a7062b1251cd3cb887f5bc8bb87f0",
+    "calibrate.log": "13f0d644dead92510dbb9ac8453aa497c4feeeac8f61656d24953fa22d393979",
+    "import.log": "67299016bb95ff1ce5736807e6f836270ed5e756b10e38dc88e8eaea714588ad",
+    "koide-rootfs.identity.json": "9f36dd92258f9dec6f1ccc4212cc2177bd459a871b737694beccd71da430d175",
+    "prepare_smoke.py": "c5db9776dcd2def57e75e7d6fff8f23c0c36b34f601da992a9b184dc45bb0935",
+    "preprocess.log": "5d3b1a285e8b58780b3460a9f2945ab7f9ec36e2daf567e195f00eef512f1fca",
+    "publish.py.txt": "27080b5c527cddba41b93a3e540ba0e18c31a07765831f85a8add7da8b9fcba1",
+    "runtime-inspection.log": "a926379cb9087ea031ba903af5a8f5c5d9dfdd2893a342ca911e13cd3c862a58",
+    "seed.json": "d3c7c0d2f275e60d8db8133d5b30d3938a090f68188f2cba68e8854d848e8a76",
+    "seed_smoke.py": "9aba75cc6531aa18211223c429d1ceaf2a731ce5be3f44fa1c0df4272a7a06dc",
+    "smoke-input.json": "c282313746a8dd6de9db9eac251723c15b53b7b9782ec9075ff1afe7063870a9"
+  }
+}

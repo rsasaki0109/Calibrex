@@ -1,0 +1,37 @@
+data_path: /input
+dst_path : /output
+[INFO] [1793194045.560876401] [rosbag2_storage]: Opened database '/input/spent-0005-three-frames/spent-0005-three-frames_0.db3' for READ_ONLY.
+input_bags:
+- /input/spent-0005-three-frames
+[INFO] [1793194045.562406669] [rosbag2_storage]: Opened database '/input/spent-0005-three-frames/spent-0005-three-frames_0.db3' for READ_ONLY.
+topics in /input/spent-0005-three-frames:
+- /camera/image_raw : sensor_msgs/msg/Image
+- /camera/camera_info : sensor_msgs/msg/CameraInfo
+- /velodyne_points : sensor_msgs/msg/PointCloud2
+selected topics:
+- camera_info: /camera/camera_info
+- image      : /camera/image_raw
+- points     : /velodyne_points
+[INFO] [1793194045.563912451] [rosbag2_storage]: Opened database '/input/spent-0005-three-frames/spent-0005-three-frames_0.db3' for READ_ONLY.
+intensity_channel: intensity
+[INFO] [1793194045.587013824] [rosbag2_storage]: Opened database '/input/spent-0005-three-frames/spent-0005-three-frames_0.db3' for READ_ONLY.
+camera_model: plumb_bob
+image_size  : 1242 375
+intrinsics  : 721.538 721.538 609.559 172.854
+dist_coeffs : 0 0 0 0 0
+processing images and points (num_threads_per_bag=5)
+start processing /input/spent-0005-three-frames
+[INFO] [1793194045.589498473] [rosbag2_storage]: Opened database '/input/spent-0005-three-frames/spent-0005-three-frames_0.db3' for READ_ONLY.
+[INFO] [1793194045.593953174] [rosbag2_storage]: Opened database '/input/spent-0005-three-frames/spent-0005-three-frames_0.db3' for READ_ONLY.
+[33mwarning: negative per-point timestamp (-0.000022 or 0.003989) found!![0m
+[33m       : min_stamp=-0.051635[0m
+[33mwarning: negative per-point timestamp (-0.000049 or 0.004402) found!![0m
+[33m       : min_stamp=-0.051651[0m
+[33mwarning: negative per-point timestamp (-0.000023 or 0.004429) found!![0m
+[33m       : min_stamp=-0.051671[0m
+processed /input/spent-0005-three-frames
+lidar_points:1
+lidar_points[0]:370833
+LiDAR FoV: 178.928[deg]
+save LiDAR images
+save meta data

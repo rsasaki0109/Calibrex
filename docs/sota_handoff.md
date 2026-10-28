@@ -285,6 +285,19 @@ and all-fold worst full rotation disagreement worsens 12.067 to 13.568 deg.
 Retain experimentally; no native default promotion or SOTA claim. The search
 regression is recovered, while difficult-scene correspondence ambiguity remains.
 
+### Camera–LiDAR priority reset (2026-10-28)
+
+The [external comparison reset](research/camera_lidar_external_comparison_reset.md)
+supersedes further two-drive local tuning. Freeze the rotation-checker experiment
+at `308885cd` (results `6b6379a9`). Official Koide preprocessing and six-DoF
+calibration now execute on a three-frame spent-0005 smoke; exit 0, but reference
+rotation disagreement worsens 1.503 to 2.227 degrees and point-time warnings
+remain. This is execution evidence, not a fair comparison or successful recovery.
+Next deliverable: a shared spent-data six-DoF native-versus-Koide comparison,
+then required development coverage and learned-baseline execution. The fresh-data
+protocol remains a blocked draft; no fresh sensor payload was read. Existing
+55-drive, exposure and independent-family requirements remain in force.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).
