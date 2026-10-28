@@ -64,6 +64,14 @@ def align_points(
     return (at_reference_imu - T_imu_lidar[:3, 3]) @ T_imu_lidar[:3, :3]
 
 
+def select_scan(scans: list[tuple[int, bytes]], timestamp_ns: int) -> bytes:
+    """Select the exact timestamp, retaining original IDs in sparsely fetched bags."""
+    matches = [data for stamp, data in scans if stamp == timestamp_ns]
+    if len(matches) != 1:
+        raise ValueError("expected exactly one cloud at the requested KITTI timestamp")
+    return matches[0]
+
+
 def build(
     bag: Path,
     raw: Path,
@@ -83,7 +91,8 @@ def build(
             poses.append(decode_ros2_odometry(connection.topic, stamp, data))
         elif connection.topic == "/velodyne_points":
             scans.append((stamp, data))
-    stamp, payload = scans[frame_index]
+    stamp = read_timestamps(raw / "velodyne_points/timestamps.txt")[frame_index].timestamp_ns
+    payload = select_scan(scans, stamp)
     scan = decode_ros2_pointcloud2("/velodyne_points", stamp, payload, point_time_field="time")
     if scan.nonfinite_xyz_count or scan.point_time_offsets_s is None or scan.intensity is None:
         raise ValueError("complete finite timed/intensity scan required")

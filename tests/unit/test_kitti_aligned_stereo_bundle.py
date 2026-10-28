@@ -42,3 +42,13 @@ def test_extrapolation_is_rejected(query):
             np.array([[0.0, 0, 0, 1]] * 2),
             np.eye(4),
         )
+
+
+def test_sparse_scan_selection_preserves_original_timestamp():
+    from tools.kitti_aligned_stereo_bundle import select_scan
+
+    scans = [(100, b"frame-38"), (300, b"frame-76"), (900, b"frame-114")]
+    assert select_scan(scans, 900) == b"frame-114"
+    for entries, timestamp in [(scans, 200), ([*scans, (900, b"duplicate")], 900)]:
+        with pytest.raises(ValueError, match="exactly one"):
+            select_scan(entries, timestamp)

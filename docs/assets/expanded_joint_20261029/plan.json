@@ -1,0 +1,70 @@
+{
+  "scope": "frozen joint assisted-input method on two additional already-spent KITTI drives",
+  "selection_rule": "same three frames per recording as committed single-frame matrix; jointly fit each seed",
+  "timeout_seconds": 180,
+  "expected_cases": 4,
+  "drives": [
+    {
+      "id": "2011_09_26_0009",
+      "frame_count": 447,
+      "frames": [
+        111,
+        223,
+        334
+      ],
+      "archive_size": 1791264044,
+      "archive_etag": "4855015a692973e3ebaa3dc264d3c4b2-214"
+    },
+    {
+      "id": "2011_09_26_0011",
+      "frame_count": 233,
+      "frames": [
+        58,
+        116,
+        174
+      ],
+      "archive_size": 939815328,
+      "archive_etag": "a446fc889b82b7b71b51becb76610fb0-113"
+    }
+  ],
+  "perturbations": [
+    {
+      "id": "positive",
+      "rotation_deg": [
+        1.0,
+        -1.0,
+        0.5
+      ],
+      "translation_m": [
+        0.1,
+        -0.05,
+        0.05
+      ]
+    },
+    {
+      "id": "negative",
+      "rotation_deg": [
+        -1.0,
+        1.0,
+        -0.5
+      ],
+      "translation_m": [
+        -0.1,
+        0.05,
+        -0.05
+      ]
+    }
+  ],
+  "source_sha256": {
+    "tools/run_joint_stereo_d2d.py": "3d5891a5a9c289fa5506ab8526eeb4d5f90c78e9ce2df9132b55350bb443904e",
+    "src/calibrex/solvers/borer_six_dof_solver.py": "930e6a5442488f6c2e7311b7e87f9302e44a9c02e55c3fd9c37255c7ade7b08f",
+    "src/calibrex/solvers/borer_depth_to_depth_solver.py": "bc8d223156ebd1be992b68b7559c1ac720a4fc84391a1c435dcc2ad7ba485b68",
+    "tools/run_camera_lidar_development_matrix.py": "476ca936614e98e07b0d406d040eea6267818d226a08b7419208130461242fe8",
+    "tools/koide_shared_bundle_pandey.py": "0c379e189365015dcef20d39019f3f6d6a960866d04b21ab265037fcf06bbf72",
+    "tools/run_joint_assisted_experiment.py": "729e7c6587ede530e47678d2e88fd785d7c537319a15808ab16472d185fa2473",
+    "tools/prepare_sparse_joint_inputs.py": "1c958f57b17dd0b2ba6c06364a8992402c71e94b3da1a0880c70092e773ea8b8",
+    "tools/kitti_aligned_stereo_bundle.py": "669f8ee3fc998f44ef1a3be83b4edf26cc282eb14a6ab3e727d435beafa100f5",
+    "src/calibrex/data/kitti_raw_to_rosbag2.py": "56d369e7dfcc8f7a0344f9bd5dfe8e0b195dda647d6b41a6002a473172bf73ad",
+    "src/calibrex/data/kitti_ins_lidar.py": "ec8e057df61828af7e349767a82bdc0053f58129fab91435936df9359618d16f"
+  }
+}
