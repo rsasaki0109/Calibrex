@@ -1,0 +1,108 @@
+{
+  "$defs": {
+    "Diagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "rotation_reference_disagreement_deg": {
+          "title": "Rotation Reference Disagreement Deg",
+          "type": "number"
+        },
+        "translation_reference_disagreement_m": {
+          "title": "Translation Reference Disagreement M",
+          "type": "number"
+        },
+        "within_scoped_recovery_threshold": {
+          "title": "Within Scoped Recovery Threshold",
+          "type": "boolean"
+        },
+        "T_camera_lidar": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "T Camera Lidar",
+          "type": "array"
+        }
+      },
+      "required": [
+        "rotation_reference_disagreement_deg",
+        "translation_reference_disagreement_m",
+        "within_scoped_recovery_threshold",
+        "T_camera_lidar"
+      ],
+      "title": "Diagnostic",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "input_bundle_shared": {
+      "title": "Input Bundle Shared",
+      "type": "boolean"
+    },
+    "initial_transform_shared": {
+      "title": "Initial Transform Shared",
+      "type": "boolean"
+    },
+    "fresh_sensor_payloads_read": {
+      "title": "Fresh Sensor Payloads Read",
+      "type": "integer"
+    },
+    "koide_process_exit_code": {
+      "title": "Koide Process Exit Code",
+      "type": "integer"
+    },
+    "native_status": {
+      "title": "Native Status",
+      "type": "string"
+    },
+    "diagnostics": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Diagnostic"
+      },
+      "title": "Diagnostics",
+      "type": "object"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "artifact_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Artifact Sha256",
+      "type": "object"
+    },
+    "source_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Source Sha256",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "input_bundle_shared",
+    "initial_transform_shared",
+    "fresh_sensor_payloads_read",
+    "koide_process_exit_code",
+    "native_status",
+    "diagnostics",
+    "limitations",
+    "artifact_sha256",
+    "source_sha256"
+  ],
+  "title": "Report",
+  "type": "object"
+}

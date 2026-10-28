@@ -154,3 +154,12 @@ required development coverage and run the learned baseline on suitable hardware.
 Do not resume two-drive objective tuning or read fresh candidates in place of
 this deliverable. If Calibrex fails that comparison, use the measured failure to
 choose a substantive estimator change before preregistering fresh evaluation.
+
+
+### Execution follow-up
+
+The [shared-bundle six-DoF comparison](camera_lidar_shared_koide_bundle.md) now
+preserves point acquisition times when adapting KITTI to Koide and executes both
+Koide and the existing native Pandey MI solver on identical preprocessed inputs
+and seed. Both miss the scoped recovery threshold. This is optimizer-only
+execution evidence; the independent D2D/end-to-end comparison remains pending.

@@ -1,0 +1,57 @@
+Reading package lists...
+Building dependency tree...
+Reading state information...
+xauth is already the newest version (1:1.1-1build2).
+libgl1-mesa-dri is already the newest version (23.2.1-1ubuntu3.1~22.04.4).
+xvfb is already the newest version (2:21.1.4-2ubuntu1.7~22.04.16).
+0 upgraded, 0 newly installed, 0 to remove and 229 not upgraded.
+data_path: /data/paired-input
+dst_path : /data/paired-output
+[INFO] [1793195254.115740619] [rosbag2_storage]: Opened database '/data/paired-input/spent-0005-three-frames/spent-0005-three-frames_0.db3' for READ_ONLY.
+input_bags:
+- /data/paired-input/spent-0005-three-frames
+[INFO] [1793195254.117736062] [rosbag2_storage]: Opened database '/data/paired-input/spent-0005-three-frames/spent-0005-three-frames_0.db3' for READ_ONLY.
+topics in /data/paired-input/spent-0005-three-frames:
+- /velodyne_points : sensor_msgs/msg/PointCloud2
+- /camera/camera_info : sensor_msgs/msg/CameraInfo
+- /camera/image_raw : sensor_msgs/msg/Image
+selected topics:
+- camera_info: /camera/camera_info
+- image      : /camera/image_raw
+- points     : /velodyne_points
+[INFO] [1793195254.119802863] [rosbag2_storage]: Opened database '/data/paired-input/spent-0005-three-frames/spent-0005-three-frames_0.db3' for READ_ONLY.
+intensity_channel: intensity
+[INFO] [1793195254.145428082] [rosbag2_storage]: Opened database '/data/paired-input/spent-0005-three-frames/spent-0005-three-frames_0.db3' for READ_ONLY.
+camera_model: plumb_bob
+image_size  : 1242 375
+intrinsics  : 721.538 721.538 609.559 172.854
+dist_coeffs : 0 0 0 0 0
+processing images and points (num_threads_per_bag=5)
+start processing /data/paired-input/spent-0005-three-frames
+[INFO] [1793195254.147999085] [rosbag2_storage]: Opened database '/data/paired-input/spent-0005-three-frames/spent-0005-three-frames_0.db3' for READ_ONLY.
+[INFO] [1793195254.152587104] [rosbag2_storage]: Opened database '/data/paired-input/spent-0005-three-frames/spent-0005-three-frames_0.db3' for READ_ONLY.
+processed /data/paired-input/spent-0005-three-frames
+lidar_points:1
+lidar_points[0]:370836
+LiDAR FoV: 178.925[deg]
+save LiDAR images
+save meta data
+loading /data/paired-output/spent-0005-three-frames.(png|ply)
+use manually estimated initial guess
+   0: f: 9.897798e-01 d: 0.00e+00 g: 2.57e-02 h: 0.00e+00 s: 0.00e+00 e:  0 it: 6.11e-02 tt: 6.11e-02
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+W1028 13:47:35.646989   110 line_search.cc:589] Line search failed: Wolfe bracketing phase shrank bracket width: 0, to < tolerance: 1e-09, with descent_direction_max_norm: 0.0385646, and failed to find a point satisfying the strong Wolfe conditions or a bracketing containing such a point. Accepting point found satisfying Armijo condition only, to allow continuation.
+   1: f: 9.838957e-01 d: 5.88e-03 g: 8.20e-02 h: 1.52e-02 s: 5.00e-01 e:  4 it: 1.50e-01 tt: 2.11e-01
+   2: f: 9.827590e-01 d: 1.14e-03 g: 2.23e-02 h: 1.56e-03 s: 1.32e-02 e:  5 it: 7.12e-02 tt: 2.82e-01
+   3: f: 9.827552e-01 d: 3.76e-06 g: 1.98e-02 h: 6.63e-05 s: 2.34e-03 e:  5 it: 3.04e-01 tt: 5.86e-01
+   4: f: 9.827515e-01 d: 3.69e-06 g: 2.27e-02 h: 1.12e-04 s: 3.33e-03 e:  1 it: 6.40e-02 tt: 6.50e-01
+   5: f: 9.827074e-01 d: 4.42e-05 g: 1.57e-02 h: 3.26e-03 s: 2.52e-01 e:  2 it: 1.48e-01 tt: 7.98e-01
+   6: f: 9.824644e-01 d: 2.43e-04 g: 8.73e-02 h: 1.66e-02 s: 2.09e+00 e:  4 it: 2.64e-01 tt: 1.06e+00
+   7: f: 9.823609e-01 d: 1.03e-04 g: 1.39e-01 h: 4.75e-02 s: 9.62e-02 e:  1 it: 5.99e-02 tt: 1.12e+00
+   8: f: 9.823536e-01 d: 7.38e-06 g: 1.22e-01 h: 2.86e-03 s: 2.40e-03 e:  2 it: 1.32e-01 tt: 1.25e+00
+   9: f: 9.822559e-01 d: 9.77e-05 g: 5.63e-02 h: 1.03e-02 s: 1.83e+00 e:  2 it: 1.28e-01 tt: 1.38e+00
+  10: f: 9.822035e-01 d: 5.24e-05 g: 2.36e-02 h: 5.15e-03 s: 1.00e+00 e:  1 it: 6.40e-02 tt: 1.45e+00
+  11: f: 9.821441e-01 d: 5.94e-05 g: 2.08e-02 h: 8.06e-03 s: 1.00e+00 e:  1 it: 5.34e-02 tt: 1.50e+00
+  12: f: 9.820902e-01 d: 5.40e-05 g: 2.87e-02 h: 1.37e-02 s: 4.09e-01 e:  2 it: 1.21e-01 tt: 1.62e+00
+   0: f: 9.821602e-01 d: 0.00e+00 g: 2.17e-02 h: 0.00e+00 s: 0.00e+00 e:  0 it: 5.36e-02 tt: 5.36e-02
+W1028 13:47:38.162881   110 line_search.cc:773] Line search failed: Wolfe zoom phase failed to find a point satisfying strong Wolfe conditions within specified max_num_iterations: 20, (num iterations taken for bracketing: 3).

@@ -298,6 +298,16 @@ then required development coverage and learned-baseline execution. The fresh-dat
 protocol remains a blocked draft; no fresh sensor payload was read. Existing
 55-drive, exposure and independent-family requirements remain in force.
 
+The [shared-bundle follow-up](research/camera_lidar_shared_koide_bundle.md) now
+adapts the point-time origin while preserving acquisition times, and runs Koide
+and existing native Pandey MI on the same preprocessed cloud/image and seed.
+Rotation reference disagreements are 0.645 and 1.281 deg respectively (initial
+1.503 deg); neither meets the scoped recovery event. This is an optimizer-only
+hybrid-pipeline diagnostic, not a D2D or independent end-to-end comparison.
+Next resolve cloud/camera reference-time alignment and independent image-depth
+input for the D2D release candidate, then expand spent-data coverage. Do not tune
+on the single shared bundle. Fresh evaluation data remains unread.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).
