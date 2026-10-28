@@ -19,17 +19,28 @@ from calibrex.core.provenance import git_commit
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def run(captures: Path, output: Path, *, boundary_tangent: bool = False,
-        nearest_edge: bool = False) -> ComparisonReport:
+def run(
+    captures: Path,
+    output: Path,
+    *,
+    boundary_tangent: bool = False,
+    nearest_edge: bool = False,
+    match_geometry: bool = False,
+) -> ComparisonReport:
     """Keep all fourteen inputs and failures; report controls and fold reference errors."""
-    if boundary_tangent and nearest_edge:
+    if sum((boundary_tangent, nearest_edge, match_geometry)) > 1:
         raise ValueError("choose one ablation")
     output.mkdir(parents=True, exist_ok=False)
     report = ComparisonReport(
         provenance={
             "experiment": (
-                "nearest_edge_distance" if nearest_edge else
-                "local_boundary_tangent" if boundary_tangent else "one_pass_control_seeded_baseline"
+                "neighbor_match_geometry"
+                if match_geometry
+                else "nearest_edge_distance"
+                if nearest_edge
+                else "local_boundary_tangent"
+                if boundary_tangent
+                else "one_pass_control_seeded_baseline"
             ),
             "git_commit": git_commit(),
             "generator_sha256": sha(Path(__file__)),
@@ -38,13 +49,18 @@ def run(captures: Path, output: Path, *, boundary_tangent: bool = False,
             "new_evaluation_started": False,
             "new_accuracy_claim": False,
             "hypothesis": (
-                "Bounded nearest-ridge distance reduces distant incorrect edge matches."
-                if nearest_edge else "Local boundary directions reject incorrect edge alignments."
+                "Preserving neighbor match direction and spacing rejects incorrect alignments."
+                if match_geometry
+                else "Bounded nearest-ridge distance reduces distant incorrect edge matches."
+                if nearest_edge
+                else "Local boundary directions reject incorrect edge alignments."
                 if boundary_tangent
                 else "A baseline trapped in a local basin may underestimate pitch controls."
             ),
-            "selection": ("all fourteen reacquired spent inputs, paired objective ablation, "
-                          "original search settings"),
+            "selection": (
+                "all fourteen reacquired spent inputs, paired objective ablation, "
+                "original search settings"
+            ),
         }
     )
     (output / "report.schema.json").write_text(json.dumps(report.model_json_schema(), indent=2))
@@ -73,8 +89,16 @@ def run(captures: Path, output: Path, *, boundary_tangent: bool = False,
                 reference = Rotation.from_rotvec(-vector).as_matrix() @ candidate[:3, :3]
                 for arm, enabled in [
                     ("original", False),
-                    ("nearest_edge" if nearest_edge else
-                     "boundary_tangent" if boundary_tangent else "control_seeded", True),
+                    (
+                        "match_geometry"
+                        if match_geometry
+                        else "nearest_edge"
+                        if nearest_edge
+                        else "boundary_tangent"
+                        if boundary_tangent
+                        else "control_seeded",
+                        True,
+                    ),
                 ]:
                     tick = time.monotonic()
                     dest = output / drive / name / arm
@@ -84,22 +108,30 @@ def run(captures: Path, output: Path, *, boundary_tangent: bool = False,
                         dest,
                         multi_start=True,
                         training_only_start=True,
-                        control_seeded_baseline=enabled and not (boundary_tangent or nearest_edge),
+                        control_seeded_baseline=enabled
+                        and not (boundary_tangent or nearest_edge or match_geometry),
                         nearest_edge=enabled and nearest_edge,
+                        match_geometry=enabled and match_geometry,
                         boundary_tangent=enabled and boundary_tangent,
                     )
                     values = []
                     for item in result.axes:
                         errors = []
+                        vectors = []
                         for fold in item.folds:
                             rotation = probe.edge._transform(candidate, np.array(fold.base_theta))
                             delta = Rotation.from_matrix(rotation[:3, :3] @ reference.T).as_rotvec()
                             errors.append(float(np.degrees(delta)[item.axis]))
+                            vectors.append(np.degrees(delta).tolist())
                         values.append(
                             {
                                 "axis": item.axis,
                                 "control": item.profiled_control.model_dump(mode="json"),
                                 "fold_active_axis_reference_errors_deg": errors,
+                                "fold_full_rotation_error_vectors_deg": vectors,
+                                "fold_full_rotation_error_norms_deg": [
+                                    float(np.linalg.norm(v)) for v in vectors
+                                ],
                             }
                         )
                     row["arms"][arm] = {

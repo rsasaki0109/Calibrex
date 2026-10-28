@@ -39,7 +39,7 @@ class Diagnostics(StrictModel):
 
 
 def contributions(
-    objective: edge.EdgeObjective, theta: np.ndarray
+    objective: edge.EdgeObjective, theta: np.ndarray, *, verify: bool = True
 ) -> tuple[np.ndarray, np.ndarray]:
     """Return projected pixels and per-point contributions with the fixed denominator."""
     rotation = edge._rotation_from_vector(np.radians(theta[:3])).astype(np.float32)
@@ -60,7 +60,8 @@ def contributions(
         (1 - dy) * flat[base + 1] + dy * flat[base + stride + 1]
     )
     result[inside] = response * objective._weights[inside] / objective._total_weight
-    np.testing.assert_allclose(result.sum(), objective.score(theta), atol=1e-12, rtol=0)
+    if verify:
+        np.testing.assert_allclose(result.sum(), objective.score(theta), atol=1e-12, rtol=0)
     return np.column_stack([u, v]), result
 
 

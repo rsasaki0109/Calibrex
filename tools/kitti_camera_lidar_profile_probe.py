@@ -238,6 +238,7 @@ def profile_snapshot(
     azimuth_orientation: bool = False,
     boundary_tangent: bool = False,
     nearest_edge: bool = False,
+    match_geometry: bool = False,
     training_only_start: bool = False,
     control_seeded_baseline: bool = False,
 ) -> ProfileReport:
@@ -245,7 +246,8 @@ def profile_snapshot(
     from tools import kitti_camera_lidar_axis_probe as conditional
     from tools import kitti_camera_lidar_v3_replay as replay
 
-    if sum((spatial_balance, azimuth_orientation, boundary_tangent, nearest_edge)) > 1:
+    if sum((spatial_balance, azimuth_orientation, boundary_tangent,
+            nearest_edge, match_geometry)) > 1:
         raise ValueError("choose one objective ablation at a time")
     if training_only_start == (conditional_report is not None):
         raise ValueError("choose either training-only starts or a conditional report")
@@ -284,6 +286,7 @@ def profile_snapshot(
         ),
         "training_only_start": training_only_start,
         "nearest_edge": nearest_edge,
+        "match_geometry": match_geometry,
         "control_seeded_baseline": control_seeded_baseline,
         "baseline_restart_policy": (
             "one pass, two signed controls, training score; ties keep original"
@@ -324,7 +327,7 @@ def profile_snapshot(
                 "tile_support": [support.model_dump(mode="json") for _, support in balanced],
                 "spatial_scope": "per-frame fixed preprocessing on train and held-out frames",
             })
-        if nearest_edge:
+        if nearest_edge or match_geometry:
             from dataclasses import replace
 
             from tools import kitti_camera_lidar_nearest_edge as nearest
@@ -346,6 +349,17 @@ def profile_snapshot(
                 "nearest_edge_settings": nearest.SETTINGS, "nearest_edge_support": support,
                 "nearest_edge_scope": "fixed image ridges; nearest Euclidean distance reward",
                 "nearest_edge_limit": "many-to-one matches; no physical correspondence guarantee",
+            })
+        if match_geometry:
+            from tools import kitti_camera_lidar_contour_coherence as contour
+            from tools import kitti_camera_lidar_match_geometry as geometric
+
+            geometry_maps = [geometric.geometry_map(f.edge) for f in prepared]
+            geometry_graphs = [contour.neighbor_links(f.points) for f in prepared]
+            report.provenance.update({
+                "geometry_source_sha256": _sha(Path(geometric.__file__)),
+                "graph_source_sha256": _sha(Path(contour.__file__)),
+                "geometry_settings": geometric.SETTINGS, "graph_settings": contour.SETTINGS,
             })
         orientation_features = None
         if azimuth_orientation or boundary_tangent:
@@ -388,6 +402,9 @@ def profile_snapshot(
 
         def objective_for(indices: Sequence[int]) -> edge.EdgeObjective:
             selected = [prepared[i] for i in indices]
+            if match_geometry:
+                return geometric.GeometryObjective(selected, camera, candidate,
+                    [geometry_maps[i] for i in indices], [geometry_graphs[i] for i in indices])
             if orientation_features is not None and tangents is not None:
                 return boundary.BoundaryObjective(
                     selected, camera, candidate, [orientation_features[i] for i in indices],

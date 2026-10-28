@@ -78,3 +78,40 @@ def score_geometry(
             else None,
         },
     )
+
+
+class GeometryObjective(edge.EdgeObjective):
+    """Batched form of the fixed-pose geometry score, with frame-local graphs."""
+
+    def __init__(
+        self,
+        frames: list[edge.PreparedFrame],
+        camera: edge.EdgeCamera,
+        start: np.ndarray,
+        maps: list[tuple[np.ndarray, int, np.ndarray]],
+        graphs: list[np.ndarray],
+    ) -> None:
+        super().__init__(frames, camera, start)
+        self._labels = np.concatenate([m[0].ravel() for m in maps])
+        self._coordinates = np.concatenate([m[2].reshape(-1, 2) for m in maps])
+        offsets = np.cumsum([0] + [len(f.points) for f in frames])
+        self._links = np.concatenate(
+            [g + offset for g, offset in zip(graphs, offsets[:-1], strict=True)]
+        )
+
+    def score(self, theta: np.ndarray) -> float:
+        pixels, values = diagnostics.contributions(self, theta, verify=False)
+        inside = (
+            np.isfinite(pixels).all(axis=1)
+            & (pixels[:, 0] >= 0)
+            & (pixels[:, 1] >= 0)
+            & (pixels[:, 0] < self._u_limit)
+            & (pixels[:, 1] < self._v_limit)
+        )
+        rounded = np.rint(pixels[inside]).astype(int)
+        index = self._offset[inside] + rounded[:, 1] * self._stride[inside] + rounded[:, 0]
+        labels = np.zeros(len(pixels), dtype=np.int64)
+        matches = np.zeros_like(pixels)
+        labels[inside] = self._labels[index]
+        matches[inside] = self._coordinates[index]
+        return float(values @ geometry_factors(pixels, matches, labels, self._links))
