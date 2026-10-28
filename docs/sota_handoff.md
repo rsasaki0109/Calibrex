@@ -338,6 +338,18 @@ experimentally, freeze settings, and broaden spent-drive coverage; no default
 promotion, seed cherry-picking or another two-drive parameter sweep. All existing
 55-drive/learned-baseline/independent-family/fresh-audit requirements remain unmet.
 
+The [additional-drive joint experiment](research/camera_lidar_expanded_joint.md)
+extends the fixed configuration to spent 2011-09-26 0009 and 0011, three fixed
+frames each. A preparation-only timestamp-gap bug was fixed and re-frozen at
+`9053ed48` before any calibration; original logs remain. All four new cases
+complete with all frames: D2D 1/4, Koide 1/4. D2D improves rotation 4/4 but worsens
+translation 4/4. Across four recordings/eight joint cases, D2D is 4/8 with
+translation improvement only 1/8; Koide is 1/8. Thus the translation regression
+persists outside the original pair. Retain failures and settings; next assess
+metric translation constraints together with depth/motion validity, not threshold
+relaxation or favorable-seed selection. Coverage remains only 4/55 with unequal
+stereo input; no superiority, independent-family or fresh-audit claim.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).

@@ -1,0 +1,102 @@
+"""Publish the additional-drive joint cases, including all failures."""
+import hashlib
+import json
+import shutil
+from pathlib import Path
+import numpy as np
+from pydantic import BaseModel, ConfigDict
+from tools.run_camera_lidar_development_matrix import DevelopmentMatrixPlan, MatrixResult
+from tools.prepare_sparse_joint_inputs import PreparationReport
+
+work=Path('/workspace/work/expanded-joint-20261029')
+prepared=work/'prepared-v2'
+root=Path('/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029')
+out=Path('/workspace/Calibrex/docs/assets/expanded_joint_20261029')
+old=Path('/workspace/Calibrex/docs/assets/joint_assisted_20261028')
+plan=DevelopmentMatrixPlan.model_validate_json((out/'plan.json').read_text())
+result=MatrixResult.model_validate_json((root/'matrix.json').read_text())
+previous=MatrixResult.model_validate_json((old/'matrix.json').read_text())
+preparation=PreparationReport.model_validate_json((prepared/'preparation.json').read_text())
+assert preparation.plan_sha256==result.plan_sha256==hashlib.sha256((out/'plan.json').read_bytes()).hexdigest()
+assert len(result.records)==4
+assert {r['case_id'] for r in result.records}=={f'{d.id}-{p.id}' for d in plan.drives for p in plan.perturbations}
+assert result.driver_sha256==plan.source_sha256['tools/run_joint_assisted_experiment.py']
+
+class MethodSummary(BaseModel):
+    model_config=ConfigDict(extra='forbid',allow_inf_nan=False)
+    scheduled: int
+    completed: int
+    valid_outputs: int
+    recovered: int
+    rotation_improved_vs_seed: int
+    translation_improved_vs_seed: int
+    median_rotation_deg: float | None
+    median_translation_m: float | None
+class Summary(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    scope: str
+    new_recordings: list[str]
+    additional_cases: dict[str,MethodSummary]
+    combined_descriptive: dict[str,MethodSummary]
+    prior_matrix_sha256: str
+    warnings: list[str]
+    artifact_sha256: dict[str,str]
+
+for name in ['matrix.json','matrix.schema.json','original-entrypoint.sh','runtime-entrypoint.sh','job.sh']:
+    shutil.copyfile(root/name,out/name)
+for name in ['preparation.json','preparation.schema.json']:
+    shutil.copyfile(prepared/name,out/name)
+for name in ['prepare-v2.log','execute.log']:
+    shutil.copyfile(work/name,out/name)
+shutil.copyfile(__file__,out/'publish.py.txt')
+for drive in plan.drives:
+    target=out/drive.id;target.mkdir(exist_ok=True)
+    shutil.copyfile(prepared/'bags'/drive.id/'calibrex_conversion.json',target/'conversion.json')
+    for frame in drive.frames:
+        folder=target/f'frame-{frame}';folder.mkdir(exist_ok=True)
+        for name in ['frontend.json','frontend.schema.json','calib.json']:
+            shutil.copyfile(prepared/drive.id/f'frame-{frame}'/name,folder/name)
+for record in result.records:
+    target=out/record['case_id'];target.mkdir(exist_ok=True)
+    source=root/record['case_id']
+    for p in source.iterdir():
+        if p.suffix in ['.json','.log']:
+            shutil.copyfile(p,target/p.name)
+    native=json.loads((source/'d2d.json').read_text())
+    assert native['result']['final_evaluation']['evaluated_frame_count']==3
+    assert native['driver_sha256']==plan.source_sha256['tools/run_joint_stereo_d2d.py']
+    earlier=json.loads((old/'2011_09_26_0005-positive/d2d.json').read_text())
+    assert native['options']==earlier['options']
+    assert native['input_sha256'][str(source/'calib.json')]==hashlib.sha256((source/'calib-frontend.json').read_bytes()).hexdigest()
+    mapping=json.loads((source/'frontend.json').read_text())
+    for name,identity in mapping.items():
+        assert hashlib.sha256((source/name).read_bytes()).hexdigest()==identity['sha256']
+    drive=next(d for d in plan.drives if d.id==record['drive'])
+    log=(source/'koide.log').read_text()
+    assert all(f'frame-{f}.(png|ply)' in log for f in drive.frames)
+
+def summarize(records,method):
+    rows=[r['methods'][method] for r in records]
+    valid=[r for r in rows if r['valid_output']]
+    return MethodSummary(scheduled=len(rows),completed=sum(r.get('returncode')==0 for r in rows),
+        valid_outputs=len(valid),recovered=sum(r['recovered'] for r in rows),
+        rotation_improved_vs_seed=sum(r['methods'][method]['valid_output'] and r['methods'][method]['rotation_deg']<r['initial']['rotation_deg'] for r in records),
+        translation_improved_vs_seed=sum(r['methods'][method]['valid_output'] and r['methods'][method]['translation_m']<r['initial']['translation_m'] for r in records),
+        median_rotation_deg=float(np.median([r['rotation_deg'] for r in valid])) if valid else None,
+        median_translation_m=float(np.median([r['translation_m'] for r in valid])) if valid else None)
+summary=Summary(scope='additional spent-drive assisted-input joint execution; not independent evaluation',
+    new_recordings=[d.id for d in plan.drives],additional_cases={m:summarize(result.records,m) for m in ['d2d','koide']},
+    combined_descriptive={m:summarize([*previous.records,*result.records],m) for m in ['d2d','koide']},
+    prior_matrix_sha256=hashlib.sha256((old/'matrix.json').read_bytes()).hexdigest(),
+    warnings=['Four drives from the same KITTI family; only three frames and two seed signs each.',
+        'Unequal stereo information prevents monocular superiority claims.',
+        'Sparse OXTS neighborhoods preserve local interpolation; point times and auxiliary calibration remain modeled assumptions.',
+        'One preparation attempt failed before calibration; its plan, receipt and log remain archived.',
+        '55-drive coverage, learned baselines, independent-family evidence and fresh audit remain pending.'],
+    artifact_sha256={str(p.relative_to(out)):hashlib.sha256(p.read_bytes()).hexdigest() for p in out.rglob('*') if p.is_file() and p.name not in ['summary.json','summary.schema.json']})
+(out/'summary.json').write_text(summary.model_dump_json(indent=2)+'\n')
+(out/'summary.schema.json').write_text(json.dumps(Summary.model_json_schema(),indent=2)+'\n')
+Summary.model_validate_json((out/'summary.json').read_text())
+for r in result.records:
+ print(r['case_id'],{m:{k:r['methods'][m][k] for k in ['rotation_deg','translation_m','recovered']} for m in ['d2d','koide']})
+print(json.dumps({'new':{m:v.model_dump() for m,v in summary.additional_cases.items()},'combined':{m:v.model_dump() for m,v in summary.combined_descriptive.items()}},indent=2))

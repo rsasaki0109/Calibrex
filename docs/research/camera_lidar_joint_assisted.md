@@ -103,3 +103,9 @@ absolute recovery and the paired translation-regression diagnostic in the next
 report; the latter prevents rotation gains from hiding translation damage.
 This experiment does not waive the existing 55-drive, monocular/learned baseline,
 independent-family or fresh-audit requirements.
+
+
+The [fixed additional-drive execution](camera_lidar_expanded_joint.md) completed
+on 0009 and 0011. Both methods recover 1/4 new cases; D2D worsens translation in
+all four despite improving rotation. The weakness persists beyond the original
+two recordings, without changing thresholds or optimizer parameters.
