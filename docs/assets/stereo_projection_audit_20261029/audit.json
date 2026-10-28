@@ -1,0 +1,467 @@
+{
+  "scope": "post-hoc projection/timestamp consistency; no refitting or verdict changes",
+  "source_commit": "4f1ebd2c8ee0c7725ccb6af45d92361bf1fe75ef",
+  "source_sha256": {
+    "/workspace/Calibrex/tools/audit_stereo_projection_geometry.py": "0a6ceea72e5d7d0ccac2eaf474f0d507e673068805dea3e46677693405b8e326",
+    "tools/kitti_aligned_stereo_bundle.py": "e8005852be198adfaeffe48a658aead68c2568ac33d74a79e820112feacdecad",
+    "tools/diagnose_stereo_translation.py": "629f3d58eec99f1213e2e7564ca9ddcd1d934f0b31045dc747db0cbd60502978",
+    "src/calibrex/solvers/stereo_translation_refiner.py": "1067fa477a9d313a83519342dfee22f2111869274fe1081447a33751e66fa547"
+  },
+  "input_sha256": {
+    "docs/assets/stereo_priority_20261029/plan.json": "d593fbd82e9a1f48d985059645635a31f4875a83d8b92cc9ad04d64a742e7038",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/calib-frontend.json": "2a9f6bf4b8282b09308a68220aa3a69aead38fcb5cadabb490742f00f687485e",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/d2d.json": "cae3c74aa6ba04270074b83be71e9ad08b1d71ce22eea8297d316281414c3394",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frontend.json": "53d285cec4a5d9352d2ed2143dd5a3140f86e513efb4e77ded7b12aafb8eb1c6",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-38.depth.npy": "00449e0948fda40fc5e8a8e69dc6a8cd574a72f693d240dcf565000062351adb",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-38.ply": "7ef115a70b00896027dd5ad3f8e8c70c97a470911bedc6f71eae6d3fdc5fe3da",
+    "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_26_0005/frame-38/frontend.json": "44bae8e3cd37456c366650da07bd89179f8f77c666c3bf02ce5cd511164354c6",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-76.depth.npy": "4622d97490b20addfd8f68f82f145b66bfd7beeb719577b818797d36f769d181",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-76.ply": "8eaa8c815367e744cbbe336fad65c923b9c8b9d6b07a016b93cd5ae8c8707ab6",
+    "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_26_0005/frame-76/frontend.json": "5d915e80a96044f6d6161ed291ddccd00b07b3c2698c0c999b6fc0990d81b8f9",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-114.depth.npy": "ef2a9a4dc64738be42684ded2ff8aabba840b8917264f2373bb11450e77bd79a",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-114.ply": "d973236f90739062601c4adaf805feb6dad1593ae5209b7258fa7021f8afc667",
+    "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_26_0005/frame-114/frontend.json": "772ffcf9da2579ebd6fc4fe1d4589c264298210b41d87ab3e0007f9a82f4d5cd",
+    "docs/assets/stereo_priority_20261029/2011_09_26_0005-positive/refinement.json": "03926a9f09af9b9eae59c7fb6a16d70e79d565848a160512fb8d505589191249",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/seed.json": "e4cc1412bab9ecebcf1a65b4969a8e9865342031ca9dfa94434d87fb343513a4",
+    "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_cam_to_cam.txt": "edc1eae281cb95e41798a98dcc545521449527145477ff852dbf3a4ec48c643c",
+    "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_velo_to_cam.txt": "9dc0c3e92dfceceb9500caa2c9488261a52640e43c3f7c3045ca1ed7927e7266",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/timestamps.txt": "8eaabc126357728a515716198399297454a77cca2f038cd2b20b1b05b85da8cf",
+    "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_26_0005/timestamps.txt": "0593ce6b1890727e7bebe62b41d7753e51fb13cefc3f70edeb01052268d8b0d9",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/calib-frontend.json": "5a8b1fb19a6a39d84a2e96b5de654051837964d86ee2b9a8053f3d62ef48def1",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/d2d.json": "51e5bd1f7204ee091dd8e3b591e16c2310b3e593b9f37453e9c912855a009b98",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frontend.json": "ccc3353f8e7999b4ff6b204699a83ab91d605328ef5e8981dfacd4acaa565236",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-93.depth.npy": "dce640173e7814314b5f5c501bc53a1883d517c917165b4f5e51a3753beb4f1e",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-93.ply": "44b43d510d62227714d4b63956e29e8e423f2a294cbee51d430694040736c603",
+    "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_28_0002/frame-93/frontend.json": "4e675e97a1f620b26d9ba4900b3ddaf77eec6d1ff9a67e3e47efe44fb71ca671",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-187.depth.npy": "ddb207baeae9030ac9fd818bf9005b2f8cd4c45be65f6f7fcbe3f2a3ebb60faf",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-187.ply": "badfa6420d58ed12e35ca143af1e7d58644ab112dd52337e43bc772a54581031",
+    "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_28_0002/frame-187/frontend.json": "57b539830b84a088f2d407a40607307e647efc67d68b5fd902e2dbb4919de1fa",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-281.depth.npy": "4d95e8590282b6eca8e760129190f425c6f1d38ed6eef7a969eb5df909bf5124",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-281.ply": "2c53b34e3f5f975c75f9599c53afe41ca7e574175d3f19332f99f60d04abba24",
+    "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_28_0002/frame-281/frontend.json": "9ac46e19a89ea81f8ec4a23b49442f3622e62309665ca476130bb666950e8a05",
+    "docs/assets/stereo_priority_20261029/2011_09_28_0002-positive/refinement.json": "351cac40c0c3ef1c67d4acb88435f5852b013b51971e2ba6875921c0ee73cfca",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/seed.json": "b71af7121c3b2edd633c5d06028f8d0c498bf4f7b0c0baf366df5eefd6e07ab4",
+    "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_28/calib_cam_to_cam.txt": "e2ca2f12fbe7900e762b909f58438f7147e707eed120ad87511e752551a209ab",
+    "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_28/calib_velo_to_cam.txt": "2d02e9436d95d942f02190c38397752a667bd0d901580acdca5e015c002607fd",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/image_02/timestamps.txt": "62d30c4f96380e119b2d89a4b4f91fdb403f77df7dd40138fab66b5950b7ebb2",
+    "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_28_0002/timestamps.txt": "bdff043fb133c0c1d5d3c27ecfd29e041accc4959bbd6b0d2046e4ff8513ce07",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/calib-frontend.json": "42a9806fcb8ba5450f151685e8f807b63df8951f746ba8758e02faa0419239c1",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/d2d.json": "4cca115d0f0bc00906d0f53664fce27613c8697d09944325b8815a1b11a93454",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frontend.json": "a370f7af509255b6a84a0cccbb106b63d8f684d60b33fda4343965b31fba7ce3",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-111.depth.npy": "16c5294e5a5c135fa8c2e02702bb3681c91f78cb02ff73ba25163c6a15e50eb4",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-111.ply": "711f32c8121afb289f2663f617a793b1832e2e3b53cc89f90a8d50343485051f",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0009/frame-111/frontend.json": "9a58804c84a4103bbfc6bcb537eda73046a553028d890ffcbcbc56ea17f2302c",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-223.depth.npy": "ef3fe5b16c4b50a26cee3d8e7a44111a111f81c6dce37cc565ccbe2266595caa",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-223.ply": "4c64e2ef2c1fe230f4565e50fa90af9416a0aa9a16c86c423c020c8926ef5751",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0009/frame-223/frontend.json": "cb02faf82b3c16f702a2bd257aaf7e9a7f23ac7a61f61ae29e55e29174b3c354",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-334.depth.npy": "530bde425d8203f3074289c6b89eabdd8a4ce0b259a7e2264a1dbd7a615b1689",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-334.ply": "5790690e0769ca3d9c708ad81f3c34f3afbef7fbd1e2b15b6481275d35b9645d",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0009/frame-334/frontend.json": "80b6e527c028837e8301f342154dbf0e034d8aea0013e8fa449201ac2edbc03f",
+    "docs/assets/stereo_priority_20261029/2011_09_26_0009-positive/refinement.json": "5d853aea443d6e630610e7bdcc3148aa8b2c4cd315c0bc41b8267440630f6c6c",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/seed.json": "e4cc1412bab9ecebcf1a65b4969a8e9865342031ca9dfa94434d87fb343513a4",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/image_02/timestamps.txt": "b1f15319a46e75837a886a93969a37cf87f4bc1ba735616332f142343567b1fd",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/image_03/timestamps.txt": "3c9c750777b00218699b78a694eed8b9538d634a341f99d96ed6a759134bf353",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/calib-frontend.json": "73c631a992ead509d32a92238654deee90c2028625c8a28fea1a2d52c038a87b",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/d2d.json": "ffc8a7c860a000941be75c771b27e315de5431ab28703658ca787ae8d62230a4",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frontend.json": "76e5be2b4486258cbf9388571200415774792afe1c0e1e3b1628255c197cc202",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-58.depth.npy": "25cccaa299abcd113d33e19198a5a06157979b3ce7f450a38b1b9a685d4375ed",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-58.ply": "bb60fed64625508bc15db7222fb3df095f55f1e43169c760b084e54496848c83",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0011/frame-58/frontend.json": "c1a758845c41c5f531930965017fadc875767efbf94de636674cabc7bcdf813e",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-116.depth.npy": "c21a87f4486d1deda3c918c5322499331d2228f2d97c428e95ee2c68d036d0de",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-116.ply": "a3591ea2d982b4b0fff8b084992dbb7e8bb78f55c64a434d96221458fc44ab1b",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0011/frame-116/frontend.json": "10b3bb8d138b58191e95c5a0f06fde775173084150c0f64f4e5f92b14f231a02",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-174.depth.npy": "1ebd8a086450dde535fbcb7b325d1833999b042052db71fcfdd5a633edd69aec",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-174.ply": "23d881d4db53ac64bb62b60f3023b9e66dc8ea1db89024f6f441cd46f3a8d2a8",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0011/frame-174/frontend.json": "cf8585bed17e35d85cdd0df93d99c141b9b62764b1b281761fefc2e732bc72fa",
+    "docs/assets/stereo_priority_20261029/2011_09_26_0011-positive/refinement.json": "545e83f33e067f6b452d966bbd2e55059f6e531fb3d66782e0264b428bdce3ab",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/seed.json": "e4cc1412bab9ecebcf1a65b4969a8e9865342031ca9dfa94434d87fb343513a4",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/image_02/timestamps.txt": "8e78c976b0599693654c8ca173463970b8d818257d97d0b8e1e3e10b0f8f3420",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/image_03/timestamps.txt": "bb0812265c5123180e91e86f349209f9c3c219f55a7937881fad4f72d8663339"
+  },
+  "frames": [
+    {
+      "case_id": "2011_09_26_0005-positive",
+      "frame_id": "frame-38",
+      "right_from_left_translation_m": [
+        -0.5327119287764802,
+        0.0027528969505903854,
+        -0.000015979000000000167
+      ],
+      "reference_matrix_max_difference": 0.0,
+      "selected_pairs": 2000,
+      "corrected_valid_pairs": 2000,
+      "depth_correction_median_m": -0.0003262065201106168,
+      "old_signed_z_median_m": -0.11526240282909539,
+      "corrected_signed_z_median_m": -0.11500082034730497,
+      "predicted_right_row_shift_median_px": 0.1827544387563369,
+      "timing": {
+        "image_header_ns": 1317042276270436608,
+        "right_image_header_ns": 1317042276269952256,
+        "scan_header_ns": 1317042276259997486,
+        "image_minus_scan_s": 0.010439122,
+        "first_point_minus_image_s": -0.06205625263716863,
+        "last_point_minus_image_s": 0.041177051237562434
+      },
+      "motion": {
+        "model": "OXTS linear position and SLERP rotation; KITTI modeled point times",
+        "point_count": 122838,
+        "median_point_shift_m": 0.09234539219924884,
+        "max_point_shift_m": 0.38045085269948004,
+        "extrapolation": false,
+        "auxiliary_calibration": "IMU-to-LiDAR only"
+      }
+    },
+    {
+      "case_id": "2011_09_26_0005-positive",
+      "frame_id": "frame-76",
+      "right_from_left_translation_m": [
+        -0.5327119287764802,
+        0.0027528969505903854,
+        -0.000015979000000000167
+      ],
+      "reference_matrix_max_difference": 0.0,
+      "selected_pairs": 2000,
+      "corrected_valid_pairs": 2000,
+      "depth_correction_median_m": -0.00030883222023714296,
+      "old_signed_z_median_m": -0.10049991061052044,
+      "corrected_signed_z_median_m": -0.10030958987859862,
+      "predicted_right_row_shift_median_px": 0.15515307198189648,
+      "timing": {
+        "image_header_ns": 1317042280196096768,
+        "right_image_header_ns": 1317042280195456256,
+        "scan_header_ns": 1317042280185503214,
+        "image_minus_scan_s": 0.010593554,
+        "first_point_minus_image_s": -0.06232343799863216,
+        "last_point_minus_image_s": 0.04113587551321629
+      },
+      "motion": {
+        "model": "OXTS linear position and SLERP rotation; KITTI modeled point times",
+        "point_count": 124044,
+        "median_point_shift_m": 0.10263639142346513,
+        "max_point_shift_m": 0.7322456709148667,
+        "extrapolation": false,
+        "auxiliary_calibration": "IMU-to-LiDAR only"
+      }
+    },
+    {
+      "case_id": "2011_09_26_0005-positive",
+      "frame_id": "frame-114",
+      "right_from_left_translation_m": [
+        -0.5327119287764802,
+        0.0027528969505903854,
+        -0.000015979000000000167
+      ],
+      "reference_matrix_max_difference": 0.0,
+      "selected_pairs": 2000,
+      "corrected_valid_pairs": 2000,
+      "depth_correction_median_m": -0.0003317166186933562,
+      "old_signed_z_median_m": -0.09969168244809001,
+      "corrected_signed_z_median_m": -0.09937367340158776,
+      "predicted_right_row_shift_median_px": 0.1333195312371766,
+      "timing": {
+        "image_header_ns": 1317042284121554944,
+        "right_image_header_ns": 1317042284121082112,
+        "scan_header_ns": 1317042284111073932,
+        "image_minus_scan_s": 0.010481012000000001,
+        "first_point_minus_image_s": -0.06208014203444634,
+        "last_point_minus_image_s": 0.04111839370592918
+      },
+      "motion": {
+        "model": "OXTS linear position and SLERP rotation; KITTI modeled point times",
+        "point_count": 121656,
+        "median_point_shift_m": 0.14595610162273503,
+        "max_point_shift_m": 0.9902536313677647,
+        "extrapolation": false,
+        "auxiliary_calibration": "IMU-to-LiDAR only"
+      }
+    },
+    {
+      "case_id": "2011_09_28_0002-positive",
+      "frame_id": "frame-93",
+      "right_from_left_translation_m": [
+        -0.5357352420363782,
+        0.004239241476649223,
+        -0.0017798629999999996
+      ],
+      "reference_matrix_max_difference": 6.938893903907228e-18,
+      "selected_pairs": 2000,
+      "corrected_valid_pairs": 2000,
+      "depth_correction_median_m": -0.03247783403920046,
+      "old_signed_z_median_m": -0.0890435253127686,
+      "corrected_signed_z_median_m": -0.05921444923417285,
+      "predicted_right_row_shift_median_px": 0.28802876030154284,
+      "timing": {
+        "image_header_ns": 1317212825869020928,
+        "right_image_header_ns": 1317212825868412672,
+        "scan_header_ns": 1317212825870585210,
+        "image_minus_scan_s": -0.0015642820000000002,
+        "first_point_minus_image_s": -0.050257206887073025,
+        "last_point_minus_image_s": 0.053383882164888874
+      },
+      "motion": {
+        "model": "OXTS linear position and SLERP rotation; KITTI modeled point times",
+        "point_count": 120930,
+        "median_point_shift_m": 0.0028827200861710044,
+        "max_point_shift_m": 0.0844732476329325,
+        "extrapolation": false,
+        "auxiliary_calibration": "IMU-to-LiDAR only"
+      }
+    },
+    {
+      "case_id": "2011_09_28_0002-positive",
+      "frame_id": "frame-187",
+      "right_from_left_translation_m": [
+        -0.5357352420363782,
+        0.004239241476649223,
+        -0.0017798629999999996
+      ],
+      "reference_matrix_max_difference": 6.938893903907228e-18,
+      "selected_pairs": 2000,
+      "corrected_valid_pairs": 2000,
+      "depth_correction_median_m": -0.035704271804267496,
+      "old_signed_z_median_m": -0.09695807445693072,
+      "corrected_signed_z_median_m": -0.06481452691436296,
+      "predicted_right_row_shift_median_px": 0.26482133248178885,
+      "timing": {
+        "image_header_ns": 1317212835614911488,
+        "right_image_header_ns": 1317212835614419200,
+        "scan_header_ns": 1317212835616715608,
+        "image_minus_scan_s": -0.0018041200000000002,
+        "first_point_minus_image_s": -0.04999235356271825,
+        "last_point_minus_image_s": 0.05360164036929049
+      },
+      "motion": {
+        "model": "OXTS linear position and SLERP rotation; KITTI modeled point times",
+        "point_count": 115437,
+        "median_point_shift_m": 0.000276819856955535,
+        "max_point_shift_m": 0.003478700360379081,
+        "extrapolation": false,
+        "auxiliary_calibration": "IMU-to-LiDAR only"
+      }
+    },
+    {
+      "case_id": "2011_09_28_0002-positive",
+      "frame_id": "frame-281",
+      "right_from_left_translation_m": [
+        -0.5357352420363782,
+        0.004239241476649223,
+        -0.0017798629999999996
+      ],
+      "reference_matrix_max_difference": 6.938893903907228e-18,
+      "selected_pairs": 2000,
+      "corrected_valid_pairs": 2000,
+      "depth_correction_median_m": -0.03585476520200093,
+      "old_signed_z_median_m": -0.10104789622489552,
+      "corrected_signed_z_median_m": -0.06950914079608239,
+      "predicted_right_row_shift_median_px": 0.2596485282065687,
+      "timing": {
+        "image_header_ns": 1317212845360673280,
+        "right_image_header_ns": 1317212845360178944,
+        "scan_header_ns": 1317212845362463813,
+        "image_minus_scan_s": -0.0017905330000000002,
+        "first_point_minus_image_s": -0.05002907834075998,
+        "last_point_minus_image_s": 0.05361014434076239
+      },
+      "motion": {
+        "model": "OXTS linear position and SLERP rotation; KITTI modeled point times",
+        "point_count": 115225,
+        "median_point_shift_m": 0.0005402462463607788,
+        "max_point_shift_m": 0.004589397994609717,
+        "extrapolation": false,
+        "auxiliary_calibration": "IMU-to-LiDAR only"
+      }
+    },
+    {
+      "case_id": "2011_09_26_0009-positive",
+      "frame_id": "frame-111",
+      "right_from_left_translation_m": [
+        -0.5327119287764802,
+        0.0027528969505903854,
+        -0.000015979000000000167
+      ],
+      "reference_matrix_max_difference": 0.0,
+      "selected_pairs": 2000,
+      "corrected_valid_pairs": 2000,
+      "depth_correction_median_m": -0.00024609225649729893,
+      "old_signed_z_median_m": -0.05624779179704964,
+      "corrected_signed_z_median_m": -0.05606665936286026,
+      "predicted_right_row_shift_median_px": 0.16679233209615912,
+      "timing": {
+        "image_header_ns": 1317042516451167232,
+        "right_image_header_ns": 1317042516450556928,
+        "scan_header_ns": 1317042516440644363,
+        "image_minus_scan_s": 0.010522869,
+        "first_point_minus_image_s": -0.06226769513801958,
+        "last_point_minus_image_s": 0.041220720341640454
+      },
+      "motion": {
+        "model": "OXTS linear position and SLERP rotation; KITTI modeled point times",
+        "point_count": 113728,
+        "median_point_shift_m": 0.2819012043356558,
+        "max_point_shift_m": 0.6792665085222646,
+        "extrapolation": false,
+        "auxiliary_calibration": "IMU-to-LiDAR only"
+      }
+    },
+    {
+      "case_id": "2011_09_26_0009-positive",
+      "frame_id": "frame-223",
+      "right_from_left_translation_m": [
+        -0.5327119287764802,
+        0.0027528969505903854,
+        -0.000015979000000000167
+      ],
+      "reference_matrix_max_difference": 0.0,
+      "selected_pairs": 2000,
+      "corrected_valid_pairs": 2000,
+      "depth_correction_median_m": -0.0002617303106600133,
+      "old_signed_z_median_m": -0.06418374582323949,
+      "corrected_signed_z_median_m": -0.0639442991546737,
+      "predicted_right_row_shift_median_px": 0.19071564431929397,
+      "timing": {
+        "image_header_ns": 1317042528041656320,
+        "right_image_header_ns": 1317042528041044480,
+        "scan_header_ns": 1317042528031100484,
+        "image_minus_scan_s": 0.010555836,
+        "first_point_minus_image_s": -0.06225892771080588,
+        "last_point_minus_image_s": 0.04114357139870073
+      },
+      "motion": {
+        "model": "OXTS linear position and SLERP rotation; KITTI modeled point times",
+        "point_count": 118405,
+        "median_point_shift_m": 0.12003848850769386,
+        "max_point_shift_m": 1.2694445116053414,
+        "extrapolation": false,
+        "auxiliary_calibration": "IMU-to-LiDAR only"
+      }
+    },
+    {
+      "case_id": "2011_09_26_0009-positive",
+      "frame_id": "frame-334",
+      "right_from_left_translation_m": [
+        -0.5327119287764802,
+        0.0027528969505903854,
+        -0.000015979000000000167
+      ],
+      "reference_matrix_max_difference": 0.0,
+      "selected_pairs": 2000,
+      "corrected_valid_pairs": 2000,
+      "depth_correction_median_m": -0.0002314970986474485,
+      "old_signed_z_median_m": -0.08853643507205966,
+      "corrected_signed_z_median_m": -0.08824093624803986,
+      "predicted_right_row_shift_median_px": 0.1671165190500445,
+      "timing": {
+        "image_header_ns": 1317042539538029568,
+        "right_image_header_ns": 1317042539537548544,
+        "scan_header_ns": 1317042539527567767,
+        "image_minus_scan_s": 0.010461801000000001,
+        "first_point_minus_image_s": -0.06225134552276401,
+        "last_point_minus_image_s": 0.041326048515674785
+      },
+      "motion": {
+        "model": "OXTS linear position and SLERP rotation; KITTI modeled point times",
+        "point_count": 107739,
+        "median_point_shift_m": 0.22996337199826206,
+        "max_point_shift_m": 0.6321285612299155,
+        "extrapolation": false,
+        "auxiliary_calibration": "IMU-to-LiDAR only"
+      }
+    },
+    {
+      "case_id": "2011_09_26_0011-positive",
+      "frame_id": "frame-58",
+      "right_from_left_translation_m": [
+        -0.5327119287764802,
+        0.0027528969505903854,
+        -0.000015979000000000167
+      ],
+      "reference_matrix_max_difference": 0.0,
+      "selected_pairs": 2000,
+      "corrected_valid_pairs": 2000,
+      "depth_correction_median_m": -0.0003262790822713413,
+      "old_signed_z_median_m": -0.0716909117333202,
+      "corrected_signed_z_median_m": -0.07143012892664302,
+      "predicted_right_row_shift_median_px": 0.15013899090938188,
+      "timing": {
+        "image_header_ns": 1317042610776055808,
+        "right_image_header_ns": 1317042610775439360,
+        "scan_header_ns": 1317042610765414230,
+        "image_minus_scan_s": 0.010641578,
+        "first_point_minus_image_s": -0.06244337500255395,
+        "last_point_minus_image_s": 0.041160490948745715
+      },
+      "motion": {
+        "model": "OXTS linear position and SLERP rotation; KITTI modeled point times",
+        "point_count": 117148,
+        "median_point_shift_m": 0.2690967964217814,
+        "max_point_shift_m": 0.7456373720394254,
+        "extrapolation": false,
+        "auxiliary_calibration": "IMU-to-LiDAR only"
+      }
+    },
+    {
+      "case_id": "2011_09_26_0011-positive",
+      "frame_id": "frame-116",
+      "right_from_left_translation_m": [
+        -0.5327119287764802,
+        0.0027528969505903854,
+        -0.000015979000000000167
+      ],
+      "reference_matrix_max_difference": 0.0,
+      "selected_pairs": 2000,
+      "corrected_valid_pairs": 2000,
+      "depth_correction_median_m": -0.0003243836535915534,
+      "old_signed_z_median_m": -0.11908638455558762,
+      "corrected_signed_z_median_m": -0.11862947207074503,
+      "predicted_right_row_shift_median_px": 0.15239793956501815,
+      "timing": {
+        "image_header_ns": 1317042616783127552,
+        "right_image_header_ns": 1317042616782571520,
+        "scan_header_ns": 1317042616772556781,
+        "image_minus_scan_s": 0.010570771000000001,
+        "first_point_minus_image_s": -0.06234310095629336,
+        "last_point_minus_image_s": 0.04120465467253087
+      },
+      "motion": {
+        "model": "OXTS linear position and SLERP rotation; KITTI modeled point times",
+        "point_count": 108418,
+        "median_point_shift_m": 0.05971473120732257,
+        "max_point_shift_m": 0.14081879315293766,
+        "extrapolation": false,
+        "auxiliary_calibration": "IMU-to-LiDAR only"
+      }
+    },
+    {
+      "case_id": "2011_09_26_0011-positive",
+      "frame_id": "frame-174",
+      "right_from_left_translation_m": [
+        -0.5327119287764802,
+        0.0027528969505903854,
+        -0.000015979000000000167
+      ],
+      "reference_matrix_max_difference": 0.0,
+      "selected_pairs": 2000,
+      "corrected_valid_pairs": 2000,
+      "depth_correction_median_m": -0.00032276142035669864,
+      "old_signed_z_median_m": -0.08929557457268666,
+      "corrected_signed_z_median_m": -0.08896547843157654,
+      "predicted_right_row_shift_median_px": 0.15445641529127174,
+      "timing": {
+        "image_header_ns": 1317042622790277376,
+        "right_image_header_ns": 1317042622789781760,
+        "scan_header_ns": 1317042622779772254,
+        "image_minus_scan_s": 0.010505122,
+        "first_point_minus_image_s": -0.062277288043521395,
+        "last_point_minus_image_s": 0.04126762518880511
+      },
+      "motion": {
+        "model": "OXTS linear position and SLERP rotation; KITTI modeled point times",
+        "point_count": 109466,
+        "median_point_shift_m": 0.0007468735993640845,
+        "max_point_shift_m": 0.01085380348410479,
+        "extrapolation": false,
+        "auxiliary_calibration": "IMU-to-LiDAR only"
+      }
+    }
+  ]
+}

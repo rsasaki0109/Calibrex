@@ -1,0 +1,44 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "default": "post-hoc projection/timestamp consistency; no refitting or verdict changes",
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "source_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Source Sha256",
+      "type": "object"
+    },
+    "input_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Input Sha256",
+      "type": "object"
+    },
+    "frames": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Frames",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source_commit",
+    "source_sha256",
+    "input_sha256",
+    "frames"
+  ],
+  "title": "Audit",
+  "type": "object"
+}

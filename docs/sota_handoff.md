@@ -584,3 +584,15 @@ This rules out fixed D2D rotation as a sufficient explanation, but does not isol
 stereo bias. Next audit depth generation, camera/reference coordinate conventions
 and temporal alignment before another solver variation. Reference-assisted
 controls are not deployable calibration scores; earlier verdicts remain unchanged.
+
+### Stereo projection conversion fix (2026-10-29)
+
+[Projection audit](research/stereo_projection_audit.md) found a concrete frontend
+bug: `fx*baseline/disparity` omitted the right-pixel term for unequal camera z
+offsets. Corrected full-projection depth conversion is tested with known geometry.
+On existing pairs it changes 0002 depth by −3.25 to −3.59 cm at the median, but
+other drives by less than 0.34 mm. All residual medians remain negative. Reference
+transforms and source stereo timestamp identities agree; physical point timing
+has not been independently validated. Median predicted vertical stereo mismatch
+is 0.133–0.288 px; next compare proper stereo rectification before more solver
+changes. No historical arrays, calibration verdicts or gates were modified.
