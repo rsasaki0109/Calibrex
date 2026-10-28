@@ -1,0 +1,86 @@
+import json
+from pathlib import Path
+import jsonschema
+import numpy as np
+root=Path('docs/assets/stereo_rerectification_20261029')
+p=json.loads((root/'comparison.json').read_text())
+jsonschema.validate(p,json.loads((root/'comparison.schema.json').read_text()))
+assert len(p['cases'])==16 and len(p['frames'])==12
+assert len({(c['case_id'],c['mode']) for c in p['cases']})==16
+for c in p['cases']:
+    assert c['result']['status']=='max_iterations'
+    assert not c['result']['accepted']
+    np.testing.assert_array_equal(c['result']['output_T_camera_lidar'],c['initial_T_camera_lidar'])
+    np.testing.assert_array_equal(np.array(c['result']['candidate_T_camera_lidar'])[:3,:3],
+                                  np.array(c['initial_T_camera_lidar'])[:3,:3])
+text='''
+
+## Results
+
+Source and protocol were frozen at `bae08665`. All 12 frame preparations and
+16 fits completed. **Both frontends reject all eight cases at the 15-iteration
+limit.** All returned matrices exactly equal the saved D2D initializers. Returned
+pipeline recovery remains 4/8 in both arms; neither creates an accepted-stage
+recovery. The old priority run had 1/8 accepted, but it used the historical depth
+formula; the corrected-projection control is a distinct run, not a relabeling of
+that historical result.
+
+### Translation refinement
+
+Raw candidate translation distances to the dataset reference are in metres;
+none of these candidates is accepted. Re-rectification improves five and worsens
+three relative to the corrected-projection control. Rotation remains fixed.
+
+| Recording / seed | Projection-only raw | Re-rectified raw |
+| --- | ---: | ---: |
+'''
+for i in range(0,16,2):
+    a,b=p['cases'][i:i+2]
+    assert a['case_id']==b['case_id']
+    text+=f"| {a['case_id'][11:].replace('-', ' ')} | {a['raw_candidate']['translation_m']:.4f} | {b['raw_candidate']['translation_m']:.4f} |\n"
+text+='''
+### Frontend consistency
+
+All selected sets have 2,000 pairs per frame, but their membership differs.
+Median signed z differences below are LiDAR minus stereo at reference, in metres.
+They must not be interpreted as paired per-point improvements or unbiased depth
+accuracy. Compared with the previous fixed-pair projection audit, this control
+recomputes normals, gating and selection using the corrected depths.
+
+| Recording | Frame | Projection-only median z | Re-rectified median z | Control valid pixels | Re-rectified valid pixels |
+| --- | --- | ---: | ---: | ---: | ---: |
+'''
+for i in range(0,16,2):
+    a,b=p['cases'][i:i+2]
+    if not a['case_id'].endswith('positive'):continue
+    for x,y in zip(a['surface_checks'],b['surface_checks'],strict=True):
+        f=next(f for f in p['frames'] if f['case_id']==a['case_id'] and f['frame_id']==x['frame_id'])
+        text+=f"| {a['case_id'][11:15]} | {x['frame_id']} | {x['signed_z_median_m']:.4f} | {y['signed_z_median_m']:.4f} | {f['control_valid_pixels']} | {f['geometry']['valid_pixels']} |\n"
+text+='''
+Median z residual magnitude decreases in 11/12 distinct frames. Median absolute
+point-to-plane residual decreases in 7/12. Valid pixel counts decrease in all
+12 frames, consistent with changed field of view, support masking, interpolation
+and matching. Thus the frontend tradeoff is not a uniform accuracy improvement.
+
+**Decision:** retain the corrected projection frontend and do not promote
+re-rectification to a default. Better descriptive depth statistics did not deliver
+an accepted calibration under the frozen protocol. Vertical alignment alone is
+not established as the cause of the remaining failures; resampling changes the
+input population and stereo matching as well.
+
+The next useful step should test the stereo measurement model, including
+left/right correspondence consistency and disparity-dependent residuals, before
+another optimizer change. Preserve the difficult 0011-positive case, where the
+raw candidate worsens from 0.2647 to 0.3244 m. Any new frontend must demonstrate
+both usable support and downstream calibration improvement across all cases.
+
+[Complete report](../assets/stereo_rerectification_20261029/comparison.json) and
+[schema](../assets/stereo_rerectification_20261029/comparison.schema.json) retain
+source/input hashes, generated depth hashes, rectification matrices, settings,
+valid counts, per-frame checks and all 16 fit traces. New depth arrays are in the
+separate local experiment workspace; no original arrays or verdicts changed.
+The publisher verifies exact inventory, frozen rotations and all fallback poses.
+'''
+path=Path('docs/research/stereo_rerectification_comparison.md')
+path.write_text(path.read_text().split('\n\n## Results')[0]+text)
+print('16 fits / 12 frames / exact fallbacks and schema validated')

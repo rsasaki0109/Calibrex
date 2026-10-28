@@ -596,3 +596,14 @@ transforms and source stereo timestamp identities agree; physical point timing
 has not been independently validated. Median predicted vertical stereo mismatch
 is 0.133–0.288 px; next compare proper stereo rectification before more solver
 changes. No historical arrays, calibration verdicts or gates were modified.
+
+### Stereo re-rectification comparison (2026-10-29)
+
+[Frozen comparison](research/stereo_rerectification_comparison.md) at `bae08665`:
+12 frames, two frontends, eight unchanged D2D initializers. Re-rectification
+reduces gated median z residual magnitude in 11/12 frames, but valid pixels drop
+in all frames. Both it and the corrected-projection control reject all eight
+translation fits for max iterations; returned recovery stays 4/8. Raw candidates
+improve in five and worsen in three relative to control. No promotion or verdict
+change. Next inspect stereo correspondence consistency and disparity-dependent
+residuals, retaining support and downstream calibration as required outcomes.
