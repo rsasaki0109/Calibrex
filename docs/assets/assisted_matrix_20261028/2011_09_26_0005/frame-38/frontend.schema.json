@@ -1,0 +1,58 @@
+{
+  "additionalProperties": false,
+  "description": "Input identities, fixed frontend settings and motion diagnostics.",
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Source Sha256",
+      "type": "object"
+    },
+    "output_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Output Sha256",
+      "type": "object"
+    },
+    "timing": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          }
+        ]
+      },
+      "title": "Timing",
+      "type": "object"
+    },
+    "stereo": {
+      "additionalProperties": true,
+      "title": "Stereo",
+      "type": "object"
+    },
+    "motion": {
+      "additionalProperties": true,
+      "title": "Motion",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "source_sha256",
+    "output_sha256",
+    "timing",
+    "stereo",
+    "motion"
+  ],
+  "title": "BundleReport",
+  "type": "object"
+}

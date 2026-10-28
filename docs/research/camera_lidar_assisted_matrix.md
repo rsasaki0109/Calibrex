@@ -40,3 +40,76 @@ A successful plan execution is not a SOTA verdict. Even complete success here
 would leave 55-drive development coverage, independent-family evidence,
 monocular depth-provider exposure, learned baselines and fresh preregistration
 outstanding. No fresh evaluation sensor payload is authorized by this plan.
+
+## Execution result
+
+The plan and driver were committed at `6a1ff93d` before execution. All 12 scheduled
+cases ran for both methods. There were no preparation failures, timeouts, invalid
+rigid outputs or missing cases. All native cases returned `converged`; all Koide
+containers exited 0. Those statuses do not establish accuracy.
+
+| Method | Scoped recoveries | Failures | Median rotation / p95 | Median translation / p95 |
+| --- | ---: | ---: | --- | --- |
+| Stereo D2D | 5/12 | 7/12 | 0.448 / 1.071 deg | 0.187 / 0.336 m |
+| Koide | 0/12 | 12/12 | 1.694 / 3.287 deg | 0.127 / 0.216 m |
+
+| Recording | D2D recoveries | Koide recoveries |
+| --- | ---: | ---: |
+| 2011-09-26 0005 | 1/6 | 0/6 |
+| 2011-09-28 0002 | 4/6 | 0/6 |
+
+D2D improved rotation disagreement in **12/12**, but improved translation in
+only **2/12**. Translation worsened in the other ten. Koide improved rotation
+in 5/12 and translation in 5/12. These comparisons use each case's own initial
+transform, including the small difference between positive/negative Euler norms.
+A median below both thresholds does not make a failing case pass: the joint
+per-case D2D recovery count remains five. D2D still fails the rotation threshold
+in 6/12 and the translation threshold in 5/12, with four cases failing both;
+rotation improvement must not be confused with sufficient rotation accuracy.
+
+The [complete matrix](../assets/assisted_matrix_20261028/matrix.json),
+[summary](../assets/assisted_matrix_20261028/summary.json) and
+[summary schema](../assets/assisted_matrix_20261028/summary.schema.json) preserve
+every case. Per-case archives contain seed/reference transforms, optimizer
+outputs, full native candidate traces, frontend hashes, logs and container exit
+states. The publisher checks exact inventory equality, the precommitted plan and
+driver hashes, and native cloud/calibration input hashes against the frontend.
+It does not omit failures from the scheduled denominator. No sensor arrays are
+committed. The original Docker entrypoint was restored and byte-compared after
+the batch; the runtime identity and final state are archived.
+
+There is no monocular superiority claim: D2D uses stereo information unavailable
+to the Koide objective, and both consume a custom OXTS-assisted cloud. Neither
+method was tuned in this matrix. Koide's single-scan assisted-input result must
+not be substituted for its official multi-scan workflow's general performance.
+This result also does not update the separate rotation-verification audit.
+
+## Interpretation and next experiment
+
+Native translation stability is poor, and half the cases still miss the rotation
+threshold despite improving from initialization. Do not raise the 0.20 m threshold, choose only
+successful frames, or optimize another setting on this matrix. A substantive
+next comparison is **joint estimation across the three time-separated frames**
+per recording, using the same frontend, seeds and thresholds, against the
+single-frame results retained here. This tests whether shared geometry across
+views constrains translation; improvement is not assumed. Both optimizers can
+consume multiple observations, so keep their common frame inventory matched.
+
+That experiment remains spent-data development. Even if it works, required
+55-drive coverage, monocular/learned competitors, independent-family evidence and
+fresh preregistration remain outstanding. A larger initial-perturbation capture
+range is also untested by these two sign directions.
+
+Reproduce the frozen batch from the repository root, with the existing runtime
+container whose `/data` bind mount is the output directory's parent:
+
+```sh
+PYTHONPATH=src:. OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=4 \
+  python tools/run_camera_lidar_development_matrix.py \
+  docs/assets/assisted_matrix_20261028/plan.json \
+  /path/to/camera-lidar-recovery-20261027 \
+  /path/to/existing-data-mount/new-matrix-directory
+```
+
+A new output directory is required, preventing accidental overwrite. Replaying
+a development batch must retain its original result and be labeled separately.

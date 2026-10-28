@@ -1,0 +1,93 @@
+"""Publish every scheduled case and descriptive summaries of the fixed matrix."""
+import hashlib
+import json
+import shutil
+from pathlib import Path
+import numpy as np
+from pydantic import BaseModel, ConfigDict
+from tools.run_camera_lidar_development_matrix import DevelopmentMatrixPlan, MatrixResult
+
+root=Path('/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028')
+out=Path('/workspace/Calibrex/docs/assets/assisted_matrix_20261028')
+plan=DevelopmentMatrixPlan.model_validate_json((out/'plan.json').read_text())
+result=MatrixResult.model_validate_json((root/'matrix.json').read_text())
+assert result.plan_sha256==hashlib.sha256((out/'plan.json').read_bytes()).hexdigest()
+assert result.driver_sha256==plan.source_sha256['tools/run_camera_lidar_development_matrix.py']
+expected={f'{d.id}-{frame:010d}-{p.id}' for d in plan.drives for frame in d.frames for p in plan.perturbations}
+assert len(result.records)==plan.expected_cases and {r['case_id'] for r in result.records}==expected
+
+class MethodSummary(BaseModel):
+    model_config=ConfigDict(extra='forbid',allow_inf_nan=False)
+    scheduled: int
+    recovered: int
+    failures: int
+    valid_outputs: int
+    completed: int
+    median_rotation_deg: float | None
+    p95_rotation_deg: float | None
+    median_translation_m: float | None
+    p95_translation_m: float | None
+    rotation_improved: int
+    translation_improved: int
+
+class Summary(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    scope: str
+    plan_sha256: str
+    total: dict[str,MethodSummary]
+    per_drive: dict[str,dict[str,MethodSummary]]
+    warnings: list[str]
+    artifact_sha256: dict[str,str]
+
+for name in ['matrix.json','matrix.schema.json','original-entrypoint.sh','runtime-entrypoint.sh','job.sh']:
+    shutil.copyfile(root/name,out/name)
+shutil.copyfile('/workspace/work/assisted-matrix-20261028.log',out/'execution.log')
+shutil.copyfile(__file__,out/'publish.py.txt')
+for drive in plan.drives:
+    target=out/drive.id;target.mkdir(exist_ok=True)
+    shutil.copyfile(root/drive.id/'fetch.json',target/'fetch.json')
+    for frame in drive.frames:
+        target_frame=target/f'frame-{frame}';target_frame.mkdir(exist_ok=True)
+        for name in ['frontend.json','frontend.schema.json','calib.json']:
+            shutil.copyfile(root/drive.id/f'frame-{frame}'/name,target_frame/name)
+for record in result.records:
+    case=record['case_id'];target=out/case;target.mkdir(exist_ok=True)
+    source=root/case
+    if source.is_dir():
+        for p in source.iterdir():
+            if p.suffix in ['.json','.log']:
+                shutil.copyfile(p,target/p.name)
+        if (source/'d2d.json').exists():
+            native=json.loads((source/'d2d.json').read_text())
+            frontend=json.loads((source/'frontend.json').read_text())
+            assert native['input_sha256'][str(source/'calib.json')]==frontend['output_sha256']['calib.json']
+            assert native['input_sha256'][str(source/'aligned.ply')]==frontend['output_sha256']['aligned.ply']
+            assert native['driver_sha256']==plan.source_sha256['tools/run_aligned_stereo_d2d.py']
+
+def aggregate(records, method):
+    rows=[r['methods'][method] for r in records]
+    valid=[r for r in rows if r['valid_output']]
+    rotations=[r['rotation_deg'] for r in valid];translations=[r['translation_m'] for r in valid]
+    def stat(values,quantile):
+        return float(np.quantile(values,quantile)) if values else None
+    recovered=sum(r['recovered'] for r in rows)
+    return MethodSummary(scheduled=len(rows),recovered=recovered,failures=len(rows)-recovered,
+        valid_outputs=len(valid),completed=sum(r.get('returncode')==0 for r in rows),
+        median_rotation_deg=stat(rotations,.5),p95_rotation_deg=stat(rotations,.95),
+        median_translation_m=stat(translations,.5),p95_translation_m=stat(translations,.95),
+        rotation_improved=sum(r['methods'][method]['valid_output'] and r['methods'][method]['rotation_deg']<r['initial']['rotation_deg'] for r in records),
+        translation_improved=sum(r['methods'][method]['valid_output'] and r['methods'][method]['translation_m']<r['initial']['translation_m'] for r in records))
+summary=Summary(scope='descriptive spent-data assisted-input development; no superiority claim',
+    plan_sha256=result.plan_sha256,total={m:aggregate(result.records,m) for m in ['d2d','koide']},
+    per_drive={d.id:{m:aggregate([r for r in result.records if r['drive']==d.id],m) for m in ['d2d','koide']} for d in plan.drives},
+    warnings=['Only two spent drives; frames and perturbations are correlated; no confidence intervals.',
+        'D2D uses stereo depth, Koide uses one image; unequal information prevents monocular superiority claim.',
+        'Both use OXTS and the auxiliary IMU-LiDAR transform; modeled motion is not independent truth.',
+        'Medians and p95 are descriptive over valid outputs; failure-aware recovery denominator remains all 12.',
+        '55-drive development coverage, learned competitors and fresh audit remain pending.'],
+    artifact_sha256={str(p.relative_to(out)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(out.rglob('*')) if p.is_file() and p.name not in ['summary.json','summary.schema.json']})
+(out/'summary.json').write_text(summary.model_dump_json(indent=2)+'\n')
+(out/'summary.schema.json').write_text(json.dumps(Summary.model_json_schema(),indent=2)+'\n')
+Summary.model_validate_json((out/'summary.json').read_text())
+print(json.dumps({k:v.model_dump() for k,v in summary.total.items()},indent=2))
+print(json.dumps({d:{m:r.recovered for m,r in methods.items()} for d,methods in summary.per_drive.items()}))

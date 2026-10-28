@@ -118,3 +118,9 @@ still requires a frozen independent image-depth provider and its training
 exposure record; stereo does not satisfy that missing prerequisite. Full 55-drive
 development coverage, learned external baselines and fresh-data preregistration
 remain outstanding. No fresh evaluation sensor payload was read.
+
+
+The [fixed 12-case follow-up](camera_lidar_assisted_matrix.md) is now complete:
+D2D recovers 5/12, Koide 0/12, with no computational failures. Native rotation
+improves in all cases but translation worsens in ten. The next structural test
+is joint multi-frame estimation, not tuning on individual failures.

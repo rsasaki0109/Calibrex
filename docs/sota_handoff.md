@@ -318,6 +318,16 @@ multi-drive development matrix; do not tune or repeat single-frame variants.
 Monocular depth/provider exposure, 55-drive coverage and learned baselines remain
 pending. Fresh evaluation payloads remain unread.
 
+The [frozen assisted-input matrix](research/camera_lidar_assisted_matrix.md)
+executed all 12 cases (two spent drives, three fixed temporal positions, two seed
+signs) from precommitted plan `6a1ff93d`. D2D recovers 5/12, Koide 0/12; every
+execution completes with valid output. D2D improves rotation 12/12 but worsens
+translation 10/12. Unequal stereo input and custom OXTS preprocessing prevent a
+monocular-superiority claim. Next test joint estimation over the three frames
+per drive with unchanged inputs/seeds/gates, keeping this single-frame baseline.
+Do not tune thresholds or select successful cases. Development coverage is still
+2/55; independent-family/learned-baseline/fresh-audit requirements remain unmet.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).
