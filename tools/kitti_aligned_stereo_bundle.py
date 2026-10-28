@@ -80,6 +80,30 @@ def select_scan(scans: list[tuple[int, bytes]], timestamp_ns: int) -> bytes:
     return matches[0]
 
 
+def depth_from_disparity(
+    disparity: np.ndarray, left_projection: np.ndarray, right_projection: np.ndarray
+) -> np.ndarray:
+    """Recover left-camera optical z from horizontal disparity and full projections.
+
+    Equal rectified K is required. For right-from-left translation (dx,dy,dz),
+    z = ((u_right-cx)*dz - fx*dx) / disparity. Vertical offsets are not
+    corrected here: the image matcher still assumes horizontal scanlines.
+    """
+    kl, kr = left_projection[:, :3], right_projection[:, :3]
+    if not np.allclose(kl, kr, atol=1e-6, rtol=0):
+        raise ValueError("matching rectified intrinsics required")
+    delta = np.linalg.solve(kr, right_projection[:, 3]) - np.linalg.solve(kl, left_projection[:, 3])
+    if delta[0] >= 0:
+        raise ValueError("positive horizontal stereo baseline required")
+    _, u = np.indices(disparity.shape)
+    depth = np.full(disparity.shape, np.nan)
+    valid = np.isfinite(disparity) & (disparity > 0)
+    numerator = (u[valid] - disparity[valid] - kl[0, 2]) * delta[2] - kl[0, 0] * delta[0]
+    depth[valid] = numerator / disparity[valid]
+    depth[(depth < 0.1) | (depth > 80)] = np.nan
+    return depth
+
+
 def build(
     bag: Path,
     raw: Path,
@@ -155,10 +179,7 @@ def build(
     disparity = (
         cv2.StereoSGBM_create(**settings).compute(left_image, right_image).astype(float) / 16
     )
-    depth = np.full(disparity.shape, np.nan)
-    valid = disparity > 0
-    depth[valid] = pl[0, 0] * baseline / disparity[valid]
-    depth[(depth < 0.1) | (depth > 80)] = np.nan
+    depth = depth_from_disparity(disparity, pl, pr)
     np.save(output / "depth.npy", depth)
     np.save(output / "points.npy", points)
     cv2.imwrite(str(output / "aligned.png"), cv2.equalizeHist(left_image))
@@ -205,7 +226,11 @@ def build(
             "provider": "OpenCV StereoSGBM",
             "opencv_version": cv2.__version__,
             "settings": settings,
-            "baseline_m": baseline,
+            "baseline_m": float(
+                (np.linalg.solve(pl[:, :3], pl[:, 3]) - np.linalg.solve(pr[:, :3], pr[:, 3]))[0]
+            ),
+            "legacy_effective_baseline_m": baseline,
+            "depth_formula": "full-projection horizontal disparity/v1",
             "valid_pixels": int(np.isfinite(depth).sum()),
             "total_pixels": depth.size,
             "depth_convention": "optical-axis z metres",
