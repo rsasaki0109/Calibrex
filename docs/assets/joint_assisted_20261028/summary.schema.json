@@ -1,0 +1,138 @@
+{
+  "$defs": {
+    "PairedCase": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "title": "Case Id",
+          "type": "string"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "valid_output": {
+          "title": "Valid Output",
+          "type": "boolean"
+        },
+        "recovered": {
+          "title": "Recovered",
+          "type": "boolean"
+        },
+        "joint_rotation_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Joint Rotation Deg"
+        },
+        "joint_translation_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Joint Translation M"
+        },
+        "single_rotation_median_deg": {
+          "title": "Single Rotation Median Deg",
+          "type": "number"
+        },
+        "single_translation_median_m": {
+          "title": "Single Translation Median M",
+          "type": "number"
+        },
+        "translation_delta_vs_single_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Translation Delta Vs Single M"
+        },
+        "translation_improved_vs_single_median": {
+          "title": "Translation Improved Vs Single Median",
+          "type": "boolean"
+        },
+        "translation_improved_vs_seed": {
+          "title": "Translation Improved Vs Seed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "case_id",
+        "method",
+        "valid_output",
+        "recovered",
+        "joint_rotation_deg",
+        "joint_translation_m",
+        "single_rotation_median_deg",
+        "single_translation_median_m",
+        "translation_delta_vs_single_m",
+        "translation_improved_vs_single_median",
+        "translation_improved_vs_seed"
+      ],
+      "title": "PairedCase",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "paired_cases": {
+      "items": {
+        "$ref": "#/$defs/PairedCase"
+      },
+      "title": "Paired Cases",
+      "type": "array"
+    },
+    "recovered": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Recovered",
+      "type": "object"
+    },
+    "translation_improved_vs_single_median": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Translation Improved Vs Single Median",
+      "type": "object"
+    },
+    "baseline_sha256": {
+      "title": "Baseline Sha256",
+      "type": "string"
+    },
+    "artifact_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Artifact Sha256",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "paired_cases",
+    "recovered",
+    "translation_improved_vs_single_median",
+    "baseline_sha256",
+    "artifact_sha256"
+  ],
+  "title": "Summary",
+  "type": "object"
+}

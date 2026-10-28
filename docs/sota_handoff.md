@@ -328,6 +328,16 @@ per drive with unchanged inputs/seeds/gates, keeping this single-frame baseline.
 Do not tune thresholds or select successful cases. Development coverage is still
 2/55; independent-family/learned-baseline/fresh-audit requirements remain unmet.
 
+The [joint three-frame experiment](research/camera_lidar_joint_assisted.md)
+was frozen at `752c1f11` and completed all four drive/seed cases for both methods.
+D2D recovers 3/4 and Koide 0/4, with all three native frames supported. However,
+the predeclared translation comparison improves over the matching single-frame
+median only 1/4 and worsens 3/4: joint fitting did not establish translation
+stability. Do not compare 3/4 directly with the earlier 5/12 denominator. Retain
+experimentally, freeze settings, and broaden spent-drive coverage; no default
+promotion, seed cherry-picking or another two-drive parameter sweep. All existing
+55-drive/learned-baseline/independent-family/fresh-audit requirements remain unmet.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).

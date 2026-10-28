@@ -113,3 +113,9 @@ PYTHONPATH=src:. OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=4 \
 
 A new output directory is required, preventing accidental overwrite. Replaying
 a development batch must retain its original result and be labeled separately.
+
+
+The [joint three-frame follow-up](camera_lidar_joint_assisted.md) completed:
+D2D has 3/4 absolute recoveries, but translation improves against each matching
+single-frame median only 1/4. The proposed translation-stability explanation is
+not supported; the four-case denominator must not be equated with twelve trials.
