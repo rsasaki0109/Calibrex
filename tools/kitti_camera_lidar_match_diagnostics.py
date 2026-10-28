@@ -183,7 +183,8 @@ def run(snapshot: Path, receipt: Path, output: Path) -> Diagnostics:
         gray = gray.reshape(gray.shape[0] // f, f, gray.shape[1] // f, f).mean(axis=(1, 3))
         ridges = frame.edge == 1
         _, nearest_indices = ndimage.distance_transform_edt(~ridges, return_indices=True)
-        figure, axes = plt.subplots(3, 1, figsize=(14, 9), constrained_layout=True)
+        figure, axes = plt.subplots(3, 1, figsize=(14, 10))
+        figure.subplots_adjust(left=0.05, right=0.99, bottom=0.04, top=0.91, hspace=0.4)
         for axis, pose_index, title in zip(
             axes,
             [0, 1, sign + 2],
