@@ -38,7 +38,8 @@ def run(captures: Path, output: Path, *, boundary_tangent: bool = False) -> Comp
                 if boundary_tangent
                 else "A baseline trapped in a local basin may underestimate pitch controls."
             ),
-            "selection": "all fourteen reacquired spent inputs, paired objective ablation, original search settings",
+            "selection": ("all fourteen reacquired spent inputs, paired objective ablation, "
+                          "original search settings"),
         }
     )
     (output / "report.schema.json").write_text(json.dumps(report.model_json_schema(), indent=2))
