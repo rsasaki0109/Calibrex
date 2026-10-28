@@ -1,0 +1,52 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.contour_coherence_screen/v0.1",
+      "default": "calibrex.contour_coherence_screen/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    },
+    "support": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Support",
+      "type": "array"
+    },
+    "folds": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Folds",
+      "type": "array"
+    },
+    "summary": {
+      "additionalProperties": true,
+      "title": "Summary",
+      "type": "object"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "provenance",
+    "support",
+    "folds",
+    "summary"
+  ],
+  "title": "Screen",
+  "type": "object"
+}

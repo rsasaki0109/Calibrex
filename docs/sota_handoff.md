@@ -249,6 +249,14 @@ No fitting or threshold change: investigate boundary identity/structure, and
 report full rotation error in future ablations. Temporal score persistence alone
 cannot reject the repeated wrong-pose advantages observed here.
 
+The [local contour-coherence screen](research/camera_lidar_contour_coherence.md)
+links mutual 3D neighbors and rewards their agreement on one image ridge component.
+It covers 93.05% of prepared points, but saved wrong controls still beat the
+reference in 5/6 pooled folds (frames improve 10/11 to 8/11). Reject integration
+before spending a full optimization batch. All six folds and eleven frames are
+retained. Component identity alone does not enforce neighboring-match geometry;
+direction, separation and collapse remain untested structural hypotheses.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).
