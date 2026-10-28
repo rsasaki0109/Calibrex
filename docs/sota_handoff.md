@@ -572,3 +572,15 @@ Acceptance rises to 1/8, but that case worsens reference translation by 3.24 cm;
 returned-pipeline recovery stays 4/8. Seven still fail convergence. Keep the
 uniform default and rejection gates. Sampling stabilization alone is insufficient;
 next investigate surface/depth consistency and frozen-rotation sensitivity.
+
+### Reference-assisted consistency controls (2026-10-29)
+
+[Diagnostic controls](research/camera_lidar_stereo_reference_controls.md), frozen
+at `84e87282`: substituting reference rotation yields only 1/8 converged. Starting
+at the full reference pose drifts 3–13 cm on all four distinct recordings (three
+reach the iteration limit). All 12 distinct frames have negative median
+LiDAR-minus-stereo z residuals at reference, −0.119 to −0.056 m on gated pairs.
+This rules out fixed D2D rotation as a sufficient explanation, but does not isolate
+stereo bias. Next audit depth generation, camera/reference coordinate conventions
+and temporal alignment before another solver variation. Reference-assisted
+controls are not deployable calibration scores; earlier verdicts remain unchanged.

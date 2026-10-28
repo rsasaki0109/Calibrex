@@ -1,0 +1,94 @@
+import json
+from pathlib import Path
+
+import jsonschema
+import numpy as np
+
+root=Path('docs/assets/stereo_reference_controls_20261029')
+data=json.loads((root/'controls.json').read_text())
+jsonschema.validate(data,json.loads((root/'controls.schema.json').read_text()))
+controls=data['controls']
+assert len(controls)==16
+assert len({(c['case_id'],c['mode']) for c in controls})==16
+for c in controls:
+    initial=np.array(c['initial_T_camera_lidar'])
+    candidate=np.array(c['result']['candidate_T_camera_lidar'])
+    reference=np.array(c['reference_T_camera_lidar'])
+    np.testing.assert_array_equal(candidate[:3,:3], reference[:3,:3])
+    if not c['result']['accepted']:
+        np.testing.assert_array_equal(c['result']['output_T_camera_lidar'],initial)
+    np.testing.assert_allclose(c['candidate_translation_difference_m'],np.linalg.norm(candidate[:3,3]-reference[:3,3]))
+for c in controls:
+    if c['mode']=='reference_pose' and c['case_id'].endswith('positive'):
+        other=next(x for x in controls if x['mode']==c['mode'] and x['case_id']==c['case_id'].replace('positive','negative'))
+        assert c['result']==other['result']
+text='''
+
+## Results
+
+Protocol and driver were frozen at `84e87282`. All 16 controls completed with
+unchanged settings and verified input/source identities. The 8 reference-pose
+runs comprise **4 distinct starts repeated across two seed labels**; duplicate
+results are exactly equal, and are not counted as independent trials.
+
+### Substituting reference rotation
+
+Only **1/8** converges (0009 negative). Thus substituting reference rotation does
+not resolve the convergence problem in seven cases. This is a counterfactual
+sensitivity check, not a measurement of the fraction caused by rotation error.
+Initial translation, surface associations and optimization path still matter.
+
+| Recording / seed | Status | Raw candidate translation distance to reference |
+| --- | --- | ---: |
+'''
+for c in controls:
+    if c['mode']=='reference_rotation':
+        text+=f"| {c['case_id'][11:].replace('-', ' ')} | {c['result']['status']} | {c['candidate_translation_difference_m']:.4f} m |\n"
+text+='''
+### Starting from the complete reference pose
+
+| Recording | Status | Raw displacement from reference | First step | Last step |
+| --- | --- | ---: | ---: | ---: |
+'''
+for c in controls:
+    if c['mode']=='reference_pose' and c['case_id'].endswith('positive'):
+        trace=[t for t in c['result']['trace'] if 'step_m' in t]
+        text+=f"| {c['case_id'][11:15]} | {c['result']['status']} | {c['candidate_displacement_m']:.4f} m | {trace[0]['step_m']*1000:.2f} mm | {trace[-1]['step_m']*1000:.3f} mm |\n"
+text+='''
+Three of the four distinct reference starts reach the iteration limit; the fourth
+converges about 3 cm away. Rejected output poses remain at their reference starts;
+the displacement column intentionally reports **raw candidates**, not returned
+poses. Nonzero drift even without D2D initialization error means fixing that error
+alone is insufficient. It does not establish that the dataset reference is exact,
+or identify one cause of the model/reference disagreement.
+
+### Gated surface residuals at reference
+
+All 12 distinct frames have negative median LiDAR-minus-stereo optical-z
+residuals: **−0.119 to −0.056 m**. Their absolute-z 90th percentiles span
+**0.885–2.134 m**, while median absolute point-to-plane residuals are
+**0.023–0.060 m**. Each frame contributes 2,000 selected, already gated pairs.
+These are descriptive statistics on a censored sample, not unbiased sensor
+accuracy estimates. Large z differences can coexist with small plane residuals
+on grazing surfaces; signed z consistency alone does not prove stereo bias.
+
+The next investigation should audit stereo depth generation, camera projection
+and reference coordinate conventions, and temporal alignment on these existing
+bundles before another solver variation. Visibility, moving objects, normals and
+reference uncertainty also remain unresolved. Increasing iteration limits or
+subtracting this observed median is not justified by these controls.
+
+No production solver or thresholds changed, and no fresh audit began. The earlier
+priority experiment remains 1/8 accepted with no newly recovered case; these
+reference-assisted controls do not revise that outcome.
+
+[Complete control traces and per-frame checks](../assets/stereo_reference_controls_20261029/controls.json)
+and [schema](../assets/stereo_reference_controls_20261029/controls.schema.json)
+retain reference/input/source hashes, initial/reference matrices, raw candidates,
+fallbacks and all iteration records. The archived publisher validates all 16
+control identities, frozen rotations, exact fallbacks and duplicate reference
+starts before generating these tables.
+'''
+p=Path('docs/research/camera_lidar_stereo_reference_controls.md')
+p.write_text(p.read_text().split('\n\n## Results')[0]+text)
+print('16 controls validated; duplicate reference starts agree exactly')
