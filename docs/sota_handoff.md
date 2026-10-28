@@ -276,6 +276,15 @@ has no such deficit among inspected candidates; it remains a held-out ranking
 ambiguity. Next test bounded training-only control-seeded baseline restarts under
 the geometry objective; recovery is not established by cross-scoring alone.
 
+The [deficit-gated geometry restart experiment](research/camera_lidar_geometry_restarts.md)
+recovers both lost 0005 controls: 19/42 to 21/42, with all original nineteen
+retained and detected-fold full rotation disagreement unchanged at 0.296 deg.
+All fourteen geometry-control parity checks pass. 0002 remains 0/21; its targeted
+pitch t stays 1.539. Fifty axis-fold baselines change (two on 0005, 48 on 0002),
+and all-fold worst full rotation disagreement worsens 12.067 to 13.568 deg.
+Retain experimentally; no native default promotion or SOTA claim. The search
+regression is recovered, while difficult-scene correspondence ambiguity remains.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).
