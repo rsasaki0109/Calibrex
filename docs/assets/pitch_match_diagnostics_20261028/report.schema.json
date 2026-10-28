@@ -1,0 +1,37 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.pitch_match_diagnostics/v0.1",
+      "default": "calibrex.pitch_match_diagnostics/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    },
+    "folds": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Folds",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "provenance",
+    "folds"
+  ],
+  "title": "Diagnostics",
+  "type": "object"
+}

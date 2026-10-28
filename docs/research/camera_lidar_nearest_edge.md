@@ -68,9 +68,11 @@ subset, not an independent calibration evaluation.
 
 For the targeted pitch input, all six fitted active-axis reference disagreements
 are within 0.052 deg, yet only two held-out folds beat both nuisance-refitted
-controls. Its mean objective drop is negative (-0.03365). A nearly correct
-training fit can coexist with incorrect poses preferred by the held-out image
-objective. This is direct evidence that a bounded nearest-image-edge score does
+controls. Its mean objective drop is negative (-0.03365). A small fitted pitch error
+can coexist with incorrect poses preferred by the held-out image objective.
+The [full-pose diagnostic](camera_lidar_pitch_matches.md) subsequently shows
+baseline rotation norms of 0.638–4.717 deg: small pitch error does not establish
+a nearly correct full rotation. This is direct evidence that a bounded nearest-image-edge score does
 not by itself resolve the ambiguity on this input; it does not establish which
 physical surfaces caused it.
 

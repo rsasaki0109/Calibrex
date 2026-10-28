@@ -240,6 +240,15 @@ still fails (t -1.764) despite fitted pitch errors within 0.052 deg.
 Reject promotion; inspect actual wrong-pose image matches and temporal persistence
 before another objective variant. No new evaluation or default change.
 
+The [fixed-pose match diagnostic](research/camera_lidar_pitch_matches.md)
+replays all six pitch folds on all eleven existing prepared frames. Small pitch
+errors hid baseline full rotation disagreements of 0.638–4.717 deg. At least one
+saved wrong control beats the reference in 5/6 pooled folds and 10/11 frames.
+Overlays show displaced points matching different road-side and vehicle contours.
+No fitting or threshold change: investigate boundary identity/structure, and
+report full rotation error in future ablations. Temporal score persistence alone
+cannot reject the repeated wrong-pose advantages observed here.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).

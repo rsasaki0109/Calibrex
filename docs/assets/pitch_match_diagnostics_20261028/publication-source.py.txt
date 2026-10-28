@@ -1,0 +1,21 @@
+"""Publish complete fixed-pose diagnostic figures and provenance."""
+import hashlib
+import json
+import shutil
+from pathlib import Path
+
+import jsonschema
+
+root = Path('/workspace/Calibrex')
+source = Path('/workspace/work/pitch-match-diagnostics-final-20261028')
+out = root / 'docs/assets/pitch_match_diagnostics_20261028'
+r = json.loads((source / 'report.json').read_text())
+initial = json.loads(Path('/workspace/work/pitch-match-diagnostics-20261028/report.json').read_text())
+assert r['folds'] == initial['folds'], 'layout-only revision changed numerical diagnostic'
+assert len(r['folds']) == 6
+assert sum(len(f['frames']) for f in r['folds']) == 11
+jsonschema.validate(r, json.loads((source / 'report.schema.json').read_text()))
+shutil.copytree(source, out)
+shutil.copyfile(__file__, out / 'publication-source.py.txt')
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+(out / 'manifest.json').write_text(json.dumps(dict(provenance=r['provenance'], files={str(p.relative_to(out)): sha(p) for p in sorted(out.iterdir()) if p.is_file()}), indent=2) + '\n')
