@@ -8,7 +8,7 @@ is ROS-independent and is not registered as a production solver default.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 from scipy.optimize import least_squares
@@ -40,6 +40,7 @@ class StereoSurfaceObservation:
 
 @dataclass(frozen=True)
 class StereoTranslationOptions:
+    sampling: Literal["uniform", "point_priority"] = "uniform"
     max_iterations: int = 15
     max_points_per_frame: int = 2000
     min_points_per_frame: int = 64
@@ -52,6 +53,8 @@ class StereoTranslationOptions:
     max_condition_number: float = 1000.0
 
     def __post_init__(self) -> None:
+        if self.sampling not in ("uniform", "point_priority"):
+            raise ValueError("unknown correspondence sampling rule")
         if not 3 <= self.min_points_per_frame <= self.max_points_per_frame:
             raise ValueError("inconsistent correspondence limits")
         if self.max_iterations < 1 or any(
@@ -123,6 +126,24 @@ def _surface(obs: StereoSurfaceObservation, options: StereoTranslationOptions) -
     return _Surface(obs, vertices, normals, sigma_depth, sigma_plane, valid)
 
 
+def _sample_indices(indices: np.ndarray, options: StereoTranslationOptions) -> np.ndarray:
+    """Choose eligible points with either legacy spacing or fixed SplitMix64 priority.
+
+    Priority depends only on the immutable point index within a frame. Sorting
+    selected positions preserves the matcher's pixel order for linear algebra.
+    """
+    if len(indices) <= options.max_points_per_frame:
+        return np.arange(len(indices))
+    if options.sampling == "uniform":
+        return np.linspace(0, len(indices) - 1, options.max_points_per_frame, dtype=int)
+    priority = indices.astype(np.uint64) + np.uint64(0x9E3779B97F4A7C15)
+    priority = (priority ^ (priority >> 30)) * np.uint64(0xBF58476D1CE4E5B9)
+    priority = (priority ^ (priority >> 27)) * np.uint64(0x94D049BB133111EB)
+    priority ^= priority >> 31
+    selected = np.argsort(priority, kind="stable")[: options.max_points_per_frame]
+    return np.sort(selected)
+
+
 def _correspondences(
     surface: _Surface,
     rotation: np.ndarray,
@@ -150,7 +171,7 @@ def _correspondences(
     valid = np.abs(camera[indices, 2] - surface.vertices[v, u, 2]) <= gate
     indices, u, v = indices[valid], u[valid], v[valid]
     if len(indices) > options.max_points_per_frame:
-        selected = np.linspace(0, len(indices) - 1, options.max_points_per_frame, dtype=int)
+        selected = _sample_indices(indices, options)
         indices, u, v = indices[selected], u[selected], v[selected]
     normals = surface.normals[v, u]
     sigma = surface.sigma_plane[v, u]

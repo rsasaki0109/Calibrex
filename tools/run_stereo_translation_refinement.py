@@ -15,6 +15,7 @@ from tools.koide_shared_bundle_pandey import read_koide_ply
 
 from calibrex.solvers.stereo_translation_refiner import (
     StereoSurfaceObservation,
+    StereoTranslationOptions,
     StereoTranslationResult,
     refine_stereo_translation,
 )
@@ -36,7 +37,9 @@ def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def run(bundle: Path, output: Path) -> RefinementRun:
+def run(
+    bundle: Path, output: Path, options: StereoTranslationOptions | None = None
+) -> RefinementRun:
     """Only depth, cloud, camera intrinsics/baseline and the saved D2D output enter fit."""
     config_path = bundle / "calib-frontend.json"
     native_path = bundle / "d2d.json"
@@ -76,7 +79,7 @@ def run(bundle: Path, output: Path) -> RefinementRun:
         files.extend([depth_path, cloud_path, metadata])
     hashes = {str(p): digest(p) for p in files}
     started = time.perf_counter()
-    result = refine_stereo_translation(observations, initial)
+    result = refine_stereo_translation(observations, initial, options)
     elapsed = time.perf_counter() - started
     np.testing.assert_array_equal(np.array(result.output_T_camera_lidar)[:3, :3], initial[:3, :3])
     report = RefinementRun(
@@ -101,5 +104,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("bundle", type=Path)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--sampling", choices=["uniform", "point_priority"], default="uniform")
     a = parser.parse_args()
-    run(a.bundle, a.output)
+    run(a.bundle, a.output, StereoTranslationOptions(sampling=a.sampling))

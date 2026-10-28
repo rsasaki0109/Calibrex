@@ -64,3 +64,41 @@ def test_bound_hit_keeps_initializer_instead_of_publishing_clipped_solution():
     assert result.status == "at_bound"
     assert not result.accepted
     np.testing.assert_array_equal(result.output_T_camera_lidar, initial)
+
+
+def test_point_priority_preserves_survivors_when_one_selected_point_disappears():
+    from calibrex.solvers.stereo_translation_refiner import (
+        StereoTranslationOptions,
+        _sample_indices,
+    )
+
+    options = StereoTranslationOptions(sampling="point_priority", max_points_per_frame=100)
+    ids = np.arange(10000)
+    chosen = ids[_sample_indices(ids, options)]
+    remaining = ids[ids != chosen[0]]
+    next_chosen = remaining[_sample_indices(remaining, options)]
+    assert len(np.intersect1d(chosen, next_chosen)) == 99
+    permuted = ids[::-1]
+    np.testing.assert_array_equal(np.sort(permuted[_sample_indices(permuted, options)]), chosen)
+
+
+def test_priority_sampling_recovers_translation_with_active_point_cap():
+    from calibrex.solvers.stereo_translation_refiner import StereoTranslationOptions
+
+    rotation = Rotation.from_euler("xyz", [3, -2, 4], degrees=True).as_matrix()
+    truth = np.array([0.1, -0.05, 0.2])
+    data = observations([[0, 0, 1], [0.7, 0, 1], [0, 0.7, 1]], rotation, truth)
+    initial = np.eye(4)
+    initial[:3, :3] = rotation
+    initial[:3, 3] = truth + np.array([0.15, -0.1, 0.2])
+    result = refine_stereo_translation(
+        data,
+        initial,
+        StereoTranslationOptions(
+            sampling="point_priority",
+            max_points_per_frame=100,
+        ),
+    )
+    assert result.accepted
+    np.testing.assert_allclose(np.array(result.output_T_camera_lidar)[:3, 3], truth, atol=1e-5)
+    np.testing.assert_array_equal(np.array(result.output_T_camera_lidar)[:3, :3], rotation)

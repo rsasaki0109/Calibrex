@@ -8,7 +8,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict
@@ -25,6 +25,7 @@ class RefinementCase(BaseModel):
 class RefinementPlan(BaseModel):
     model_config = ConfigDict(extra="forbid")
     scope: str
+    sampling: Literal["uniform", "point_priority"] = "uniform"
     timeout_seconds: int
     cases: list[RefinementCase]
     source_sha256: dict[str, str]
@@ -76,6 +77,8 @@ def evaluate(plan_path: Path, output: Path) -> None:
                 "tools/run_stereo_translation_refinement.py",
                 str(bundle),
                 str(destination / "refinement.json"),
+                "--sampling",
+                plan.sampling,
             ]
             with (destination / "execution.log").open("w") as log:
                 try:

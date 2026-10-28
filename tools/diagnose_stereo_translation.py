@@ -16,6 +16,7 @@ from calibrex.solvers.stereo_translation_refiner import (
     StereoSurfaceObservation,
     StereoTranslationOptions,
     _correspondences,
+    _sample_indices,
     _Surface,
     _surface,
 )
@@ -78,7 +79,7 @@ def identified_correspondences(
     indices, u, v = indices[valid], u[valid], v[valid]
     all_ids = indices * (h * w) + v * w + u
     if len(indices) > options.max_points_per_frame:
-        selected = np.linspace(0, len(indices) - 1, options.max_points_per_frame, dtype=int)
+        selected = _sample_indices(indices, options)
         indices, u, v = indices[selected], u[selected], v[selected]
     normals = surface.normals[v, u]
     sigma = surface.sigma_plane[v, u]
