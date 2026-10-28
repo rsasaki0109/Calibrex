@@ -1,0 +1,134 @@
+{
+  "$defs": {
+    "CaseDiagnostic": {
+      "properties": {
+        "case_id": {
+          "title": "Case Id",
+          "type": "string"
+        },
+        "trace_sha256": {
+          "title": "Trace Sha256",
+          "type": "string"
+        },
+        "input_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Input Sha256",
+          "type": "object"
+        },
+        "transitions": {
+          "items": {
+            "$ref": "#/$defs/Transition"
+          },
+          "title": "Transitions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "case_id",
+        "trace_sha256",
+        "input_sha256",
+        "transitions"
+      ],
+      "title": "CaseDiagnostic",
+      "type": "object"
+    },
+    "Transition": {
+      "additionalProperties": false,
+      "properties": {
+        "iteration": {
+          "title": "Iteration",
+          "type": "integer"
+        },
+        "step_m": {
+          "title": "Step M",
+          "type": "number"
+        },
+        "full_pairs_before": {
+          "title": "Full Pairs Before",
+          "type": "integer"
+        },
+        "full_pairs_retained": {
+          "title": "Full Pairs Retained",
+          "type": "integer"
+        },
+        "selected_pairs_before": {
+          "title": "Selected Pairs Before",
+          "type": "integer"
+        },
+        "selected_pairs_retained": {
+          "title": "Selected Pairs Retained",
+          "type": "integer"
+        },
+        "selected_still_eligible_but_unsampled": {
+          "title": "Selected Still Eligible But Unsampled",
+          "type": "integer"
+        },
+        "fixed_cost_before": {
+          "title": "Fixed Cost Before",
+          "type": "number"
+        },
+        "fixed_cost_after": {
+          "title": "Fixed Cost After",
+          "type": "number"
+        },
+        "reassociated_cost_after": {
+          "title": "Reassociated Cost After",
+          "type": "number"
+        }
+      },
+      "required": [
+        "iteration",
+        "step_m",
+        "full_pairs_before",
+        "full_pairs_retained",
+        "selected_pairs_before",
+        "selected_pairs_retained",
+        "selected_still_eligible_but_unsampled",
+        "fixed_cost_before",
+        "fixed_cost_after",
+        "reassociated_cost_after"
+      ],
+      "title": "Transition",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "scope": {
+      "default": "post-hoc replay on spent data; no optimizer, reference, or verdict changes",
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "source_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Source Sha256",
+      "type": "object"
+    },
+    "plan_sha256": {
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/CaseDiagnostic"
+      },
+      "title": "Cases",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source_commit",
+    "source_sha256",
+    "plan_sha256",
+    "cases"
+  ],
+  "title": "Diagnostic",
+  "type": "object"
+}

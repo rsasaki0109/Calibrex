@@ -562,3 +562,13 @@ causal share of non-convergence or calibration error. The next controlled
 spent-data comparison is deterministic point-identity sampling with all other
 settings fixed, across all eight cases. Original acceptance remains 0/8.
 See [the replay evidence](research/camera_lidar_stereo_translation.md#post-hoc-correspondence-replay-2026-10-29).
+
+### Fixed point-priority comparison (2026-10-29)
+
+[Eight-case controlled comparison](research/camera_lidar_stereo_priority.md), frozen
+at `c003dae8`: changing only the sampling rule raises late-update selected-pair
+retention to 49.1–97.3%, and eligible-but-unsampled losses fall below 0.3%.
+Acceptance rises to 1/8, but that case worsens reference translation by 3.24 cm;
+returned-pipeline recovery stays 4/8. Seven still fail convergence. Keep the
+uniform default and rejection gates. Sampling stabilization alone is insufficient;
+next investigate surface/depth consistency and frozen-rotation sensitivity.

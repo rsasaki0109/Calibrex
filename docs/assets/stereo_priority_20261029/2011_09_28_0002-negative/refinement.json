@@ -1,0 +1,448 @@
+{
+  "scope": "experimental stereo point-to-plane translation refinement; no reference input",
+  "source_commit": "c003dae8c8e3603abc562985ae6fe82077117e15",
+  "driver_sha256": "c8defc1f26fe56b9593685cdcfce4f73475de60afc42e860208a53afac708129",
+  "solver_sha256": "1067fa477a9d313a83519342dfee22f2111869274fe1081447a33751e66fa547",
+  "input_sha256": {
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/calib-frontend.json": "5a8b1fb19a6a39d84a2e96b5de654051837964d86ee2b9a8053f3d62ef48def1",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/d2d.json": "1c01f9b353e9a3b44b8b4f7ed5caff669bee461bf89ea979fd6ecc51a6ab8afc",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frontend.json": "ccc3353f8e7999b4ff6b204699a83ab91d605328ef5e8981dfacd4acaa565236",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-93.depth.npy": "dce640173e7814314b5f5c501bc53a1883d517c917165b4f5e51a3753beb4f1e",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-93.ply": "44b43d510d62227714d4b63956e29e8e423f2a294cbee51d430694040736c603",
+    "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_28_0002/frame-93/frontend.json": "4e675e97a1f620b26d9ba4900b3ddaf77eec6d1ff9a67e3e47efe44fb71ca671",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-187.depth.npy": "ddb207baeae9030ac9fd818bf9005b2f8cd4c45be65f6f7fcbe3f2a3ebb60faf",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-187.ply": "badfa6420d58ed12e35ca143af1e7d58644ab112dd52337e43bc772a54581031",
+    "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_28_0002/frame-187/frontend.json": "57b539830b84a088f2d407a40607307e647efc67d68b5fd902e2dbb4919de1fa",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-281.depth.npy": "4d95e8590282b6eca8e760129190f425c6f1d38ed6eef7a969eb5df909bf5124",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-281.ply": "2c53b34e3f5f975c75f9599c53afe41ca7e574175d3f19332f99f60d04abba24",
+    "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_28_0002/frame-281/frontend.json": "9ac46e19a89ea81f8ec4a23b49442f3622e62309665ca476130bb666950e8a05"
+  },
+  "initial_T_camera_lidar": [
+    [
+      0.0001823808959028339,
+      -0.9999211021243288,
+      -0.012560106037633079,
+      -0.06190505386622783
+    ],
+    [
+      -0.004315172002057777,
+      0.01255920236406377,
+      -0.9999118189753391,
+      -0.011439069752791103
+    ],
+    [
+      0.9999906729704042,
+      0.00023656383128506375,
+      -0.004312540985574764,
+      -0.47131798283289783
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "elapsed_seconds": 0.52389007799502,
+  "result": {
+    "status": "max_iterations",
+    "accepted": false,
+    "output_T_camera_lidar": [
+      [
+        0.0001823808959028339,
+        -0.9999211021243288,
+        -0.012560106037633079,
+        -0.06190505386622783
+      ],
+      [
+        -0.004315172002057777,
+        0.01255920236406377,
+        -0.9999118189753391,
+        -0.011439069752791103
+      ],
+      [
+        0.9999906729704042,
+        0.00023656383128506375,
+        -0.004312540985574764,
+        -0.47131798283289783
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "candidate_T_camera_lidar": [
+      [
+        0.0001823808959028339,
+        -0.9999211021243288,
+        -0.012560106037633079,
+        0.04364174915853386
+      ],
+      [
+        -0.004315172002057777,
+        0.01255920236406377,
+        -0.9999118189753391,
+        -0.06511538436179877
+      ],
+      [
+        0.9999906729704042,
+        0.00023656383128506375,
+        -0.004312540985574764,
+        -0.26522790683772124
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "trace": [
+      {
+        "iteration": 0,
+        "counts": [
+          2000,
+          2000,
+          2000
+        ],
+        "singular_values": [
+          1549.7769017142607,
+          430.65282215611313,
+          281.85757082465244
+        ],
+        "condition_number": 5.498439858045888,
+        "step_m": 0.10812254182473038,
+        "inner_success": true,
+        "translation_m": [
+          -0.06744829736238163,
+          -0.05357182324465357,
+          -0.5707392460786285
+        ],
+        "robust_cost": 3386.5647173299085
+      },
+      {
+        "iteration": 1,
+        "counts": [
+          2000,
+          2000,
+          2000
+        ],
+        "singular_values": [
+          1878.6089875169243,
+          465.9296062998247,
+          315.6995439531367
+        ],
+        "condition_number": 5.950623063921151,
+        "step_m": 0.020601338458838426,
+        "inner_success": true,
+        "translation_m": [
+          -0.04806401763229115,
+          -0.05689084439286709,
+          -0.5646033725255857
+        ],
+        "robust_cost": 2761.745018473237
+      },
+      {
+        "iteration": 2,
+        "counts": [
+          2000,
+          2000,
+          2000
+        ],
+        "singular_values": [
+          1864.9484054048164,
+          477.86150774106784,
+          333.51742058019795
+        ],
+        "condition_number": 5.591757102703932,
+        "step_m": 0.021461072830245103,
+        "inner_success": true,
+        "translation_m": [
+          -0.03162089137882252,
+          -0.057773941486984386,
+          -0.5508403283288995
+        ],
+        "robust_cost": 2727.4734689578786
+      },
+      {
+        "iteration": 3,
+        "counts": [
+          2000,
+          2000,
+          2000
+        ],
+        "singular_values": [
+          1869.20113844997,
+          489.21036284483205,
+          326.72036946593056
+        ],
+        "condition_number": 5.721103772946378,
+        "step_m": 0.03079287156380841,
+        "inner_success": true,
+        "translation_m": [
+          -0.012447172890939226,
+          -0.05869590776803972,
+          -0.5267629647550113
+        ],
+        "robust_cost": 2622.14974738826
+      },
+      {
+        "iteration": 4,
+        "counts": [
+          2000,
+          2000,
+          2000
+        ],
+        "singular_values": [
+          1881.156763213085,
+          488.63513807243015,
+          338.806543040981
+        ],
+        "condition_number": 5.552303524981057,
+        "step_m": 0.03389372713938428,
+        "inner_success": true,
+        "translation_m": [
+          0.005605827920025663,
+          -0.059574288400982965,
+          -0.4980906375285372
+        ],
+        "robust_cost": 2535.8393084853624
+      },
+      {
+        "iteration": 5,
+        "counts": [
+          2000,
+          2000,
+          2000
+        ],
+        "singular_values": [
+          1905.1452115634347,
+          514.0336980782037,
+          346.414240881983
+        ],
+        "condition_number": 5.499615739563325,
+        "step_m": 0.03173262416870278,
+        "inner_success": true,
+        "translation_m": [
+          0.01953359409036208,
+          -0.06041971001595079,
+          -0.4695904265042392
+        ],
+        "robust_cost": 2371.889836206365
+      },
+      {
+        "iteration": 6,
+        "counts": [
+          2000,
+          2000,
+          2000
+        ],
+        "singular_values": [
+          1913.3300791078925,
+          513.3408271658195,
+          340.89102629493505
+        ],
+        "condition_number": 5.612732314791123,
+        "step_m": 0.030361206287307613,
+        "inner_success": true,
+        "translation_m": [
+          0.030787068366182908,
+          -0.06062992181414925,
+          -0.4413925901520688
+        ],
+        "robust_cost": 2267.7012345563485
+      },
+      {
+        "iteration": 7,
+        "counts": [
+          2000,
+          2000,
+          2000
+        ],
+        "singular_values": [
+          1916.4231077501568,
+          527.1330673491839,
+          348.0332451402675
+        ],
+        "condition_number": 5.506436912306416,
+        "step_m": 0.025960113527229173,
+        "inner_success": true,
+        "translation_m": [
+          0.040155381724255215,
+          -0.061642262328914614,
+          -0.4172029773843175
+        ],
+        "robust_cost": 2200.375806717057
+      },
+      {
+        "iteration": 8,
+        "counts": [
+          2000,
+          2000,
+          2000
+        ],
+        "singular_values": [
+          1900.1486961863159,
+          536.9704401337171,
+          363.2782144441125
+        ],
+        "condition_number": 5.230560547358776,
+        "step_m": 0.023943392178314107,
+        "inner_success": true,
+        "translation_m": [
+          0.04406160636199726,
+          -0.06252758909327731,
+          -0.393596968941458
+        ],
+        "robust_cost": 2186.323361153794
+      },
+      {
+        "iteration": 9,
+        "counts": [
+          2000,
+          2000,
+          2000
+        ],
+        "singular_values": [
+          1899.9713121583206,
+          534.6366082815207,
+          364.2460106924522
+        ],
+        "condition_number": 5.216176035933429,
+        "step_m": 0.026201740641806526,
+        "inner_success": true,
+        "translation_m": [
+          0.047108495430475926,
+          -0.06313700462434078,
+          -0.36758012262267103
+        ],
+        "robust_cost": 2122.5224777007493
+      },
+      {
+        "iteration": 10,
+        "counts": [
+          2000,
+          2000,
+          2000
+        ],
+        "singular_values": [
+          1910.7438038937225,
+          534.4284749052572,
+          356.1131732882708
+        ],
+        "condition_number": 5.365552153688487,
+        "step_m": 0.029163155687681706,
+        "inner_success": true,
+        "translation_m": [
+          0.04843081832331824,
+          -0.06314208984405767,
+          -0.33844696134601643
+        ],
+        "robust_cost": 2068.4064961349886
+      },
+      {
+        "iteration": 11,
+        "counts": [
+          2000,
+          2000,
+          2000
+        ],
+        "singular_values": [
+          1912.0927381940967,
+          542.6390627148467,
+          366.74172471524986
+        ],
+        "condition_number": 5.213731106485654,
+        "step_m": 0.021701669431501334,
+        "inner_success": true,
+        "translation_m": [
+          0.04641586658948739,
+          -0.06358898219785006,
+          -0.3168436580604396
+        ],
+        "robust_cost": 2063.1617714577324
+      },
+      {
+        "iteration": 12,
+        "counts": [
+          2000,
+          2000,
+          2000
+        ],
+        "singular_values": [
+          1910.3610613689807,
+          548.4706062132701,
+          372.10182604176094
+        ],
+        "condition_number": 5.133973895507251,
+        "step_m": 0.017055556176975593,
+        "inner_success": true,
+        "translation_m": [
+          0.04558636668383108,
+          -0.06403805120966609,
+          -0.2998142052378997
+        ],
+        "robust_cost": 2067.813068718684
+      },
+      {
+        "iteration": 13,
+        "counts": [
+          2000,
+          2000,
+          2000
+        ],
+        "singular_values": [
+          1913.2843680772953,
+          547.1233502244924,
+          368.20454329324343
+        ],
+        "condition_number": 5.196254100953686,
+        "step_m": 0.017734285779711704,
+        "inner_success": true,
+        "translation_m": [
+          0.04481558151534374,
+          -0.06453527999163686,
+          -0.2821036562379702
+        ],
+        "robust_cost": 2022.2280549730208
+      },
+      {
+        "iteration": 14,
+        "counts": [
+          2000,
+          2000,
+          2000
+        ],
+        "singular_values": [
+          1907.9916221891044,
+          546.8827915078597,
+          365.19628622539966
+        ],
+        "condition_number": 5.224564690703041,
+        "step_m": 0.016926468069333817,
+        "inner_success": true,
+        "translation_m": [
+          0.04364174915853386,
+          -0.06511538436179877,
+          -0.26522790683772124
+        ],
+        "robust_cost": 2027.226014149678
+      }
+    ],
+    "options": {
+      "sampling": "point_priority",
+      "max_iterations": 15,
+      "max_points_per_frame": 2000,
+      "min_points_per_frame": 64,
+      "translation_bound_m": 0.5,
+      "convergence_step_m": 0.0001,
+      "max_depth_jump_fraction": 0.05,
+      "disparity_sigma_px": 0.5,
+      "lidar_sigma_m": 0.02,
+      "depth_gate_floor_m": 1.0,
+      "max_condition_number": 1000.0
+    }
+  }
+}
