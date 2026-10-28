@@ -607,3 +607,15 @@ translation fits for max iterations; returned recovery stays 4/8. Raw candidates
 improve in five and worsen in three relative to control. No promotion or verdict
 change. Next inspect stereo correspondence consistency and disparity-dependent
 residuals, retaining support and downstream calibration as required outcomes.
+
+### Independent stereo round-trip diagnostic (2026-10-29)
+
+[Diagnostic](research/stereo_cycle_diagnostic.md), frozen at `ae87b4f0`: all 12
+forward depth arrays reproduced exactly. Of 183,329 projected stereo-supported
+points, 90.5% satisfy independent 1 px reverse consistency, 1.6% contradict and
+7.9% lack reverse support. Consistent populations have lower absolute-z p90 in
+all frames, but all retain negative median residuals. At <8 px disparity,
+per-frame consistent median z residuals are −6.71 to −3.53 m without a depth gate;
+visibility/timing/reference effects remain unresolved. Next test the frozen
+reverse-consistency mask across all eight fits without fitting range cutoffs to
+these results. No optimizer rerun, production change or accuracy claim this step.

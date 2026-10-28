@@ -1,0 +1,89 @@
+import json
+from pathlib import Path
+import jsonschema
+p=Path('docs/assets/stereo_cycle_20261029/diagnostic.json')
+r=json.loads(p.read_text())
+jsonschema.validate(r,json.loads(p.with_suffix('.schema.json').read_text()))
+assert len(r['frames'])==12
+for f in r['frames']:
+    g=f['groups']
+    assert sum(g[k]['count'] for k in ['consistent','inconsistent','reverse_missing'])==g['all']['count']
+    assert sum(b['groups']['all']['count'] for b in f['bins'])==g['all']['count']
+text='''
+
+## Results
+
+Driver and protocol were frozen at `ae87b4f0`. All 12 frames completed and every
+recomputed forward depth array exactly reproduced its saved re-rectified array,
+including invalid pixels. No calibration fit was performed.
+
+Of **183,329** stereo-supported LiDAR projections, **165,917 (90.5%)** pass the
+independent 1 px round-trip check, **2,980 (1.6%)** fail it, and **14,432 (7.9%)**
+have no valid reverse match. These are pooled points, not independent scenes.
+Most removed support is reverse-unavailable rather than explicitly contradictory;
+right-image borders/search range and occlusion contribute to missingness.
+
+| Recording | Frame | Round-trip support retained | All median z (m) | Consistent median z (m) | All absolute-z p90 (m) | Consistent absolute-z p90 (m) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+'''
+for f in r['frames']:
+    a,c=f['groups']['all'],f['groups']['consistent']
+    text+=f"| {f['case_id'][11:15]} | {f['frame_id']} | {100*c['count']/a['count']:.1f}% | {a['median_z_error_m']:.3f} | {c['median_z_error_m']:.3f} | {a['p90_absolute_z_error_m']:.2f} | {c['p90_absolute_z_error_m']:.2f} |\n"
+text+='''
+Absolute-z p90 decreases in all 12 frames after restricting the population to
+round-trip-consistent points; median magnitude decreases in 11/12. Yet every
+consistent population still has negative median z residual and negative median
+disparity residual (−0.294 to −0.109 px). Consistency therefore does not establish
+correct depth. Both directions can agree on an incorrect match or visible surface.
+
+### Disparity dependence among consistent points
+
+The table gives ranges of **per-frame** statistics, not pooled quantiles. Band
+counts are pooled across frames; detailed individual counts remain in the report.
+These depth residuals use the dataset reference and omit a depth-agreement gate,
+unlike earlier surface diagnostics. Large differences can include visibility,
+scene motion, timing and reference effects as well as stereo measurement error.
+
+| Disparity band (px) | Count | Range of frame median z (m) | Range of frame absolute-z p90 (m) |
+| --- | ---: | ---: | ---: |
+'''
+for i in range(5):
+    gs=[f['bins'][i]['groups']['consistent'] for f in r['frames']]
+    nonempty=[g for g in gs if g['count']]
+    med=[g['median_z_error_m'] for g in nonempty]
+    p90=[g['p90_absolute_z_error_m'] for g in nonempty]
+    lo,hi=r['disparity_edges_px'][i:i+2]
+    text+=f"| [{lo}, {hi}) | {sum(g['count'] for g in gs):,} | {min(med):.3f} to {max(med):.3f} | {min(p90):.3f} to {max(p90):.3f} |\n"
+text+='''
+The large far-range errors persist even with reverse consistency. Intermediate
+32–64 px disparity has much smaller median differences, but high-disparity bands
+still contain severe tails in some frames. This does not justify claiming a pure
+stereo depth bias or deriving an offset from the reference.
+
+### Decision
+
+Independent reverse consistency is a plausible support-quality filter: it removes
+about 9.5% of this projected population and reduces tails. It does **not** solve the
+systematic residual by itself, and no downstream benefit has been measured. Keep
+all production behavior and prior failed calibration verdicts unchanged.
+
+The next controlled experiment should test the fixed 1 px reverse-consistency
+mask on the same eight calibration cases, reporting support and both accepted
+and raw outcomes, without tuning disparity cutoffs from these tables. The existing
+uncertainty model already scales with depth; these observations warrant checking
+its handling of visibility and heavy tails rather than assuming it lacks any
+range weighting. Any distance-dependent confidence model needs separate validation.
+
+[Complete diagnostic](../assets/stereo_cycle_20261029/diagnostic.json) and
+[schema](../assets/stereo_cycle_20261029/diagnostic.schema.json) preserve hashes,
+counts and statistics for all groups and bands. Empty groups have null statistics.
+
+```sh
+PYTHONPATH=src:. OPENBLAS_NUM_THREADS=1 \\
+  python tools/diagnose_stereo_cycle.py \\
+  docs/assets/stereo_rerectification_20261029/comparison.json /tmp/stereo-cycle.json
+```
+'''
+out=Path('docs/research/stereo_cycle_diagnostic.md')
+out.write_text(out.read_text().split('\n\n## Results')[0]+text)
+print('Validated 12 frames, disjoint groups, exhaustive bands and schema')
