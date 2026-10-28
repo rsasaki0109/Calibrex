@@ -223,6 +223,14 @@ active-axis training-fold reference disagreement among detected controls rises
 than spending another iteration on search or thresholds. All fourteen inputs
 and both arms are retained; no fresh evaluation or default change.
 
+The [local boundary tangent ablation](research/camera_lidar_boundary_tangent.md)
+uses PCA of depth-discontinuity points rather than the previous azimuth proxy.
+All fourteen original-arm parity checks pass; detected controls stay 19/42,
+but worst active-axis fold reference disagreement among detected controls rises
+0.350 to 6.547 deg. Target pitch +3 still fails (t 1.298). Reject promotion;
+local direction penalties alone do not resolve correspondence ambiguity.
+All paired outcomes and the interrupted scheduling-only run are retained.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).

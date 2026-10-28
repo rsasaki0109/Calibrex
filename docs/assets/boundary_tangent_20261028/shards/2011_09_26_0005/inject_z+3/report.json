@@ -1,0 +1,166 @@
+{
+  "schema_version": "calibrex.camera_lidar_initialization_comparison/v0.1",
+  "status": "complete",
+  "provenance": {
+    "experiment": "local_boundary_tangent",
+    "git_commit": "de09e3e7",
+    "generator_sha256": "39490e3c23cf4c23afbb97c2930f1ba3df429fd571c93a37b82aabf1f368b0e5",
+    "probe_sha256": "e1c76b47262a5ce44ff708b034c28fb7d67f768d48122e9461d867d123ea45db",
+    "estimator_sha256": "cc2b0b4b8967971c78a72213e9d63cfc077cc3e6bc704c61c03146d7d3d90a60",
+    "new_evaluation_started": false,
+    "new_accuracy_claim": false,
+    "hypothesis": "Local boundary directions reject incorrect edge alignments.",
+    "selection": "all fourteen reacquired spent inputs, paired objective ablation, original search settings"
+  },
+  "inputs": [
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_z+3",
+      "arms": {
+        "original": {
+          "elapsed_s": 20.90050613499625,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.048387580903361725,
+                "min_t_statistic": 4.555363194568283,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.052595153465056624,
+                -0.052594953189870446,
+                -0.05259475291501955,
+                -0.0539034558048866,
+                -0.05259475291501945,
+                -0.052594953189870446
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.02882080645275466,
+                "min_t_statistic": 8.963935022308322,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.09864674263515794,
+                -0.09864636700178751,
+                -0.0986459913690464,
+                -0.14862333849324066,
+                -0.0986459913690464,
+                -0.097337659123685
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.01207019596469912,
+                "min_t_statistic": 3.776343647747275,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.19999923855136337,
+                0.0999990481951361,
+                0.04999904819807179,
+                0.049998096396021464,
+                0.0999990481951361,
+                0.09999847711215917
+              ]
+            }
+          ],
+          "report_sha256": "adeb24defe44f5cd8662ac6ed5ab20705c5291d67df9a4c38e1fac7207c2f47a"
+        },
+        "boundary_tangent": {
+          "elapsed_s": 107.59588324200013,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.048763535986844096,
+                "min_t_statistic": 5.156323053494969,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.0026174257180045404,
+                -0.05259475291501955,
+                -0.05259475291501955,
+                -0.05259475291501955,
+                -0.0026173858508984813,
+                -0.05259475291501945
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.037252403693934615,
+                "min_t_statistic": 7.721738798645867,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.099955455495004,
+                -0.0986459913690464,
+                -0.0986459913690464,
+                -0.09995355241726082,
+                -0.09995393303165002,
+                -0.0986459913690464
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.029189873343616682,
+                "min_t_statistic": 6.044264873713253,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.14999923855375127,
+                0.04999904819807219,
+                0.04999904819807179,
+                -0.10000076143460371,
+                -0.05000076143689466,
+                0.04999904819807219
+              ]
+            }
+          ],
+          "report_sha256": "6783e7637a6affa29b6d64d754dc083bfa7ef081eb5b2a3379e91dc51ed277f0"
+        }
+      },
+      "arrays_sha256": "37687222455aaf5763844ced40463301474c80a99aecb6c219ed870cb8f18074",
+      "snapshot_sha256": "aa425e01e8f59a081f1242c798861f20cb05ca9eccbde7e49f4f02baa2932d65",
+      "original_parity": true,
+      "previous_report_sha256": "5ba641643b7dd299038abd7345138f9c97f725319178c62656abedf01d5264b7"
+    }
+  ],
+  "limitations": [
+    "Reacquired arrays are not byte-identical to the original cache.",
+    "Same-input code parity does not resolve historical cross-capture numerical drift.",
+    "42 axis controls are correlated diagnostics, not independent recordings.",
+    "Detection is not accuracy, native coverage, or SOTA support; reference is not truth.",
+    "No fresh evaluation, threshold tuning, or estimator default changes."
+  ]
+}
