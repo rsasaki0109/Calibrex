@@ -1,0 +1,4651 @@
+{
+  "scope": "fixed visibility solver under depth bias; local ambiguity only, no bias fitting",
+  "source_commit": "ae51adeebc35a158ea6887985c96b71a67eefabf",
+  "plan_sha256": "ca0afc110d6d2f12bd476a3fbc3ab9e6e4cd2cc7ed15a45aee5a9c8a027b058b",
+  "cases": [
+    {
+      "scene": "original",
+      "condition": "exact_z_visible",
+      "bias_m": 0.0,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.19833260555844226,
+            -0.1402769275322355,
+            0.3275911218886859
+          ],
+          "rotation_quat_xyzw": [
+            0.015830190450380623,
+            -0.02609967745875607,
+            0.009224861193765812,
+            0.9994914275984609
+          ]
+        },
+        "delta": [
+          -1.217637055628081,
+          0.47288535661734526,
+          -0.7608505870570835,
+          -0.15166739444155772,
+          0.0597230724677645,
+          -0.07240887811131415
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 187,
+        "nfev": 31,
+        "njev": 26,
+        "initial_support": [
+          3746,
+          3738,
+          3747
+        ],
+        "final_support": [
+          3783,
+          3776,
+          3780
+        ],
+        "support_retained": true,
+        "cost": 29.322687579170353,
+        "optimality": 0.01680108119116884
+      },
+      "seconds": 0.36411923699779436,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.21159221264982878,
+        "translation_m": 0.04884957628001506,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.0016673944415577513,
+        -0.040276927532235496,
+        0.0275911218886859
+      ],
+      "local_ambiguity": {
+        "supported_common": 11339,
+        "available": true,
+        "bias_unexplained_fraction": 0.9781220069624514,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0019211254975373838,
+          0.0003332695619169513,
+          0.0010293937673665338,
+          -0.0004183045173863186,
+          -0.0006790380554166481,
+          0.002916442205497617
+        ],
+        "scaled_singular_values": [
+          521.5275661267323,
+          461.3248496849896,
+          136.87936362493468,
+          94.1497675546933,
+          81.94520682915127,
+          64.1113493434176,
+          10.410610048707587
+        ],
+        "smallest_to_largest_singular_ratio": 0.019961763720420078,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_visible",
+      "bias_m": 0.0,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.19859356758913926,
+            -0.1384975706685253,
+            0.3270500515915785
+          ],
+          "rotation_quat_xyzw": [
+            0.01594669745429724,
+            -0.026116943716721484,
+            0.009264329038208279,
+            0.9994887594658934
+          ]
+        },
+        "delta": [
+          0.7951978824211975,
+          -0.5234450102814989,
+          0.7473744594490088,
+          0.14859356758913925,
+          -0.1384975706685253,
+          0.12705005159157856
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 144,
+        "nfev": 30,
+        "njev": 19,
+        "initial_support": [
+          3783,
+          3776,
+          3780
+        ],
+        "final_support": [
+          3783,
+          3776,
+          3780
+        ],
+        "support_retained": true,
+        "cost": 29.31809867719445,
+        "optimality": 2.5803596984800583
+      },
+      "seconds": 0.2852511120145209,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.198528618914243,
+        "translation_m": 0.047071714336865605,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.0014064324108607473,
+        -0.0384975706685253,
+        0.027050051591578528
+      ],
+      "local_ambiguity": {
+        "supported_common": 11339,
+        "available": true,
+        "bias_unexplained_fraction": 0.9783097197706243,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.001727448696483123,
+          0.00039683775765708,
+          0.0009313816075704638,
+          -0.00043986204435477437,
+          -0.0006622780981507887,
+          0.00292132726990925
+        ],
+        "scaled_singular_values": [
+          524.8237660064283,
+          457.6662109174104,
+          134.27894341013186,
+          94.654084150418,
+          82.7940537182238,
+          63.49683313275764,
+          10.41259760814361
+        ],
+        "smallest_to_largest_singular_ratio": 0.0198401792803264,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_visible",
+      "bias_m": 0.0,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.1984423828746145,
+            -0.1385226133864776,
+            0.32711680704870955
+          ],
+          "rotation_quat_xyzw": [
+            0.0159456856020603,
+            -0.026108809907732625,
+            0.009270185689302863,
+            0.9994889338122599
+          ]
+        },
+        "delta": [
+          -0.19819345342628059,
+          -0.012120318888553331,
+          0.005097382502043554,
+          -0.0015576171253855271,
+          -0.0385226133864776,
+          0.027116807048709557
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 220,
+        "nfev": 40,
+        "njev": 30,
+        "initial_support": [
+          3783,
+          3776,
+          3780
+        ],
+        "final_support": [
+          3783,
+          3776,
+          3780
+        ],
+        "support_retained": true,
+        "cost": 29.31789808741207,
+        "optimality": 3.7866723588809497
+      },
+      "seconds": 0.4125794649880845,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.19862858942095046,
+        "translation_m": 0.04713532791601497,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.0015576171253855187,
+        -0.03852261338647758,
+        0.027116807048709557
+      ],
+      "local_ambiguity": {
+        "supported_common": 11339,
+        "available": true,
+        "bias_unexplained_fraction": 0.9782968345544656,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0017363264686481004,
+          0.0004048891326321071,
+          0.0009562796284941265,
+          -0.0004428540877219547,
+          -0.0006642306725822034,
+          0.0029261431863926313
+        ],
+        "scaled_singular_values": [
+          524.277830558409,
+          457.2778807825793,
+          134.2885458220448,
+          94.57754875574527,
+          82.8341725003122,
+          63.440219293773424,
+          10.412441855340628
+        ],
+        "smallest_to_largest_singular_ratio": 0.01986054196541235,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_visible",
+      "bias_m": 0.25,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.17784058497577232,
+            -0.20169810094031687,
+            0.5410006980756451
+          ],
+          "rotation_quat_xyzw": [
+            0.013618002537814946,
+            -0.026263827798354636,
+            0.008961620919708575,
+            0.9995221111645054
+          ]
+        },
+        "delta": [
+          -1.469805807680367,
+          0.448878684232844,
+          -0.7999752771712539,
+          -0.17215941502422766,
+          -0.001698100940316859,
+          0.14100069807564505
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 292,
+        "nfev": 52,
+        "njev": 40,
+        "initial_support": [
+          3746,
+          3738,
+          3747
+        ],
+        "final_support": [
+          3783,
+          3776,
+          3780
+        ],
+        "support_retained": true,
+        "cost": 40.3381370622689,
+        "optimality": 34.28808497488319
+      },
+      "seconds": 0.5320271349919494,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.46635807242461913,
+        "translation_m": 0.26251643735589414,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.02215941502422769,
+        -0.10169810094031687,
+        0.24100069807564511
+      ],
+      "local_ambiguity": {
+        "supported_common": 11339,
+        "available": true,
+        "bias_unexplained_fraction": 0.9583677170077005,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0016455215574058466,
+          0.002518509350668264,
+          0.00215635647949328,
+          -0.0011568237619973812,
+          -0.001215240546823831,
+          0.007768895657436707
+        ],
+        "scaled_singular_values": [
+          449.62685313269907,
+          375.9028378871371,
+          121.81408334562747,
+          74.20789296650807,
+          62.23313727314726,
+          36.18364235470636,
+          10.170285556827293
+        ],
+        "smallest_to_largest_singular_ratio": 0.022619390914860954,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_visible",
+      "bias_m": 0.25,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.17777710933618496,
+            -0.20737912557157423,
+            0.5422929806031049
+          ],
+          "rotation_quat_xyzw": [
+            0.013181214918490428,
+            -0.02624133401330772,
+            0.008816348174627165,
+            0.9995298494629055
+          ]
+        },
+        "delta": [
+          0.47966378655103514,
+          -0.5357282871438762,
+          0.6904346939572116,
+          0.12777710933618494,
+          -0.20737912557157423,
+          0.3422929806031049
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 187,
+        "nfev": 37,
+        "njev": 25,
+        "initial_support": [
+          3783,
+          3776,
+          3780
+        ],
+        "final_support": [
+          3783,
+          3776,
+          3780
+        ],
+        "support_retained": true,
+        "cost": 40.316265572813336,
+        "optimality": 14.505732279851632
+      },
+      "seconds": 0.3680048879759852,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.517209602062493,
+        "translation_m": 0.2659511645537736,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.022222890663815054,
+        -0.10737912557157422,
+        0.24229298060310495
+      ],
+      "local_ambiguity": {
+        "supported_common": 11339,
+        "available": true,
+        "bias_unexplained_fraction": 0.9538955915794224,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0021711353621765134,
+          0.00519943105173508,
+          0.002804872377611934,
+          -0.0016525522810244342,
+          -0.0013945410997765245,
+          0.008714750116642007
+        ],
+        "scaled_singular_values": [
+          438.8124736480317,
+          393.3975823475983,
+          123.46303901210868,
+          76.14549407363192,
+          67.29941894414947,
+          33.74626983223123,
+          10.112639565581505
+        ],
+        "smallest_to_largest_singular_ratio": 0.02304546970032757,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_visible",
+      "bias_m": 0.25,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.17798073752039684,
+            -0.20207639239658626,
+            0.5406742736928714
+          ],
+          "rotation_quat_xyzw": [
+            0.01358264935754464,
+            -0.026264164068878715,
+            0.00890979538412053,
+            0.9995230466919741
+          ]
+        },
+        "delta": [
+          -0.4676518502043263,
+          -0.031753412032655484,
+          -0.04346612269551556,
+          -0.022019262479603164,
+          -0.10207639239658627,
+          0.24067427369287137
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 3,
+        "message": "`xtol` termination condition is satisfied.",
+        "actual_residual_calls": 189,
+        "nfev": 39,
+        "njev": 25,
+        "initial_support": [
+          3783,
+          3776,
+          3780
+        ],
+        "final_support": [
+          3783,
+          3776,
+          3780
+        ],
+        "support_retained": true,
+        "cost": 40.33184860560107,
+        "optimality": 29.979141424181332
+      },
+      "seconds": 0.3481964770180639,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.470751617230934,
+        "translation_m": 0.26235194648113186,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.022019262479603174,
+        -0.10207639239658625,
+        0.24067427369287137
+      ],
+      "local_ambiguity": {
+        "supported_common": 11339,
+        "available": true,
+        "bias_unexplained_fraction": 0.9588162303719296,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0020327512930513646,
+          0.002424419392743902,
+          0.0021649436122976153,
+          -0.0011232871859382682,
+          -0.0012689362828150446,
+          0.007666263766980092
+        ],
+        "scaled_singular_values": [
+          452.8306001244121,
+          376.64426905832477,
+          121.82276479384181,
+          74.83938933338399,
+          63.0023241009072,
+          36.43461836376465,
+          10.175911242687524
+        ],
+        "smallest_to_largest_singular_ratio": 0.022471783576224227,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_visible",
+      "bias_m": -0.25,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.1921255887766421,
+            -0.15272241111484378,
+            0.3385111262183088
+          ],
+          "rotation_quat_xyzw": [
+            0.015059314989005578,
+            -0.025956808323046376,
+            0.009377436190855055,
+            0.9995056402163166
+          ]
+        },
+        "delta": [
+          -1.3067579220958305,
+          0.48702871926697167,
+          -0.7461836040231017,
+          -0.15787441122335788,
+          0.04727758888515624,
+          -0.061488873781691225
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 252,
+        "nfev": 42,
+        "njev": 35,
+        "initial_support": [
+          3746,
+          3738,
+          3747
+        ],
+        "final_support": [
+          3783,
+          3776,
+          3780
+        ],
+        "support_retained": true,
+        "cost": 122.1528551536734,
+        "optimality": 0.3066853238257994
+      },
+      "seconds": 0.47094772799755447,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.30062661929584555,
+        "translation_m": 0.06576295179262912,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.007874411223357913,
+        -0.05272241111484377,
+        0.03851112621830882
+      ],
+      "local_ambiguity": {
+        "supported_common": 11339,
+        "available": true,
+        "bias_unexplained_fraction": 0.9742942033713112,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0020548461124598742,
+          0.00040114983924407387,
+          0.0015836071224947517,
+          -0.0004970180141059243,
+          -0.0007022017330784185,
+          0.0036101323593630656
+        ],
+        "scaled_singular_values": [
+          484.05301145247074,
+          438.1795928596976,
+          128.3001620858686,
+          89.91021985683855,
+          74.84827792102676,
+          59.09967151920051,
+          10.367361387865666
+        ],
+        "smallest_to_largest_singular_ratio": 0.021417822309909622,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_visible",
+      "bias_m": -0.25,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.19211055857019413,
+            -0.15271330064110405,
+            0.3385150372512223
+          ],
+          "rotation_quat_xyzw": [
+            0.015059788484589625,
+            -0.025956078895444098,
+            0.009378609021843102,
+            0.9995056410205939
+          ]
+        },
+        "delta": [
+          0.6933063616874432,
+          -0.5047795943832099,
+          0.758999257293689,
+          0.1421105585701941,
+          -0.15271330064110405,
+          0.1385150372512223
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 164,
+        "nfev": 26,
+        "njev": 23,
+        "initial_support": [
+          3783,
+          3776,
+          3780
+        ],
+        "final_support": [
+          3783,
+          3776,
+          3780
+        ],
+        "support_retained": true,
+        "cost": 122.15285479576174,
+        "optimality": 0.22344852723129002
+      },
+      "seconds": 0.29328287299722433,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.30058475143259533,
+        "translation_m": 0.06575974030527187,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.007889441429805882,
+        -0.05271330064110405,
+        0.038515037251222295
+      ],
+      "local_ambiguity": {
+        "supported_common": 11339,
+        "available": true,
+        "bias_unexplained_fraction": 0.9742920108175667,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.002054509524159947,
+          0.00040128317768245496,
+          0.001586225819757974,
+          -0.0004971536470168834,
+          -0.0007023507968455256,
+          0.003610557823286837
+        ],
+        "scaled_singular_values": [
+          484.05238955041966,
+          438.1977905428344,
+          128.30737423225992,
+          89.90968592324322,
+          74.8207389014982,
+          59.097236092727435,
+          10.367336174285889
+        ],
+        "smallest_to_largest_singular_ratio": 0.02141779773861856,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_visible",
+      "bias_m": -0.25,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.19210251850694263,
+            -0.1526819665563108,
+            0.3385087740709429
+          ],
+          "rotation_quat_xyzw": [
+            0.015061532344227486,
+            -0.0259556094958605,
+            0.009379987313052536,
+            0.999505613999816
+          ]
+        },
+        "delta": [
+          -0.2999769884877352,
+          0.0043543527839664566,
+          0.01529715515102528,
+          -0.007897481493057397,
+          -0.05268196655631081,
+          0.0385087740709429
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 184,
+        "nfev": 28,
+        "njev": 26,
+        "initial_support": [
+          3783,
+          3776,
+          3780
+        ],
+        "final_support": [
+          3783,
+          3776,
+          3780
+        ],
+        "support_retained": true,
+        "cost": 122.15285730376736,
+        "optimality": 0.017550086347315395
+      },
+      "seconds": 0.3381799269991461,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.30039890999528784,
+        "translation_m": 0.0657319214280273,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.007897481493057384,
+        -0.0526819665563108,
+        0.038508774070942886
+      ],
+      "local_ambiguity": {
+        "supported_common": 11339,
+        "available": true,
+        "bias_unexplained_fraction": 0.9742887078543706,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0020513404492530428,
+          0.0004022408429910329,
+          0.001585285779921547,
+          -0.0004974643764361268,
+          -0.0007023698346235646,
+          0.0036112802910843733
+        ],
+        "scaled_singular_values": [
+          484.06457474127546,
+          438.24500683733083,
+          128.31641119516368,
+          89.89570308297696,
+          74.7626047841945,
+          59.091591346987336,
+          10.367298114451732
+        ],
+        "smallest_to_largest_singular_ratio": 0.021417179970240296,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_all",
+      "bias_m": 0.0,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.19938031905770648,
+            -0.14021400266954726,
+            0.32746715758580286
+          ],
+          "rotation_quat_xyzw": [
+            0.015832968771074107,
+            -0.02615596716564642,
+            0.009137302074503561,
+            0.9994907164112747
+          ]
+        },
+        "delta": [
+          -1.2169121677189445,
+          0.4666070829844306,
+          -0.7709661259553795,
+          -0.1506196809422935,
+          0.05978599733045276,
+          -0.07253284241419716
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 186,
+        "nfev": 36,
+        "njev": 25,
+        "initial_support": [
+          3803,
+          3802,
+          3807
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 32.58876015568374,
+        "optimality": 0.6982427609650769
+      },
+      "seconds": 0.39327874602167867,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.2116398706874858,
+        "translation_m": 0.04870312886273246,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.0006196809422935323,
+        -0.04021400266954725,
+        0.02746715758580287
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9778441334225751,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0011810561172305542,
+          -0.000601295503465347,
+          0.00012966084765519726,
+          -0.0002639044929838937,
+          -0.0005621946800346545,
+          0.0028012439756847675
+        ],
+        "scaled_singular_values": [
+          582.8316815069375,
+          495.63510221184504,
+          151.21918843729486,
+          101.9415177869676,
+          87.12507080980043,
+          67.84694855026083,
+          10.490902327449044
+        ],
+        "smallest_to_largest_singular_ratio": 0.017999883431738552,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_all",
+      "bias_m": 0.0,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.19895680095898025,
+            -0.14021160735172214,
+            0.32742342616095454
+          ],
+          "rotation_quat_xyzw": [
+            0.015829707628914978,
+            -0.026135273334133947,
+            0.00917902623981621,
+            0.9994909270830936
+          ]
+        },
+        "delta": [
+          0.7820433261582581,
+          -0.5253359207814111,
+          0.7373389484831673,
+          0.14895680095898023,
+          -0.14021160735172214,
+          0.12742342616095453
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 173,
+        "nfev": 35,
+        "njev": 23,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 32.58976658928045,
+        "optimality": 0.6058939086567097
+      },
+      "seconds": 0.3338859720097389,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.21179732771762302,
+        "translation_m": 0.04868373375629261,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.0010431990410197656,
+        -0.040211607351722134,
+        0.027423426160954556
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9778037085470567,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0011980661430623235,
+          -0.000589605859689884,
+          0.00019345308498684594,
+          -0.0002684767151959654,
+          -0.0005588051924774165,
+          0.0027936249141251443
+        ],
+        "scaled_singular_values": [
+          583.3265133700605,
+          497.41948124736604,
+          152.13379804388592,
+          102.6476987296963,
+          87.37637814538087,
+          67.89491955675828,
+          10.490492286080917
+        ],
+        "smallest_to_largest_singular_ratio": 0.017983911318335332,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_all",
+      "bias_m": 0.0,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.19876035581504203,
+            -0.13834835938449094,
+            0.32700058074464944
+          ],
+          "rotation_quat_xyzw": [
+            0.01595150418450866,
+            -0.026129436298181163,
+            0.009253433099850581,
+            0.9994884571864037
+          ]
+        },
+        "delta": [
+          -0.19745429815332768,
+          -0.014447408408596414,
+          0.0031587121320813525,
+          -0.0012396441849579752,
+          -0.03834835938449094,
+          0.027000580744649477
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 163,
+        "nfev": 31,
+        "njev": 22,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 32.60297924958829,
+        "optimality": 3.6794833344055173
+      },
+      "seconds": 0.31089099298696965,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.19800693787206797,
+        "translation_m": 0.04691657218654949,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.0012396441849579776,
+        -0.03834835938449094,
+        0.02700058074464945
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9778032343504175,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0011573175191902263,
+          -0.0004846487677626872,
+          0.00021875363052137174,
+          -0.0002973919258142648,
+          -0.0005561550634203795,
+          0.002786443937230772
+        ],
+        "scaled_singular_values": [
+          586.0932113272419,
+          497.9813172646765,
+          151.2357198515948,
+          103.84169378048703,
+          89.47752362684908,
+          67.65043702122048,
+          10.490502056974329
+        ],
+        "smallest_to_largest_singular_ratio": 0.017899033556826194,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_all",
+      "bias_m": 0.25,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.17738662108466963,
+            -0.205082811306973,
+            0.5404587600792257
+          ],
+          "rotation_quat_xyzw": [
+            0.013339901861152557,
+            -0.026229362851629138,
+            0.008684813722853948,
+            0.9995292099550327
+          ]
+        },
+        "delta": [
+          -1.5009283982911135,
+          0.4525508941435254,
+          -0.8327151930475296,
+          -0.17261337891533035,
+          -0.005082811306973003,
+          0.14045876007922561
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 4,
+        "message": "Both `ftol` and `xtol` termination conditions are satisfied.",
+        "actual_residual_calls": 168,
+        "nfev": 36,
+        "njev": 22,
+        "initial_support": [
+          3803,
+          3802,
+          3807
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 43.555041988463124,
+        "optimality": 20.873121887099394
+      },
+      "seconds": 0.31813708698609844,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.5005229201442494,
+        "translation_m": 0.26338978233216226,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.022613378915330384,
+        -0.105082811306973,
+        0.24045876007922568
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.960026007113804,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0015641889366614526,
+          0.0009371679091851452,
+          0.0018225968970892717,
+          -0.0008042083512197518,
+          -0.001102956176143364,
+          0.00738258986594655
+        ],
+        "scaled_singular_values": [
+          506.3200432424423,
+          420.05658930938114,
+          131.6397385392435,
+          85.94336953173888,
+          69.59718880703608,
+          37.518467553636725,
+          10.272807206492327
+        ],
+        "smallest_to_largest_singular_ratio": 0.020289157704889392,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_all",
+      "bias_m": 0.25,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.18101872115402765,
+            -0.21176635888540501,
+            0.5419996265338575
+          ],
+          "rotation_quat_xyzw": [
+            0.012819518163911544,
+            -0.026463234262762952,
+            0.008576352860805193,
+            0.9995307916007422
+          ]
+        },
+        "delta": [
+          0.4388813230839055,
+          -0.5606647860084746,
+          0.6619126204001101,
+          0.13101872115402763,
+          -0.21176635888540501,
+          0.3419996265338575
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 227,
+        "nfev": 47,
+        "njev": 30,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 43.5420307125775,
+        "optimality": 3.5440325835245168
+      },
+      "seconds": 0.43686626901035197,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.5629250938122639,
+        "translation_m": 0.2672373985198483,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.018981278845972366,
+        -0.11176635888540501,
+        0.24199962653385748
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9603204489565729,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.00040836855551661463,
+          0.001006424749274264,
+          0.0007071426871161552,
+          -0.0008699305820103096,
+          -0.000941205512198266,
+          0.007281775287258509
+        ],
+        "scaled_singular_values": [
+          501.0233281777125,
+          418.00553395145386,
+          127.94786508003745,
+          80.63233417947353,
+          71.08533371509425,
+          38.211839069288,
+          10.27701287061305
+        ],
+        "smallest_to_largest_singular_ratio": 0.020512044634711707,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_all",
+      "bias_m": 0.25,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.17765351995304265,
+            -0.20218055752327144,
+            0.5406403567066609
+          ],
+          "rotation_quat_xyzw": [
+            0.013572092323636382,
+            -0.026256578519427264,
+            0.008968485234816756,
+            0.9995228645043618
+          ]
+        },
+        "delta": [
+          -0.4690456536391353,
+          -0.030988237485201325,
+          -0.03676298614360512,
+          -0.022346480046957346,
+          -0.10218055752327143,
+          0.24064035670666084
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 245,
+        "nfev": 47,
+        "njev": 33,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 43.55557512425126,
+        "optimality": 36.19272722158584
+      },
+      "seconds": 0.4512128790083807,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.4715134424045867,
+        "translation_m": 0.2623890485179681,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.022346480046957357,
+        -0.10218055752327143,
+        0.2406403567066609
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9591871057556445,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0016740969284096269,
+          0.0014803419490396733,
+          0.0019674096067424573,
+          -0.0010038104179330572,
+          -0.0011876326580770472,
+          0.0075131414262227586
+        ],
+        "scaled_singular_values": [
+          502.2343220981893,
+          404.17297005710697,
+          130.68507757155436,
+          79.17606746335173,
+          65.96829465065154,
+          37.08835453551866,
+          10.262390908803924
+        ],
+        "smallest_to_largest_singular_ratio": 0.020433471901981196,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_all",
+      "bias_m": -0.25,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.1960491896151242,
+            -0.1607493748114485,
+            0.33964616612632026
+          ],
+          "rotation_quat_xyzw": [
+            0.014574875161280107,
+            -0.02616337784714672,
+            0.0088730972015486,
+            0.9995120403575499
+          ]
+        },
+        "delta": [
+          -1.3602135372134718,
+          0.4630117640750278,
+          -0.8061954939557481,
+          -0.1539508103848758,
+          0.03925062518855152,
+          -0.06035383387367978
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 214,
+        "nfev": 34,
+        "njev": 30,
+        "initial_support": [
+          3803,
+          3802,
+          3807
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 125.24753790066578,
+        "optimality": 1.4596688994911664
+      },
+      "seconds": 0.4504421850142535,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.3573020566465313,
+        "translation_m": 0.07264925279171755,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.003950810384875825,
+        -0.06074937481144849,
+        0.03964616612632027
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9742286254358042,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0013696125555225636,
+          -0.00046509646649940705,
+          0.0010379926041660563,
+          -0.00033900811044304356,
+          -0.0005146153854806662,
+          0.0034696089059514067
+        ],
+        "scaled_singular_values": [
+          553.0227195128272,
+          450.7936449317942,
+          142.7817615706257,
+          98.36158945324068,
+          78.80857030156234,
+          61.91190631472465,
+          10.449836092405441
+        ],
+        "smallest_to_largest_singular_ratio": 0.01889585314254537,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_all",
+      "bias_m": -0.25,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.19605126520668764,
+            -0.16075917982366508,
+            0.3396474508454989
+          ],
+          "rotation_quat_xyzw": [
+            0.014574310845285142,
+            -0.026163473333337437,
+            0.00887266948948636,
+            0.9995120498836676
+          ]
+        },
+        "delta": [
+          0.6391233992781181,
+          -0.5274752192457369,
+          0.6997308157326213,
+          0.14605126520668762,
+          -0.16075917982366508,
+          0.13964745084549893
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 168,
+        "nfev": 30,
+        "njev": 23,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 125.24753788412896,
+        "optimality": 0.03774898243084568
+      },
+      "seconds": 0.33545406901976094,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.3573716666045485,
+        "translation_m": 0.07265804014600613,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.0039487347933123695,
+        -0.06075917982366508,
+        0.03964745084549892
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9742296804005789,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0013687568982323696,
+          -0.00046554131085561705,
+          0.0010387062410933462,
+          -0.00033890528028824923,
+          -0.0005143788919923127,
+          0.0034694587256467423
+        ],
+        "scaled_singular_values": [
+          553.0274802866536,
+          450.791017722455,
+          142.78542473478055,
+          98.35949891536403,
+          78.80852796621129,
+          61.91337032713407,
+          10.449848147867389
+        ],
+        "smallest_to_largest_singular_ratio": 0.018895712275366253,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_all",
+      "bias_m": -0.25,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.19604466299355194,
+            -0.16075263635279466,
+            0.3396487599479143
+          ],
+          "rotation_quat_xyzw": [
+            0.014574685944747385,
+            -0.02616316844701783,
+            0.008873238113938363,
+            0.9995120473470034
+          ]
+        },
+        "delta": [
+          -0.354012706167252,
+          -0.01906173961225633,
+          -0.044549562643975034,
+          -0.00395533700644807,
+          -0.06075263635279465,
+          0.039648759947914364
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 150,
+        "nfev": 24,
+        "njev": 21,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 125.24753769153374,
+        "optimality": 0.03135094617487632
+      },
+      "seconds": 0.3002939530124422,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.357320932750048,
+        "translation_m": 0.07265364189121437,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.0039553370064480675,
+        -0.06075263635279465,
+        0.039648759947914336
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9742281701808805,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0013698933065682817,
+          -0.0004654276115435425,
+          0.0010384389404562951,
+          -0.00033894721343683194,
+          -0.0005146602514660083,
+          0.0034696342737374573
+        ],
+        "scaled_singular_values": [
+          553.0213142532398,
+          450.793593309227,
+          142.78496889364084,
+          98.36438699756745,
+          78.80109521199937,
+          61.911622227702686,
+          10.449831099636555
+        ],
+        "smallest_to_largest_singular_ratio": 0.018895892129849018,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_visible",
+      "bias_m": 0.0,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.1744615695575738,
+            -0.10352032323172747,
+            0.32157036552724017
+          ],
+          "rotation_quat_xyzw": [
+            0.017546689858047672,
+            -0.0249647949683339,
+            0.009146251486724832,
+            0.9994924805975062
+          ]
+        },
+        "delta": [
+          -1.023767800905474,
+          0.6074137401643289,
+          -0.7608350800524488,
+          -0.17553843044242617,
+          0.09647967676827254,
+          -0.07842963447275988
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 200,
+        "nfev": 38,
+        "njev": 27,
+        "initial_support": [
+          3746,
+          3711,
+          3730
+        ],
+        "final_support": [
+          3768,
+          3733,
+          3754
+        ],
+        "support_retained": true,
+        "cost": 23.235691870106777,
+        "optimality": 0.12892096614721454
+      },
+      "seconds": 0.37391908100107685,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.12186933645124616,
+        "translation_m": 0.03361375870231166,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.025538430442426208,
+        -0.0035203232317274624,
+        0.021570365527240176
+      ],
+      "local_ambiguity": {
+        "supported_common": 11255,
+        "available": true,
+        "bias_unexplained_fraction": 0.9819218129125022,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.00243524002783063,
+          0.002306607254616725,
+          -0.0021311569338606055,
+          -0.0008571042025331551,
+          -0.0006248950321883787,
+          0.002595091678166954
+        ],
+        "scaled_singular_values": [
+          488.2759990590911,
+          404.518864121173,
+          152.7643679175376,
+          133.68975874225373,
+          99.04406154651961,
+          64.9208398670745,
+          10.412887778217488
+        ],
+        "smallest_to_largest_singular_ratio": 0.021325823506138222,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_visible",
+      "bias_m": 0.0,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.17446387863370097,
+            -0.10351947173150497,
+            0.32156794169572533
+          ],
+          "rotation_quat_xyzw": [
+            0.01754683921328696,
+            -0.02496497289316535,
+            0.009145816310695748,
+            0.9994924775135017
+          ]
+        },
+        "delta": [
+          0.9793190056164837,
+          -0.391957132582982,
+          0.7392200021414106,
+          0.12446387863370095,
+          -0.10351947173150497,
+          0.12156794169572534
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 179,
+        "nfev": 35,
+        "njev": 24,
+        "initial_support": [
+          3768,
+          3733,
+          3754
+        ],
+        "final_support": [
+          3768,
+          3733,
+          3754
+        ],
+        "support_retained": true,
+        "cost": 23.235691678201125,
+        "optimality": 0.05885740289863974
+      },
+      "seconds": 0.32067863101838157,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.12184860049044592,
+        "translation_m": 0.03361035978226691,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.02553612136629904,
+        -0.003519471731504964,
+        0.021567941695725346
+      ],
+      "local_ambiguity": {
+        "supported_common": 11255,
+        "available": true,
+        "bias_unexplained_fraction": 0.9819203604109293,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0024323364074937837,
+          0.00230650843230304,
+          -0.002134996081821914,
+          -0.0008570929935191815,
+          -0.0006246471957683274,
+          0.0025954761219736918
+        ],
+        "scaled_singular_values": [
+          488.27847524293355,
+          404.507487251217,
+          152.7606124895308,
+          133.6888390583253,
+          99.0391793987733,
+          64.915943717522,
+          10.412871461917334
+        ],
+        "smallest_to_largest_singular_ratio": 0.021325681941512187,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_visible",
+      "bias_m": 0.0,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.17705757596433608,
+            -0.10337830483719014,
+            0.3218935108659238
+          ],
+          "rotation_quat_xyzw": [
+            0.01754698477526381,
+            -0.02507958672987371,
+            0.009185180413284096,
+            0.9994892446222375
+          ]
+        },
+        "delta": [
+          -0.01562368691975128,
+          0.1076055574473462,
+          0.002184751720741099,
+          -0.022942424035663943,
+          -0.00337830483719014,
+          0.021893510865923817
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 137,
+        "nfev": 23,
+        "njev": 19,
+        "initial_support": [
+          3768,
+          3733,
+          3754
+        ],
+        "final_support": [
+          3768,
+          3733,
+          3754
+        ],
+        "support_retained": true,
+        "cost": 23.22433940754637,
+        "optimality": 0.0106084471080238
+      },
+      "seconds": 0.247961299988674,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.10875611596261966,
+        "translation_m": 0.031891904650577355,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.022942424035663933,
+        -0.0033783048371901353,
+        0.021893510865923838
+      ],
+      "local_ambiguity": {
+        "supported_common": 11255,
+        "available": true,
+        "bias_unexplained_fraction": 0.9821388255809698,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0025419521899804013,
+          0.002388356846671455,
+          -0.0020290066098206812,
+          -0.0008673869863344086,
+          -0.00065109511957565,
+          0.0025312676351984024
+        ],
+        "scaled_singular_values": [
+          497.70681597089,
+          408.47652466941315,
+          157.44115047270716,
+          131.35871699167078,
+          101.63477706517214,
+          65.82154504817021,
+          10.415336329159347
+        ],
+        "smallest_to_largest_singular_ratio": 0.02092664997734032,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_visible",
+      "bias_m": 0.25,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.12986291444348116,
+            -0.1317757240946418,
+            0.5192752319959358
+          ],
+          "rotation_quat_xyzw": [
+            0.016393544533017192,
+            -0.023810869948785413,
+            0.009422011927579554,
+            0.9995376530482294
+          ]
+        },
+        "delta": [
+          -1.1596288313054885,
+          0.736184307357451,
+          -0.7318702181986744,
+          -0.2201370855565188,
+          0.0682242759053582,
+          0.11927523199593577
+        ],
+        "converged": false,
+        "optimizer_success": false,
+        "status": 0,
+        "message": "The maximum number of function evaluations is exceeded.",
+        "actual_residual_calls": 586,
+        "nfev": 100,
+        "njev": 81,
+        "initial_support": [
+          3746,
+          3711,
+          3730
+        ],
+        "final_support": [
+          3768,
+          3733,
+          3754
+        ],
+        "support_retained": true,
+        "cost": 57.332959904107604,
+        "optimality": 5.658628231864926
+      },
+      "seconds": 1.042049786017742,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.2940248610919154,
+        "translation_m": 0.23240166690231104,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.07013708555651885,
+        -0.0317757240946418,
+        0.21927523199593585
+      ],
+      "local_ambiguity": {
+        "supported_common": 11255,
+        "available": true,
+        "bias_unexplained_fraction": 0.9707778528347174,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.00026711207287622265,
+          0.007574924613821574,
+          0.002184979219688795,
+          -0.0019547939602323067,
+          -0.00039171889145223456,
+          0.0057236276620135935
+        ],
+        "scaled_singular_values": [
+          496.91995997287466,
+          382.5377712046722,
+          148.16003104471685,
+          128.1409401362252,
+          89.92553555846435,
+          39.70266417909974,
+          10.278385149432653
+        ],
+        "smallest_to_largest_singular_ratio": 0.02068418654383237,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_visible",
+      "bias_m": 0.25,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.1374895401775155,
+            -0.16545321091387352,
+            0.5170733268059674
+          ],
+          "rotation_quat_xyzw": [
+            0.014260974286902954,
+            -0.0237955767826516,
+            0.006250701615908854,
+            0.999595580155934
+          ]
+        },
+        "delta": [
+          0.6112001151047222,
+          -0.25167425747619593,
+          0.40254095328091893,
+          0.08748954017751548,
+          -0.16545321091387352,
+          0.31707332680596745
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 3,
+        "message": "`xtol` termination condition is satisfied.",
+        "actual_residual_calls": 535,
+        "nfev": 91,
+        "njev": 74,
+        "initial_support": [
+          3768,
+          3733,
+          3754
+        ],
+        "final_support": [
+          3768,
+          3733,
+          3754
+        ],
+        "support_retained": true,
+        "cost": 56.052404078914655,
+        "optimality": 40.186131541279366
+      },
+      "seconds": 0.9310998790024314,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.575125130320375,
+        "translation_m": 0.23518611697284514,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.06251045982248452,
+        -0.06545321091387352,
+        0.21707332680596741
+      ],
+      "local_ambiguity": {
+        "supported_common": 11255,
+        "available": true,
+        "bias_unexplained_fraction": 0.981973627989249,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.001305798143275123,
+          0.004621801642119065,
+          -0.004035537099864966,
+          -0.0012453004217508998,
+          -0.0004921960774728659,
+          0.0038339082504467766
+        ],
+        "scaled_singular_values": [
+          539.3427988888501,
+          353.0551717945983,
+          144.96647568987186,
+          131.53538974861314,
+          92.33473925347799,
+          45.81949987245237,
+          10.408458367530061
+        ],
+        "smallest_to_largest_singular_ratio": 0.019298409822052852,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_visible",
+      "bias_m": 0.25,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.1305128288109191,
+            -0.14255315035254684,
+            0.5230822467512072
+          ],
+          "rotation_quat_xyzw": [
+            0.015763736448283244,
+            -0.023893269060603774,
+            0.008686136039682817,
+            0.9995524835382517
+          ]
+        },
+        "delta": [
+          -0.21987347986588276,
+          0.24268641605669491,
+          -0.05840290157422107,
+          -0.0694871711890809,
+          -0.042553150352546844,
+          0.22308224675120722
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 216,
+        "nfev": 42,
+        "njev": 29,
+        "initial_support": [
+          3768,
+          3733,
+          3754
+        ],
+        "final_support": [
+          3768,
+          3733,
+          3754
+        ],
+        "support_retained": true,
+        "cost": 56.783757751545004,
+        "optimality": 18.136820013078946
+      },
+      "seconds": 0.3765652530128136,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.3325619786609549,
+        "translation_m": 0.23749721341597585,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.0694871711890809,
+        -0.04255315035254684,
+        0.2230822467512072
+      ],
+      "local_ambiguity": {
+        "supported_common": 11255,
+        "available": true,
+        "bias_unexplained_fraction": 0.9709872891636404,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0009029820591948291,
+          0.006778951982268195,
+          0.0005504766984173271,
+          -0.001846729918427344,
+          -0.0005439877498640119,
+          0.005622931847372292
+        ],
+        "scaled_singular_values": [
+          498.35187117890666,
+          368.55328976542256,
+          146.79426416561023,
+          133.92077598355047,
+          90.79129270580185,
+          40.51368426998353,
+          10.281514732732838
+        ],
+        "smallest_to_largest_singular_ratio": 0.020631034671166726,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_visible",
+      "bias_m": -0.25,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.16084656028307015,
+            -0.10640380020042288,
+            0.32830438824954755
+          ],
+          "rotation_quat_xyzw": [
+            0.017441600233601615,
+            -0.02389963918022676,
+            0.009330734977274418,
+            0.9995186517585003
+          ]
+        },
+        "delta": [
+          -1.0390910953415495,
+          0.7288134344265077,
+          -0.7380705764997424,
+          -0.18915343971692983,
+          0.09359619979957713,
+          -0.07169561175045246
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 221,
+        "nfev": 41,
+        "njev": 30,
+        "initial_support": [
+          3746,
+          3711,
+          3730
+        ],
+        "final_support": [
+          3768,
+          3733,
+          3754
+        ],
+        "support_retained": true,
+        "cost": 115.9793384232562,
+        "optimality": 0.7780806729879414
+      },
+      "seconds": 0.39521687899832614,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.2451006784890745,
+        "translation_m": 0.04873539671383955,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.03915343971692986,
+        -0.006403800200422874,
+        0.028304388249547563
+      ],
+      "local_ambiguity": {
+        "supported_common": 11255,
+        "available": true,
+        "bias_unexplained_fraction": 0.9806616174358372,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0028193387979215242,
+          0.006255897941482685,
+          -0.0013531344934136923,
+          -0.0013739026720921514,
+          -0.000729576383288108,
+          0.0029282792708485946
+        ],
+        "scaled_singular_values": [
+          406.84265560488103,
+          356.88606874792436,
+          124.57284665525682,
+          111.92759208229761,
+          76.62367104482344,
+          56.179554109393735,
+          10.397627129265743
+        ],
+        "smallest_to_largest_singular_ratio": 0.025556875578365484,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_visible",
+      "bias_m": -0.25,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.16078741843976743,
+            -0.10646105182108556,
+            0.3283816407674004
+          ],
+          "rotation_quat_xyzw": [
+            0.01743879559077348,
+            -0.023895441479628157,
+            0.009329276019799328,
+            0.9995188146772342
+          ]
+        },
+        "delta": [
+          0.966846241910012,
+          -0.2696929130900656,
+          0.7621181341996667,
+          0.11078741843976742,
+          -0.10646105182108556,
+          0.12838164076740044
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 220,
+        "nfev": 40,
+        "njev": 30,
+        "initial_support": [
+          3768,
+          3733,
+          3754
+        ],
+        "final_support": [
+          3768,
+          3733,
+          3754
+        ],
+        "support_retained": true,
+        "cost": 115.97948987297589,
+        "optimality": 1.6245028805448867
+      },
+      "seconds": 0.37218303501140326,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.24560126834923554,
+        "translation_m": 0.048835328153933905,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.03921258156023258,
+        -0.006461051821085556,
+        0.028381640767400407
+      ],
+      "local_ambiguity": {
+        "supported_common": 11255,
+        "available": true,
+        "bias_unexplained_fraction": 0.9806080648411999,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0028158851662275037,
+          0.006397822756780791,
+          -0.0012341597443226394,
+          -0.0013928836713193468,
+          -0.000729610631021289,
+          0.0029384140336260038
+        ],
+        "scaled_singular_values": [
+          405.893334831474,
+          356.9538050111272,
+          124.40108065113391,
+          111.52112787561728,
+          76.0314351114532,
+          55.93962146402682,
+          10.39698959203426
+        ],
+        "smallest_to_largest_singular_ratio": 0.025615078395783624,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_visible",
+      "bias_m": -0.25,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.16158996631625389,
+            -0.10870727169765136,
+            0.3280176680935099
+          ],
+          "rotation_quat_xyzw": [
+            0.017200707775305944,
+            -0.0239396135242209,
+            0.009050911168005174,
+            0.9995244427043135
+          ]
+        },
+        "delta": [
+          -0.05618004285081736,
+          0.2381733513069731,
+          -0.012055930820382752,
+          -0.03841003368374612,
+          -0.008707271697651354,
+          0.028017668093509893
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 176,
+        "nfev": 32,
+        "njev": 24,
+        "initial_support": [
+          3768,
+          3733,
+          3754
+        ],
+        "final_support": [
+          3768,
+          3733,
+          3754
+        ],
+        "support_retained": true,
+        "cost": 116.01007909973212,
+        "optimality": 1.7436596939772413
+      },
+      "seconds": 0.32479198402143084,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.24500054633362545,
+        "translation_m": 0.04833360108042144,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.038410033683746125,
+        -0.008707271697651356,
+        0.028017668093509918
+      ],
+      "local_ambiguity": {
+        "supported_common": 11255,
+        "available": true,
+        "bias_unexplained_fraction": 0.9812488437247601,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0027305161986773186,
+          0.0048337224154579835,
+          -0.0016925207605190482,
+          -0.0012120382909258005,
+          -0.0007044511036204604,
+          0.0027989493635065736
+        ],
+        "scaled_singular_values": [
+          421.6925953492327,
+          357.3538078660716,
+          127.79888322521214,
+          116.58191895287868,
+          82.46330422244823,
+          58.981024205912334,
+          10.40459447452187
+        ],
+        "smallest_to_largest_singular_ratio": 0.024673410416194547,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_all",
+      "bias_m": 0.0,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.1724747405265904,
+            -0.10375954826928938,
+            0.32074296364947946
+          ],
+          "rotation_quat_xyzw": [
+            0.017550578007956282,
+            -0.024879580172281104,
+            0.009097192800672104,
+            0.999494984872453
+          ]
+        },
+        "delta": [
+          -1.0234080300008188,
+          0.6172892332644779,
+          -0.7662702533071835,
+          -0.17752525947340958,
+          0.09624045173071064,
+          -0.07925703635052055
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 163,
+        "nfev": 25,
+        "njev": 23,
+        "initial_support": [
+          3816,
+          3815,
+          3816
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 26.95695270670912,
+        "optimality": 0.011899526849059013
+      },
+      "seconds": 0.3047634529939387,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.13180066720434686,
+        "translation_m": 0.03467051561819162,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.027525259473409613,
+        -0.00375954826928937,
+        0.020742963649479473
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9822282489032413,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0017350986007397403,
+          0.001127823382037666,
+          -0.001912754734316066,
+          -0.0007019446908718762,
+          -0.0005332628780371987,
+          0.0023193744466884847
+        ],
+        "scaled_singular_values": [
+          597.5042236557063,
+          450.6592361502715,
+          182.36800600710237,
+          152.86982992847325,
+          123.82079685961128,
+          70.57644249962628,
+          10.539021883176076
+        ],
+        "smallest_to_largest_singular_ratio": 0.017638405664641577,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_all",
+      "bias_m": 0.0,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.17247507556146585,
+            -0.10375979329676832,
+            0.3207428200127833
+          ],
+          "rotation_quat_xyzw": [
+            0.01755056290429303,
+            -0.02487961136869805,
+            0.009097177234372058,
+            0.9994949845027995
+          ]
+        },
+        "delta": [
+          0.9799171838014447,
+          -0.3820783856528855,
+          0.7338248261011496,
+          0.12247507556146583,
+          -0.10375979329676832,
+          0.12074282001278336
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 143,
+        "nfev": 23,
+        "njev": 20,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 26.956952702821486,
+        "optimality": 0.013497983242824762
+      },
+      "seconds": 0.2615046659775544,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.13179743533071434,
+        "translation_m": 0.03467019026576237,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.02752492443853416,
+        -0.0037597932967683156,
+        0.020742820012783325
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.982228132633989,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0017351273762112604,
+          0.0011278530529597794,
+          -0.0019130633003808651,
+          -0.0007019524916265292,
+          -0.0005332755518511894,
+          0.0023193994072431673
+        ],
+        "scaled_singular_values": [
+          597.5053005099105,
+          450.65609355924016,
+          182.36813202459547,
+          152.8695498225263,
+          123.81716741196499,
+          70.57585288947902,
+          10.53902055168447
+        ],
+        "smallest_to_largest_singular_ratio": 0.01763837164739874,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_all",
+      "bias_m": 0.0,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.17247544909503856,
+            -0.10375982887571705,
+            0.3207426175887567
+          ],
+          "rotation_quat_xyzw": [
+            0.017550563700841376,
+            -0.024879644814050018,
+            0.009097166849398564,
+            0.9994949837508058
+          ]
+        },
+        "delta": [
+          -0.015183894406917151,
+          0.13070276436301753,
+          -0.0074885188055711085,
+          -0.02752455090496145,
+          -0.003759828875717043,
+          0.020742617588756736
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 145,
+        "nfev": 25,
+        "njev": 20,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 26.956952703535958,
+        "optimality": 0.015685452807122698
+      },
+      "seconds": 0.26660738899954595,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.1317937087570231,
+        "translation_m": 0.03466977646492532,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.027524550904961448,
+        -0.0037598288757170473,
+        0.02074261758875673
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9822280127832964,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.00173514250202564,
+          0.001127868970386619,
+          -0.0019133760994120657,
+          -0.0007019577085928359,
+          -0.0005332851431742396,
+          0.0023194190578833857
+        ],
+        "scaled_singular_values": [
+          597.5066809330036,
+          450.655140703567,
+          182.36842090413006,
+          152.86914882535268,
+          123.81577070827245,
+          70.57558303832224,
+          10.539019199652312
+        ],
+        "smallest_to_largest_singular_ratio": 0.01763832863457809,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_all",
+      "bias_m": 0.25,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.1289203634633696,
+            -0.13168765284282574,
+            0.518899204368778
+          ],
+          "rotation_quat_xyzw": [
+            0.016306393708699473,
+            -0.023738868388315265,
+            0.009595627269221195,
+            0.9995391395984298
+          ]
+        },
+        "delta": [
+          -1.1702639400997312,
+          0.7438816784647342,
+          -0.7122260618007296,
+          -0.22107963653663038,
+          0.06831234715717427,
+          0.11889920436877803
+        ],
+        "converged": false,
+        "optimizer_success": false,
+        "status": 0,
+        "message": "The maximum number of function evaluations is exceeded.",
+        "actual_residual_calls": 592,
+        "nfev": 100,
+        "njev": 82,
+        "initial_support": [
+          3816,
+          3815,
+          3816
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 63.87159560890764,
+        "optimality": 31.936743768081005
+      },
+      "seconds": 1.0335749569931068,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.30859820015962525,
+        "translation_m": 0.23232150943498747,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.07107963653663041,
+        -0.031687652842825736,
+        0.21889920436877802
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9765265557660621,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.00010012088401492892,
+          0.0038119649374836018,
+          -0.0005472594493322156,
+          -0.0013904670893756152,
+          -0.00033868620674337024,
+          0.004506863956303029
+        ],
+        "scaled_singular_values": [
+          563.4178273920214,
+          418.5065311465105,
+          159.05607208945975,
+          134.64943274211322,
+          101.12453012592138,
+          45.11884333495277,
+          10.468741091305372
+        ],
+        "smallest_to_largest_singular_ratio": 0.01858077714679999,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_all",
+      "bias_m": 0.25,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.1404904389736222,
+            -0.15563413858729352,
+            0.513680476862389
+          ],
+          "rotation_quat_xyzw": [
+            0.014867259174470243,
+            -0.023740559195929767,
+            0.007068220823918148,
+            0.9995826082461059
+          ]
+        },
+        "delta": [
+          0.6784404613187983,
+          -0.24683739105204527,
+          0.497643779212882,
+          0.09049043897362219,
+          -0.15563413858729352,
+          0.3136804768623891
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 167,
+        "nfev": 35,
+        "njev": 22,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 62.29204012394099,
+        "optimality": 5.635967284511187
+      },
+      "seconds": 0.29325656898436137,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.4799620148679591,
+        "translation_m": 0.22868294956563848,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.059509561026377805,
+        -0.05563413858729352,
+        0.21368047686238906
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.984170916302496,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0002149406016309716,
+          0.0020614955613084355,
+          -0.0022360442291491354,
+          -0.000875389465627114,
+          -0.0002860633012399336,
+          0.0031846001169702656
+        ],
+        "scaled_singular_values": [
+          607.582188965019,
+          383.69456986934046,
+          164.03024379297548,
+          133.81443814221757,
+          96.0807603723838,
+          51.4612878534938,
+          10.55712823582412
+        ],
+        "smallest_to_largest_singular_ratio": 0.0173756381071795,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_all",
+      "bias_m": 0.25,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.13433118595432014,
+            -0.13833087877341801,
+            0.5214563984941327
+          ],
+          "rotation_quat_xyzw": [
+            0.01607597190026315,
+            -0.024153012168574076,
+            0.008319692569286871,
+            0.999544385130645
+          ]
+        },
+        "delta": [
+          -0.1827934385805199,
+          0.21393709482305037,
+          -0.09983393334881598,
+          -0.06566881404567985,
+          -0.038330878773418,
+          0.2214563984941328
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 3,
+        "message": "`xtol` termination condition is satisfied.",
+        "actual_residual_calls": 316,
+        "nfev": 58,
+        "njev": 43,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 63.43427886881287,
+        "optimality": 9.422867581217654
+      },
+      "seconds": 0.5648618640261702,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.29846463292044556,
+        "translation_m": 0.23414650507684429,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.06566881404567987,
+        -0.03833087877341801,
+        0.22145639849413273
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9758154958783094,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.0002755155451823489,
+          0.0036422396201640475,
+          0.000014699268734837868,
+          -0.0013657500383925934,
+          -0.0003053856980839197,
+          0.004638723272348759
+        ],
+        "scaled_singular_values": [
+          547.4188732454977,
+          396.6899246898105,
+          156.46354738632215,
+          131.62811554969574,
+          96.55091227479022,
+          44.921248085205896,
+          10.460505973161862
+        ],
+        "smallest_to_largest_singular_ratio": 0.019108778459069862,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_all",
+      "bias_m": -0.25,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.16075130481106067,
+            -0.10646393148109837,
+            0.32822225838462565
+          ],
+          "rotation_quat_xyzw": [
+            0.017441303452628187,
+            -0.02389895382151875,
+            0.0093355857557203,
+            0.9995186280298671
+          ]
+        },
+        "delta": [
+          -1.0391399387584501,
+          0.7288812323143581,
+          -0.7375150247291948,
+          -0.1892486951889393,
+          0.09353606851890164,
+          -0.07177774161537438
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 278,
+        "nfev": 50,
+        "njev": 38,
+        "initial_support": [
+          3816,
+          3815,
+          3816
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 119.61443389737475,
+        "optimality": 2.685077974498211
+      },
+      "seconds": 0.5316126840189099,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.24522218559383574,
+        "translation_m": 0.048772311330868644,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.039248695188939337,
+        -0.006463931481098362,
+        0.028222258384625665
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9819825242205279,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.001372369631102681,
+          0.0019070808469508383,
+          -0.001541562684609463,
+          -0.0008623833849495489,
+          -0.0005297150598159634,
+          0.0025348400016341546
+        ],
+        "scaled_singular_values": [
+          539.4025883400926,
+          434.4576675352426,
+          168.97761265451007,
+          142.37352657607258,
+          113.532131060427,
+          66.05947178977068,
+          10.535676481016639
+        ],
+        "smallest_to_largest_singular_ratio": 0.019532120736457995,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_all",
+      "bias_m": -0.25,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.160759101816089,
+            -0.10645533660072853,
+            0.328206121954143
+          ],
+          "rotation_quat_xyzw": [
+            0.017441600408557974,
+            -0.023899544333449582,
+            0.009335566685113957,
+            0.9995186089065623
+          ]
+        },
+        "delta": [
+          0.9671486555344252,
+          -0.27017704223983147,
+          0.7628369210225391,
+          0.11075910181608896,
+          -0.10645533660072853,
+          0.128206121954143
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 347,
+        "nfev": 59,
+        "njev": 48,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 119.61441056528564,
+        "optimality": 2.936676892849059
+      },
+      "seconds": 0.6738981769885868,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.24515120695276535,
+        "translation_m": 0.048755561494056916,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.03924089818391102,
+        -0.0064553366007285284,
+        0.028206121954143015
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9819811388894089,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.0013727778300724387,
+          0.0019065707514719506,
+          -0.0015410872759946343,
+          -0.000862315991314599,
+          -0.0005297654979032463,
+          0.002534964121592361
+        ],
+        "scaled_singular_values": [
+          539.5340315383683,
+          434.4502860765019,
+          169.05824086240114,
+          142.3812330693165,
+          113.55418935613628,
+          66.05027597005694,
+          10.535661296136798
+        ],
+        "smallest_to_largest_singular_ratio": 0.019527334107352908,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_all",
+      "bias_m": -0.25,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.16090100049172207,
+            -0.1063528186925955,
+            0.3280153454825844
+          ],
+          "rotation_quat_xyzw": [
+            0.01744557262226163,
+            -0.023911356074088248,
+            0.009336228908333286,
+            0.9995182508970764
+          ]
+        },
+        "delta": [
+          -0.028933273328782174,
+          0.2410822385434074,
+          0.02147133176854603,
+          -0.03909899950827793,
+          -0.006352818692595492,
+          0.0280153454825844
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 205,
+        "nfev": 37,
+        "njev": 28,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 119.61519872595129,
+        "optimality": 1.3987265500249015
+      },
+      "seconds": 0.42920744500588626,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.2437650716789806,
+        "translation_m": 0.04851751900497253,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        -0.03909899950827794,
+        -0.006352818692595491,
+        0.028015345482584386
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9819842597515559,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          -0.001372237900644493,
+          0.0018877731177400624,
+          -0.0015411736378358207,
+          -0.0008582176147649955,
+          -0.0005288776771811918,
+          0.002531409778001356
+        ],
+        "scaled_singular_values": [
+          543.2890818077905,
+          434.26493536600816,
+          171.21305510067356,
+          142.6864261996446,
+          114.11494945060417,
+          66.04219915083567,
+          10.535709134337534
+        ],
+        "smallest_to_largest_singular_ratio": 0.019392455116675707,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_visible",
+      "bias_m": 0.0,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.20743764686097985,
+            -0.09365295279551614,
+            0.3212060841966735
+          ],
+          "rotation_quat_xyzw": [
+            0.01779676501700563,
+            -0.02660350110946663,
+            0.009158485992871057,
+            0.9994456718691449
+          ]
+        },
+        "delta": [
+          -0.9908583631922547,
+          0.42025134869280045,
+          -0.761669178885615,
+          -0.14256235313902013,
+          0.10634704720448387,
+          -0.07879391580332651
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 213,
+        "nfev": 39,
+        "njev": 29,
+        "initial_support": [
+          3745,
+          3744,
+          3746
+        ],
+        "final_support": [
+          3768,
+          3766,
+          3770
+        ],
+        "support_retained": true,
+        "cost": 31.163228305171558,
+        "optimality": 0.9326579506694472
+      },
+      "seconds": 0.4075887660146691,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.06842551668812917,
+        "translation_m": 0.023351693857212936,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        0.007437646860979835,
+        0.006347047204483869,
+        0.021206084196673525
+      ],
+      "local_ambiguity": {
+        "supported_common": 11304,
+        "available": true,
+        "bias_unexplained_fraction": 0.9812512784290263,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.0003892370628871114,
+          -0.0002654265911244161,
+          0.00015480855557967071,
+          0.00001730436457338837,
+          -4.528812943659446e-6,
+          0.0026053801417129487
+        ],
+        "scaled_singular_values": [
+          537.9258870771376,
+          488.8375631596303,
+          147.33112362311465,
+          119.85453847863992,
+          106.57684676763665,
+          74.06624236522767,
+          10.429079884901507
+        ],
+        "smallest_to_largest_singular_ratio": 0.01938757761142288,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_visible",
+      "bias_m": 0.0,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.20690408861940462,
+            -0.09366480085602436,
+            0.32079049560473405
+          ],
+          "rotation_quat_xyzw": [
+            0.01780396428125208,
+            -0.026559908197632726,
+            0.00917228908296804,
+            0.9994465764838978
+          ]
+        },
+        "delta": [
+          1.0080987118096996,
+          -0.574932262583177,
+          0.7395859026183328,
+          0.1569040886194046,
+          -0.09366480085602436,
+          0.12079049560473408
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 220,
+        "nfev": 40,
+        "njev": 30,
+        "initial_support": [
+          3768,
+          3766,
+          3770
+        ],
+        "final_support": [
+          3768,
+          3766,
+          3770
+        ],
+        "support_retained": true,
+        "cost": 31.163601248358425,
+        "optimality": 0.9600991443100881
+      },
+      "seconds": 0.48679780200473033,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.06369587333566325,
+        "translation_m": 0.022804514801873958,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        0.006904088619404614,
+        0.0063351991439756505,
+        0.02079049560473406
+      ],
+      "local_ambiguity": {
+        "supported_common": 11304,
+        "available": true,
+        "bias_unexplained_fraction": 0.981441086363613,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.0004806525310398854,
+          -0.00035026946948663837,
+          0.00009620704451705504,
+          0.00003093695035242853,
+          0.000011495234876166128,
+          0.002569127329612812
+        ],
+        "scaled_singular_values": [
+          534.7411822262065,
+          489.61937840538553,
+          145.83753245676888,
+          119.65693273818904,
+          106.60620200341432,
+          74.61628027176226,
+          10.43119702751212
+        ],
+        "smallest_to_largest_singular_ratio": 0.01950700146954365,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_visible",
+      "bias_m": 0.0,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.20684775452259124,
+            -0.09416814687364966,
+            0.3207916672722979
+          ],
+          "rotation_quat_xyzw": [
+            0.01776024796794982,
+            -0.026555572042677274,
+            0.0091965341645801,
+            0.9994472467043786
+          ]
+        },
+        "delta": [
+          0.010402383347188413,
+          -0.0613634034509916,
+          0.0011849190375173172,
+          0.006847754522591233,
+          0.005831853126350347,
+          0.020791667272297944
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 183,
+        "nfev": 39,
+        "njev": 24,
+        "initial_support": [
+          3768,
+          3766,
+          3770
+        ],
+        "final_support": [
+          3768,
+          3766,
+          3770
+        ],
+        "support_retained": true,
+        "cost": 31.169554527822925,
+        "optimality": 7.442641500974097
+      },
+      "seconds": 0.4128159240062814,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.062250253702945374,
+        "translation_m": 0.022653822654266,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        0.006847754522591232,
+        0.005831853126350345,
+        0.02079166727229792
+      ],
+      "local_ambiguity": {
+        "supported_common": 11304,
+        "available": true,
+        "bias_unexplained_fraction": 0.9814637868070815,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.0005417655835072494,
+          -0.0003340102148623363,
+          0.00022192212607923038,
+          0.00002232372433749396,
+          0.000021984748301678493,
+          0.002548963615890636
+        ],
+        "scaled_singular_values": [
+          533.7067793932999,
+          499.86352392138406,
+          147.2511377462327,
+          119.18758420263698,
+          106.89548221482268,
+          74.97666688271134,
+          10.431493510914132
+        ],
+        "smallest_to_largest_singular_ratio": 0.01954536444669544,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_visible",
+      "bias_m": 0.25,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.19770220434166583,
+            -0.09322448389200831,
+            0.523555605276481
+          ],
+          "rotation_quat_xyzw": [
+            0.018344582340609605,
+            -0.026336434812481147,
+            0.011220124253950577,
+            0.9994218215107386
+          ]
+        },
+        "delta": [
+          -0.9349378333829607,
+          0.4477642888269292,
+          -0.5228902849193364,
+          -0.15229779565833415,
+          0.1067755161079917,
+          0.12355560527648106
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 432,
+        "nfev": 78,
+        "njev": 59,
+        "initial_support": [
+          3745,
+          3744,
+          3746
+        ],
+        "final_support": [
+          3768,
+          3766,
+          3770
+        ],
+        "support_retained": true,
+        "cost": 62.629619553470285,
+        "optimality": 5.379406583696648
+      },
+      "seconds": 0.8394613820128143,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.2488895687612702,
+        "translation_m": 0.22367006087974967,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.002297795658334184,
+        0.006775516107991694,
+        0.22355560527648105
+      ],
+      "local_ambiguity": {
+        "supported_common": 11304,
+        "available": true,
+        "bias_unexplained_fraction": 0.9799922738930121,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.0007978726119197105,
+          0.0004137342629170136,
+          0.0014287583585361563,
+          -0.00018068007948278733,
+          -0.0001065309731319228,
+          0.0037937565485482738
+        ],
+        "scaled_singular_values": [
+          474.2536705181466,
+          416.6215655580643,
+          126.66176249875917,
+          101.14618325604341,
+          83.50932039009926,
+          51.296630014493516,
+          10.41146161788392
+        ],
+        "smallest_to_largest_singular_ratio": 0.021953360121617742,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_visible",
+      "bias_m": 0.25,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.19299422313685421,
+            -0.09589224005577705,
+            0.523342095984847
+          ],
+          "rotation_quat_xyzw": [
+            0.017990618942564252,
+            -0.026073559891210824,
+            0.010370621220094144,
+            0.999444324272329
+          ]
+        },
+        "delta": [
+          1.0260757804578347,
+          -0.5217356576878066,
+          0.8782193619359967,
+          0.1429942231368542,
+          -0.09589224005577705,
+          0.32334209598484703
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 3,
+        "message": "`xtol` termination condition is satisfied.",
+        "actual_residual_calls": 233,
+        "nfev": 47,
+        "njev": 31,
+        "initial_support": [
+          3768,
+          3766,
+          3770
+        ],
+        "final_support": [
+          3768,
+          3766,
+          3770
+        ],
+        "support_retained": true,
+        "cost": 62.96593300926409,
+        "optimality": 20.53410843738623
+      },
+      "seconds": 0.4243148439854849,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.14142831528195757,
+        "translation_m": 0.22348970097102952,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.007005776863145796,
+        0.004107759944222952,
+        0.22334209598484706
+      ],
+      "local_ambiguity": {
+        "supported_common": 11304,
+        "available": true,
+        "bias_unexplained_fraction": 0.9794409803146,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.0010151761196571542,
+          0.0007409982722241934,
+          0.0015898128657394072,
+          -0.0002715559013105123,
+          -0.000032948953611234097,
+          0.0038637558170033295
+        ],
+        "scaled_singular_values": [
+          470.28811315236027,
+          430.1926955693245,
+          128.0112860468664,
+          104.9114771424495,
+          86.09439093242517,
+          51.47089333351726,
+          10.40529280348316
+        ],
+        "smallest_to_largest_singular_ratio": 0.022125357865705048,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_visible",
+      "bias_m": 0.25,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.19343793613477075,
+            -0.08166688045021227,
+            0.5263670339569484
+          ],
+          "rotation_quat_xyzw": [
+            0.01863250856034893,
+            -0.026466849761111726,
+            0.009990901573019299,
+            0.9994260940030681
+          ]
+        },
+        "delta": [
+          0.107840997837263,
+          -0.05204573111113811,
+          0.09492319913094514,
+          -0.006562063865229254,
+          0.01833311954978774,
+          0.22636703395694843
+        ],
+        "converged": false,
+        "optimizer_success": false,
+        "status": 0,
+        "message": "The maximum number of function evaluations is exceeded.",
+        "actual_residual_calls": 574,
+        "nfev": 100,
+        "njev": 79,
+        "initial_support": [
+          3768,
+          3766,
+          3770
+        ],
+        "final_support": [
+          3768,
+          3766,
+          3770
+        ],
+        "support_retained": true,
+        "cost": 62.911200974044746,
+        "optimality": 17.182238996700782
+      },
+      "seconds": 1.0000620940118097,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.15283372409475215,
+        "translation_m": 0.22720298857423596,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.006562063865229256,
+        0.018333119549787738,
+        0.2263670339569484
+      ],
+      "local_ambiguity": {
+        "supported_common": 11304,
+        "available": true,
+        "bias_unexplained_fraction": 0.9789297338026614,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.001494953502253959,
+          0.0010807031483059996,
+          0.0016273017115217582,
+          -0.00040738516243013024,
+          0.000043601179919152464,
+          0.003967269835511044
+        ],
+        "scaled_singular_values": [
+          468.003569522316,
+          422.0202976832252,
+          121.76879277983703,
+          99.33169817297552,
+          88.22563501383206,
+          50.026323468332606,
+          10.399343546804936
+        ],
+        "smallest_to_largest_singular_ratio": 0.02222065006345867,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_visible",
+      "bias_m": -0.25,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.213418412832626,
+            -0.09166554287898188,
+            0.3184083871712068
+          ],
+          "rotation_quat_xyzw": [
+            0.017900777846590932,
+            -0.027056278296749503,
+            0.009201520524779858,
+            0.9994312642584522
+          ]
+        },
+        "delta": [
+          -0.977885751208447,
+          0.36854053907539375,
+          -0.7572423892975745,
+          -0.13658158716737398,
+          0.10833445712101814,
+          -0.08159161282879325
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 130,
+        "nfev": 22,
+        "njev": 18,
+        "initial_support": [
+          3745,
+          3744,
+          3746
+        ],
+        "final_support": [
+          3768,
+          3766,
+          3770
+        ],
+        "support_retained": true,
+        "cost": 124.31379039336802,
+        "optimality": 0.05620933538424606
+      },
+      "seconds": 0.22816527599934489,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.12166831016806996,
+        "translation_m": 0.024256662934004806,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        0.013418412832625987,
+        0.00833445712101813,
+        0.018408387171206797
+      ],
+      "local_ambiguity": {
+        "supported_common": 11304,
+        "available": true,
+        "bias_unexplained_fraction": 0.9827574660709876,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.0007544873545218923,
+          -0.0010608413467791545,
+          0.0005706011346672206,
+          0.0000921450570084048,
+          0.000032949899530063256,
+          0.002236303196038178
+        ],
+        "scaled_singular_values": [
+          550.7876558845894,
+          511.6220934628456,
+          151.2857201101183,
+          123.15290931453832,
+          110.3686985996361,
+          82.54920588333674,
+          10.446035184658513
+        ],
+        "smallest_to_largest_singular_ratio": 0.018965630534841446,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_visible",
+      "bias_m": -0.25,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.21314807330813226,
+            -0.0907407883311983,
+            0.32078615090879276
+          ],
+          "rotation_quat_xyzw": [
+            0.017942634098653047,
+            -0.026980019878464035,
+            0.009171031638105936,
+            0.9994328554673658
+          ]
+        },
+        "delta": [
+          1.023833817765412,
+          -0.623147326248428,
+          0.7388567426597338,
+          0.16314807330813225,
+          -0.0907407883311983,
+          0.12078615090879276
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 150,
+        "nfev": 24,
+        "njev": 21,
+        "initial_support": [
+          3768,
+          3766,
+          3770
+        ],
+        "final_support": [
+          3768,
+          3766,
+          3770
+        ],
+        "support_retained": true,
+        "cost": 124.35509231902665,
+        "optimality": 0.1361661468911225
+      },
+      "seconds": 0.26370063301874325,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.11431806347546582,
+        "translation_m": 0.026280580321728055,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        0.013148073308132252,
+        0.009259211668801712,
+        0.020786150908792767
+      ],
+      "local_ambiguity": {
+        "supported_common": 11304,
+        "available": true,
+        "bias_unexplained_fraction": 0.9813538364470898,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.0008562803742335627,
+          -0.0007115653858683601,
+          -5.634076228856022e-8,
+          0.00008509829187125482,
+          0.0000850978023398895,
+          0.00253178659418276
+        ],
+        "scaled_singular_values": [
+          542.6714042696526,
+          494.9207405727863,
+          147.8007134492563,
+          122.20882744280823,
+          110.08200143236101,
+          76.12078250534019,
+          10.43036133856478
+        ],
+        "smallest_to_largest_singular_ratio": 0.019220399778761787,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_visible",
+      "bias_m": -0.25,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.21341844751786454,
+            -0.09166568878304712,
+            0.31840826901132274
+          ],
+          "rotation_quat_xyzw": [
+            0.017900767413926606,
+            -0.027056279109263552,
+            0.009201516211007897,
+            0.9994312644630309
+          ]
+        },
+        "delta": [
+          0.027039710442250786,
+          -0.11861952256745212,
+          0.0011547960370252948,
+          0.01341844751786454,
+          0.00833431121695289,
+          0.018408269011322743
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 94,
+        "nfev": 16,
+        "njev": 13,
+        "initial_support": [
+          3768,
+          3766,
+          3770
+        ],
+        "final_support": [
+          3768,
+          3766,
+          3770
+        ],
+        "support_retained": true,
+        "cost": 124.31379039928156,
+        "optimality": 0.06936662885461603
+      },
+      "seconds": 0.1693277310114354,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.12166813474796301,
+        "translation_m": 0.0242565423183919,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        0.013418447517864529,
+        0.008334311216952883,
+        0.018408269011322753
+      ],
+      "local_ambiguity": {
+        "supported_common": 11304,
+        "available": true,
+        "bias_unexplained_fraction": 0.9827575188085652,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.0007545081445967961,
+          -0.0010608408847771456,
+          0.0005707010654967784,
+          0.00009214403482435735,
+          0.00003295196674297262,
+          0.0022362982833150926
+        ],
+        "scaled_singular_values": [
+          550.7878002840275,
+          511.6231009695355,
+          151.28624578728298,
+          123.15336639022777,
+          110.36932821527074,
+          82.54934171644189,
+          10.446035756221752
+        ],
+        "smallest_to_largest_singular_ratio": 0.01896562660036223,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_all",
+      "bias_m": 0.0,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.2076493592532596,
+            -0.0934524243312792,
+            0.32149681864425944
+          ],
+          "rotation_quat_xyzw": [
+            0.017804369226740845,
+            -0.026634304323833822,
+            0.009115591959723458,
+            0.9994451081739543
+          ]
+        },
+        "delta": [
+          -0.9897774916866365,
+          0.41683136576978613,
+          -0.7666128982322882,
+          -0.14235064074674036,
+          0.1065475756687208,
+          -0.07850318135574057
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 238,
+        "nfev": 46,
+        "njev": 32,
+        "initial_support": [
+          3816,
+          3816,
+          3816
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 35.03324706163455,
+        "optimality": 4.452443000025972
+      },
+      "seconds": 0.424895148986252,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.07238510207857152,
+        "translation_m": 0.023738084504593745,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        0.007649359253259602,
+        0.006547575668720801,
+        0.021496818644259452
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9812693569580136,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.00011470745220871264,
+          -0.0009160297534781223,
+          0.00039374668221274294,
+          0.00007133729169874667,
+          -0.0000324554094432282,
+          0.002472203432947675
+        ],
+        "scaled_singular_values": [
+          575.6068719833538,
+          537.2375475059174,
+          160.11901545417822,
+          127.02821692236145,
+          118.04211498161216,
+          76.30503295100408,
+          10.52880179881454
+        ],
+        "smallest_to_largest_singular_ratio": 0.01829165409810991,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_all",
+      "bias_m": 0.0,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.20755027052865524,
+            -0.09349510262113725,
+            0.3213135311961403
+          ],
+          "rotation_quat_xyzw": [
+            0.017804397540106886,
+            -0.026625820782576356,
+            0.009110694970391655,
+            0.9994453783639426
+          ]
+        },
+        "delta": [
+          1.0083121119878706,
+          -0.5823619902334941,
+          0.7323975923536583,
+          0.15755027052865522,
+          -0.09349510262113725,
+          0.12131353119614034
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 4,
+        "message": "Both `ftol` and `xtol` termination conditions are satisfied.",
+        "actual_residual_calls": 216,
+        "nfev": 42,
+        "njev": 29,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 35.03317556572065,
+        "optimality": 6.6504683407846645
+      },
+      "seconds": 0.41267312900163233,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.07149871147993475,
+        "translation_m": 0.023528427210807397,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        0.0075502705286552285,
+        0.006504897378862756,
+        0.021313531196140323
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9814592513001538,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.00014174674855184024,
+          -0.0009379943575651362,
+          0.0003637414538635822,
+          0.00007726489647738293,
+          -0.000026229425354689915,
+          0.0024389208869247158
+        ],
+        "scaled_singular_values": [
+          575.8362003598381,
+          535.9546757341891,
+          158.2461620551091,
+          127.08991072099461,
+          118.22947501270862,
+          76.88077504372134,
+          10.530927438993023
+        ],
+        "smallest_to_largest_singular_ratio": 0.01828806079300378,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_all",
+      "bias_m": 0.0,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.20753798725723407,
+            -0.09344389127071834,
+            0.3213554034173073
+          ],
+          "rotation_quat_xyzw": [
+            0.017805932122302377,
+            -0.026624229159347156,
+            0.009105498512959562,
+            0.9994454407819153
+          ]
+        },
+        "delta": [
+          0.015988103753134367,
+          -0.06899826580691212,
+          -0.009246393549271288,
+          0.007537987257234066,
+          0.0065561087292816626,
+          0.02135540341730727
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 131,
+        "nfev": 29,
+        "njev": 17,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 35.033329803732904,
+        "optimality": 5.568840037776888
+      },
+      "seconds": 0.25557287101401016,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.07142617077290847,
+        "translation_m": 0.023576621231133323,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        0.007537987257234063,
+        0.006556108729281668,
+        0.021355403417307295
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9814995079519954,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.00016914378236045413,
+          -0.0009356331687411093,
+          0.00034710197115727184,
+          0.00007719779455261986,
+          -0.000019916249843707765,
+          0.002432938680787084
+        ],
+        "scaled_singular_values": [
+          575.8932134649054,
+          535.9760324935725,
+          157.91801177708982,
+          127.05530261711183,
+          118.03741262724918,
+          76.93063072946639,
+          10.531375312336374
+        ],
+        "smallest_to_largest_singular_ratio": 0.018287027987313048,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_all",
+      "bias_m": 0.25,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.1977168625736458,
+            -0.09319833397324562,
+            0.5236275485098503
+          ],
+          "rotation_quat_xyzw": [
+            0.018346233602933203,
+            -0.026338449157647596,
+            0.011226483133769742,
+            0.9994216667078035
+          ]
+        },
+        "delta": [
+          -0.9347627886092651,
+          0.4475234702937355,
+          -0.5221597166742414,
+          -0.1522831374263542,
+          0.1068016660267544,
+          0.12362754850985024
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 334,
+        "nfev": 58,
+        "njev": 46,
+        "initial_support": [
+          3816,
+          3816,
+          3816
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 66.63764174041825,
+        "optimality": 0.35419783888212436
+      },
+      "seconds": 0.6152651159791276,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.24966676401548885,
+        "translation_m": 0.2237426106707718,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.0022831374263542203,
+        0.006801666026754388,
+        0.22362754850985028
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9805123275451695,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.00023508978402186657,
+          -0.0011611446078545432,
+          0.001169793261788088,
+          0.000038755415510266606,
+          -0.00016450848088921718,
+          0.003473610402070417
+        ],
+        "scaled_singular_values": [
+          531.0956473810401,
+          472.38678240703103,
+          141.74526759257168,
+          109.99440402537519,
+          88.46616319904034,
+          54.63893044192253,
+          10.517350394305467
+        ],
+        "smallest_to_largest_singular_ratio": 0.019803119167270608,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_all",
+      "bias_m": 0.25,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.19336395079896676,
+            -0.09146803770250926,
+            0.5263067202094472
+          ],
+          "rotation_quat_xyzw": [
+            0.018090250429908174,
+            -0.026370739105069728,
+            0.009605801148019988,
+            0.9994423722970426
+          ]
+        },
+        "delta": [
+          1.0396568700389104,
+          -0.5542828326406168,
+          0.7901859431767693,
+          0.14336395079896674,
+          -0.09146803770250926,
+          0.32630672020944723
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 383,
+        "nfev": 65,
+        "njev": 53,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 66.9801770966357,
+        "optimality": 7.1309955760457
+      },
+      "seconds": 0.6895337059977464,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.07929948274246117,
+        "translation_m": 0.22656469968113166,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        -0.006636049201033251,
+        0.008531962297490744,
+        0.22630672020944725
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9800117007861125,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.0007635569714233222,
+          -0.0006779658449256343,
+          0.0012477827137853993,
+          -0.00012702659735846304,
+          -0.000021560514200881527,
+          0.003503769829423746
+        ],
+        "scaled_singular_values": [
+          525.0976850820082,
+          494.2741250824615,
+          142.2888711711219,
+          114.04372157846795,
+          93.9162904904276,
+          54.60392320125887,
+          10.511873623911363
+        ],
+        "smallest_to_largest_singular_ratio": 0.02001889157494505,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_all",
+      "bias_m": 0.25,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.20947406009752279,
+            -0.09864937700835523,
+            0.5231070488245455
+          ],
+          "rotation_quat_xyzw": [
+            0.01798324473152708,
+            -0.026660705130491,
+            0.010048009305878744,
+            0.9994322624469655
+          ]
+        },
+        "delta": [
+          0.03348013104629282,
+          -0.07496781612390789,
+          0.09915582444445675,
+          0.009474060097522762,
+          0.0013506229916447781,
+          0.22310704882454552
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 264,
+        "nfev": 48,
+        "njev": 36,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 67.38706681765338,
+        "optimality": 3.8031693079404345
+      },
+      "seconds": 0.4982851690147072,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.12875291059232705,
+        "translation_m": 0.22331219678377437,
+        "recovered": false
+      },
+      "translation_error_xyz_m": [
+        0.009474060097522774,
+        0.001350622991644776,
+        0.22310704882454552
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9809175101474319,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.000345700562002106,
+          -0.0013677434686678812,
+          0.0007204858446414298,
+          0.00005815951037906007,
+          -0.00012347812883114158,
+          0.003369447159517763
+        ],
+        "scaled_singular_values": [
+          550.2877323210223,
+          485.39808378085104,
+          143.47432055957276,
+          120.95666791454839,
+          97.40982105632986,
+          55.73744669700028,
+          10.522099551220075
+        ],
+        "smallest_to_largest_singular_ratio": 0.019121086902736513,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_all",
+      "bias_m": -0.25,
+      "sign": 1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.2135179690838209,
+            -0.09178957307607004,
+            0.31822789879628977
+          ],
+          "rotation_quat_xyzw": [
+            0.017892534748806633,
+            -0.02706935676090706,
+            0.009189983402104295,
+            0.9994311638776743
+          ]
+        },
+        "delta": [
+          -0.9787603578331557,
+          0.3670456729262462,
+          -0.7586215873052853,
+          -0.13648203091617908,
+          0.10821042692392997,
+          -0.08177210120371028
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 149,
+        "nfev": 23,
+        "njev": 21,
+        "initial_support": [
+          3816,
+          3816,
+          3816
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 128.0973343198323,
+        "optimality": 0.056912824277001894
+      },
+      "seconds": 0.2918885289982427,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.12291586693195088,
+        "translation_m": 0.024133024944090902,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        0.013517969083820885,
+        0.008210426923929967,
+        0.018227898796289776
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9826496549120597,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.00029960661097145437,
+          -0.0014436197453919957,
+          0.0006472056501262439,
+          0.00012289029797393143,
+          -0.000017789396399564796,
+          0.002156796828512624
+        ],
+        "scaled_singular_values": [
+          585.3445048910776,
+          547.8659888079361,
+          161.78169281357899,
+          130.81308028428762,
+          120.68145720297163,
+          84.41714242442953,
+          10.54439087594646
+        ],
+        "smallest_to_largest_singular_ratio": 0.0180139913979522,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_all",
+      "bias_m": -0.25,
+      "sign": -1,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.21351847743505772,
+            -0.09179211104775127,
+            0.31822574467831544
+          ],
+          "rotation_quat_xyzw": [
+            0.017892368962542066,
+            -0.027069364893001366,
+            0.009189831273103516,
+            0.9994311680242766
+          ]
+        },
+        "delta": [
+          1.017983126617635,
+          -0.6334017174675594,
+          0.7407366241240063,
+          0.1635184774350577,
+          -0.09179211104775127,
+          0.11822574467831545
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 165,
+        "nfev": 27,
+        "njev": 23,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 128.09733435024248,
+        "optimality": 0.05215821641375194
+      },
+      "seconds": 0.3161466289893724,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.12291272203161892,
+        "translation_m": 0.024130819345678158,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        0.013518477435057713,
+        0.008207888952248735,
+        0.018225744678315448
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9826496047933493,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.00029967457109252835,
+          -0.0014435099317135196,
+          0.0006470421107432649,
+          0.00012286920863575332,
+          -0.000017798919085265974,
+          0.002156793721391974
+        ],
+        "scaled_singular_values": [
+          585.3479369293221,
+          547.8834162177478,
+          161.77635073022836,
+          130.81721621253254,
+          120.69283092244757,
+          84.41843850425319,
+          10.544390351381564
+        ],
+        "smallest_to_largest_singular_ratio": 0.018013884881351767,
+        "residual_passes": 13
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_all",
+      "bias_m": -0.25,
+      "sign": 0,
+      "result": {
+        "transform": {
+          "translation_m": [
+            0.21351818440193185,
+            -0.09179036228991466,
+            0.3182272384107336
+          ],
+          "rotation_quat_xyzw": [
+            0.017892481789388435,
+            -0.02706936434382359,
+            0.009189942270945016,
+            0.9994311649986178
+          ]
+        },
+        "delta": [
+          0.026140659162611303,
+          -0.12010342339935495,
+          -0.00022127803879890435,
+          0.013518184401931836,
+          0.008209637710085342,
+          0.01822723841073357
+        ],
+        "converged": true,
+        "optimizer_success": true,
+        "status": 2,
+        "message": "`ftol` termination condition is satisfied.",
+        "actual_residual_calls": 86,
+        "nfev": 14,
+        "njev": 12,
+        "initial_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "final_support": [
+          3840,
+          3840,
+          3840
+        ],
+        "support_retained": true,
+        "cost": 128.0973342928688,
+        "optimality": 0.026173043367079773
+      },
+      "seconds": 0.16878394098603167,
+      "metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.12291543012279409,
+        "translation_m": 0.024132378269395884,
+        "recovered": true
+      },
+      "translation_error_xyz_m": [
+        0.013518184401931838,
+        0.008209637710085343,
+        0.018227238410733593
+      ],
+      "local_ambiguity": {
+        "supported_common": 11520,
+        "available": true,
+        "bias_unexplained_fraction": 0.9826496331000533,
+        "near_confounded": false,
+        "pose_delta_mimicking_plus_10cm_bias": [
+          0.0002996892099298188,
+          -0.0014435867216394448,
+          0.0006471497576468631,
+          0.00012288399348636602,
+          -0.000017783232828375712,
+          0.002156799272642918
+        ],
+        "scaled_singular_values": [
+          585.3460896311598,
+          547.8736620864073,
+          161.7795269784289,
+          130.81492042025292,
+          120.68672265881995,
+          84.41760340713152,
+          10.544390638094127
+        ],
+        "smallest_to_largest_singular_ratio": 0.01801394222132481,
+        "residual_passes": 13
+      }
+    }
+  ]
+}

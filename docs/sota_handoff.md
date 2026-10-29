@@ -832,3 +832,18 @@ unexecuted depth-bias/translation-identifiability experiment proposal.
 [Printable HTML](assets/development_brief_20261029/index.html) and
 [three-page PDF](assets/development_brief_20261029/calibrex-development-review-ja.pdf)
 are shareable reading copies. This documentation adds no new experiment or accuracy claim.
+
+### Depth-bias response and local confounding (2026-10-29)
+
+[Results](research/depth_bias_response_results.md), frozen at `ae51adee`: fixed
+visibility solver, 3 layouts × 2 populations × biases 0,+.25,-.25 m × ± seeds/truth
+start =54 fits. Perturbed recovery: **12/12, 0/12, 12/12** respectively; truth-start
+6/6,0/6,6/6. +bias median z displacement +0.2236 m; -bias tolerance is influenced by
+positive-residual saturation, not estimated correction. All 18 zero-bias outputs
+exactly reproduce. Three +bias runs hit max_nfev; other 51 converge, 86–592 calls.
+Raw Jacobian bias unexplained fraction .9539–.9842 (no <.05 flags); planar control
+correctly exposes degeneracy. Local raw rank does not prove robust/global bias
+identifiability. Next freeze experimental seven-parameter pose/bias fitting with
+zero correction initialization, separate bias/pose scoring, raw+robust sensitivity
+and plane degeneracy controls. Preserve fixed six-parameter baseline, no truth-fed
+bias or holdout tuning. Review PDF remains historical; stages A/B completed, C pending.
