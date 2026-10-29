@@ -632,3 +632,16 @@ convergence. Close this sequence of frontend tweaks: next broaden to other spent
 recordings and compare an alternative measurement model before further tuning.
 The projection formula fix remains valid, but downstream benefit of later
 frontend variants has not been established.
+
+### Broader six-DoF measurement-model comparison (2026-10-29)
+
+[0013/0015 comparison](research/camera_lidar_broader_models.md), frozen at
+`fa09ba7e`: two additional spent drives, three metadata-selected frames each,
+two unchanged seeds, eight completed/converged solver runs. D2D recovers 1/4,
+improves rotation in 4/4 but worsens translation in 4/4. Native Pandey recovers
+0/4; its 0015-negative solution has 17.4007-degree reference rotation difference
+despite convergence. No defaults/gates promoted. Sparse assisted-input comparison
+coverage is now six recordings, not completion of all-55 capture/replay. Next
+prioritize independently validated full-pose quality/rejection, preserving both
+coverage and false-acceptance evidence; convergence alone is demonstrably unsafe
+as an accuracy criterion. No held-out audit or SOTA claim.

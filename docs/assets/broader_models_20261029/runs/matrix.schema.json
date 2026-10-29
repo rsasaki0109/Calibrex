@@ -1,0 +1,29 @@
+{
+  "additionalProperties": false,
+  "description": "All scheduled cases, including failed preparation/execution.",
+  "properties": {
+    "plan_sha256": {
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "driver_sha256": {
+      "title": "Driver Sha256",
+      "type": "string"
+    },
+    "records": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Records",
+      "type": "array"
+    }
+  },
+  "required": [
+    "plan_sha256",
+    "driver_sha256",
+    "records"
+  ],
+  "title": "MatrixResult",
+  "type": "object"
+}

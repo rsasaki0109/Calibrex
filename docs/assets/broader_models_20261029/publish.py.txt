@@ -1,0 +1,114 @@
+import json
+import shutil
+from pathlib import Path
+import jsonschema
+from tools.run_camera_lidar_development_matrix import digest
+
+source=Path('/workspace/work/broader-models-inputs-20261029')
+runs=Path('/workspace/work/broader-models-results-20261029')
+root=Path('docs/assets/broader_models_20261029')
+for name in ['preparation.json','preparation.schema.json']:
+    shutil.copyfile(source/name,root/name)
+for path in runs.rglob('*'):
+    if path.is_file() and path.suffix in ['.json','.log']:
+        dest=root/'runs'/path.relative_to(runs)
+        dest.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copyfile(path,dest)
+for name,path in [('preparation.log',Path('/workspace/work/broader-models-preparation-20261029.log')),
+                  ('execution.log',Path('/workspace/work/broader-models-run-20261029.log'))]:
+    shutil.copyfile(path,root/name)
+plan=json.loads((root/'plan.json').read_text())
+prep=json.loads((root/'preparation.json').read_text())
+assert len(prep['drives'])==2 and all(d['status']=='completed' for d in prep['drives'])
+for d in plan['drives']:
+    for frame in d['frames']:
+        meta=source/d['id']/f'frame-{frame}'/'frontend.json'
+        dest=root/'frontends'/d['id']/f'frame-{frame}'
+        dest.mkdir(parents=True,exist_ok=True)
+        shutil.copyfile(meta,dest/'frontend.json')
+        shutil.copyfile(meta.with_suffix('.schema.json'),dest/'frontend.schema.json')
+for p in root.rglob('*.json'):
+    schema=p.with_suffix('.schema.json')
+    if schema.exists():jsonschema.validate(json.loads(p.read_text()),json.loads(schema.read_text()))
+for filename,sha in plan['source_sha256'].items():
+    assert digest(Path(filename))==sha
+matrix=json.loads((root/'runs/matrix.json').read_text())
+assert len(matrix['records'])==4
+assert len({c['case_id'] for c in matrix['records']})==4
+for c in matrix['records']:
+    assert set(c['methods'])=={'d2d','pandey'}
+    assert all(m['returncode']==0 and m['status']=='converged' for m in c['methods'].values())
+text='''
+
+## Results
+
+Source and plan were frozen at `fa09ba7e`. Both sparse preparations completed:
+0013 used a planned 11,481,974-byte range budget and 0015 10,819,028 bytes,
+well below the 64 MiB/drive guard. All six prepared frames have source/output
+hashes. All **eight solver executions completed and reported convergence**;
+there were no timeouts or accuracy-driven retries.
+
+The unchanged recovery gates require both rotation <0.5 degrees and translation
+<0.20 m against the dataset reference. Initial perturbations are about 1.50 degrees
+and 0.1225 m. Initial translation is already inside its gate; preserving it is
+not evidence of translation recovery.
+
+| Recording / seed | D2D rotation (deg) | D2D translation (m) | D2D recovered | Pandey rotation (deg) | Pandey translation (m) | Pandey recovered |
+| --- | ---: | ---: | --- | ---: | ---: | --- |
+'''
+for c in matrix['records']:
+    a,b=c['methods']['d2d']['metrics'],c['methods']['pandey']['metrics']
+    text+=f"| {c['case_id'][11:].replace('-', ' ')} | {a['rotation_deg']:.4f} | {a['translation_m']:.4f} | {a['recovered']} | {b['rotation_deg']:.4f} | {b['translation_m']:.4f} | {b['recovered']} |\n"
+text+='''
+- **D2D recovers 1/4.** Rotation improves from the initial perturbation in all four
+  cases, while translation worsens in all four. 0015 positive misses the translation
+  gate at 0.20194 m; do not round it into a pass or relax the 0.20 m requirement.
+- **Pandey recovers 0/4.** Rotation improves slightly in only one case; translation
+  improves in only one case. 0015 negative reports convergence at a **17.4007-degree**
+  rotation difference, despite a 0.1035 m translation difference.
+
+Convergence here is an optimizer termination status, not validation of calibration.
+The large Pandey failure shows why a single translation metric or optimizer
+success flag is insufficient. The native Pandey implementation/configuration
+must not be presented as the official paper's achievable accuracy.
+
+### Decision and scope
+
+The observed D2D rotation/translation tradeoff persists on two recordings outside
+the earlier four-drive refinement loop. The alternative image/intensity objective
+also does not solve the problem under its existing settings. No frontend,
+optimizer defaults or recovery thresholds are promoted or tuned from this result.
+
+The assisted-input method-comparison series now has samples from **six distinct
+KITTI raw recordings**. This is sparse three-frame coverage, not completion of
+the separate all-55-drive capture/replay requirement. Same-day recordings do not
+add rigs or dataset families; no fresh evaluation or SOTA claim is supported.
+
+Next prioritize a failure-aware calibration quality check on the full six-DoF
+output, using independent measurements/frames and reporting false acceptance,
+before trusting an objective's convergence flag. A calibrated rejection mechanism
+must preserve coverage as well as reject the 0015-negative failure; fitting a
+threshold directly to these four outcomes would not validate it.
+
+[Matrix](../assets/broader_models_20261029/runs/matrix.json),
+[preparation provenance](../assets/broader_models_20261029/preparation.json),
+[execution log](../assets/broader_models_20261029/execution.log) and the per-case
+reports retain the complete outputs, source identities, objective diagnostics,
+seeds, references, settings and input hashes. Sensor arrays remain in the separate
+experiment workspace. No historical data/results were overwritten.
+
+Reproduce with the frozen checkout, the existing calibration directory, and new
+output directories:
+
+```sh
+PYTHONPATH=src:. OPENBLAS_NUM_THREADS=1 \\
+  python tools/prepare_sparse_joint_inputs.py \\
+  docs/assets/broader_models_20261029/plan.json /tmp/broader-inputs CALIBRATION_ROOT
+PYTHONPATH=src:. OPENBLAS_NUM_THREADS=1 \\
+  python tools/run_broader_camera_lidar_comparison.py \\
+  docs/assets/broader_models_20261029/plan.json /tmp/broader-inputs /tmp/broader-results
+```
+'''
+p=Path('docs/research/camera_lidar_broader_models.md')
+p.write_text(p.read_text().split('\n\n## Results')[0]+text)
+print('Validated all schemas, 2 preparations, 6 frames, 8 completed solver runs and source pins')
