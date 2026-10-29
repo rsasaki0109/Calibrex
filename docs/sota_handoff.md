@@ -832,3 +832,20 @@ unexecuted depth-bias/translation-identifiability experiment proposal.
 [Printable HTML](assets/development_brief_20261029/index.html) and
 [three-page PDF](assets/development_brief_20261029/calibrex-development-review-ja.pdf)
 are shareable reading copies. This documentation adds no new experiment or accuracy claim.
+
+### Depth bias versus translation (2026-10-29)
+
+[Results](research/depth_bias_pose_results.md), frozen at `9bee5c16`: the frozen
+one-sided fit plus 0/+0.25/−0.25 m constant camera-depth bias on the three layouts,
+both populations, signed and truth starts. 210 fits plus 84 sensitivity checks,
+no failures dropped; zero-bias results reproduce the prior run exactly. Pose-only:
+positive bias fails **0/18** (Δt_z ≈ 0.85–0.97 b, 15 failures converge), negative
+bias passes 18/18 only because saturation masks it. Local sensitivity at truth
+calls every condition distinguishable (e ≈ 0.90–0.94) yet predicts only
+0.10–0.18 b translation shift, so it is not a safety check. Joint pose+bias fit:
+pose 66/66, bias within 0.05 m only 22/66; every estimate trades β̂ − b ≈ −Δt_z
+(4–7 cm), zero-bias translation error grows to 4.4–8.5 cm. Verdict
+**not_supported**: do not adopt the bias variable or widen its tolerance.
+Positive depth bias remains a blocker before real-data reruns. Next work needs a
+new frozen protocol (zero-bias β/t_z offset source, trade-breaking geometry, or
+bias detection with wrong-candidate controls). No production or SOTA change.

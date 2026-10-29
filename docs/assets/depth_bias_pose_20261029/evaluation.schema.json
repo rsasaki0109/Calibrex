@@ -1,0 +1,69 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "default": "synthetic depth-bias diagnostic on three already-used analytic layouts; not real-data, held-out or SOTA evidence",
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "environment": {
+      "additionalProperties": true,
+      "title": "Environment",
+      "type": "object"
+    },
+    "conditions": {
+      "additionalProperties": true,
+      "title": "Conditions",
+      "type": "object"
+    },
+    "pose_only": {
+      "default": [],
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Pose Only",
+      "type": "array"
+    },
+    "identifiability": {
+      "default": [],
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Identifiability",
+      "type": "array"
+    },
+    "joint": {
+      "default": [],
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Joint",
+      "type": "array"
+    },
+    "summary": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Summary",
+      "type": "object"
+    }
+  },
+  "required": [
+    "source_commit",
+    "plan_sha256",
+    "environment",
+    "conditions"
+  ],
+  "title": "BiasReport",
+  "type": "object"
+}
