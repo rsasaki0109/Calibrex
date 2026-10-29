@@ -1,0 +1,82 @@
+import json
+import shutil
+from pathlib import Path
+import jsonschema
+import numpy as np
+root=Path('docs/assets/disparity_pose_20261029')
+r=json.loads((root/'evaluation.json').read_text())
+for p in root.glob('*.json'):
+ schema=p.with_suffix('.schema.json')
+ if schema.exists():jsonschema.validate(json.loads(p.read_text()),json.loads(schema.read_text()))
+assert len(r['cases'])==12
+assert len({c['case_id'] for c in r['cases']})==12
+for c in r['cases']:
+ if not c['result']['accepted']:
+  np.testing.assert_array_equal(c['result']['output_T_camera_lidar'],c['initial_T_camera_lidar'])
+assert sum(c['stage_recovered'] for c in r['cases'])==1
+assert sum(c['d2d']['recovered'] for c in r['cases'])==5
+shutil.copyfile('/workspace/work/disparity-pose-20261029.log',root/'execution.log')
+text='''
+
+## Results
+
+Code/options/plan were frozen at `517c4eb6`. All twelve fits completed without
+parameter changes or retries. The synthetic three-plane test recovered the pose,
+but the real-data comparison **does not support adopting the new estimator**.
+
+- Archived matched-input D2D recovery: **5/12**.
+- New estimator accepted-stage recovery: **1/12**; returned-pipeline recovery
+  **1/12** as well (original perturbations do not satisfy the rotation gate).
+- New estimator accepts **4/12** on numerical checks; only **1 of those 4** meets
+  the independent reference accuracy gates. The other three are false accepts
+  under these development scoring criteria.
+- The other **8/12** are rejected for `lost_support`, with exact initializer
+  fallback. Each initial frame has 3,000 selected points. Final retained counts
+  range from 2,332 to 2,895; failure is the frozen 90% retention rule, not an
+  inability to reach the 128-point minimum. No retention threshold is relaxed.
+
+All raw candidates remain visible below. Distances are to the dataset reference,
+not independent ground truth. A candidate's rotation or translation improvement
+alone does not imply a successful full calibration.
+
+| Recording / seed | New status | New raw rotation (deg) | New raw translation (m) | New accepted recovery | D2D rotation (deg) | D2D translation (m) | D2D recovery |
+| --- | --- | ---: | ---: | --- | ---: | ---: | --- |
+'''
+for c in r['cases']:
+ a,b=c['candidate'],c['d2d']
+ text+=f"| {c['case_id'][11:].replace('-', ' ')} | {c['result']['status']} | {a['rotation_deg']:.4f} | {a['translation_m']:.4f} | {c['stage_recovered']} | {b['rotation_deg']:.4f} | {b['translation_m']:.4f} | {b['recovered']} |\n"
+text+='''
+Every inner optimizer terminates successfully in 18–30 reported function
+evaluations, but that does not establish either accurate calibration or sound
+visibility modeling. Bilinear interpolation is continuous only within valid
+neighborhoods. The fixed missing-data penalty and neighborhood-validity gates
+introduce discontinuities when projections cross holes or boundaries. A numerical
+Jacobian near those transitions can be misleading, and its condition number is
+not an independent acceptance check. These are known modeling limitations, not
+isolated causal conclusions from this experiment.
+
+### Decision
+
+Keep this estimator experimental and unregistered. Do not replace D2D, relax
+retention, increase a success count by accepting rejected candidates, or claim
+SOTA. This experiment tested a substantive model change—joint six-DoF fitting in
+pixel-scaled inverse depth—rather than another frontend threshold tweak, and
+its negative result is retained.
+
+The next estimator revision should explicitly model visibility and depth-boundary
+transitions with an objective whose derivatives remain meaningful, and verify
+those behaviors with controlled occlusion/hole tests before another real-data
+run. Full-pose acceptance also needs independent validation: the current local
+numerical criteria accepted three inaccurate calibrations. Further changes must
+use a new frozen protocol and preserve this 1/12 outcome.
+
+[Evaluation](../assets/disparity_pose_20261029/evaluation.json),
+[schema](../assets/disparity_pose_20261029/evaluation.schema.json) and
+[execution log](../assets/disparity_pose_20261029/execution.log) preserve all input
+hashes, baseline comparisons, rejected raw candidates, retained counts, costs,
+scaled parameters and Jacobian singular values. No original inputs or historical
+verdicts were changed; no fresh evaluation data was used.
+'''
+p=Path('docs/research/stereo_disparity_pose.md')
+p.write_text(p.read_text().split('\n\n## Results')[0]+text)
+print('12 cases, exact fallback, recovery totals and all schemas validated')

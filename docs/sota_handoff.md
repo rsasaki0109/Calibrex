@@ -645,3 +645,15 @@ coverage is now six recordings, not completion of all-55 capture/replay. Next
 prioritize independently validated full-pose quality/rejection, preserving both
 coverage and false-acceptance evidence; convergence alone is demonstrably unsafe
 as an accuracy criterion. No held-out audit or SOTA claim.
+
+### Joint inverse-depth pose estimator (2026-10-29)
+
+[Six-drive/twelve-case experiment](research/stereo_disparity_pose.md), frozen at
+`517c4eb6`: a new experimental ROS-independent six-DoF solver uses bilinear
+pixel-scaled inverse-depth residuals and fixed LiDAR populations. Synthetic known
+planes recover all axes; unobservable/missing-depth tests reject. Real recovery
+is **1/12 versus matched-input D2D 5/12**. Eight new fits lose required support;
+four pass numerical checks, but three of those fail reference accuracy gates.
+Do not promote, relax retention or call SOTA. Next address explicit visibility
+and missing-depth boundary continuity, with controlled hole/occlusion tests and
+independent full-pose validation. Preserve the negative result and original inputs.

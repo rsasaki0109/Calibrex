@@ -47,3 +47,71 @@ PYTHONPATH=src:. OPENBLAS_NUM_THREADS=1 \
   python tools/evaluate_disparity_pose.py \
   docs/assets/disparity_pose_20261029/plan.json /tmp/disparity-pose.json
 ```
+
+
+## Results
+
+Code/options/plan were frozen at `517c4eb6`. All twelve fits completed without
+parameter changes or retries. The synthetic three-plane test recovered the pose,
+but the real-data comparison **does not support adopting the new estimator**.
+
+- Archived matched-input D2D recovery: **5/12**.
+- New estimator accepted-stage recovery: **1/12**; returned-pipeline recovery
+  **1/12** as well (original perturbations do not satisfy the rotation gate).
+- New estimator accepts **4/12** on numerical checks; only **1 of those 4** meets
+  the independent reference accuracy gates. The other three are false accepts
+  under these development scoring criteria.
+- The other **8/12** are rejected for `lost_support`, with exact initializer
+  fallback. Each initial frame has 3,000 selected points. Final retained counts
+  range from 2,332 to 2,895; failure is the frozen 90% retention rule, not an
+  inability to reach the 128-point minimum. No retention threshold is relaxed.
+
+All raw candidates remain visible below. Distances are to the dataset reference,
+not independent ground truth. A candidate's rotation or translation improvement
+alone does not imply a successful full calibration.
+
+| Recording / seed | New status | New raw rotation (deg) | New raw translation (m) | New accepted recovery | D2D rotation (deg) | D2D translation (m) | D2D recovery |
+| --- | --- | ---: | ---: | --- | ---: | ---: | --- |
+| 0005 positive | lost_support | 0.5227 | 0.1304 | False | 0.8406 | 0.2773 | False |
+| 0005 negative | lost_support | 0.6737 | 0.0833 | False | 0.2416 | 0.1288 | True |
+| 0002 positive | lost_support | 0.5172 | 0.1500 | False | 0.1652 | 0.1064 | True |
+| 0002 negative | converged | 0.8516 | 0.0565 | False | 0.1168 | 0.1821 | True |
+| 0009 positive | lost_support | 0.6708 | 0.1669 | False | 0.8124 | 0.2569 | False |
+| 0009 negative | converged | 0.4533 | 0.0794 | True | 0.3340 | 0.2915 | False |
+| 0011 positive | lost_support | 0.4752 | 0.2193 | False | 0.3001 | 0.1358 | True |
+| 0011 negative | converged | 0.5961 | 0.0796 | False | 0.1601 | 0.2751 | False |
+| 0013 positive | lost_support | 0.5243 | 0.0368 | False | 0.6570 | 0.3021 | False |
+| 0013 negative | converged | 1.6521 | 0.1700 | False | 0.9426 | 0.5408 | False |
+| 0015 positive | lost_support | 0.9181 | 0.2231 | False | 0.2688 | 0.2019 | False |
+| 0015 negative | lost_support | 0.9806 | 0.1117 | False | 0.2416 | 0.1663 | True |
+
+Every inner optimizer terminates successfully in 18–30 reported function
+evaluations, but that does not establish either accurate calibration or sound
+visibility modeling. Bilinear interpolation is continuous only within valid
+neighborhoods. The fixed missing-data penalty and neighborhood-validity gates
+introduce discontinuities when projections cross holes or boundaries. A numerical
+Jacobian near those transitions can be misleading, and its condition number is
+not an independent acceptance check. These are known modeling limitations, not
+isolated causal conclusions from this experiment.
+
+### Decision
+
+Keep this estimator experimental and unregistered. Do not replace D2D, relax
+retention, increase a success count by accepting rejected candidates, or claim
+SOTA. This experiment tested a substantive model change—joint six-DoF fitting in
+pixel-scaled inverse depth—rather than another frontend threshold tweak, and
+its negative result is retained.
+
+The next estimator revision should explicitly model visibility and depth-boundary
+transitions with an objective whose derivatives remain meaningful, and verify
+those behaviors with controlled occlusion/hole tests before another real-data
+run. Full-pose acceptance also needs independent validation: the current local
+numerical criteria accepted three inaccurate calibrations. Further changes must
+use a new frozen protocol and preserve this 1/12 outcome.
+
+[Evaluation](../assets/disparity_pose_20261029/evaluation.json),
+[schema](../assets/disparity_pose_20261029/evaluation.schema.json) and
+[execution log](../assets/disparity_pose_20261029/execution.log) preserve all input
+hashes, baseline comparisons, rejected raw candidates, retained counts, costs,
+scaled parameters and Jacobian singular values. No original inputs or historical
+verdicts were changed; no fresh evaluation data was used.
