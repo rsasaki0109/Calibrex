@@ -764,3 +764,18 @@ Baseline outputs exactly reproduce prior study. Reject promotion/real-data rerun
 Next allocation must preserve converged baseline and explicitly count remaining
 exploration/refinement work; retain visibility/drift controls because higher MI
 alone is unsafe. No reference-guided starts or after-result tuning.
+
+### Baseline-preserving continuation (2026-10-29)
+
+[Results](research/joint_continuation_results.md), frozen at `420daa35`: unchanged
+starts/objective/bounds, full baseline plus four ≤40-call probes, remaining calls
+to highest-MI explorer with exact state continuation. Converged higher-MI results
+only; otherwise exact baseline fallback. Recovery **1/10 → 5/10**, all positive
+seeds pass and all negative seeds fail. All refined explorers converge; total
+353–689 ≤800 calls. Six baseline fallbacks/nine replacements, exact baseline
+reproduction. Truth-start controls **5/5 → 4/5**: all-return case now converges
+wrongly at 0.8560 deg/0.1427 m. Budget issue resolved; MI-only selection remains
+unsafe. Do not promote or rerun real data as a validated improvement. Next freeze
+reference-free geometric candidate validation on disjoint analytic LiDAR samples,
+retaining occlusion/unsupported populations and correct/wrong candidate controls.
+No real/SOTA claim; conditions/seeds are dependent, not independent scenes.
