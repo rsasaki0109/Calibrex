@@ -862,3 +862,17 @@ relax bias gate or empirically subtract the observed offset. Next freeze analyti
 first-surface depth-sampling diagnostic versus bilinear pixel sampling to isolate
 model mismatch, keeping fixed seeds/objective and all bias/occlusion controls.
 Oracle sampler is diagnostic only; rank does not imply unbiased estimation/SOTA.
+
+### Analytic depth-sampling control (2026-10-29)
+
+[Results](research/analytic_sampling_results.md), frozen at `b355c938`: same solver
+function definitions, only bilinear sampler replaced by known first-surface raycast.
+54 sphere cases, archived baseline pinned. Joint recovery **12/36→33/36**, truth-start
+**6/18→11/18**. Median bias error .05590 m→.00000948 m; zero-bias max .000341 m,
+strongly implicating pixel/bilinear approximation in previous systematic offset.
+Do not omit failures: four max_nfev, six negative-bias truth starts converge with
+wrong bias (up to .24990 m). 50/54 converge; 8–639 actual calls. Oracle is diagnostic
+only, not deployable or real-data evidence. Next separate boundary-aware image-only
+sampling from investigation of exact-sampler negative-bias truth-start derivative/
+stopping failures; do not change both together or relax gates. Keep all six wrong-bias
+truth starts as controls. No production/SOTA claim.
