@@ -809,3 +809,17 @@ motivated non-oracle visibility handling on additional analytic controls, retain
 visible-only recovery and truth-start drift checks; assess depth-bias/translation
 confounding separately rather than adding both mechanisms at once. Baseline exactly
 reproduced; no core/default changes.
+
+### One-sided metric occlusion control (2026-10-29)
+
+[Results](research/occlusion_pose_results.md), frozen at `a2e22ce5`: three fixed
+sphere arrangements, visible/all-return populations, both signs + true starts,
+36 fits. Supported positive residual r becomes r/sqrt(1+(r/.2)^2); negative and
+unsupported penalties unchanged. Perturbed recovery **8/12 → 12/12**; all-return
+**2/6 → 6/6**, visible stays 6/6. True-start controls **4/6 → 6/6**, though nonzero
+drift remains. Original visible-only accuracy worsens ~0.14→0.20 deg while still
+passing. All asymmetric fits converge/retain support, 131–238 calls. Original
+symmetric results exactly reproduce. Positive synthetic result only: no production
+or SOTA claim. Next isolate depth-bias versus translation confounding with fixed
+visibility handling, zero/positive/negative bias and truth-start controls; test
+observability before accepting a fitted nuisance bias. No further saturation tuning.

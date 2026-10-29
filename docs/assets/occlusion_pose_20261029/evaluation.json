@@ -1,0 +1,2725 @@
+{
+  "scope": "one-sided occlusion residual; three synthetic scene layouts",
+  "source_commit": "a2e22ce5e61ce6cf580ebb682d503a1b1078ef89",
+  "plan_sha256": "8ee4b518ad87b4fb0b011fc80ef8bf3ccf1b3789c7ee005fe5151af70bdff7c4",
+  "cases": [
+    {
+      "scene": "original",
+      "condition": "exact_z_visible",
+      "sign": 1,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.18270256994648235,
+                -0.12331060701286084,
+                0.32183787591115076
+              ],
+              "rotation_quat_xyzw": [
+                0.016878684190050734,
+                -0.025161243192804467,
+                0.009571499856813138,
+                0.9994950766519544
+              ]
+            },
+            "delta": [
+              -1.1009806020994566,
+              0.5823695149495067,
+              -0.7152403171988376,
+              -0.16729743005351763,
+              0.07668939298713917,
+              -0.07816212408884923
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 127,
+            "nfev": 25,
+            "njev": 17,
+            "initial_support": [
+              3746,
+              3738,
+              3747
+            ],
+            "final_support": [
+              3783,
+              3776,
+              3780
+            ],
+            "support_retained": true,
+            "cost": 41.32721284560776,
+            "optimality": 0.6538644215002306
+          },
+          "seconds": 0.21427602699259296,
+          "population": [
+            {
+              "points": 3783,
+              "supported": 3783,
+              "behind_over_20cm": 15,
+              "in_front_over_20cm": 35
+            },
+            {
+              "points": 3776,
+              "supported": 3776,
+              "behind_over_20cm": 18,
+              "in_front_over_20cm": 36
+            },
+            {
+              "points": 3780,
+              "supported": 3780,
+              "behind_over_20cm": 14,
+              "in_front_over_20cm": 43
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.14150116020117762,
+            "translation_m": 0.03632462401835967,
+            "recovered": true
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.19833260555844226,
+                -0.1402769275322355,
+                0.3275911218886859
+              ],
+              "rotation_quat_xyzw": [
+                0.015830190450380623,
+                -0.02609967745875607,
+                0.009224861193765812,
+                0.9994914275984609
+              ]
+            },
+            "delta": [
+              -1.217637055628081,
+              0.47288535661734526,
+              -0.7608505870570835,
+              -0.15166739444155772,
+              0.0597230724677645,
+              -0.07240887811131415
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 187,
+            "nfev": 31,
+            "njev": 26,
+            "initial_support": [
+              3746,
+              3738,
+              3747
+            ],
+            "final_support": [
+              3783,
+              3776,
+              3780
+            ],
+            "support_retained": true,
+            "cost": 29.322687579170353,
+            "optimality": 0.01680108119116884
+          },
+          "seconds": 0.3338638860004721,
+          "population": [
+            {
+              "points": 3783,
+              "supported": 3783,
+              "behind_over_20cm": 35,
+              "in_front_over_20cm": 30
+            },
+            {
+              "points": 3776,
+              "supported": 3776,
+              "behind_over_20cm": 29,
+              "in_front_over_20cm": 29
+            },
+            {
+              "points": 3780,
+              "supported": 3780,
+              "behind_over_20cm": 26,
+              "in_front_over_20cm": 41
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.21159221264982878,
+            "translation_m": 0.04884957628001506,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_visible",
+      "sign": -1,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.18281353499514888,
+                -0.12398255795745033,
+                0.3217080645135767
+              ],
+              "rotation_quat_xyzw": [
+                0.016849870394859082,
+                -0.025162733998365373,
+                0.009564569389704437,
+                0.9994955916349975
+              ]
+            },
+            "delta": [
+              0.8981788288216301,
+              -0.4150935041133544,
+              0.7853579062825725,
+              0.13281353499514886,
+              -0.12398255795745033,
+              0.12170806451357669
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 111,
+            "nfev": 21,
+            "njev": 15,
+            "initial_support": [
+              3783,
+              3776,
+              3780
+            ],
+            "final_support": [
+              3783,
+              3776,
+              3780
+            ],
+            "support_retained": true,
+            "cost": 41.329115474561306,
+            "optimality": 0.04393899236581614
+          },
+          "seconds": 0.21107056000619195,
+          "population": [
+            {
+              "points": 3783,
+              "supported": 3783,
+              "behind_over_20cm": 15,
+              "in_front_over_20cm": 35
+            },
+            {
+              "points": 3776,
+              "supported": 3776,
+              "behind_over_20cm": 18,
+              "in_front_over_20cm": 36
+            },
+            {
+              "points": 3780,
+              "supported": 3780,
+              "behind_over_20cm": 14,
+              "in_front_over_20cm": 45
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.14328813529627504,
+            "translation_m": 0.03663028433511055,
+            "recovered": true
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.19859356758913926,
+                -0.1384975706685253,
+                0.3270500515915785
+              ],
+              "rotation_quat_xyzw": [
+                0.01594669745429724,
+                -0.026116943716721484,
+                0.009264329038208279,
+                0.9994887594658934
+              ]
+            },
+            "delta": [
+              0.7951978824211975,
+              -0.5234450102814989,
+              0.7473744594490088,
+              0.14859356758913925,
+              -0.1384975706685253,
+              0.12705005159157856
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 144,
+            "nfev": 30,
+            "njev": 19,
+            "initial_support": [
+              3783,
+              3776,
+              3780
+            ],
+            "final_support": [
+              3783,
+              3776,
+              3780
+            ],
+            "support_retained": true,
+            "cost": 29.31809867719445,
+            "optimality": 2.5803596984800583
+          },
+          "seconds": 0.2848113439977169,
+          "population": [
+            {
+              "points": 3783,
+              "supported": 3783,
+              "behind_over_20cm": 32,
+              "in_front_over_20cm": 30
+            },
+            {
+              "points": 3776,
+              "supported": 3776,
+              "behind_over_20cm": 30,
+              "in_front_over_20cm": 28
+            },
+            {
+              "points": 3780,
+              "supported": 3780,
+              "behind_over_20cm": 24,
+              "in_front_over_20cm": 41
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.198528618914243,
+            "translation_m": 0.047071714336865605,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_visible",
+      "sign": 0,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.18268090104927648,
+                -0.1232981698779414,
+                0.3218247264377875
+              ],
+              "rotation_quat_xyzw": [
+                0.016879329368267557,
+                -0.025160497390676585,
+                0.009569397163537559,
+                0.9994951046648792
+              ]
+            },
+            "delta": [
+              -0.09312755157030178,
+              0.09691136958134201,
+              0.043964307771944176,
+              -0.01731909895072352,
+              -0.02329816987794139,
+              0.021824726437787486
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 142,
+            "nfev": 28,
+            "njev": 19,
+            "initial_support": [
+              3783,
+              3776,
+              3780
+            ],
+            "final_support": [
+              3783,
+              3776,
+              3780
+            ],
+            "support_retained": true,
+            "cost": 41.32719391774292,
+            "optimality": 0.5040346385231714
+          },
+          "seconds": 0.23704194099991582,
+          "population": [
+            {
+              "points": 3783,
+              "supported": 3783,
+              "behind_over_20cm": 15,
+              "in_front_over_20cm": 35
+            },
+            {
+              "points": 3776,
+              "supported": 3776,
+              "behind_over_20cm": 18,
+              "in_front_over_20cm": 36
+            },
+            {
+              "points": 3780,
+              "supported": 3780,
+              "behind_over_20cm": 14,
+              "in_front_over_20cm": 44
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.1414366889842183,
+            "translation_m": 0.036319066510727235,
+            "recovered": true
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.1984423828746145,
+                -0.1385226133864776,
+                0.32711680704870955
+              ],
+              "rotation_quat_xyzw": [
+                0.0159456856020603,
+                -0.026108809907732625,
+                0.009270185689302863,
+                0.9994889338122599
+              ]
+            },
+            "delta": [
+              -0.19819345342628059,
+              -0.012120318888553331,
+              0.005097382502043554,
+              -0.0015576171253855271,
+              -0.0385226133864776,
+              0.027116807048709557
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 220,
+            "nfev": 40,
+            "njev": 30,
+            "initial_support": [
+              3783,
+              3776,
+              3780
+            ],
+            "final_support": [
+              3783,
+              3776,
+              3780
+            ],
+            "support_retained": true,
+            "cost": 29.31789808741207,
+            "optimality": 3.7866723588809497
+          },
+          "seconds": 0.40590941499976907,
+          "population": [
+            {
+              "points": 3783,
+              "supported": 3783,
+              "behind_over_20cm": 32,
+              "in_front_over_20cm": 30
+            },
+            {
+              "points": 3776,
+              "supported": 3776,
+              "behind_over_20cm": 30,
+              "in_front_over_20cm": 28
+            },
+            {
+              "points": 3780,
+              "supported": 3780,
+              "behind_over_20cm": 24,
+              "in_front_over_20cm": 41
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.19862858942095046,
+            "translation_m": 0.04713532791601497,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_all",
+      "sign": 1,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.10051700554332485,
+                -0.09984055124031661,
+                0.33471890150841316
+              ],
+              "rotation_quat_xyzw": [
+                0.018511123451446412,
+                -0.020399511349073966,
+                0.012459938150654578,
+                0.999542869609186
+              ]
+            },
+            "delta": [
+              -0.9327646245826202,
+              1.125706783502681,
+              -0.36804043898552585,
+              -0.24948299445667513,
+              0.1001594487596834,
+              -0.06528109849158686
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 121,
+            "nfev": 19,
+            "njev": 17,
+            "initial_support": [
+              3803,
+              3802,
+              3807
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 183.1516008604836,
+            "optimality": 0.004973541281641799
+          },
+          "seconds": 0.20643166000081692,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 365,
+              "in_front_over_20cm": 41
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 140,
+              "in_front_over_20cm": 50
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 400,
+              "in_front_over_20cm": 55
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.7519335902958897,
+            "translation_m": 0.1053674225362124,
+            "recovered": false
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.19938031905770648,
+                -0.14021400266954726,
+                0.32746715758580286
+              ],
+              "rotation_quat_xyzw": [
+                0.015832968771074107,
+                -0.02615596716564642,
+                0.009137302074503561,
+                0.9994907164112747
+              ]
+            },
+            "delta": [
+              -1.2169121677189445,
+              0.4666070829844306,
+              -0.7709661259553795,
+              -0.1506196809422935,
+              0.05978599733045276,
+              -0.07253284241419716
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 186,
+            "nfev": 36,
+            "njev": 25,
+            "initial_support": [
+              3803,
+              3802,
+              3807
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 32.58876015568374,
+            "optimality": 0.6982427609650769
+          },
+          "seconds": 0.3367795770027442,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 92,
+              "in_front_over_20cm": 30
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 91,
+              "in_front_over_20cm": 29
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 86,
+              "in_front_over_20cm": 42
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.2116398706874858,
+            "translation_m": 0.04870312886273246,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_all",
+      "sign": -1,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.10040438486658079,
+                -0.10072692378290797,
+                0.3347521608610069
+              ],
+              "rotation_quat_xyzw": [
+                0.018483166943702264,
+                -0.020395375223898404,
+                0.012457493027771625,
+                0.9995435018430517
+              ]
+            },
+            "delta": [
+              1.0806291792304739,
+              0.12430090283265695,
+              1.130099172955712,
+              0.05040438486658077,
+              -0.10072692378290797,
+              0.1347521608610069
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 145,
+            "nfev": 25,
+            "njev": 20,
+            "initial_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 183.14188124013214,
+            "optimality": 0.03414822904513821
+          },
+          "seconds": 0.24549266499525402,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 365,
+              "in_front_over_20cm": 42
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 140,
+              "in_front_over_20cm": 51
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 402,
+              "in_front_over_20cm": 56
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.7517987285625634,
+            "translation_m": 0.10548709710907596,
+            "recovered": false
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.19895680095898025,
+                -0.14021160735172214,
+                0.32742342616095454
+              ],
+              "rotation_quat_xyzw": [
+                0.015829707628914978,
+                -0.026135273334133947,
+                0.00917902623981621,
+                0.9994909270830936
+              ]
+            },
+            "delta": [
+              0.7820433261582581,
+              -0.5253359207814111,
+              0.7373389484831673,
+              0.14895680095898023,
+              -0.14021160735172214,
+              0.12742342616095453
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 173,
+            "nfev": 35,
+            "njev": 23,
+            "initial_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 32.58976658928045,
+            "optimality": 0.6058939086567097
+          },
+          "seconds": 0.3014819319942035,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 92,
+              "in_front_over_20cm": 30
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 91,
+              "in_front_over_20cm": 30
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 86,
+              "in_front_over_20cm": 41
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.21179732771762302,
+            "translation_m": 0.04868373375629261,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "original",
+      "condition": "exact_z_all",
+      "sign": 0,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.10043261321993599,
+                -0.10059792470130634,
+                0.33461936416445753
+              ],
+              "rotation_quat_xyzw": [
+                0.018481988022831745,
+                -0.020397459672748305,
+                0.012470553767924447,
+                0.9995433182440588
+              ]
+            },
+            "delta": [
+              0.07880965197215266,
+              0.6380783544558736,
+              0.39113278801963547,
+              -0.09956738678006402,
+              -0.000597924701306339,
+              0.034619364164457565
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 142,
+            "nfev": 28,
+            "njev": 19,
+            "initial_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 183.1413452770001,
+            "optimality": 0.15589308866327103
+          },
+          "seconds": 0.2731598429963924,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 364,
+              "in_front_over_20cm": 42
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 140,
+              "in_front_over_20cm": 51
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 402,
+              "in_front_over_20cm": 55
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.752326292862017,
+            "translation_m": 0.10541594945410597,
+            "recovered": false
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.19876035581504203,
+                -0.13834835938449094,
+                0.32700058074464944
+              ],
+              "rotation_quat_xyzw": [
+                0.01595150418450866,
+                -0.026129436298181163,
+                0.009253433099850581,
+                0.9994884571864037
+              ]
+            },
+            "delta": [
+              -0.19745429815332768,
+              -0.014447408408596414,
+              0.0031587121320813525,
+              -0.0012396441849579752,
+              -0.03834835938449094,
+              0.027000580744649477
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 163,
+            "nfev": 31,
+            "njev": 22,
+            "initial_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 32.60297924958829,
+            "optimality": 3.6794833344055173
+          },
+          "seconds": 0.34694081399356946,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 89,
+              "in_front_over_20cm": 31
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 93,
+              "in_front_over_20cm": 29
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 84,
+              "in_front_over_20cm": 41
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.19800693787206797,
+            "translation_m": 0.04691657218654949,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_visible",
+      "sign": 1,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.16674846784514577,
+                -0.09940211720125995,
+                0.31837664468755855
+              ],
+              "rotation_quat_xyzw": [
+                0.017925999927984437,
+                -0.024150496000125195,
+                0.008977813847392734,
+                0.9995072840795366
+              ]
+            },
+            "delta": [
+              -0.9819886205784972,
+              0.7020258908091892,
+              -0.776942510655731,
+              -0.1832515321548542,
+              0.10059788279874006,
+              -0.08162335531244144
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 179,
+            "nfev": 35,
+            "njev": 24,
+            "initial_support": [
+              3746,
+              3711,
+              3730
+            ],
+            "final_support": [
+              3768,
+              3733,
+              3754
+            ],
+            "support_retained": true,
+            "cost": 31.39054887335977,
+            "optimality": 0.8500541150312695
+          },
+          "seconds": 0.31302778799727093,
+          "population": [
+            {
+              "points": 3768,
+              "supported": 3768,
+              "behind_over_20cm": 18,
+              "in_front_over_20cm": 22
+            },
+            {
+              "points": 3733,
+              "supported": 3733,
+              "behind_over_20cm": 5,
+              "in_front_over_20cm": 33
+            },
+            {
+              "points": 3754,
+              "supported": 3754,
+              "behind_over_20cm": 11,
+              "in_front_over_20cm": 21
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.21741825221325917,
+            "translation_m": 0.0379963540942958,
+            "recovered": true
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.1744615695575738,
+                -0.10352032323172747,
+                0.32157036552724017
+              ],
+              "rotation_quat_xyzw": [
+                0.017546689858047672,
+                -0.0249647949683339,
+                0.009146251486724832,
+                0.9994924805975062
+              ]
+            },
+            "delta": [
+              -1.023767800905474,
+              0.6074137401643289,
+              -0.7608350800524488,
+              -0.17553843044242617,
+              0.09647967676827254,
+              -0.07842963447275988
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 200,
+            "nfev": 38,
+            "njev": 27,
+            "initial_support": [
+              3746,
+              3711,
+              3730
+            ],
+            "final_support": [
+              3768,
+              3733,
+              3754
+            ],
+            "support_retained": true,
+            "cost": 23.235691870106777,
+            "optimality": 0.12892096614721454
+          },
+          "seconds": 0.36648694399627857,
+          "population": [
+            {
+              "points": 3768,
+              "supported": 3768,
+              "behind_over_20cm": 28,
+              "in_front_over_20cm": 18
+            },
+            {
+              "points": 3733,
+              "supported": 3733,
+              "behind_over_20cm": 17,
+              "in_front_over_20cm": 27
+            },
+            {
+              "points": 3754,
+              "supported": 3754,
+              "behind_over_20cm": 18,
+              "in_front_over_20cm": 22
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.12186933645124616,
+            "translation_m": 0.03361375870231166,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_visible",
+      "sign": -1,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.16675292002823036,
+                -0.0994313538602945,
+                0.31837506316605313
+              ],
+              "rotation_quat_xyzw": [
+                0.01792352004312897,
+                -0.0241509348968736,
+                0.00897334765730818,
+                0.9995073580543025
+              ]
+            },
+            "delta": [
+              1.023267969950271,
+              -0.29849120101205706,
+              0.721900575615076,
+              0.11675292002823034,
+              -0.0994313538602945,
+              0.11837506316605313
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 230,
+            "nfev": 44,
+            "njev": 31,
+            "initial_support": [
+              3768,
+              3733,
+              3754
+            ],
+            "final_support": [
+              3768,
+              3733,
+              3754
+            ],
+            "support_retained": true,
+            "cost": 31.39052261672272,
+            "optimality": 0.7644014507616278
+          },
+          "seconds": 0.3823540120065445,
+          "population": [
+            {
+              "points": 3768,
+              "supported": 3768,
+              "behind_over_20cm": 18,
+              "in_front_over_20cm": 22
+            },
+            {
+              "points": 3733,
+              "supported": 3733,
+              "behind_over_20cm": 5,
+              "in_front_over_20cm": 33
+            },
+            {
+              "points": 3754,
+              "supported": 3754,
+              "behind_over_20cm": 11,
+              "in_front_over_20cm": 21
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.21738625511328827,
+            "translation_m": 0.037991244141747864,
+            "recovered": true
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.17446387863370097,
+                -0.10351947173150497,
+                0.32156794169572533
+              ],
+              "rotation_quat_xyzw": [
+                0.01754683921328696,
+                -0.02496497289316535,
+                0.009145816310695748,
+                0.9994924775135017
+              ]
+            },
+            "delta": [
+              0.9793190056164837,
+              -0.391957132582982,
+              0.7392200021414106,
+              0.12446387863370095,
+              -0.10351947173150497,
+              0.12156794169572534
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 179,
+            "nfev": 35,
+            "njev": 24,
+            "initial_support": [
+              3768,
+              3733,
+              3754
+            ],
+            "final_support": [
+              3768,
+              3733,
+              3754
+            ],
+            "support_retained": true,
+            "cost": 23.235691678201125,
+            "optimality": 0.05885740289863974
+          },
+          "seconds": 0.2979688589985017,
+          "population": [
+            {
+              "points": 3768,
+              "supported": 3768,
+              "behind_over_20cm": 28,
+              "in_front_over_20cm": 18
+            },
+            {
+              "points": 3733,
+              "supported": 3733,
+              "behind_over_20cm": 17,
+              "in_front_over_20cm": 27
+            },
+            {
+              "points": 3754,
+              "supported": 3754,
+              "behind_over_20cm": 18,
+              "in_front_over_20cm": 22
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.12184860049044592,
+            "translation_m": 0.03361035978226691,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_visible",
+      "sign": 0,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.1667810716192587,
+                -0.0994635091431511,
+                0.3183673368370606
+              ],
+              "rotation_quat_xyzw": [
+                0.01792102373514539,
+                -0.02415234555425702,
+                0.008969130891219396,
+                0.9995074065776443
+              ]
+            },
+            "delta": [
+              0.026808523243162376,
+              0.21469204987278853,
+              -0.019520447047059814,
+              -0.033218928380741315,
+              0.0005364908568489091,
+              0.01836733683706059
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 166,
+            "nfev": 34,
+            "njev": 22,
+            "initial_support": [
+              3768,
+              3733,
+              3754
+            ],
+            "final_support": [
+              3768,
+              3733,
+              3754
+            ],
+            "support_retained": true,
+            "cost": 31.390555851326706,
+            "optimality": 2.298449829565563
+          },
+          "seconds": 0.264340503999847,
+          "population": [
+            {
+              "points": 3768,
+              "supported": 3768,
+              "behind_over_20cm": 18,
+              "in_front_over_20cm": 22
+            },
+            {
+              "points": 3733,
+              "supported": 3733,
+              "behind_over_20cm": 5,
+              "in_front_over_20cm": 33
+            },
+            {
+              "points": 3754,
+              "supported": 3754,
+              "behind_over_20cm": 11,
+              "in_front_over_20cm": 21
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.21724267688158816,
+            "translation_m": 0.037962403607916424,
+            "recovered": true
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.17705757596433608,
+                -0.10337830483719014,
+                0.3218935108659238
+              ],
+              "rotation_quat_xyzw": [
+                0.01754698477526381,
+                -0.02507958672987371,
+                0.009185180413284096,
+                0.9994892446222375
+              ]
+            },
+            "delta": [
+              -0.01562368691975128,
+              0.1076055574473462,
+              0.002184751720741099,
+              -0.022942424035663943,
+              -0.00337830483719014,
+              0.021893510865923817
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 137,
+            "nfev": 23,
+            "njev": 19,
+            "initial_support": [
+              3768,
+              3733,
+              3754
+            ],
+            "final_support": [
+              3768,
+              3733,
+              3754
+            ],
+            "support_retained": true,
+            "cost": 23.22433940754637,
+            "optimality": 0.0106084471080238
+          },
+          "seconds": 0.22687683800177183,
+          "population": [
+            {
+              "points": 3768,
+              "supported": 3768,
+              "behind_over_20cm": 30,
+              "in_front_over_20cm": 18
+            },
+            {
+              "points": 3733,
+              "supported": 3733,
+              "behind_over_20cm": 17,
+              "in_front_over_20cm": 29
+            },
+            {
+              "points": 3754,
+              "supported": 3754,
+              "behind_over_20cm": 18,
+              "in_front_over_20cm": 22
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.10875611596261966,
+            "translation_m": 0.031891904650577355,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_all",
+      "sign": 1,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.12172005025511376,
+                -0.07806513642424273,
+                0.32789622906840554
+              ],
+              "rotation_quat_xyzw": [
+                0.01960531693390017,
+                -0.02048517229244512,
+                0.012134761990140073,
+                0.9995242552412187
+              ]
+            },
+            "delta": [
+              -0.8064422709077278,
+              1.1189505905541006,
+              -0.40040891162094294,
+              -0.22827994974488622,
+              0.12193486357575728,
+              -0.0721037709315945
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 265,
+            "nfev": 49,
+            "njev": 36,
+            "initial_support": [
+              3816,
+              3815,
+              3816
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 371.54624116197994,
+            "optimality": 27.161518015380683
+          },
+          "seconds": 0.4365603629994439,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 373,
+              "in_front_over_20cm": 36
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 302,
+              "in_front_over_20cm": 48
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 434,
+              "in_front_over_20cm": 40
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.7523064373885676,
+            "translation_m": 0.08594817257153264,
+            "recovered": false
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.1724747405265904,
+                -0.10375954826928938,
+                0.32074296364947946
+              ],
+              "rotation_quat_xyzw": [
+                0.017550578007956282,
+                -0.024879580172281104,
+                0.009097192800672104,
+                0.999494984872453
+              ]
+            },
+            "delta": [
+              -1.0234080300008188,
+              0.6172892332644779,
+              -0.7662702533071835,
+              -0.17752525947340958,
+              0.09624045173071064,
+              -0.07925703635052055
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 163,
+            "nfev": 25,
+            "njev": 23,
+            "initial_support": [
+              3816,
+              3815,
+              3816
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 26.95695270670912,
+            "optimality": 0.011899526849059013
+          },
+          "seconds": 0.2883442449965514,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 98,
+              "in_front_over_20cm": 18
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 122,
+              "in_front_over_20cm": 29
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 104,
+              "in_front_over_20cm": 23
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.13180066720434686,
+            "translation_m": 0.03467051561819162,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_all",
+      "sign": -1,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.12078567767290706,
+                -0.08032875554220535,
+                0.3300190953503419
+              ],
+              "rotation_quat_xyzw": [
+                0.019477529114639576,
+                -0.020459690836908392,
+                0.01172586817424401,
+                0.9995321560240105
+              ]
+            },
+            "delta": [
+              1.1962436702809185,
+              0.11767743232073867,
+              1.0487474384914082,
+              0.07078567767290704,
+              -0.08032875554220535,
+              0.13001909535034192
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 341,
+            "nfev": 65,
+            "njev": 46,
+            "initial_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 371.5478434544116,
+            "optimality": 8.848906392940181
+          },
+          "seconds": 0.5533588109974517,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 385,
+              "in_front_over_20cm": 35
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 305,
+              "in_front_over_20cm": 48
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 453,
+              "in_front_over_20cm": 40
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.7306704929015488,
+            "translation_m": 0.0869655840313386,
+            "recovered": false
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.17247507556146585,
+                -0.10375979329676832,
+                0.3207428200127833
+              ],
+              "rotation_quat_xyzw": [
+                0.01755056290429303,
+                -0.02487961136869805,
+                0.009097177234372058,
+                0.9994949845027995
+              ]
+            },
+            "delta": [
+              0.9799171838014447,
+              -0.3820783856528855,
+              0.7338248261011496,
+              0.12247507556146583,
+              -0.10375979329676832,
+              0.12074282001278336
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 143,
+            "nfev": 23,
+            "njev": 20,
+            "initial_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 26.956952702821486,
+            "optimality": 0.013497983242824762
+          },
+          "seconds": 0.24338391900528222,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 98,
+              "in_front_over_20cm": 18
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 122,
+              "in_front_over_20cm": 29
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 104,
+              "in_front_over_20cm": 23
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.13179743533071434,
+            "translation_m": 0.03467019026576237,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "near_foreground",
+      "condition": "exact_z_all",
+      "sign": 0,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.12018112462649601,
+                -0.08110499194731477,
+                0.3312271082592434
+              ],
+              "rotation_quat_xyzw": [
+                0.01943738058323578,
+                -0.0204449648010489,
+                0.011580859948169825,
+                0.9995349295213286
+              ]
+            },
+            "delta": [
+              0.19039650458484286,
+              0.6352012620550452,
+              0.2926122432106485,
+              -0.079818875373504,
+              0.01889500805268524,
+              0.031227108259243394
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 319,
+            "nfev": 55,
+            "njev": 44,
+            "initial_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 371.5945011960339,
+            "optimality": 26.646579369637035
+          },
+          "seconds": 0.5169253929925617,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 393,
+              "in_front_over_20cm": 35
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 305,
+              "in_front_over_20cm": 47
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 465,
+              "in_front_over_20cm": 40
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.7243855488084244,
+            "translation_m": 0.08776791261865871,
+            "recovered": false
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.17247544909503856,
+                -0.10375982887571705,
+                0.3207426175887567
+              ],
+              "rotation_quat_xyzw": [
+                0.017550563700841376,
+                -0.024879644814050018,
+                0.009097166849398564,
+                0.9994949837508058
+              ]
+            },
+            "delta": [
+              -0.015183894406917151,
+              0.13070276436301753,
+              -0.0074885188055711085,
+              -0.02752455090496145,
+              -0.003759828875717043,
+              0.020742617588756736
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 145,
+            "nfev": 25,
+            "njev": 20,
+            "initial_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 26.956952703535958,
+            "optimality": 0.015685452807122698
+          },
+          "seconds": 0.24785013899963815,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 98,
+              "in_front_over_20cm": 18
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 122,
+              "in_front_over_20cm": 29
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 104,
+              "in_front_over_20cm": 23
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.1317937087570231,
+            "translation_m": 0.03466977646492532,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_visible",
+      "sign": 1,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.1906641883915072,
+                -0.08603894338683157,
+                0.3166881605362584
+              ],
+              "rotation_quat_xyzw": [
+                0.018416489412306506,
+                -0.025418099536886708,
+                0.009161514214377475,
+                0.9994652669257492
+              ]
+            },
+            "delta": [
+              -0.9229873032933822,
+              0.5576282363674469,
+              -0.7564570326736211,
+              -0.15933581160849278,
+              0.11396105661316844,
+              -0.0833118394637416
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 202,
+            "nfev": 40,
+            "njev": 27,
+            "initial_support": [
+              3745,
+              3744,
+              3746
+            ],
+            "final_support": [
+              3768,
+              3766,
+              3770
+            ],
+            "support_retained": true,
+            "cost": 46.88293943617805,
+            "optimality": 3.200684872362643
+          },
+          "seconds": 0.3213512410002295,
+          "population": [
+            {
+              "points": 3768,
+              "supported": 3768,
+              "behind_over_20cm": 16,
+              "in_front_over_20cm": 43
+            },
+            {
+              "points": 3766,
+              "supported": 3766,
+              "behind_over_20cm": 18,
+              "in_front_over_20cm": 43
+            },
+            {
+              "points": 3770,
+              "supported": 3770,
+              "behind_over_20cm": 24,
+              "in_front_over_20cm": 31
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.10951194373194094,
+            "translation_m": 0.02367621553857999,
+            "recovered": true
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.20743764686097985,
+                -0.09365295279551614,
+                0.3212060841966735
+              ],
+              "rotation_quat_xyzw": [
+                0.01779676501700563,
+                -0.02660350110946663,
+                0.009158485992871057,
+                0.9994456718691449
+              ]
+            },
+            "delta": [
+              -0.9908583631922547,
+              0.42025134869280045,
+              -0.761669178885615,
+              -0.14256235313902013,
+              0.10634704720448387,
+              -0.07879391580332651
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 213,
+            "nfev": 39,
+            "njev": 29,
+            "initial_support": [
+              3745,
+              3744,
+              3746
+            ],
+            "final_support": [
+              3768,
+              3766,
+              3770
+            ],
+            "support_retained": true,
+            "cost": 31.163228305171558,
+            "optimality": 0.9326579506694472
+          },
+          "seconds": 0.3599553759995615,
+          "population": [
+            {
+              "points": 3768,
+              "supported": 3768,
+              "behind_over_20cm": 26,
+              "in_front_over_20cm": 41
+            },
+            {
+              "points": 3766,
+              "supported": 3766,
+              "behind_over_20cm": 28,
+              "in_front_over_20cm": 40
+            },
+            {
+              "points": 3770,
+              "supported": 3770,
+              "behind_over_20cm": 36,
+              "in_front_over_20cm": 30
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.06842551668812917,
+            "translation_m": 0.023351693857212936,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_visible",
+      "sign": -1,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.19102528046852066,
+                -0.08605621074369947,
+                0.31672637211254706
+              ],
+              "rotation_quat_xyzw": [
+                0.01841448351731852,
+                -0.02543162281507947,
+                0.0091604442255182,
+                0.9994649696809654
+              ]
+            },
+            "delta": [
+              1.078509742958762,
+              -0.4458893026500394,
+              0.7417428150363391,
+              0.14102528046852064,
+              -0.08605621074369947,
+              0.11672637211254708
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 209,
+            "nfev": 41,
+            "njev": 28,
+            "initial_support": [
+              3768,
+              3766,
+              3770
+            ],
+            "final_support": [
+              3768,
+              3766,
+              3770
+            ],
+            "support_retained": true,
+            "cost": 46.88195562613501,
+            "optimality": 8.25335948805045
+          },
+          "seconds": 0.33713578501192387,
+          "population": [
+            {
+              "points": 3768,
+              "supported": 3768,
+              "behind_over_20cm": 16,
+              "in_front_over_20cm": 43
+            },
+            {
+              "points": 3766,
+              "supported": 3766,
+              "behind_over_20cm": 18,
+              "in_front_over_20cm": 43
+            },
+            {
+              "points": 3770,
+              "supported": 3770,
+              "behind_over_20cm": 24,
+              "in_front_over_20cm": 31
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.10836530072479648,
+            "translation_m": 0.023553054441838993,
+            "recovered": true
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.20690408861940462,
+                -0.09366480085602436,
+                0.32079049560473405
+              ],
+              "rotation_quat_xyzw": [
+                0.01780396428125208,
+                -0.026559908197632726,
+                0.00917228908296804,
+                0.9994465764838978
+              ]
+            },
+            "delta": [
+              1.0080987118096996,
+              -0.574932262583177,
+              0.7395859026183328,
+              0.1569040886194046,
+              -0.09366480085602436,
+              0.12079049560473408
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 220,
+            "nfev": 40,
+            "njev": 30,
+            "initial_support": [
+              3768,
+              3766,
+              3770
+            ],
+            "final_support": [
+              3768,
+              3766,
+              3770
+            ],
+            "support_retained": true,
+            "cost": 31.163601248358425,
+            "optimality": 0.9600991443100881
+          },
+          "seconds": 0.3650368930102559,
+          "population": [
+            {
+              "points": 3768,
+              "supported": 3768,
+              "behind_over_20cm": 26,
+              "in_front_over_20cm": 41
+            },
+            {
+              "points": 3766,
+              "supported": 3766,
+              "behind_over_20cm": 25,
+              "in_front_over_20cm": 41
+            },
+            {
+              "points": 3770,
+              "supported": 3770,
+              "behind_over_20cm": 35,
+              "in_front_over_20cm": 30
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.06369587333566325,
+            "translation_m": 0.022804514801873958,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_visible",
+      "sign": 0,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.19078917700995243,
+                -0.08606173809381713,
+                0.31667354589752844
+              ],
+              "rotation_quat_xyzw": [
+                0.018414232477295053,
+                -0.025423031324762316,
+                0.009159028837797751,
+                0.9994652058532506
+              ]
+            },
+            "delta": [
+              0.08418881007874604,
+              0.06916318433303792,
+              0.0011706188486504023,
+              -0.009210822990047591,
+              0.013938261906182872,
+              0.016673545897528477
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 143,
+            "nfev": 29,
+            "njev": 19,
+            "initial_support": [
+              3768,
+              3766,
+              3770
+            ],
+            "final_support": [
+              3768,
+              3766,
+              3770
+            ],
+            "support_retained": true,
+            "cost": 46.8824283564383,
+            "optimality": 3.3514815557444124
+          },
+          "seconds": 0.22287764099019114,
+          "population": [
+            {
+              "points": 3768,
+              "supported": 3768,
+              "behind_over_20cm": 16,
+              "in_front_over_20cm": 43
+            },
+            {
+              "points": 3766,
+              "supported": 3766,
+              "behind_over_20cm": 18,
+              "in_front_over_20cm": 43
+            },
+            {
+              "points": 3770,
+              "supported": 3770,
+              "behind_over_20cm": 24,
+              "in_front_over_20cm": 31
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.10896124233482136,
+            "translation_m": 0.023603422165362493,
+            "recovered": true
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.20684775452259124,
+                -0.09416814687364966,
+                0.3207916672722979
+              ],
+              "rotation_quat_xyzw": [
+                0.01776024796794982,
+                -0.026555572042677274,
+                0.0091965341645801,
+                0.9994472467043786
+              ]
+            },
+            "delta": [
+              0.010402383347188413,
+              -0.0613634034509916,
+              0.0011849190375173172,
+              0.006847754522591233,
+              0.005831853126350347,
+              0.020791667272297944
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 183,
+            "nfev": 39,
+            "njev": 24,
+            "initial_support": [
+              3768,
+              3766,
+              3770
+            ],
+            "final_support": [
+              3768,
+              3766,
+              3770
+            ],
+            "support_retained": true,
+            "cost": 31.169554527822925,
+            "optimality": 7.442641500974097
+          },
+          "seconds": 0.3048696860059863,
+          "population": [
+            {
+              "points": 3768,
+              "supported": 3768,
+              "behind_over_20cm": 26,
+              "in_front_over_20cm": 41
+            },
+            {
+              "points": 3766,
+              "supported": 3766,
+              "behind_over_20cm": 25,
+              "in_front_over_20cm": 40
+            },
+            {
+              "points": 3770,
+              "supported": 3770,
+              "behind_over_20cm": 36,
+              "in_front_over_20cm": 29
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.062250253702945374,
+            "translation_m": 0.022653822654266,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_all",
+      "sign": 1,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.16659417676782118,
+                -0.06578178636049825,
+                0.3207040125414692
+              ],
+              "rotation_quat_xyzw": [
+                0.020129636693314325,
+                -0.02346427906389005,
+                0.010380076408128642,
+                0.9994680982144295
+              ]
+            },
+            "delta": [
+              -0.7350376537488797,
+              0.7828851245781596,
+              -0.6055854011972536,
+              -0.1834058232321788,
+              0.13421821363950176,
+              -0.07929598745853081
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 152,
+            "nfev": 32,
+            "njev": 20,
+            "initial_support": [
+              3816,
+              3816,
+              3816
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 259.57095245271444,
+            "optimality": 2.2246490667432637
+          },
+          "seconds": 0.24577077699359506,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 80,
+              "in_front_over_20cm": 44
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 87,
+              "in_front_over_20cm": 45
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 74,
+              "in_front_over_20cm": 35
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.4287950654848508,
+            "translation_m": 0.05211037618186494,
+            "recovered": true
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.2076493592532596,
+                -0.0934524243312792,
+                0.32149681864425944
+              ],
+              "rotation_quat_xyzw": [
+                0.017804369226740845,
+                -0.026634304323833822,
+                0.009115591959723458,
+                0.9994451081739543
+              ]
+            },
+            "delta": [
+              -0.9897774916866365,
+              0.41683136576978613,
+              -0.7666128982322882,
+              -0.14235064074674036,
+              0.1065475756687208,
+              -0.07850318135574057
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 238,
+            "nfev": 46,
+            "njev": 32,
+            "initial_support": [
+              3816,
+              3816,
+              3816
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 35.03324706163455,
+            "optimality": 4.452443000025972
+          },
+          "seconds": 0.41002850100630894,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 98,
+              "in_front_over_20cm": 42
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 102,
+              "in_front_over_20cm": 38
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 106,
+              "in_front_over_20cm": 29
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.07238510207857152,
+            "translation_m": 0.023738084504593745,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_all",
+      "sign": -1,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.16698246685019177,
+                -0.06461920909829262,
+                0.3206063979706163
+              ],
+              "rotation_quat_xyzw": [
+                0.020223687097194087,
+                -0.023433828746989366,
+                0.010617423906195049,
+                0.9994644208074881
+              ]
+            },
+            "delta": [
+              1.282653585525321,
+              -0.2211890345033109,
+              0.9169120386660654,
+              0.11698246685019176,
+              -0.06461920909829262,
+              0.12060639797061633
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 3,
+            "message": "`xtol` termination condition is satisfied.",
+            "actual_residual_calls": 175,
+            "nfev": 37,
+            "njev": 23,
+            "initial_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 259.5858750564841,
+            "optimality": 34.051821387863576
+          },
+          "seconds": 0.2844054159941152,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 80,
+              "in_front_over_20cm": 47
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 91,
+              "in_front_over_20cm": 46
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 76,
+              "in_front_over_20cm": 36
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.4475801407827992,
+            "translation_m": 0.05259830318035408,
+            "recovered": true
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.20755027052865524,
+                -0.09349510262113725,
+                0.3213135311961403
+              ],
+              "rotation_quat_xyzw": [
+                0.017804397540106886,
+                -0.026625820782576356,
+                0.009110694970391655,
+                0.9994453783639426
+              ]
+            },
+            "delta": [
+              1.0083121119878706,
+              -0.5823619902334941,
+              0.7323975923536583,
+              0.15755027052865522,
+              -0.09349510262113725,
+              0.12131353119614034
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 4,
+            "message": "Both `ftol` and `xtol` termination conditions are satisfied.",
+            "actual_residual_calls": 216,
+            "nfev": 42,
+            "njev": 29,
+            "initial_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 35.03317556572065,
+            "optimality": 6.6504683407846645
+          },
+          "seconds": 0.3654491589986719,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 97,
+              "in_front_over_20cm": 42
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 102,
+              "in_front_over_20cm": 38
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 106,
+              "in_front_over_20cm": 29
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.07149871147993475,
+            "translation_m": 0.023528427210807397,
+            "recovered": true
+          }
+        }
+      }
+    },
+    {
+      "scene": "staggered",
+      "condition": "exact_z_all",
+      "sign": 0,
+      "methods": {
+        "symmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.16710528349291692,
+                -0.06468472578948958,
+                0.3208921957173308
+              ],
+              "rotation_quat_xyzw": [
+                0.020216682518234785,
+                -0.023454583072399195,
+                0.010581986998084185,
+                0.999464451509922
+              ]
+            },
+            "delta": [
+              0.2847582258984771,
+              0.29319088839720076,
+              0.1741827562241939,
+              -0.032894716507083074,
+              0.03531527421051042,
+              0.020892195717330815
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 166,
+            "nfev": 34,
+            "njev": 22,
+            "initial_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 259.5862370301528,
+            "optimality": 18.68380654580678
+          },
+          "seconds": 0.2624725679925177,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 80,
+              "in_front_over_20cm": 47
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 91,
+              "in_front_over_20cm": 46
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 76,
+              "in_front_over_20cm": 35
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.44399736588027916,
+            "translation_m": 0.05259006378144224,
+            "recovered": true
+          }
+        },
+        "asymmetric": {
+          "result": {
+            "transform": {
+              "translation_m": [
+                0.20753798725723407,
+                -0.09344389127071834,
+                0.3213554034173073
+              ],
+              "rotation_quat_xyzw": [
+                0.017805932122302377,
+                -0.026624229159347156,
+                0.009105498512959562,
+                0.9994454407819153
+              ]
+            },
+            "delta": [
+              0.015988103753134367,
+              -0.06899826580691212,
+              -0.009246393549271288,
+              0.007537987257234066,
+              0.0065561087292816626,
+              0.02135540341730727
+            ],
+            "converged": true,
+            "optimizer_success": true,
+            "status": 2,
+            "message": "`ftol` termination condition is satisfied.",
+            "actual_residual_calls": 131,
+            "nfev": 29,
+            "njev": 17,
+            "initial_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "final_support": [
+              3840,
+              3840,
+              3840
+            ],
+            "support_retained": true,
+            "cost": 35.033329803732904,
+            "optimality": 5.568840037776888
+          },
+          "seconds": 0.21999611100181937,
+          "population": [
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 97,
+              "in_front_over_20cm": 42
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 102,
+              "in_front_over_20cm": 38
+            },
+            {
+              "points": 3840,
+              "supported": 3840,
+              "behind_over_20cm": 106,
+              "in_front_over_20cm": 29
+            }
+          ],
+          "metrics": {
+            "valid_output": true,
+            "rotation_deg": 0.07142617077290847,
+            "translation_m": 0.023576621231133323,
+            "recovered": true
+          }
+        }
+      }
+    }
+  ]
+}
