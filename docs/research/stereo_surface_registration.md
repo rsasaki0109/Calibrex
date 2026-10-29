@@ -47,3 +47,74 @@ PYTHONPATH=src:. OPENBLAS_NUM_THREADS=1 \
   python tools/evaluate_stereo_surface_registration.py \
   docs/assets/stereo_surface_registration_20261029/plan.json /tmp/surface-icp.json
 ```
+
+
+## Results
+
+Code, settings and protocol were frozen at `464279c5`. Five controlled geometry
+scenarios and the five existing tangent-ICP tests passed. All **24 real fits**
+(12 ICP plus 12 newly matched D2D controls) completed without outcome-based
+retries or changes to thresholds.
+
+- Surface ICP recovery: **0/12**. Seven converge, but all seven fail joint
+  reference-accuracy gates. Five hit the iteration limit and return the exact
+  initializer, with raw candidates retained.
+- Matched **single-frame** D2D recovery: **3/12**. This is not the historical
+  three-frame D2D result of 5/12; do not replace or reinterpret that verdict.
+- All ICP fits have tangent rank six. Spatial holdout point-plane RMSE spans
+  **0.0317–0.0712 m**, yet none meets full-pose accuracy criteria. Local rank and
+  same-frame held-out residuals are not sufficient accuracy evidence.
+
+Raw translation differences below are metres to the dataset reference; rotations
+are degrees. Rejected ICP candidates are shown for diagnosis only.
+
+| Recording / seed | ICP status | ICP raw rotation | ICP raw translation | Holdout plane RMSE | D2D rotation | D2D translation | D2D recovered |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| 0005 positive | max_iterations | 1.2815 | 0.3921 | 0.0626 | 1.1977 | 0.3189 | False |
+| 0005 negative | max_iterations | 0.1973 | 0.4431 | 0.0651 | 0.5732 | 0.1946 | False |
+| 0002 positive | converged | 0.7461 | 0.3220 | 0.0317 | 0.3910 | 0.2365 | False |
+| 0002 negative | converged | 0.9472 | 0.3287 | 0.0360 | 0.0214 | 0.1658 | True |
+| 0009 positive | max_iterations | 0.9588 | 0.2269 | 0.0524 | 1.1283 | 0.1820 | False |
+| 0009 negative | max_iterations | 0.5832 | 0.1624 | 0.0538 | 0.2968 | 0.2473 | False |
+| 0011 positive | converged | 1.1247 | 0.2782 | 0.0357 | 0.3341 | 0.1641 | True |
+| 0011 negative | max_iterations | 1.8009 | 0.7149 | 0.0359 | 0.3382 | 0.5852 | False |
+| 0013 positive | converged | 0.6415 | 0.1514 | 0.0414 | 0.9923 | 0.3163 | False |
+| 0013 negative | converged | 0.7947 | 0.1753 | 0.0428 | 1.1291 | 0.4390 | False |
+| 0015 positive | converged | 0.3267 | 0.2740 | 0.0531 | 0.3668 | 0.1958 | True |
+| 0015 negative | converged | 1.4670 | 0.5643 | 0.0712 | 0.4221 | 0.2184 | False |
+
+### What this changes
+
+The controlled tests now exercise actual pose recovery with missing, conflicting
+and partially overlapping surfaces, not just objective continuity. However, those
+idealized clouds do not reproduce noisy stereo reconstruction, correlated surface
+bias, time alignment or realistic cross-sensor occlusion. Their success does not
+predict real calibration success.
+
+The real test replaces projective matching with existing mutual 3D matching and
+robust tangent-plane trimming, yet fails to produce a qualifying pose. That is
+evidence against adopting this specific adapter/settings, not against ICP in all
+settings or against the original Chen–Medioni method. It also shows why a spatial
+holdout drawn from the same potentially biased stereo target is not an independent
+check of camera/LiDAR calibration.
+
+### Decision
+
+Keep the adapter experimental; no solver or frontend defaults change. Do not
+relax convergence, fit acceptance thresholds to these twelve outcomes, or report
+the seven converged poses as successful calibrations. Preserve all 24 outputs.
+
+The next substantive comparison should challenge the shared stereo reconstruction
+assumption with an independently specified depth/correspondence source, rather
+than another nearest-neighbor or penalty variant over the same depth arrays.
+Any new source must have reproducible version/settings, clear input/calibration
+requirements and the same complete failure-aware comparison. No fresh evaluation
+or SOTA claim follows from these development experiments.
+
+[Evaluation](../assets/stereo_surface_registration_20261029/evaluation.json),
+[schema](../assets/stereo_surface_registration_20261029/evaluation.schema.json),
+[execution log](../assets/stereo_surface_registration_20261029/execution.log),
+[test log](../assets/stereo_surface_registration_20261029/tests.log) and frozen
+settings preserve reference/input identities, source/target counts, normal/rank
+statistics, correspondence histories, holdout evidence and signed perturbation
+probes. Nonfinite evidence, if present, is represented explicitly by strings.

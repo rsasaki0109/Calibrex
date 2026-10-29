@@ -669,3 +669,16 @@ and two bounds. Do not promote or relax gates. Stop extending this image-support
 penalty approximation; next require independently supported correspondences and
 actual geometry recovery through controlled holes/occlusions, not continuity alone.
 Historical outputs remain unchanged; no fresh data or SOTA claim.
+
+### Surface-registration comparison (2026-10-29)
+
+[Single-frame ICP/D2D comparison](research/stereo_surface_registration.md), frozen
+at `464279c5`: existing Chen–Medioni tangent-plane ICP with mutual matches,
+trimming and spatial holdout passes five geometric hole/occlusion/overlap tests,
+but recovers **0/12** on central real frames versus matched single-frame D2D
+**3/12**. Seven ICP fits converge inaccurately; five reach the iteration limit.
+All have rank six and 0.0317–0.0712 m holdout plane RMSE. Same-stereo-surface
+holdout is not independent calibration validation. No defaults/gates promoted.
+Next challenge the shared stereo reconstruction using an independently specified
+measurement source, not another association/penalty variant on these same depths.
+Historical joint D2D 5/12 remains a separate three-frame result.

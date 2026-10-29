@@ -1,0 +1,33 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "default": "spent-data central-frame surface ICP versus matched-frame D2D; no SOTA claim",
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "cases": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Cases",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source_commit",
+    "plan_sha256",
+    "cases"
+  ],
+  "title": "Evaluation",
+  "type": "object"
+}
