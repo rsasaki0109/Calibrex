@@ -720,3 +720,17 @@ SGBM outputs exactly reproduce the prior control. No default promotion or SOTA.
 Next pre-register matched three-frame joint learned/SGBM comparison using only
 the archived frames; recompute both frontends and preserve all seeds/failures.
 Do not compare against historical three-frame 5/12 as if inputs were identical.
+
+### Three-frame joint learned stereo result (2026-10-29)
+
+[Joint comparison](research/joint_learned_stereo.md), frozen at `1948a499`:
+18 pairs and 24 completed/converged fits. Matched re-rectified SGBM recovers
+**6/12**, UniMatch **5/12**. Translation improves 8/12 (median 0.2190 → 0.1834 m),
+rotation only 2/12 (median 0.3096 → 0.3684 deg). UniMatch has more valid depth
+in all 18 frames but no full-pose advantage. Six central-frame depth pairs exactly
+reproduce the prior experiment. Do not promote, relax the 0.2043 m near miss,
+or confuse this matched SGBM 6/12 with historical differently processed 5/12.
+Close matcher/aggregation trials. Next use independently generated known camera
+and LiDAR geometry to test the same joint solver with exact and perturbed depth,
+non-planar surfaces and controlled visibility before choosing another algorithmic
+change. Such a control is diagnostic only, not new real-world/SOTA evidence.
