@@ -750,3 +750,17 @@ Next test deterministic broader search against unchanged objective under a state
 equal evaluation budget on frozen controls before revisiting real data. Preserve
 baseline, all starts, runtime and truth-start drift; no reference-guided seeds.
 Stop further stereo replacement as a presumed cure. No production/SOTA change.
+
+### Equal-cap fixed multistart result (2026-10-29)
+
+[Results](research/joint_multistart_results.md), frozen at `b221d707`: same objective,
+original global bounds and 800-call ceiling; one start versus five fixed starts
+at 160 each. All 15 baselines/75 starts executed. Perturbed accepted recovery
+**1/10 → 0/10**: all ten selected candidates exhaust their per-start budgets.
+Geometry-only pass count improves 1→5 but must not be called recovery. All-return
+reference-start drift worsens to 0.8646 deg despite higher MI; other four match
+baseline. Equal ceilings are not equal work (perturbed 193–337 vs 800 actual calls).
+Baseline outputs exactly reproduce prior study. Reject promotion/real-data rerun.
+Next allocation must preserve converged baseline and explicitly count remaining
+exploration/refinement work; retain visibility/drift controls because higher MI
+alone is unsafe. No reference-guided starts or after-result tuning.
