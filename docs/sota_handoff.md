@@ -876,3 +876,19 @@ only, not deployable or real-data evidence. Next separate boundary-aware image-o
 sampling from investigation of exact-sampler negative-bias truth-start derivative/
 stopping failures; do not change both together or relax gates. Keep all six wrong-bias
 truth starts as controls. No production/SOTA claim.
+
+### Analytic truth-start stopping diagnosis (2026-10-29)
+
+[Results](research/analytic_stopping_results.md), frozen at `bf5d96e0`: no new fits;
+18 truth-start cases probed at initial/final poses, 3 finite-difference steps and
+fixed bias grids. All six negative-bias failures stopped by xtol despite positive
+exact bias gradient 233–247; -.01 m bias step lowers cost in all six. Pose probes
+at 1e-8 cause >1 m residual jumps for one point with unchanged support, maximum
+Jacobian singular values ~1e9 and forward/central disagreement ~1. Bias derivatives
+remain smooth and agree with analytic values. First-surface silhouettes cause
+real discontinuity even without pixel interpolation; rank is not smooth covariance.
+Evidence identifies a local-linearization mismatch, not every internal SciPy cause.
+Next freeze separated scalar bias updates versus pose updates under one counted
+budget, original objective/samplers and all controls; require actual cost decrease.
+Do not use injected bias or mix in boundary-aware sampling/tolerance changes.
+No revised recovery, production or SOTA verdict.
