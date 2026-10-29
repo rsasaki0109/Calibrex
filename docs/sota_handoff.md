@@ -892,3 +892,16 @@ Next freeze separated scalar bias updates versus pose updates under one counted
 budget, original objective/samplers and all controls; require actual cost decrease.
 Do not use injected bias or mix in boundary-aware sampling/tolerance changes.
 No revised recovery, production or SOTA verdict.
+
+### Separated bias/pose blocks fail overall (2026-10-29)
+
+[Results](research/block_bias_results.md), frozen `91e7aecb`, serialization-only fix
+`c2409b5c` (initial plan/traceback retained). Same analytic objective/sampler, scalar
+bounded search then pose-only TRF, ≤800 shared calls/eight cycles. Perturbed joint
+recovery **33/36→0/36**, all 36 capped; geometry+bias alone passes 18/36 but not
+accepted. Truth starts **11/18→17/18**; negative truth starts recover bias in 6/6,
+only 5/6 converge. 33 regressions/six gains, actual 19–785 calls, no gate relaxation.
+Reject full block replacement. Preserve joint baseline; if pursuing scalar rescue,
+use residual-based trigger and remaining budget after completed joint fit, retaining
+fallback and all regression controls. No truth-label/bias-guided triggers or combining
+sampler changes. Monotonic cost is not proof of pose accuracy. No production/SOTA.
