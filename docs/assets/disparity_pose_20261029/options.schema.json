@@ -1,0 +1,56 @@
+{
+  "properties": {
+    "points_per_frame": {
+      "default": 3000,
+      "title": "Points Per Frame",
+      "type": "integer"
+    },
+    "min_points_per_frame": {
+      "default": 128,
+      "title": "Min Points Per Frame",
+      "type": "integer"
+    },
+    "max_nfev": {
+      "default": 150,
+      "title": "Max Nfev",
+      "type": "integer"
+    },
+    "rotation_bound_deg": {
+      "default": 3.0,
+      "title": "Rotation Bound Deg",
+      "type": "number"
+    },
+    "translation_bound_m": {
+      "default": 0.5,
+      "title": "Translation Bound M",
+      "type": "number"
+    },
+    "sigma_px": {
+      "default": 0.5,
+      "title": "Sigma Px",
+      "type": "number"
+    },
+    "initial_gate_px": {
+      "default": 8.0,
+      "title": "Initial Gate Px",
+      "type": "number"
+    },
+    "neighborhood_range_px": {
+      "default": 2.0,
+      "title": "Neighborhood Range Px",
+      "type": "number"
+    },
+    "min_retained_fraction": {
+      "default": 0.9,
+      "title": "Min Retained Fraction",
+      "type": "number"
+    },
+    "max_condition_number": {
+      "default": 1000000.0,
+      "title": "Max Condition Number",
+      "type": "number"
+    }
+  },
+  "title": "DisparityPoseOptions",
+  "type": "object"
+}
