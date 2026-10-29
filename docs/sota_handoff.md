@@ -707,3 +707,16 @@ not depth accuracy, calibration recovery or contemporary SOTA. Next freeze and
 complete the same six-central-frame/twelve-seed D2D comparison against re-rectified
 SGBM (2/12), disclosing RGB versus grayscale inputs and preserving failures.
 No new data, thresholds or production defaults changed.
+
+### Learned stereo full-pose comparison (2026-10-29)
+
+[UniMatch/SGBM comparison](research/learned_stereo_comparison.md), frozen at
+`2f73c756`: six native-resolution image pairs, twelve matched single-frame D2D
+cases, all 24 converged. Recovery remains **2/12 versus 2/12**; UniMatch gains
+0009-negative and loses 0002-positive. Translation improves 10/12 (median
+0.2771 → 0.2131 m), rotation only 6/12 (median 0.7135 → 0.7565 deg). More valid
+depth everywhere does not establish calibration success. All twelve recomputed
+SGBM outputs exactly reproduce the prior control. No default promotion or SOTA.
+Next pre-register matched three-frame joint learned/SGBM comparison using only
+the archived frames; recompute both frontends and preserve all seeds/failures.
+Do not compare against historical three-frame 5/12 as if inputs were identical.
