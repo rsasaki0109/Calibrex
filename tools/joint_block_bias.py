@@ -77,7 +77,7 @@ def solve(batch: list, initial: SE3) -> dict[str, Any]:
             current[:6] = fit.x
             value = float(fit.cost)
         stable_cost = (previous_cost - value) <= 1e-8 * max(1.0, previous_cost)
-        stable_bias = abs(current[6] - previous[6]) <= 1e-6
+        stable_bias = bool(abs(current[6] - previous[6]) <= 1e-6)
         converged = bool(scalar_fit.success and fit.success and stable_cost and stable_bias)
         trace.append(
             {
