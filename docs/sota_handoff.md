@@ -695,3 +695,15 @@ unresolved. Next establish a published modern stereo/cross-modal model's pinned
 code/checkpoint/license/training exposure/runtime before further comparisons.
 Do not continue classical matcher/penalty tweaks as a substitute for SOTA evidence.
 No new held-out data or historical verdict change.
+
+### Published learned stereo runtime (2026-10-29)
+
+[UniMatch runtime](research/unimatch_runtime.md), protocol frozen at `3a9d60e8`:
+official SceneFlow GMStereo-scale2-regrefine3 checkpoint and source commit pinned;
+MIT source license and separate checkpoint-license uncertainty documented.
+Strict weights-only loading and native-resolution spent 0005/frame-76 CPU smoke
+succeeded: 17.24 s, 1242×375 output, all finite. This establishes runtime readiness,
+not depth accuracy, calibration recovery or contemporary SOTA. Next freeze and
+complete the same six-central-frame/twelve-seed D2D comparison against re-rectified
+SGBM (2/12), disclosing RGB versus grayscale inputs and preserving failures.
+No new data, thresholds or production defaults changed.
