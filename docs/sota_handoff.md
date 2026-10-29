@@ -794,3 +794,18 @@ geometry versus MI using only original fitting samples, unchanged initial poses,
 fixed budget, occlusion/bias controls; reserve these points for diagnostics. Freeze
 estimator first, keep full-pose labels and baseline; no heldout-guided parameter
 selection. Synthetic results remain development evidence, not SOTA.
+
+### Direct metric-depth fitting (2026-10-29)
+
+[Results](research/joint_metric_results.md), frozen at `d6651dd8`: fixed-population
+bilinear optical-z soft-L1/TRF fitting, all original samples and unchanged pose
+bounds/gates. Recovery **MI 1/10 → metric 6/10**, both signs succeed for visible
+exact z, radial depth and holes. All-return occlusion fails 2/2 (~0.752 deg);
++0.25 m depth bias fails 2/2 (~0.222 m). Truth-start controls regress 5/5→3/5.
+All 15 metric fits converge/retain support, 111–202 actual residual calls. Frozen
+holdout happens to agree for these outputs but retains its known false-accept
+limitation. Do not promote, relax gates or claim SOTA. Next isolate physically
+motivated non-oracle visibility handling on additional analytic controls, retaining
+visible-only recovery and truth-start drift checks; assess depth-bias/translation
+confounding separately rather than adding both mechanisms at once. Baseline exactly
+reproduced; no core/default changes.
