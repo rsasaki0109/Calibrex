@@ -682,3 +682,16 @@ holdout is not independent calibration validation. No defaults/gates promoted.
 Next challenge the shared stereo reconstruction using an independently specified
 measurement source, not another association/penalty variant on these same depths.
 Historical joint D2D 5/12 remains a separate three-frame result.
+
+### Independent image matcher comparison (2026-10-29)
+
+[ZNCC/SGBM comparison](research/stereo_matcher_comparison.md), frozen at
+`ae028fc7`: same six central frames, re-rectification, twelve seeds and D2D
+settings. All 24 fits converge; full-pose recovery is SGBM 2/12 versus ZNCC 1/12.
+On exact common projected points, ZNCC improves median residual magnitude in 5/6
+but worsens absolute p90 in 5/6 and loses substantial depth coverage everywhere.
+Do not promote. Negative common-point medians persist in both; causality remains
+unresolved. Next establish a published modern stereo/cross-modal model's pinned
+code/checkpoint/license/training exposure/runtime before further comparisons.
+Do not continue classical matcher/penalty tweaks as a substitute for SOTA evidence.
+No new held-out data or historical verdict change.

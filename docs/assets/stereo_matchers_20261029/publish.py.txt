@@ -1,0 +1,87 @@
+import json
+import shutil
+from pathlib import Path
+import jsonschema
+root=Path('docs/assets/stereo_matchers_20261029')
+r=json.loads((root/'evaluation.json').read_text())
+jsonschema.validate(r,json.loads((root/'evaluation.schema.json').read_text()))
+assert len(r['cases'])==12 and len(r['frames'])==6
+assert len({c['case_id'] for c in r['cases']})==12
+for c in r['cases']:
+ assert set(c['methods'])=={'sgbm','zncc'}
+ assert all(m['result']['status']=='converged' for m in c['methods'].values())
+ assert c['paired_reference_residuals']['sgbm']['count']==c['paired_reference_residuals']['zncc']['count']
+assert sum(c['methods']['sgbm']['metrics']['recovered'] for c in r['cases'])==2
+assert sum(c['methods']['zncc']['metrics']['recovered'] for c in r['cases'])==1
+for name,src in [('execution.log','/workspace/work/stereo-matchers-20261029.log'),
+                 ('tests.log','/tmp/stereo-matchers-tests.log')]:shutil.copyfile(src,root/name)
+text='''
+
+## Results
+
+Code and protocol were frozen at `ae028fc7`. All six image pairs produced both
+frontends and all 24 D2D fits completed with `converged` status. Recovery is
+**SGBM 2/12, ZNCC 1/12** under unchanged full-pose gates. Numerical convergence
+alone again fails to indicate accurate calibration.
+
+These are **re-rectified single-frame** SGBM controls. The preceding un-re-rectified
+single-frame D2D experiment (3/12) and historical three-frame D2D (5/12) have
+different inputs and remain separate, unchanged results.
+
+| Recording / seed | SGBM rotation (deg) | SGBM translation (m) | SGBM recovery | ZNCC rotation (deg) | ZNCC translation (m) | ZNCC recovery |
+| --- | ---: | ---: | --- | ---: | ---: | --- |
+'''
+for c in r['cases']:
+ a,b=[c['methods'][m]['metrics'] for m in ['sgbm','zncc']]
+ text+=f"| {c['case_id'][11:].replace('-', ' ')} | {a['rotation_deg']:.4f} | {a['translation_m']:.4f} | {a['recovered']} | {b['rotation_deg']:.4f} | {b['translation_m']:.4f} | {b['recovered']} |\n"
+text+='''
+### Common-point depth comparison
+
+The same z-buffered LiDAR returns and pixels are used for both methods in each
+row. Median sign is LiDAR z minus stereo z; values are metres. Only frames with
+both methods valid are represented, and the two seed labels share the same depth
+comparison. These six rows, not twelve, are the distinct frame evidence.
+
+| Recording | Common points | SGBM median | ZNCC median | SGBM absolute p90 | ZNCC absolute p90 | SGBM valid pixels | ZNCC valid pixels |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+'''
+for c in r['cases']:
+ if not c['case_id'].endswith('positive'):continue
+ a,b=[c['paired_reference_residuals'][m] for m in ['sgbm','zncc']]
+ f=next(f for f in r['frames'] if f['case_id']==c['case_id'])
+ text+=f"| {c['case_id'][11:15]} | {a['count']} | {a['median_z_m']:.4f} | {b['median_z_m']:.4f} | {a['p90_absolute_z_m']:.3f} | {b['p90_absolute_z_m']:.3f} | {f['valid_pixels']['sgbm']} | {f['valid_pixels']['zncc']} |\n"
+text+='''
+ZNCC reduces median residual magnitude in 5/6 frames but worsens absolute p90
+in 5/6. Its valid depth count is much smaller in every frame. All six common-point
+median residuals remain negative for both methods. The observed disagreement
+therefore survives changing the image matcher, but this is **not proof** of a
+single bias source: shared image geometry, time alignment, occlusion, reference
+uncertainty and matching populations still matter. A conservative local matcher
+can also omit scene structure needed for calibration.
+
+### Decision
+
+Do not replace SGBM with this ZNCC frontend or promote any calibration result from
+this experiment. There is no improvement in full-pose recovery, and median-only
+depth summaries would hide worse tails and reduced support. No thresholds are
+tuned, no inputs overwritten, and historical verdicts remain unchanged.
+
+Stop treating another classical matcher or residual variant on this small spent
+set as sufficient progress toward SOTA. The next useful external comparison is a
+published modern stereo/cross-modal correspondence model with a pinned checkpoint,
+license, training-data disclosure and reproducible runtime. Availability and
+compute cost must be established before committing to a claimed evaluation.
+The existing complete six-drive cases and failure-aware scoring should remain the
+comparison denominator; no fresh held-out data should be exposed during setup.
+
+[Complete evaluation](../assets/stereo_matchers_20261029/evaluation.json),
+[schema](../assets/stereo_matchers_20261029/evaluation.schema.json),
+[execution log](../assets/stereo_matchers_20261029/execution.log) and
+[test log](../assets/stereo_matchers_20261029/tests.log) preserve all 24 optimizer
+outputs, input/output hashes, settings, rectification matrices and paired depth
+statistics. The publisher checks inventory, statuses and equal paired counts.
+Sensor arrays remain in a separate workspace; no SOTA claim is made.
+'''
+p=Path('docs/research/stereo_matcher_comparison.md')
+p.write_text(p.read_text().split('\n\n## Results')[0]+text)
+print('6 frames, 24 converged fits, paired counts and schema verified')

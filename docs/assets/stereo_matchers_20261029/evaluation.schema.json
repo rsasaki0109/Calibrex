@@ -1,0 +1,50 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "default": "spent-data central-frame image-only ZNCC versus SGBM; fixed single-frame D2D",
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "input_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Input Sha256",
+      "type": "object"
+    },
+    "frames": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Frames",
+      "type": "array"
+    },
+    "cases": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Cases",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source_commit",
+    "plan_sha256",
+    "input_sha256",
+    "frames",
+    "cases"
+  ],
+  "title": "Comparison",
+  "type": "object"
+}
