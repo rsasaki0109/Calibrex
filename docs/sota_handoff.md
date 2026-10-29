@@ -734,3 +734,19 @@ Close matcher/aggregation trials. Next use independently generated known camera
 and LiDAR geometry to test the same joint solver with exact and perturbed depth,
 non-planar surfaces and controlled visibility before choosing another algorithmic
 change. Such a control is diagnostic only, not new real-world/SOTA evidence.
+
+### Independent known-geometry control (2026-10-29)
+
+[Results](research/known_geometry_joint_results.md), frozen at `9ffd9aee`: analytic
+camera/LiDAR raycasts from distinct origins, five spheres plus slanted plane,
+three views, five measurement/visibility conditions. All 15 fits converge but
+perturbed recovery is **1/10** (reference-start 5 trials kept separate). Even
+exact optical z plus oracle visibility fails both perturbations; truth-start
+drift is only 0.035 deg/6.25 mm. Ground truth has higher MI than every returned
+perturbed fit, proving a feasible better objective was missed on this scene,
+not proving the global optimum equals truth or explaining all real failures.
+Constant +0.25 m shift gives identical traces due to histogram shift invariance.
+Next test deterministic broader search against unchanged objective under a stated
+equal evaluation budget on frozen controls before revisiting real data. Preserve
+baseline, all starts, runtime and truth-start drift; no reference-guided seeds.
+Stop further stereo replacement as a presumed cure. No production/SOTA change.
