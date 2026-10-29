@@ -847,3 +847,18 @@ identifiability. Next freeze experimental seven-parameter pose/bias fitting with
 zero correction initialization, separate bias/pose scoring, raw+robust sensitivity
 and plane degeneracy controls. Preserve fixed six-parameter baseline, no truth-fed
 bias or holdout tuning. Review PDF remains historical; stages A/B completed, C pending.
+
+### Joint pose and depth-bias estimate (2026-10-29)
+
+[Results](research/joint_pose_bias_results.md), frozen at `b58e9d93`: correction
+initialized at zero, fixed ±.5 m bound, same asymmetric depth objective, 54 sphere
+fits plus 9 plane controls. Perturbed pose-only recovery **24/36→36/36** (+bias
+0/12→12/12), but pose+bias recovery only **12/36**, truth-start joint 6/18. All
+sphere fits numerically converge/pass local rank; every estimated bias is too low
+by .0408–.0668 m, including clean measurements. Only staggered layout meets joint
+bias gates. All nine plane fits converge but are correctly flagged degenerate;
+none accepted jointly. 8–566 optimizer calls, no failures omitted. Do not promote,
+relax bias gate or empirically subtract the observed offset. Next freeze analytic
+first-surface depth-sampling diagnostic versus bilinear pixel sampling to isolate
+model mismatch, keeping fixed seeds/objective and all bias/occlusion controls.
+Oracle sampler is diagnostic only; rank does not imply unbiased estimation/SOTA.
