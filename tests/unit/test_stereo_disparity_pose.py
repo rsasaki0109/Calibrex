@@ -1,9 +1,10 @@
 """Known plane geometry tests pose recovery and observable-axis rejection."""
 
 import numpy as np
+import pytest
 from scipy.spatial.transform import Rotation
 
-from calibrex.solvers.stereo_disparity_pose import solve_disparity_pose
+from calibrex.solvers.stereo_disparity_pose import DisparityPoseOptions, solve_disparity_pose
 from calibrex.solvers.stereo_translation_refiner import StereoSurfaceObservation
 
 
@@ -22,14 +23,15 @@ def scene(normals):
     return obs, truth
 
 
-def test_recovers_all_six_axes_from_independent_planes():
+@pytest.mark.parametrize("mode", ["hard", "tapered"])
+def test_recovers_all_six_axes_from_independent_planes(mode):
     obs, truth = scene([[0, 0, 1], [0.7, 0, 1], [0, 0.7, 1]])
     initial = truth.copy()
     initial[:3, :3] = (
         Rotation.from_euler("xyz", [1, -1, 0.5], degrees=True).as_matrix() @ truth[:3, :3]
     )
     initial[:3, 3] += [0.1, -0.05, 0.05]
-    fit = solve_disparity_pose(obs, initial)
+    fit = solve_disparity_pose(obs, initial, DisparityPoseOptions(support_mode=mode))
     assert fit.accepted, fit.as_dict()
     np.testing.assert_allclose(fit.output_T_camera_lidar, truth, atol=1e-5)
 

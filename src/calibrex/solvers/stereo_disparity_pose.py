@@ -7,17 +7,19 @@ No reference calibration is used. Local conditioning is not accuracy validation.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 from scipy.optimize import least_squares
 from scipy.spatial.transform import Rotation
 
+from calibrex.solvers.stereo_support_field import build_support_field, support_residuals
 from calibrex.solvers.stereo_translation_refiner import StereoSurfaceObservation
 
 
 @dataclass(frozen=True)
 class DisparityPoseOptions:
+    support_mode: Literal["hard", "tapered"] = "hard"
     points_per_frame: int = 3000
     min_points_per_frame: int = 128
     max_nfev: int = 150
@@ -30,6 +32,8 @@ class DisparityPoseOptions:
     max_condition_number: float = 1e6
 
     def __post_init__(self) -> None:
+        if self.support_mode not in ("hard", "tapered"):
+            raise ValueError("unknown support mode")
         if not 6 <= self.min_points_per_frame <= self.points_per_frame or self.max_nfev < 1:
             raise ValueError("positive budgets and sufficient correspondence limits required")
         if (
@@ -149,6 +153,12 @@ def solve_disparity_pose(
     if min(counts) < settings.min_points_per_frame:
         return finish("insufficient_support", initial)
 
+    fields = (
+        [build_support_field(o, settings.neighborhood_range_px) for o in observations]
+        if settings.support_mode == "tapered"
+        else []
+    )
+
     def transform(x: np.ndarray) -> np.ndarray:
         matrix = initial.copy()
         matrix[:3, :3] = Rotation.from_rotvec(x[:3] * scales[:3]).as_matrix() @ initial[:3, :3]
@@ -158,21 +168,33 @@ def solve_disparity_pose(
     def evaluate(x: np.ndarray) -> tuple[np.ndarray, list[int]]:
         matrix = transform(x)
         residuals = []
+        penalties = []
         retained = []
-        for obs, points in zip(observations, populations, strict=True):
+        for frame_index, (obs, points) in enumerate(zip(observations, populations, strict=True)):
             residual, valid = sample_disparity(
                 points @ matrix[:3, :3].T + matrix[:3, 3], obs, settings.neighborhood_range_px
             )
-            # Missing data cannot silently shrink the objective population.
-            residuals.append(
-                np.where(
-                    valid,
-                    residual / settings.sigma_px,
+            if settings.support_mode == "tapered":
+                data, penalty = support_residuals(
+                    points @ matrix[:3, :3].T + matrix[:3, 3],
+                    obs,
+                    fields[frame_index],
+                    settings.sigma_px,
                     settings.initial_gate_px / settings.sigma_px,
                 )
-            )
+                residuals.append(data)
+                penalties.append(penalty)
+            else:
+                # Missing data cannot silently shrink the objective population.
+                residuals.append(
+                    np.where(
+                        valid,
+                        residual / settings.sigma_px,
+                        settings.initial_gate_px / settings.sigma_px,
+                    )
+                )
             retained.append(int(valid.sum()))
-        return np.concatenate(residuals), retained
+        return np.concatenate(residuals + penalties), retained
 
     fit = least_squares(
         lambda x: evaluate(x)[0],
@@ -187,9 +209,10 @@ def solve_disparity_pose(
         diff_step=1e-4,
     )
     final_residual, retained = evaluate(fit.x)
-    singular = np.linalg.svd(fit.jac, compute_uv=False)
+    singular = np.linalg.svd(fit.jac[: sum(counts)], compute_uv=False)
     condition = float(singular[0] / singular[-1]) if singular[-1] > 1e-12 else None
     diagnostics.update(
+        support_mode=settings.support_mode,
         nfev=int(fit.nfev),
         termination=int(fit.status),
         cost=float(fit.cost),

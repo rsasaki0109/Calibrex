@@ -6,7 +6,7 @@ import argparse
 import json
 import subprocess
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict
@@ -14,7 +14,11 @@ from tools.koide_shared_bundle_pandey import read_koide_ply
 from tools.run_camera_lidar_development_matrix import pose_metrics
 from tools.run_stereo_translation_refinement import digest
 
-from calibrex.solvers.stereo_disparity_pose import DisparityPoseResult, solve_disparity_pose
+from calibrex.solvers.stereo_disparity_pose import (
+    DisparityPoseOptions,
+    DisparityPoseResult,
+    solve_disparity_pose,
+)
 from calibrex.solvers.stereo_translation_refiner import StereoSurfaceObservation
 
 
@@ -26,6 +30,7 @@ class PoseCase(BaseModel):
 
 
 class PosePlan(BaseModel):
+    support_mode: Literal["hard", "tapered"] = "hard"
     scope: str
     cases: list[PoseCase]
     source_sha256: dict[str, str]
@@ -103,7 +108,9 @@ def evaluate(plan_path: Path, output: Path) -> PoseEvaluation:
                     meta["stereo"]["baseline_m"],
                 )
             )
-        fit = solve_disparity_pose(obs, initial)
+        fit = solve_disparity_pose(
+            obs, initial, DisparityPoseOptions(support_mode=plan.support_mode)
+        )
         # Reference is used only by the scorer after fitting.
         seed = json.loads(seed_path.read_text())
         np.testing.assert_array_equal(initial, seed["initial_T_camera_lidar"])
