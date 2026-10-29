@@ -1,0 +1,151 @@
+{
+  "$defs": {
+    "DisparityPoseResult": {
+      "properties": {
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "accepted": {
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "output_T_camera_lidar": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Output T Camera Lidar",
+          "type": "array"
+        },
+        "candidate_T_camera_lidar": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Candidate T Camera Lidar",
+          "type": "array"
+        },
+        "options": {
+          "additionalProperties": true,
+          "title": "Options",
+          "type": "object"
+        },
+        "diagnostics": {
+          "additionalProperties": true,
+          "title": "Diagnostics",
+          "type": "object"
+        }
+      },
+      "required": [
+        "status",
+        "accepted",
+        "output_T_camera_lidar",
+        "candidate_T_camera_lidar",
+        "options",
+        "diagnostics"
+      ],
+      "title": "DisparityPoseResult",
+      "type": "object"
+    },
+    "PoseCaseResult": {
+      "properties": {
+        "case_id": {
+          "title": "Case Id",
+          "type": "string"
+        },
+        "input_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Input Sha256",
+          "type": "object"
+        },
+        "initial_T_camera_lidar": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Initial T Camera Lidar",
+          "type": "array"
+        },
+        "result": {
+          "$ref": "#/$defs/DisparityPoseResult"
+        },
+        "initial": {
+          "additionalProperties": true,
+          "title": "Initial",
+          "type": "object"
+        },
+        "d2d": {
+          "additionalProperties": true,
+          "title": "D2D",
+          "type": "object"
+        },
+        "candidate": {
+          "additionalProperties": true,
+          "title": "Candidate",
+          "type": "object"
+        },
+        "returned": {
+          "additionalProperties": true,
+          "title": "Returned",
+          "type": "object"
+        },
+        "stage_recovered": {
+          "title": "Stage Recovered",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "case_id",
+        "input_sha256",
+        "initial_T_camera_lidar",
+        "result",
+        "initial",
+        "d2d",
+        "candidate",
+        "returned",
+        "stage_recovered"
+      ],
+      "title": "PoseCaseResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/PoseCaseResult"
+      },
+      "title": "Cases",
+      "type": "array"
+    }
+  },
+  "required": [
+    "scope",
+    "source_commit",
+    "plan_sha256",
+    "cases"
+  ],
+  "title": "PoseEvaluation",
+  "type": "object"
+}

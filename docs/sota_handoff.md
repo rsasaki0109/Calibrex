@@ -657,3 +657,15 @@ four pass numerical checks, but three of those fail reference accuracy gates.
 Do not promote, relax retention or call SOTA. Next address explicit visibility
 and missing-depth boundary continuity, with controlled hole/occlusion tests and
 independent full-pose validation. Preserve the negative result and original inputs.
+
+### Continuous support weighting result (2026-10-29)
+
+[Controlled twelve-case test](research/stereo_tapered_support.md), frozen at
+`c9f24ea1`: continuous sin/cos measurement/missing-support blend passes synthetic
+hole/step continuity and known-plane recovery tests, but real recovery falls to
+**0/12** (hard mode 1/12, matched D2D 5/12). Five numerical accepts all fail
+accuracy gates; remaining statuses are three lost-support, two budget exhaustion
+and two bounds. Do not promote or relax gates. Stop extending this image-support
+penalty approximation; next require independently supported correspondences and
+actual geometry recovery through controlled holes/occlusions, not continuity alone.
+Historical outputs remain unchanged; no fresh data or SOTA claim.
