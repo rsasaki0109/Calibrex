@@ -1,0 +1,2087 @@
+{
+  "scope": "disjoint synthetic LiDAR metric validation; no reference in validator",
+  "source_commit": "3249838a4a9937ace5d1e3c805875f0dff8c0aee",
+  "plan_sha256": "354a1e207dfd24837acfba398f5c4c8194553ec8b537d0979b12accdfbe4fa98",
+  "cases": [
+    {
+      "condition": "exact_z_visible",
+      "candidate": "reference_control",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.003857472283080199,
+          "p90_absolute_z_m": 0.019855697000313196,
+          "behind_surface_gt_20cm": 52,
+          "in_front_gt_20cm": 12
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.0038658351872280505,
+          "p90_absolute_z_m": 0.02112674688547277,
+          "behind_surface_gt_20cm": 62,
+          "in_front_gt_20cm": 13
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.0038714390835909995,
+          "p90_absolute_z_m": 0.018043022225289106,
+          "behind_surface_gt_20cm": 59,
+          "in_front_gt_20cm": 13
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.0,
+        "translation_m": 0.0,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "exact_z_visible",
+      "candidate": "wrong_control",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3686,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 154,
+          "invalid_depth": 0,
+          "support_fraction": 0.9598958333333333,
+          "median_absolute_z_m": 0.46496745673526974,
+          "p90_absolute_z_m": 11.60514984726246,
+          "behind_surface_gt_20cm": 2294,
+          "in_front_gt_20cm": 607
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3660,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 180,
+          "invalid_depth": 0,
+          "support_fraction": 0.953125,
+          "median_absolute_z_m": 0.4999909626568053,
+          "p90_absolute_z_m": 10.961178834377769,
+          "behind_surface_gt_20cm": 2399,
+          "in_front_gt_20cm": 531
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3675,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 165,
+          "invalid_depth": 0,
+          "support_fraction": 0.95703125,
+          "median_absolute_z_m": 0.4038905859715918,
+          "p90_absolute_z_m": 11.032485272668655,
+          "behind_surface_gt_20cm": 2108,
+          "in_front_gt_20cm": 634
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 3.2177409348852595,
+        "translation_m": 0.5830951894845301,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "exact_z_visible",
+      "candidate": "baseline_1",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.081721528927301,
+          "p90_absolute_z_m": 0.1933733583069399,
+          "behind_surface_gt_20cm": 71,
+          "in_front_gt_20cm": 289
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.07879196816926326,
+          "p90_absolute_z_m": 0.15954305481543432,
+          "behind_surface_gt_20cm": 81,
+          "in_front_gt_20cm": 164
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.07904510470065862,
+          "p90_absolute_z_m": 0.21049013506698813,
+          "behind_surface_gt_20cm": 67,
+          "in_front_gt_20cm": 376
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 1.04587324520418,
+        "translation_m": 0.21596440678963746,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "exact_z_visible",
+      "candidate": "continuation_1",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.031963813913696626,
+          "p90_absolute_z_m": 0.10500837566525352,
+          "behind_surface_gt_20cm": 46,
+          "in_front_gt_20cm": 12
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.029563301851702306,
+          "p90_absolute_z_m": 0.06785224815525677,
+          "behind_surface_gt_20cm": 48,
+          "in_front_gt_20cm": 16
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.03293798384009472,
+          "p90_absolute_z_m": 0.10854009582868542,
+          "behind_surface_gt_20cm": 48,
+          "in_front_gt_20cm": 12
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.3358124063210823,
+        "translation_m": 0.05590169943749479,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "exact_z_visible",
+      "candidate": "baseline_-1",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.056817738421587105,
+          "p90_absolute_z_m": 0.17609791587286452,
+          "behind_surface_gt_20cm": 187,
+          "in_front_gt_20cm": 62
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.06151254476965562,
+          "p90_absolute_z_m": 0.1554701898719468,
+          "behind_surface_gt_20cm": 88,
+          "in_front_gt_20cm": 43
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.05486465921863726,
+          "p90_absolute_z_m": 0.18229225811005847,
+          "behind_surface_gt_20cm": 230,
+          "in_front_gt_20cm": 50
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.8971855270380646,
+        "translation_m": 0.17001838135919306,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "exact_z_visible",
+      "candidate": "continuation_-1",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.056817738421587105,
+          "p90_absolute_z_m": 0.17609791587286452,
+          "behind_surface_gt_20cm": 187,
+          "in_front_gt_20cm": 62
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.06151254476965562,
+          "p90_absolute_z_m": 0.1554701898719468,
+          "behind_surface_gt_20cm": 88,
+          "in_front_gt_20cm": 43
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.05486465921863726,
+          "p90_absolute_z_m": 0.18229225811005847,
+          "behind_surface_gt_20cm": 230,
+          "in_front_gt_20cm": 50
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.8971855270380646,
+        "translation_m": 0.17001838135919306,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "exact_z_visible",
+      "candidate": "baseline_0",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.004587494505959189,
+          "p90_absolute_z_m": 0.022930227336436813,
+          "behind_surface_gt_20cm": 55,
+          "in_front_gt_20cm": 15
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.004301715333360878,
+          "p90_absolute_z_m": 0.022177889747161554,
+          "behind_surface_gt_20cm": 62,
+          "in_front_gt_20cm": 12
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.0046532305669266805,
+          "p90_absolute_z_m": 0.019586623958998926,
+          "behind_surface_gt_20cm": 57,
+          "in_front_gt_20cm": 12
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.034938562061821894,
+        "translation_m": 0.0062500000000000056,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "exact_z_visible",
+      "candidate": "continuation_0",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.004587494505959189,
+          "p90_absolute_z_m": 0.022930227336436813,
+          "behind_surface_gt_20cm": 55,
+          "in_front_gt_20cm": 15
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.004301715333360878,
+          "p90_absolute_z_m": 0.022177889747161554,
+          "behind_surface_gt_20cm": 62,
+          "in_front_gt_20cm": 12
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.0046532305669266805,
+          "p90_absolute_z_m": 0.019586623958998926,
+          "behind_surface_gt_20cm": 57,
+          "in_front_gt_20cm": 12
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.034938562061821894,
+        "translation_m": 0.0062500000000000056,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "exact_z_all",
+      "candidate": "reference_control",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.003857472283080199,
+          "p90_absolute_z_m": 0.019855697000313196,
+          "behind_surface_gt_20cm": 52,
+          "in_front_gt_20cm": 12
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.0038658351872280505,
+          "p90_absolute_z_m": 0.02112674688547277,
+          "behind_surface_gt_20cm": 62,
+          "in_front_gt_20cm": 13
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.0038714390835909995,
+          "p90_absolute_z_m": 0.018043022225289106,
+          "behind_surface_gt_20cm": 59,
+          "in_front_gt_20cm": 13
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.0,
+        "translation_m": 0.0,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "exact_z_all",
+      "candidate": "wrong_control",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3686,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 154,
+          "invalid_depth": 0,
+          "support_fraction": 0.9598958333333333,
+          "median_absolute_z_m": 0.46496745673526974,
+          "p90_absolute_z_m": 11.60514984726246,
+          "behind_surface_gt_20cm": 2294,
+          "in_front_gt_20cm": 607
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3660,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 180,
+          "invalid_depth": 0,
+          "support_fraction": 0.953125,
+          "median_absolute_z_m": 0.4999909626568053,
+          "p90_absolute_z_m": 10.961178834377769,
+          "behind_surface_gt_20cm": 2399,
+          "in_front_gt_20cm": 531
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3675,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 165,
+          "invalid_depth": 0,
+          "support_fraction": 0.95703125,
+          "median_absolute_z_m": 0.4038905859715918,
+          "p90_absolute_z_m": 11.032485272668655,
+          "behind_surface_gt_20cm": 2108,
+          "in_front_gt_20cm": 634
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 3.2177409348852595,
+        "translation_m": 0.5830951894845301,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "exact_z_all",
+      "candidate": "baseline_1",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.1208516377888822,
+          "p90_absolute_z_m": 0.24778568695253475,
+          "behind_surface_gt_20cm": 70,
+          "in_front_gt_20cm": 505
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.11678190397348676,
+          "p90_absolute_z_m": 0.20551553673333603,
+          "behind_surface_gt_20cm": 79,
+          "in_front_gt_20cm": 341
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.1206970417518547,
+          "p90_absolute_z_m": 0.2621996950524972,
+          "behind_surface_gt_20cm": 61,
+          "in_front_gt_20cm": 630
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 1.07171089362079,
+        "translation_m": 0.23485367785069922,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "exact_z_all",
+      "candidate": "continuation_1",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.03687093469167513,
+          "p90_absolute_z_m": 0.11161468861511627,
+          "behind_surface_gt_20cm": 46,
+          "in_front_gt_20cm": 10
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.0328911828599292,
+          "p90_absolute_z_m": 0.07364418294940495,
+          "behind_surface_gt_20cm": 49,
+          "in_front_gt_20cm": 15
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.037145079800191105,
+          "p90_absolute_z_m": 0.12002867119015405,
+          "behind_surface_gt_20cm": 51,
+          "in_front_gt_20cm": 15
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.36774349500759423,
+        "translation_m": 0.06731456008918137,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "exact_z_all",
+      "candidate": "baseline_-1",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.06130084476068154,
+          "p90_absolute_z_m": 0.23309194215379683,
+          "behind_surface_gt_20cm": 233,
+          "in_front_gt_20cm": 337
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.06920768042471481,
+          "p90_absolute_z_m": 0.2050210109314019,
+          "behind_surface_gt_20cm": 115,
+          "in_front_gt_20cm": 292
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.06348922013164104,
+          "p90_absolute_z_m": 0.22949443166428193,
+          "behind_surface_gt_20cm": 286,
+          "in_front_gt_20cm": 205
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 1.3747830436005075,
+        "translation_m": 0.23593232610221096,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "exact_z_all",
+      "candidate": "continuation_-1",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.0544025692477188,
+          "p90_absolute_z_m": 0.16604398835738526,
+          "behind_surface_gt_20cm": 235,
+          "in_front_gt_20cm": 41
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.05943909315595253,
+          "p90_absolute_z_m": 0.14047062224327825,
+          "behind_surface_gt_20cm": 98,
+          "in_front_gt_20cm": 33
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.04991891731457532,
+          "p90_absolute_z_m": 0.1849349987627569,
+          "behind_surface_gt_20cm": 210,
+          "in_front_gt_20cm": 51
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.7891419757433091,
+        "translation_m": 0.13806701271484076,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "exact_z_all",
+      "candidate": "baseline_0",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.004492126710406552,
+          "p90_absolute_z_m": 0.020798204555870288,
+          "behind_surface_gt_20cm": 54,
+          "in_front_gt_20cm": 13
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.004253370823700919,
+          "p90_absolute_z_m": 0.021271306178805103,
+          "behind_surface_gt_20cm": 62,
+          "in_front_gt_20cm": 9
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.004443641323126357,
+          "p90_absolute_z_m": 0.018639212284104898,
+          "behind_surface_gt_20cm": 56,
+          "in_front_gt_20cm": 14
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.027062063695025423,
+        "translation_m": 0.0,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "exact_z_all",
+      "candidate": "continuation_0",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.04752316168481929,
+          "p90_absolute_z_m": 0.15412625450303705,
+          "behind_surface_gt_20cm": 153,
+          "in_front_gt_20cm": 40
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.04698760224535947,
+          "p90_absolute_z_m": 0.13528545008148318,
+          "behind_surface_gt_20cm": 80,
+          "in_front_gt_20cm": 42
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.04354973683396768,
+          "p90_absolute_z_m": 0.15455835018304676,
+          "behind_surface_gt_20cm": 134,
+          "in_front_gt_20cm": 48
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.8560126415238127,
+        "translation_m": 0.14265890263141662,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "exact_range_visible",
+      "candidate": "reference_control",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.003857472283080199,
+          "p90_absolute_z_m": 0.019855697000313196,
+          "behind_surface_gt_20cm": 52,
+          "in_front_gt_20cm": 12
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.003865835187229827,
+          "p90_absolute_z_m": 0.02112674688547277,
+          "behind_surface_gt_20cm": 62,
+          "in_front_gt_20cm": 13
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.0038714390835914436,
+          "p90_absolute_z_m": 0.018043022225290705,
+          "behind_surface_gt_20cm": 59,
+          "in_front_gt_20cm": 13
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.0,
+        "translation_m": 0.0,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "exact_range_visible",
+      "candidate": "wrong_control",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3686,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 154,
+          "invalid_depth": 0,
+          "support_fraction": 0.9598958333333333,
+          "median_absolute_z_m": 0.46496745673526974,
+          "p90_absolute_z_m": 11.60514984726246,
+          "behind_surface_gt_20cm": 2294,
+          "in_front_gt_20cm": 607
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3660,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 180,
+          "invalid_depth": 0,
+          "support_fraction": 0.953125,
+          "median_absolute_z_m": 0.4999909626568053,
+          "p90_absolute_z_m": 10.961178834377769,
+          "behind_surface_gt_20cm": 2399,
+          "in_front_gt_20cm": 531
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3675,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 165,
+          "invalid_depth": 0,
+          "support_fraction": 0.95703125,
+          "median_absolute_z_m": 0.4038905859715918,
+          "p90_absolute_z_m": 11.032485272668655,
+          "behind_surface_gt_20cm": 2108,
+          "in_front_gt_20cm": 634
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 3.2177409348852595,
+        "translation_m": 0.5830951894845301,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "exact_range_visible",
+      "candidate": "baseline_1",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.030704870347710855,
+          "p90_absolute_z_m": 0.08444342867757335,
+          "behind_surface_gt_20cm": 77,
+          "in_front_gt_20cm": 22
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.030632084512975055,
+          "p90_absolute_z_m": 0.06692783725604645,
+          "behind_surface_gt_20cm": 85,
+          "in_front_gt_20cm": 30
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.028737624595511768,
+          "p90_absolute_z_m": 0.09287856449178981,
+          "behind_surface_gt_20cm": 79,
+          "in_front_gt_20cm": 32
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.47254765993424025,
+        "translation_m": 0.07180703308172538,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "exact_range_visible",
+      "candidate": "continuation_1",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.01528776177866753,
+          "p90_absolute_z_m": 0.04564824513565568,
+          "behind_surface_gt_20cm": 59,
+          "in_front_gt_20cm": 22
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.015286708024301987,
+          "p90_absolute_z_m": 0.047970322429579326,
+          "behind_surface_gt_20cm": 66,
+          "in_front_gt_20cm": 15
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.016826920080484253,
+          "p90_absolute_z_m": 0.04774407909321887,
+          "behind_surface_gt_20cm": 66,
+          "in_front_gt_20cm": 18
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.2509108715666153,
+        "translation_m": 0.03952847075210478,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "exact_range_visible",
+      "candidate": "baseline_-1",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.2006319601387725,
+          "p90_absolute_z_m": 0.28517029421136786,
+          "behind_surface_gt_20cm": 1923,
+          "in_front_gt_20cm": 12
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.1948693360431193,
+          "p90_absolute_z_m": 0.2784788434567811,
+          "behind_surface_gt_20cm": 1759,
+          "in_front_gt_20cm": 13
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.20010830993390982,
+          "p90_absolute_z_m": 0.2966141825233762,
+          "behind_surface_gt_20cm": 1892,
+          "in_front_gt_20cm": 31
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.8183596186703753,
+        "translation_m": 0.27669929526473325,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "exact_range_visible",
+      "candidate": "continuation_-1",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.03580859773596945,
+          "p90_absolute_z_m": 0.10195679897172064,
+          "behind_surface_gt_20cm": 103,
+          "in_front_gt_20cm": 12
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.03547175952921933,
+          "p90_absolute_z_m": 0.09204657088136335,
+          "behind_surface_gt_20cm": 102,
+          "in_front_gt_20cm": 11
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.03229967284785484,
+          "p90_absolute_z_m": 0.10105001920413592,
+          "behind_surface_gt_20cm": 102,
+          "in_front_gt_20cm": 13
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.5731381170890291,
+        "translation_m": 0.08750000000000001,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "exact_range_visible",
+      "candidate": "baseline_0",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.005151833812695905,
+          "p90_absolute_z_m": 0.027206475777200013,
+          "behind_surface_gt_20cm": 59,
+          "in_front_gt_20cm": 12
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.005109123411944694,
+          "p90_absolute_z_m": 0.030040883363006365,
+          "behind_surface_gt_20cm": 63,
+          "in_front_gt_20cm": 15
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.005134599918529936,
+          "p90_absolute_z_m": 0.023326284564323795,
+          "behind_surface_gt_20cm": 58,
+          "in_front_gt_20cm": 16
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.24999999999999975,
+        "translation_m": 0.0,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "exact_range_visible",
+      "candidate": "continuation_0",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.005151833812695905,
+          "p90_absolute_z_m": 0.027206475777200013,
+          "behind_surface_gt_20cm": 59,
+          "in_front_gt_20cm": 12
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.005109123411944694,
+          "p90_absolute_z_m": 0.030040883363006365,
+          "behind_surface_gt_20cm": 63,
+          "in_front_gt_20cm": 15
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.005134599918529936,
+          "p90_absolute_z_m": 0.023326284564323795,
+          "behind_surface_gt_20cm": 58,
+          "in_front_gt_20cm": 16
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.24999999999999975,
+        "translation_m": 0.0,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "biased_z_visible",
+      "candidate": "reference_control",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.2500702670350945,
+          "p90_absolute_z_m": 0.2610697657998915,
+          "behind_surface_gt_20cm": 51,
+          "in_front_gt_20cm": 3760
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.2501596034247129,
+          "p90_absolute_z_m": 0.2613380368002711,
+          "behind_surface_gt_20cm": 62,
+          "in_front_gt_20cm": 3744
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.2500468562106395,
+          "p90_absolute_z_m": 0.2606715400442309,
+          "behind_surface_gt_20cm": 58,
+          "in_front_gt_20cm": 3758
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.0,
+        "translation_m": 0.0,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "biased_z_visible",
+      "candidate": "wrong_control",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3686,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 154,
+          "invalid_depth": 0,
+          "support_fraction": 0.9598958333333333,
+          "median_absolute_z_m": 0.33175178771784886,
+          "p90_absolute_z_m": 11.758248493550141,
+          "behind_surface_gt_20cm": 1494,
+          "in_front_gt_20cm": 1043
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3660,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 180,
+          "invalid_depth": 0,
+          "support_fraction": 0.953125,
+          "median_absolute_z_m": 0.3361395934043756,
+          "p90_absolute_z_m": 11.002686039060883,
+          "behind_surface_gt_20cm": 1657,
+          "in_front_gt_20cm": 837
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3675,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 165,
+          "invalid_depth": 0,
+          "support_fraction": 0.95703125,
+          "median_absolute_z_m": 0.29923414081004207,
+          "p90_absolute_z_m": 11.260384518682747,
+          "behind_surface_gt_20cm": 1253,
+          "in_front_gt_20cm": 1120
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 3.2177409348852595,
+        "translation_m": 0.5830951894845301,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "biased_z_visible",
+      "candidate": "baseline_1",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.3249987144797233,
+          "p90_absolute_z_m": 0.44097491481276707,
+          "behind_surface_gt_20cm": 69,
+          "in_front_gt_20cm": 3412
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.3227482526637311,
+          "p90_absolute_z_m": 0.40895280993238764,
+          "behind_surface_gt_20cm": 80,
+          "in_front_gt_20cm": 3394
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.32403761534650455,
+          "p90_absolute_z_m": 0.4600454914905665,
+          "behind_surface_gt_20cm": 64,
+          "in_front_gt_20cm": 3559
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 1.04587324520418,
+        "translation_m": 0.21596440678963746,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "biased_z_visible",
+      "candidate": "continuation_1",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.2251145594216295,
+          "p90_absolute_z_m": 0.27889224692617526,
+          "behind_surface_gt_20cm": 40,
+          "in_front_gt_20cm": 2912
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.2269137246816033,
+          "p90_absolute_z_m": 0.2780774592855611,
+          "behind_surface_gt_20cm": 43,
+          "in_front_gt_20cm": 3079
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.22112681909789256,
+          "p90_absolute_z_m": 0.2774359061313692,
+          "behind_surface_gt_20cm": 44,
+          "in_front_gt_20cm": 2963
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.3358124063210823,
+        "translation_m": 0.05590169943749479,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "biased_z_visible",
+      "candidate": "baseline_-1",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.2586774586177878,
+          "p90_absolute_z_m": 0.3934721243283114,
+          "behind_surface_gt_20cm": 44,
+          "in_front_gt_20cm": 2800
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.26304813123188175,
+          "p90_absolute_z_m": 0.3890759881088954,
+          "behind_surface_gt_20cm": 48,
+          "in_front_gt_20cm": 2728
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.25528337042483873,
+          "p90_absolute_z_m": 0.3674728454599212,
+          "behind_surface_gt_20cm": 38,
+          "in_front_gt_20cm": 2820
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.8971855270380646,
+        "translation_m": 0.17001838135919306,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "biased_z_visible",
+      "candidate": "continuation_-1",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.2586774586177878,
+          "p90_absolute_z_m": 0.3934721243283114,
+          "behind_surface_gt_20cm": 44,
+          "in_front_gt_20cm": 2800
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.26304813123188175,
+          "p90_absolute_z_m": 0.3890759881088954,
+          "behind_surface_gt_20cm": 48,
+          "in_front_gt_20cm": 2728
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.25528337042483873,
+          "p90_absolute_z_m": 0.3674728454599212,
+          "behind_surface_gt_20cm": 38,
+          "in_front_gt_20cm": 2820
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.8971855270380646,
+        "translation_m": 0.17001838135919306,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "biased_z_visible",
+      "candidate": "baseline_0",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.2498267934144991,
+          "p90_absolute_z_m": 0.2622143497398799,
+          "behind_surface_gt_20cm": 54,
+          "in_front_gt_20cm": 3753
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.2501653906524943,
+          "p90_absolute_z_m": 0.2630327661937958,
+          "behind_surface_gt_20cm": 62,
+          "in_front_gt_20cm": 3737
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.24971073577405534,
+          "p90_absolute_z_m": 0.2627407972867452,
+          "behind_surface_gt_20cm": 57,
+          "in_front_gt_20cm": 3759
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.034938562061821894,
+        "translation_m": 0.0062500000000000056,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "biased_z_visible",
+      "candidate": "continuation_0",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.2498267934144991,
+          "p90_absolute_z_m": 0.2622143497398799,
+          "behind_surface_gt_20cm": 54,
+          "in_front_gt_20cm": 3753
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.2501653906524943,
+          "p90_absolute_z_m": 0.2630327661937958,
+          "behind_surface_gt_20cm": 62,
+          "in_front_gt_20cm": 3737
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3840,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 0,
+          "support_fraction": 1.0,
+          "median_absolute_z_m": 0.24971073577405534,
+          "p90_absolute_z_m": 0.2627407972867452,
+          "behind_surface_gt_20cm": 57,
+          "in_front_gt_20cm": 3759
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.034938562061821894,
+        "translation_m": 0.0062500000000000056,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "holes_z_visible",
+      "candidate": "reference_control",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3186,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 654,
+          "support_fraction": 0.8296875,
+          "median_absolute_z_m": 0.0036639084404486155,
+          "p90_absolute_z_m": 0.016957551726042297,
+          "behind_surface_gt_20cm": 32,
+          "in_front_gt_20cm": 8
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3194,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 646,
+          "support_fraction": 0.8317708333333333,
+          "median_absolute_z_m": 0.003862802106247898,
+          "p90_absolute_z_m": 0.020688398825744612,
+          "behind_surface_gt_20cm": 58,
+          "in_front_gt_20cm": 12
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3168,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 672,
+          "support_fraction": 0.825,
+          "median_absolute_z_m": 0.0035437403779714494,
+          "p90_absolute_z_m": 0.015129249185582613,
+          "behind_surface_gt_20cm": 40,
+          "in_front_gt_20cm": 9
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.0,
+        "translation_m": 0.0,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "holes_z_visible",
+      "candidate": "wrong_control",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 2996,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 154,
+          "invalid_depth": 690,
+          "support_fraction": 0.7802083333333333,
+          "median_absolute_z_m": 0.4986334701731501,
+          "p90_absolute_z_m": 11.121881957653006,
+          "behind_surface_gt_20cm": 1885,
+          "in_front_gt_20cm": 473
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3025,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 180,
+          "invalid_depth": 635,
+          "support_fraction": 0.7877604166666666,
+          "median_absolute_z_m": 0.5383437843666137,
+          "p90_absolute_z_m": 11.714548167424079,
+          "behind_surface_gt_20cm": 2065,
+          "in_front_gt_20cm": 408
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 2982,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 165,
+          "invalid_depth": 693,
+          "support_fraction": 0.7765625,
+          "median_absolute_z_m": 0.4158960537880012,
+          "p90_absolute_z_m": 10.12565898228167,
+          "behind_surface_gt_20cm": 1667,
+          "in_front_gt_20cm": 527
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 3.2177409348852595,
+        "translation_m": 0.5830951894845301,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "holes_z_visible",
+      "candidate": "baseline_1",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3163,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 677,
+          "support_fraction": 0.8236979166666667,
+          "median_absolute_z_m": 0.06956962876936146,
+          "p90_absolute_z_m": 0.19390987282456607,
+          "behind_surface_gt_20cm": 258,
+          "in_front_gt_20cm": 21
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3200,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 640,
+          "support_fraction": 0.8333333333333334,
+          "median_absolute_z_m": 0.06287382455005197,
+          "p90_absolute_z_m": 0.19848564448417674,
+          "behind_surface_gt_20cm": 252,
+          "in_front_gt_20cm": 58
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3155,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 685,
+          "support_fraction": 0.8216145833333334,
+          "median_absolute_z_m": 0.07626269244969208,
+          "p90_absolute_z_m": 0.17473229847569166,
+          "behind_surface_gt_20cm": 183,
+          "in_front_gt_20cm": 32
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 1.1448899312141287,
+        "translation_m": 0.22784657666947733,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "holes_z_visible",
+      "candidate": "continuation_1",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3194,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 646,
+          "support_fraction": 0.8317708333333333,
+          "median_absolute_z_m": 0.027900213355703585,
+          "p90_absolute_z_m": 0.06861657536695312,
+          "behind_surface_gt_20cm": 28,
+          "in_front_gt_20cm": 14
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3212,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 628,
+          "support_fraction": 0.8364583333333333,
+          "median_absolute_z_m": 0.028270430966148563,
+          "p90_absolute_z_m": 0.06384377994360495,
+          "behind_surface_gt_20cm": 51,
+          "in_front_gt_20cm": 17
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3178,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 662,
+          "support_fraction": 0.8276041666666667,
+          "median_absolute_z_m": 0.026150794062232308,
+          "p90_absolute_z_m": 0.06959659444542121,
+          "behind_surface_gt_20cm": 30,
+          "in_front_gt_20cm": 15
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.3528353430390157,
+        "translation_m": 0.0718070330817254,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "holes_z_visible",
+      "candidate": "baseline_-1",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3196,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 644,
+          "support_fraction": 0.8322916666666667,
+          "median_absolute_z_m": 0.05770894801884152,
+          "p90_absolute_z_m": 0.20136072504296187,
+          "behind_surface_gt_20cm": 169,
+          "in_front_gt_20cm": 155
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3191,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 649,
+          "support_fraction": 0.8309895833333333,
+          "median_absolute_z_m": 0.06946287711038668,
+          "p90_absolute_z_m": 0.18642780872262676,
+          "behind_surface_gt_20cm": 112,
+          "in_front_gt_20cm": 132
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3208,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 632,
+          "support_fraction": 0.8354166666666667,
+          "median_absolute_z_m": 0.053293563004825906,
+          "p90_absolute_z_m": 0.19289062160424705,
+          "behind_surface_gt_20cm": 158,
+          "in_front_gt_20cm": 124
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 1.279082586084215,
+        "translation_m": 0.22360679774997902,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "holes_z_visible",
+      "candidate": "continuation_-1",
+      "validation_accepted": false,
+      "frames": [
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3183,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 657,
+          "support_fraction": 0.82890625,
+          "median_absolute_z_m": 0.05494105199357335,
+          "p90_absolute_z_m": 0.1515464166863055,
+          "behind_surface_gt_20cm": 53,
+          "in_front_gt_20cm": 14
+        },
+        {
+          "accepted": false,
+          "total": 3840,
+          "supported": 3191,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 649,
+          "support_fraction": 0.8309895833333333,
+          "median_absolute_z_m": 0.05624414370228248,
+          "p90_absolute_z_m": 0.09858264205059264,
+          "behind_surface_gt_20cm": 59,
+          "in_front_gt_20cm": 20
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3184,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 656,
+          "support_fraction": 0.8291666666666667,
+          "median_absolute_z_m": 0.0439507567474946,
+          "p90_absolute_z_m": 0.1558166778667111,
+          "behind_surface_gt_20cm": 34,
+          "in_front_gt_20cm": 23
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.5914051020695265,
+        "translation_m": 0.11336473217010658,
+        "recovered": false
+      }
+    },
+    {
+      "condition": "holes_z_visible",
+      "candidate": "baseline_0",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3185,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 655,
+          "support_fraction": 0.8294270833333334,
+          "median_absolute_z_m": 0.007761835629153779,
+          "p90_absolute_z_m": 0.021981684426686587,
+          "behind_surface_gt_20cm": 37,
+          "in_front_gt_20cm": 7
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3196,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 644,
+          "support_fraction": 0.8322916666666667,
+          "median_absolute_z_m": 0.007771751463456766,
+          "p90_absolute_z_m": 0.026248106367467106,
+          "behind_surface_gt_20cm": 62,
+          "in_front_gt_20cm": 8
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3169,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 671,
+          "support_fraction": 0.8252604166666667,
+          "median_absolute_z_m": 0.007671106580549036,
+          "p90_absolute_z_m": 0.02013929769647369,
+          "behind_surface_gt_20cm": 41,
+          "in_front_gt_20cm": 11
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.08838834545718657,
+        "translation_m": 0.015309310892394854,
+        "recovered": true
+      }
+    },
+    {
+      "condition": "holes_z_visible",
+      "candidate": "continuation_0",
+      "validation_accepted": true,
+      "frames": [
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3185,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 655,
+          "support_fraction": 0.8294270833333334,
+          "median_absolute_z_m": 0.007761835629153779,
+          "p90_absolute_z_m": 0.021981684426686587,
+          "behind_surface_gt_20cm": 37,
+          "in_front_gt_20cm": 7
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3196,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 644,
+          "support_fraction": 0.8322916666666667,
+          "median_absolute_z_m": 0.007771751463456766,
+          "p90_absolute_z_m": 0.026248106367467106,
+          "behind_surface_gt_20cm": 62,
+          "in_front_gt_20cm": 8
+        },
+        {
+          "accepted": true,
+          "total": 3840,
+          "supported": 3169,
+          "nonpositive_or_nonfinite": 0,
+          "outside_image": 0,
+          "invalid_depth": 671,
+          "support_fraction": 0.8252604166666667,
+          "median_absolute_z_m": 0.007671106580549036,
+          "p90_absolute_z_m": 0.02013929769647369,
+          "behind_surface_gt_20cm": 41,
+          "in_front_gt_20cm": 11
+        }
+      ],
+      "pose_metrics": {
+        "valid_output": true,
+        "rotation_deg": 0.08838834545718657,
+        "translation_m": 0.015309310892394854,
+        "recovered": true
+      }
+    }
+  ]
+}

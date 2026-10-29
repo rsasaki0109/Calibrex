@@ -779,3 +779,18 @@ unsafe. Do not promote or rerun real data as a validated improvement. Next freez
 reference-free geometric candidate validation on disjoint analytic LiDAR samples,
 retaining occlusion/unsupported populations and correct/wrong candidate controls.
 No real/SOTA claim; conditions/seeds are dependent, not independent scenes.
+
+### Disjoint geometric validation fails (2026-10-29)
+
+[Results](research/joint_geometric_validation_results.md), frozen at `3249838a`:
+40 fixed candidate checks on new angular LiDAR rays, no camera-occlusion filtering,
+reference-free per-frame median/p90/support criteria. Accepts 16/20 accurate and
+**2/20 inaccurate** poses; rejects four correct biased-depth candidates. Crucially
+the all-return truth-start drift (0.8560 deg) PASSES, as does exact-range negative
+continuation (0.5731 deg). Shared camera depth/scene means disjoint samples are not
+independent sensor evidence; aggregate residuals do not bound pose error. Do not
+promote, retune thresholds or call continuation safe. Next compare fitting metric
+geometry versus MI using only original fitting samples, unchanged initial poses,
+fixed budget, occlusion/bias controls; reserve these points for diagnostics. Freeze
+estimator first, keep full-pose labels and baseline; no heldout-guided parameter
+selection. Synthetic results remain development evidence, not SOTA.
