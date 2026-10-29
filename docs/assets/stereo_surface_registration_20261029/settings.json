@@ -1,0 +1,39 @@
+{
+  "common": {
+    "max_iterations": 50,
+    "convergence_tolerance_m": 1e-07,
+    "correspondence_distance_m": 0.5,
+    "trim_fraction": 0.8,
+    "mutual_correspondences": true,
+    "min_correspondences": 64,
+    "holdout_ratio": 0.2,
+    "holdout_voxel_size_m": 0.5,
+    "split_seed": 0,
+    "rank_tolerance": 1e-07,
+    "max_condition_number": 100000000.0,
+    "effective_diagnostics": false,
+    "curvature_translation_step_m": 0.01,
+    "curvature_rotation_step_rad": 0.008726646259971648,
+    "min_translation_curvature": 0.001,
+    "min_rotation_curvature_m2_per_rad2": 0.001,
+    "multi_start_diagnostics": false,
+    "multi_start_translation_m": 0.05,
+    "multi_start_rotation_rad": 0.08726646259971647,
+    "symmetry_translation_separation_m": 0.02,
+    "symmetry_rotation_separation_deg": 1.0,
+    "symmetry_equivalent_holdout_margin_m": 0.005,
+    "multi_start_workers": 0
+  },
+  "planes": {
+    "normal_neighbor_count": 12,
+    "minimum_normal_eigengap": 0.02,
+    "rank_tolerance": 1e-07,
+    "max_condition_number": 100000000.0,
+    "known_bad_translation_m": 0.05,
+    "known_bad_rotation_deg": 5.0,
+    "known_bad_residual_margin_m": 0.005
+  },
+  "frame_rule": "second of the three archived ordered frames",
+  "voxel_size_m": 0.2,
+  "max_points": 6000
+}
