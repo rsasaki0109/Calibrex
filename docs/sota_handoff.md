@@ -823,3 +823,12 @@ symmetric results exactly reproduce. Positive synthetic result only: no producti
 or SOTA claim. Next isolate depth-bias versus translation confounding with fixed
 visibility handling, zero/positive/negative bias and truth-start controls; test
 observability before accepting a fitted nuisance bias. No further saturation tuning.
+
+### Japanese development review (2026-10-29)
+
+[Japanese brief](research/development_brief_ja.md) summarizes evidence through
+`064ea6f3`, separating real-data and analytic controls, adoption limits and the
+unexecuted depth-bias/translation-identifiability experiment proposal.
+[Printable HTML](assets/development_brief_20261029/index.html) and
+[three-page PDF](assets/development_brief_20261029/calibrex-development-review-ja.pdf)
+are shareable reading copies. This documentation adds no new experiment or accuracy claim.
