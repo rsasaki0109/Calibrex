@@ -1323,3 +1323,23 @@ Next resolve preprocessing parity and model bridge (sampling/lineage, neighborho
 fine-feature pixel coordinates), plus GPU/validated port, suitable pinned weights/
 terms and training overlap. Then freeze one54-call spent-data pilot; do not resume
 stereo-mask variants or claim SOTA from geometry tests. Core/defaults unchanged.
+
+### CoFiI2P model-shaped CPU geometry and patch audit (2026-10-30)
+
+[Contract/source findings](research/cofii2p_model_bridge.md), freeze `b6d0628e`,
+[synthetic result](assets/cofii2p_model_bridge_20261030/result.json): independent
+voxel mean+CSR source lineage, count selection, five replacement-sampled levels,
+128 KNN and explicit fine-pixel decoder. Default20480/10240/5120/2560/1280 smoke
+on4096 synthetic points repeated exactly; all39 selected exhaustive KNN-distance
+checks pass. Unique voxels per level4096/3775/2581/1504/811; keep duplicates and
+centroid contributor sets. Related tests21 pass; no model call or real frame.
+Official eval adds patch row to u/column to v despite (h,w) flatten; decoder requires
+row_major or official_eval_legacy explicitly.12/16 positions differ, NOT measured
+model error. Freeze convention before any pilot, never select by reference errors.
+Open3D voxel ordering/KNN ties/random streams and truth-prealigned voxel grid NOT
+numerically reproduced; this is NOT a validated CPU inference port. Local BGR,
+crop and pixel-center mapping still lack checkpoint parity. Next prioritize suitable
+checkpoint provenance/terms, upstream image preprocessing, GPU/validated inference
+runtime and training overlap; then one preregistered54-call spent-data pilot.
+Do not continue geometry polishing as a substitute for model evidence. Core/defaults
+and historical MI6/12 plus all negative evidence remain unchanged.

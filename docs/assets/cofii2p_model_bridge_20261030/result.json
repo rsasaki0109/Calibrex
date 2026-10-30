@@ -1,0 +1,45 @@
+{
+  "scope": "synthetic geometry only; no official parity or accuracy claim",
+  "source_commit": "b6d0628e7d4e812178296effac22febf6b435255",
+  "smoke_driver": {
+    "path": "/workspace/Calibrex/tools/cofii2p_bridge_smoke.py",
+    "sha256": "b1f920dcb1e22f0560506a4742d74729c49533a51d1063b69b7b5400a7fc9233"
+  },
+  "bridge_manifests": [
+    {
+      "path": "/workspace/work/cofii2p-bridge-smoke-20261030/bridge_a/manifest.json",
+      "sha256": "51b3663c39b6768ec2e6cc694fedd77e743fcfa6f178f6c67b3bb7c5505a1a2c"
+    },
+    {
+      "path": "/workspace/work/cofii2p-bridge-smoke-20261030/bridge_b/manifest.json",
+      "sha256": "a04090a318afca6a06f40629eb62dbaf0a2bed091e0049a43218171d9cab13cc"
+    }
+  ],
+  "stage_counts": [
+    20480,
+    10240,
+    5120,
+    2560,
+    1280
+  ],
+  "unique_voxels_per_stage": [
+    4096,
+    3775,
+    2581,
+    1504,
+    811
+  ],
+  "checks_passed": [
+    "repeat arrays exact",
+    "all original rows/IDs retained",
+    "centroid transform",
+    "all level shapes",
+    "level-to-source lineage",
+    "all KNN index ranges and shapes",
+    "39 KNN query distances match exhaustive search",
+    "explicit patch decoding difference"
+  ],
+  "legacy_different_patch_positions": 12,
+  "real_frames": 0,
+  "model_invocations": 0
+}

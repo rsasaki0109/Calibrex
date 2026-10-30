@@ -99,3 +99,22 @@ divisible scarce counts, KNN orientation, pixel mapping and digest rejection.
 
 GPU/validated inference runtime, suitable weights and terms, checkpoint image
 provenance and training overlap remain prerequisites for the spent-data pilot.
+
+## Outcome
+
+Implementation frozen at `b6d0628e`. The [smoke result](../assets/cofii2p_model_bridge_20261030/result.json)
+passed all eight checks; both bridge manifests and prepared-input provenance are
+retained beside it. Binary arrays remain under the pinned workspace paths (about49MB
+including both outputs); manifests record their SHA256. Repeat-run equality was
+checked for every array, not for manifests whose output paths differ.
+
+Stage counts were20480/10240/5120/2560/1280. Their distinct source-voxel counts were
+4096/3775/2581/1504/811: replacement sampling retains duplicate rows, as intended.
+All39 selected KNN distance checks passed. Pixel layout and legacy decoding differ
+at exactly12 of16 patch positions. Related boundary/export/PnP tests passed21 cases.
+There were zero real frames, model calls or accuracy fits. The plan's documentation
+hash identifies the pre-run protocol at the frozen commit, before this outcome.
+
+Next priority is checkpoint/preprocessing and runtime readiness, followed by an
+explicitly frozen inference pilot. Additional geometry refinements alone cannot
+resolve the missing model evidence or establish SOTA.

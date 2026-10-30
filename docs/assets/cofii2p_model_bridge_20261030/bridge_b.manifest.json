@@ -1,0 +1,187 @@
+{
+  "scope": "CPU geometry only; no model inference or official numerical parity",
+  "source_commit": "b6d0628e7d4e812178296effac22febf6b435255",
+  "driver_sha256": "f956fae606abb550820760a263edc7e350b147d58b4168b2faef49a3e5b2f792",
+  "prepared_manifest": {
+    "path": "/workspace/work/cofii2p-bridge-smoke-20261030/prepared/manifest.json",
+    "sha256": "bc2ffedb5d63f19f3d480be5f305eeceef1ceb1ac4c78ecdf87ae90362426393"
+  },
+  "prepared_artifact": {
+    "path": "/workspace/work/cofii2p-bridge-smoke-20261030/prepared/input.npz",
+    "sha256": "f388ba17b3bd8137fa2bfd808230ed881d294a8c41e568b07e9a16ab6388bb8b"
+  },
+  "options": {
+    "seed": 20261030,
+    "voxel_size_m": 0.1,
+    "count": 20480,
+    "stages": 5,
+    "neighbors": 128
+  },
+  "artifact": {
+    "path": "/workspace/work/cofii2p-bridge-smoke-20261030/bridge_b/bridge.npz",
+    "sha256": "b7593246aedbecd38a8af590b955ed1c594060d2443e2c95e415dffd6b9c122d"
+  },
+  "array_shapes": {
+    "voxel_point_initial_camera_m": [
+      4096,
+      3
+    ],
+    "voxel_point_lidar_m": [
+      4096,
+      3
+    ],
+    "voxel_features": [
+      4096,
+      4
+    ],
+    "voxel_member_offsets": [
+      4097
+    ],
+    "voxel_member_source_rows": [
+      4096
+    ],
+    "source_point_id": [
+      4096
+    ],
+    "image_bgr_chw": [
+      3,
+      160,
+      512
+    ],
+    "source_to_input_pixel": [
+      3,
+      3
+    ],
+    "initial_camera_lidar": [
+      4,
+      4
+    ],
+    "fine_intrinsics": [
+      3,
+      3
+    ],
+    "coarse_intrinsics": [
+      3,
+      3
+    ],
+    "feats": [
+      20480,
+      4
+    ],
+    "count_selection": [
+      20480
+    ],
+    "voxel_index_0": [
+      20480
+    ],
+    "points_0": [
+      20480,
+      3
+    ],
+    "parent_1": [
+      10240
+    ],
+    "voxel_index_1": [
+      10240
+    ],
+    "points_1": [
+      10240,
+      3
+    ],
+    "parent_2": [
+      5120
+    ],
+    "voxel_index_2": [
+      5120
+    ],
+    "points_2": [
+      5120,
+      3
+    ],
+    "parent_3": [
+      2560
+    ],
+    "voxel_index_3": [
+      2560
+    ],
+    "points_3": [
+      2560,
+      3
+    ],
+    "parent_4": [
+      1280
+    ],
+    "voxel_index_4": [
+      1280
+    ],
+    "points_4": [
+      1280,
+      3
+    ],
+    "neighbors_0": [
+      20480,
+      128
+    ],
+    "subsampling_0": [
+      10240,
+      128
+    ],
+    "upsampling_0": [
+      20480,
+      128
+    ],
+    "neighbors_1": [
+      10240,
+      128
+    ],
+    "subsampling_1": [
+      5120,
+      128
+    ],
+    "upsampling_1": [
+      10240,
+      128
+    ],
+    "neighbors_2": [
+      5120,
+      128
+    ],
+    "subsampling_2": [
+      2560,
+      128
+    ],
+    "upsampling_2": [
+      5120,
+      128
+    ],
+    "neighbors_3": [
+      2560,
+      128
+    ],
+    "subsampling_3": [
+      1280,
+      128
+    ],
+    "upsampling_3": [
+      2560,
+      128
+    ],
+    "neighbors_4": [
+      1280,
+      128
+    ]
+  },
+  "conventions": {
+    "voxel_order": "lexicographic grid keys; differs from Open3D hash iteration",
+    "voxel_origin": "min(initial-camera points) - voxel_size/2",
+    "features": "mean intensity and mean rotated normals; no renormalization",
+    "pyramid": "half sampling WITH replacement; duplicates retained",
+    "lineage": "level voxel indices -> CSR member source rows -> original IDs",
+    "neighbors": "query-to-support indices; SciPy ties not Open3D parity",
+    "pixels": "fine K=.5*input K, coarse K=.125*input K; decoder choice required"
+  },
+  "runtime": {
+    "numpy": "2.5.4",
+    "scipy": "1.18.1"
+  }
+}
