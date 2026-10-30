@@ -92,3 +92,7 @@ No candidate is executable unmodified under the present verified resource/checkp
 conditions. The next concrete work is satisfying these prerequisites, not another
 surface-mask variant or a runtime-as-accuracy claim. No installation or execution
 was performed just to hide a known dependency blocker.
+
+Follow-up: [execution/checkpoint readiness](cofii2p_runtime_readiness.md) records
+actual proxy403 weight access, CPU-only runtime, historical training-translation
+correction and unresolved checkpoint/image provenance. Inference remains deferred.

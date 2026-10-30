@@ -1,0 +1,271 @@
+{
+  "schema_version": "calibrex.cofii2p_runtime_review/v0.1",
+  "observed_at_utc": "2026-10-30T08:43:26.169133+00:00",
+  "source_commit": "edfccb8f4c1a1d1bbd0fa24abf894580002439ef",
+  "decision": "defer inference until execution and checkpoint provenance are supplied",
+  "runtime": {
+    "python": "3.12.14",
+    "torch": "2.4.0+cpu",
+    "torch_cuda_build": null,
+    "cuda_available": false,
+    "cuda_device_count": 0,
+    "open3d_installed": false
+  },
+  "network_policy": {
+    "mode": "restricted",
+    "state": "enforced",
+    "observations_current": true,
+    "github_allowed": true,
+    "onedrive_allowed": false,
+    "baidu_allowed": false,
+    "redirects_followed": false
+  },
+  "network_probes": [
+    {
+      "name": "official_releases",
+      "url": "https://github.com/WHU-USI3DV/CoFiI2P/releases",
+      "method": "GET",
+      "redirects_followed": false,
+      "status_code": 200,
+      "location": null,
+      "truncated": false,
+      "body_path": "/workspace/work/cofii2p-runtime-review-20261030/official_releases.html",
+      "body_sha256": "463fcebfd803a18c29b7daa7b4c108e53d039477d878e66acf1a0c8012d7abc2",
+      "bytes_read": 137138,
+      "proxy_error": null
+    },
+    {
+      "name": "official_issues",
+      "url": "https://github.com/WHU-USI3DV/CoFiI2P/issues",
+      "method": "GET",
+      "redirects_followed": false,
+      "status_code": 200,
+      "location": null,
+      "truncated": false,
+      "body_path": "/workspace/work/cofii2p-runtime-review-20261030/official_issues.html",
+      "body_sha256": "c55c158d5a55d96e58c5a9ccb42e18cc0a6c6cc4fdd0bf1b7814ecc35dfafdc6",
+      "bytes_read": 224107,
+      "proxy_error": null
+    },
+    {
+      "name": "onedrive",
+      "url": "https://1drv.ms/f/s!AhENMf-PTXKL0Bq11ewNUGBbA9m3?e=xGthS3",
+      "method": "HEAD",
+      "redirects_followed": false,
+      "error_type": "ProxyError",
+      "error": "HTTPSConnectionPool(host='1drv.ms', port=443): Max retries exceeded with url: /f/s!AhENMf-PTXKL0Bq11ewNUGBbA9m3?e=xGthS3 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))"
+    },
+    {
+      "name": "baidu",
+      "url": "https://pan.baidu.com/s/1Vo4WiyJ6J4sKgveFXrycVQ?pwd=51p0",
+      "method": "HEAD",
+      "redirects_followed": false,
+      "error_type": "ProxyError",
+      "error": "HTTPSConnectionPool(host='pan.baidu.com', port=443): Max retries exceeded with url: /s/1Vo4WiyJ6J4sKgveFXrycVQ?pwd=51p0 (Caused by ProxyError('Unable to connect to proxy', OSError('Tunnel connection failed: 403 Forbidden')))"
+    },
+    {
+      "name": "closed_issues",
+      "url": "https://github.com/WHU-USI3DV/CoFiI2P/issues?q=is%3Aissue+is%3Aclosed",
+      "status_code": 200,
+      "body_sha256": "f07a2500e475add7ea3e126a348ccf488dbde2881ac3477a09006250c897d1fb",
+      "body_path": "/workspace/work/cofii2p-runtime-review-20261030/closed_issues.html"
+    },
+    {
+      "name": "issue20",
+      "url": "https://github.com/WHU-USI3DV/CoFiI2P/issues/20",
+      "status_code": 200,
+      "body_sha256": "5f554ca8c67d50db62c19a8685ea361e77d4a41087eb2f8fb5b86f0136a97648",
+      "body_path": "/workspace/work/cofii2p-runtime-review-20261030/issue20.html"
+    }
+  ],
+  "source_files": [
+    {
+      "repository": "CoFiI2P",
+      "commit": "ed90edf51cca540ee76152d91133c7e79b63256c",
+      "path": "/workspace/work/direct-provider-review-20261030/CoFiI2P/README.md",
+      "sha256": "e0f48b16e9e06133c9d826aa7f15ddf4bb07666ec74a42e8a1e34e10a8ea9d95"
+    },
+    {
+      "repository": "CoFiI2P",
+      "commit": "ed90edf51cca540ee76152d91133c7e79b63256c",
+      "path": "/workspace/work/direct-provider-review-20261030/CoFiI2P/data/kitti.py",
+      "sha256": "4f55906ba4cfac7b50d3a6e1639d4e5f6ea89cad5adb379124a2cde226087b71"
+    },
+    {
+      "repository": "CoFiI2P",
+      "commit": "ed90edf51cca540ee76152d91133c7e79b63256c",
+      "path": "/workspace/work/direct-provider-review-20261030/CoFiI2P/data/options.py",
+      "sha256": "36d50042dd5845ee56bcda4915eebd4b7300eb63eccf6982572b60509f1e582a"
+    },
+    {
+      "repository": "CoFiI2P",
+      "commit": "ed90edf51cca540ee76152d91133c7e79b63256c",
+      "path": "/workspace/work/direct-provider-review-20261030/CoFiI2P/data/build_nuscenes/build_dataset.py",
+      "sha256": "8ed4dfe216c5a87049825cbeaefee7ae7883b0d70a02a9c0060a6141bf441d1a"
+    },
+    {
+      "repository": "CoFiI2P",
+      "commit": "ed90edf51cca540ee76152d91133c7e79b63256c",
+      "path": "/workspace/work/direct-provider-review-20261030/CoFiI2P/train.py",
+      "sha256": "862f60144ca1b5eb16eb8c04793777eac70672c9238e84c526542d1b46f8f59d"
+    },
+    {
+      "repository": "CorrI2P",
+      "commit": "4f4a7550543ed4fb0e77dff9b0aecad0e42ad227",
+      "path": "/workspace/work/direct-provider-review-20261030/CorrI2P/README.md",
+      "sha256": "55edc6ee8a8f15a09928825df4b8d99edeed1577b8d7dcde2fc506d64ce4076c"
+    },
+    {
+      "repository": "CorrI2P",
+      "commit": "4f4a7550543ed4fb0e77dff9b0aecad0e42ad227",
+      "path": "/workspace/work/direct-provider-review-20261030/CorrI2P/kitti_pc_img_dataloader.py",
+      "sha256": "a8ecd947774e357e1cc1af9a4dae1237a82def9b452e58d9804734e0f954b5a0"
+    },
+    {
+      "repository": "CorrI2P",
+      "commit": "4f4a7550543ed4fb0e77dff9b0aecad0e42ad227",
+      "path": "/workspace/work/direct-provider-review-20261030/CorrI2P/kitti_script/kitti_pc_bin_to_npy_in_img_frame.py",
+      "sha256": "7b247772ccfaf002787d4ab579ddad290169946184797bd525491b5e634619e9"
+    },
+    {
+      "repository": "DeepI2P",
+      "commit": "cd21389db9ddcccfd2cea306e54342562681b20f",
+      "path": "/workspace/work/direct-provider-review-20261030/DeepI2P/data/kitti_png_to_npy.py",
+      "sha256": "e715e52c5ac49e0f2b049b87cc2648ef8003aac288693f47e2d27ccaf00241f0"
+    },
+    {
+      "repository": "DeepI2P",
+      "commit": "cd21389db9ddcccfd2cea306e54342562681b20f",
+      "path": "/workspace/work/direct-provider-review-20261030/DeepI2P/data/kitti_pc_img_pose_loader.py",
+      "sha256": "7e72ed20866484613efaf713620c80ff5f2bffdebc8345a7bfb6ab8d748cdfe9"
+    }
+  ],
+  "web_snapshots": [
+    {
+      "path": "/workspace/work/cofii2p-runtime-review-20261030/official_releases.html",
+      "sha256": "463fcebfd803a18c29b7daa7b4c108e53d039477d878e66acf1a0c8012d7abc2",
+      "bytes": 137138
+    },
+    {
+      "path": "/workspace/work/cofii2p-runtime-review-20261030/official_issues.html",
+      "sha256": "c55c158d5a55d96e58c5a9ccb42e18cc0a6c6cc4fdd0bf1b7814ecc35dfafdc6",
+      "bytes": 224107
+    },
+    {
+      "path": "/workspace/work/cofii2p-runtime-review-20261030/closed_issues.html",
+      "sha256": "f07a2500e475add7ea3e126a348ccf488dbde2881ac3477a09006250c897d1fb",
+      "bytes": 306759
+    },
+    {
+      "path": "/workspace/work/cofii2p-runtime-review-20261030/issue20.html",
+      "sha256": "5f554ca8c67d50db62c19a8685ea361e77d4a41087eb2f8fb5b86f0136a97648",
+      "bytes": 264079
+    },
+    {
+      "path": "/workspace/work/cofii2p-runtime-review-20261030/issue1.html",
+      "sha256": "9e4e2bad8309d8d659f6ee4523d2e329783e8d20afe4e9e832a63d042e28c072",
+      "bytes": 217856
+    },
+    {
+      "path": "/workspace/work/cofii2p-runtime-review-20261030/issue22.html",
+      "sha256": "75285e86a2ee98ed72855c233fee9ab405b65fa1de73fe77907b2ca90d83ef07",
+      "bytes": 251100
+    },
+    {
+      "path": "/workspace/work/cofii2p-runtime-review-20261030/issue23.html",
+      "sha256": "daf74679adbafac5bd9a71a44b4149c53acf3a3ead6518ebd1fa092ff1319cdd",
+      "bytes": 241456
+    },
+    {
+      "path": "/workspace/work/cofii2p-runtime-review-20261030/issue25.html",
+      "sha256": "7e6ae09dbdb555beea39561c4426245eabfd0e7a6dd968ec26ba6bedf3cb3272",
+      "bytes": 228464
+    },
+    {
+      "path": "/workspace/work/cofii2p-runtime-review-20261030/issue7.html",
+      "sha256": "c0e04cab96e3b312dd8ad908eaa24fb5ad025b1bab86b5a3e7adeeac03d8b0d2",
+      "bytes": 227604
+    },
+    {
+      "path": "/workspace/work/cofii2p-runtime-review-20261030/issue26.html",
+      "sha256": "00a9d875fa232360b3c2df3b8cedd87ce3cdf6a3013b6409b135c9b5e34c6f41",
+      "bytes": 406834
+    }
+  ],
+  "findings": [
+    {
+      "id": "image_rgb_lineage",
+      "status": "partial_source_evidence",
+      "statement": "DeepI2P KITTI image builder reverses BGR to RGB; CoFiI2P nuScenes builder uses PIL RGB. The exact CoFiI2P distributed KITTI image generation is not established.",
+      "sources": [
+        "DeepI2P/data/kitti_png_to_npy.py:78-86",
+        "CoFiI2P/data/build_nuscenes/build_dataset.py:249-258",
+        "https://github.com/WHU-USI3DV/CoFiI2P/issues/1#issuecomment-2147182183"
+      ]
+    },
+    {
+      "id": "crop_and_intrinsics",
+      "status": "checkpoint_unverified",
+      "statement": "CoFi KITTI loader consumes img_P2/img_P3 and K_P2/K_P3 NPYs, with no top crop in __getitem__, then nominal .5 K scaling. The options top-crop value alone does not establish upstream data production.",
+      "sources": [
+        "CoFiI2P/data/kitti.py:126-135",
+        "CoFiI2P/data/kitti.py:267-318"
+      ]
+    },
+    {
+      "id": "translation_training_history",
+      "status": "checkpoint_unverified",
+      "statement": "Issue26 collaborator acknowledges historical train-only translation suppression and plans retraining. In pinned ed90edf5 the suppression line225 is commented out, so current training DOES sample translations. Distributed checkpoint training commit/date/digest remain unknown.",
+      "sources": [
+        "https://github.com/WHU-USI3DV/CoFiI2P/issues/26#issuecomment-3748667059",
+        "CoFiI2P/data/kitti.py:222-233",
+        "CoFiI2P/data/options.py:32-38"
+      ]
+    },
+    {
+      "id": "validation_test_selection",
+      "status": "author_report",
+      "statement": "Issue25 collaborator states validation and test were not distinguished and recommends least validation loss. This is not proof of overlap with our spent raw drives; checkpoint/raw-frame mapping remains unresolved.",
+      "sources": [
+        "https://github.com/WHU-USI3DV/CoFiI2P/issues/25#issuecomment-3489897936"
+      ]
+    },
+    {
+      "id": "gpu_memory",
+      "status": "author_report_not_measured_here",
+      "statement": "Issue7 collaborator reports about3GB KITTI inference GPU memory. Reserve headroom and measure peak on target runtime; this is not a guaranteed bound.",
+      "sources": [
+        "https://github.com/WHU-USI3DV/CoFiI2P/issues/7#issuecomment-2308753542"
+      ]
+    },
+    {
+      "id": "fine_module",
+      "status": "author_report_not_measured_here",
+      "statement": "Issue20 collaborator reported coarse-only inference sometimes outperforming fine. This does not verify the patch-axis diagnosis or justify selecting variants by our reference errors.",
+      "sources": [
+        "https://github.com/WHU-USI3DV/CoFiI2P/issues/20"
+      ]
+    },
+    {
+      "id": "weight_access",
+      "status": "blocked_current_environment",
+      "statement": "Both README weight links fail CONNECT with403 through the enforced proxy. GitHub releases page reports no releases. No checkpoint bytes or digest were obtained; no unsupported route used.",
+      "sources": [
+        "https://github.com/WHU-USI3DV/CoFiI2P/releases",
+        "https://github.com/WHU-USI3DV/CoFiI2P/issues",
+        "https://1drv.ms/f/s!AhENMf-PTXKL0Bq11ewNUGBbA9m3?e=xGthS3",
+        "https://pan.baidu.com/s/1Vo4WiyJ6J4sKgveFXrycVQ?pwd=51p0"
+      ]
+    }
+  ],
+  "requirements": [
+    "GPU execution environment with verified CUDA PyTorch/Open3D compatibility, or a separately validated CPU inference port; current geometry bridge is insufficient",
+    "Official KITTI checkpoint bytes, SHA256, source URL, training commit/date, applicable terms and translation-augmentation provenance",
+    "One provenance-pinned prepared KITTI image/intrinsics example or authoritative generation recipe to establish channel order, crop and nominal-vs-actual K convention",
+    "Training/validation/raw-drive overlap disclosure; unknown provenance remains development-only",
+    "Freeze decode convention, input protocol and limits before the54-call spent-data pilot; all failures retained"
+  ],
+  "model_invocations": 0,
+  "checkpoint_bytes_downloaded": 0,
+  "new_real_frames": 0
+}

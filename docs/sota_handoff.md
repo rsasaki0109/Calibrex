@@ -1343,3 +1343,24 @@ checkpoint provenance/terms, upstream image preprocessing, GPU/validated inferen
 runtime and training overlap; then one preregistered54-call spent-data pilot.
 Do not continue geometry polishing as a substitute for model evidence. Core/defaults
 and historical MI6/12 plus all negative evidence remain unchanged.
+
+### CoFiI2P inference deferred on concrete runtime/checkpoint blockers (2026-10-30)
+
+[Readiness/handoff](research/cofii2p_runtime_readiness.md),
+[machine evidence](assets/cofii2p_runtime_review_20261030/review.json): runtime
+torch2.4.0+cpu/Python3.12, CUDA unavailable, Open3D absent. Official OneDrive/Baidu
+HEADs both proxy CONNECT403 under enforced policy; GitHub releases page no releases.
+No checkpoint bytes/digest, external execution, new real data or accuracy result.
+DeepI2P KITTI RGB conversion and CoFi nuScenes PIL pipeline support RGB ancestry,
+not exact distributed KITTI crop/color/K provenance. Do not call local BGR parity.
+Issue26 collaborator acknowledges historical train-only translation suppression and
+plans retraining; IMPORTANT pinned ed90edf5 line225 is COMMENTED OUT, so current
+source DOES train with translations. Distributed checkpoint training revision/date
+still unknown. Issue25 collaborator reports no validation/test distinction; this
+does NOT prove overlap with our spent raw frames. Issue7 about3GB inference is
+author report, not measured bound. Issue20 coarse-only report does not prove patch
+axis issue caused it or permit reference-selected variants. Require GPU workspace,
+suitable official checkpoint SHA/terms/training recipe and prepared-image provenance,
+then bounded no-reference model smoke and frozen54-call spent-data pilot. User was
+asked for available GPU/checkpoint location; do not invent access, bypass proxy,
+retrain blindly or keep polishing CPU geometry instead of obtaining model evidence.
