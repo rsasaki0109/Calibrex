@@ -1217,3 +1217,17 @@ Next prerequisite: freeze bounded ±1 stereo acquisition/preparation on SAME six
 spent drives (archive/member/timestamp/byte pins) before fetching, then short-gap
 support and metric-motion validation. StereoVO shares depth errors, not independent
 truth. No target-extrinsic-derived selection, arbitrary scale or fresh holdouts.
+
+### Short-baseline neighbor acquisition and support (2026-10-30)
+
+[Results](research/temporal_neighbors_results.md): scope `550055c0`, exact member
+ranges `ce811402`, audit `11f93d00`, histogram reconciliation `79ce9e80`.
+72 images/36 stereo neighbors, only same six spent drives,56.85MiB range requests;
+archive/CRC/SHA/byte caps verified. First audit aborted on raw-vs-equalized pixels;
+initial plan/log retained, all18 centers match after existing equalization.
+Short-gap .1031–.1038s support **28/36** (old long-gap1/12, not paired accuracy).
+0005/0009/0013/0015 each6/6,0011 4/6,0002 0/6. All failures retained. No metric
+motion, temporal masks, ICP or calibration claim. Right images acquired but unused.
+Next freeze metric stereoVO with independent controlled-motion/scale validation,
+no target extrinsic, all36 pairs/failures and explicit shared-stereo error coupling.
+No fresh recordings/holdouts, default changes or SOTA claim.
