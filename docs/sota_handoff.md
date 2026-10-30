@@ -1245,3 +1245,16 @@ Next freeze controlled-motion/visibility temporal surface consistency, then real
 estimated-motion-only diagnosis. Keep failed motion pairs and missing/out-of-view/
 occluded support explicit; reference/LiDAR score only after selection. No temporal
 filter/ICP/extrinsic calibration/default/SOTA claim yet.
+
+### Temporal surface verification rejected (2026-10-30)
+
+[Results](research/temporal_surface_check_results.md), freeze `53c39a61`:18 exact
+render projection controls pass, min98.34% visible consistency. All18 real centers,
+36 estimated-motion checks; both-neighbor1px disparity agreement. Quality/support
+**15/18→13/18**, retention median24.77→19.43%. Original failures still agreement
+**45.24%,76.02%,76.98%**.0013/107 empty from unsupported motions;0015/74 distance
+failure21.79%. All categories retained; no truth in temporal classification.
+Close self-consistency mask sequence, no ICP/tolerance retuning. Next reference-
+assisted error attribution of estimated motion versus available OXTS/time/camera-
+conversion proxy, evaluation-only and uncertainty explicit. Target-extrinsic chain
+must never feed selection or be called independent metric truth. No defaults/SOTA.
