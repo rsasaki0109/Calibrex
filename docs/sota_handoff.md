@@ -1287,3 +1287,21 @@ RGB–LiDAR provider beyond failed SuperGlue/I2PNet: architecture/checkpoint/lic
 training overlap and CPU/GPU readiness, then ONE frozen feasible spent-data pilot.
 No fresh holdouts, SGBM/threshold retuning or runtime-as-accuracy/SOTA claim. Preserve
 full-cloud MI6/12 and all negative evidence; report concrete prerequisites if blocked.
+
+### Direct-provider official-source readiness review (2026-10-30)
+
+[Review/pilot prerequisites](research/direct_provider_readiness.md),
+[machine evidence](assets/direct_provider_review_20261030/review.json): official
+CoFiI2P `ed90edf5`, CorrI2P `4f4a7550`, DeepI2P `cd21389d` pinned/hashed and read,
+not executed. Conditional priority CoFiI2P correspondence mechanism; all current
+unmodified paths blocked by CPU-only runtime/unchecked weights/dependencies.
+CoFi/Corr no root license found in pinned trees (terms unresolved, not legal verdict),
+Deep MIT but CUDAExtension. KITTI train0–8/val9–10 code does not establish exact
+checkpoint/raw-frame isolation. No weight digests or inference/accuracy claim.
+CoFi loader prealigns using dataset calibration; MUST bypass with explicit
+initializer-only input boundary and tested transform/crop/normal lineage. Its test
+model path differs from train/val, so do not claim the entire model requires labels.
+Concrete conditional54-invocation spent-data pilot is specified; prerequisites
+GPU or validated port, pinned appropriate weight/terms, no-reference adapter,
+training provenance. No fresh data, package install or code copied into core.
+Guessed2D3D-MATR URL unresolved and retained, not an official candidate claim.
