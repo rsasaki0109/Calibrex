@@ -80,11 +80,18 @@ The reference mutation check guards one unrelated reference path; the stronger
 structural evidence is the four-file API and absence of a reference loader. It
 does not prove arbitrary upstream data provenance.
 
-A frozen synthetic smoke run will retain the request, schemas, prepared manifest
-and hashes in `docs/assets/cofii2p_input_boundary_20261030/`; binary inputs/output
+A synthetic smoke run at frozen implementation commit `333e368b` passed all eight
+planned checks; see the [verification](../assets/cofii2p_input_boundary_20261030/verification.json),
+[prepared manifest](../assets/cofii2p_input_boundary_20261030/manifest.json) and
+[frozen plan](../assets/cofii2p_input_boundary_20261030/plan.json). Binary inputs/output
 remain under `/workspace/work/cofii2p-boundary-smoke-20261030/` with their digests.
-This fixture uses three synthetic points and a declared 90-degree rotation plus
-translation, not a spent-data calibration fit.
+The fixture uses three synthetic points and a declared 90-degree rotation plus
+translation, not a spent-data calibration fit. Generate the fixture by calling
+`make_request` from the committed unit-test module with a new existing directory;
+run the CLI above against the generated `request.json` and a new output directory.
+The plan's documentation hash identifies the pre-run protocol at the frozen commit;
+this paragraph adds the subsequent outcome. No plan or implementation was changed
+after the run.
 
 Still required: native voxel/count sampling with point lineage, point-pyramid
 and neighborhood construction, fine-feature pixel conversion, verified checkpoint

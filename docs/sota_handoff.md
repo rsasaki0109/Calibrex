@@ -1305,3 +1305,21 @@ Concrete conditional54-invocation spent-data pilot is specified; prerequisites
 GPU or validated port, pinned appropriate weight/terms, no-reference adapter,
 training provenance. No fresh data, package install or code copied into core.
 Guessed2D3D-MATR URL unresolved and retained, not an official candidate claim.
+
+### CoFiI2P initializer-only geometry boundary completed (2026-10-30)
+
+[Contract and limitations](research/cofii2p_input_boundary.md), implementation freeze
+`333e368b`, [synthetic verification](assets/cofii2p_input_boundary_20261030/verification.json):
+four hash-pinned inputs only (image/cloud/camera/explicit initializer); no reference
+or dataset loader. Nonidentity points/normals, IDs, correction composition, odd-size
+crop/pixel mapping, BGR values, reference-file mutation and input rejection covered
+by four unit tests. Three-point synthetic CLI smoke passes eight planned checks.
+No real frame, model inference, accuracy or checkpoint-parity claim. Original point
+rows survive; no sampling/pyramid yet. Actual rounded resize/pixel-center affine
+differs from official nominal0.5 K scaling; BGR/feature stride also need explicit
+checkpoint compatibility review. Caller initializer/normal provenance remains an
+upstream obligation, not established by reference-file mutation alone.
+Next resolve preprocessing parity and model bridge (sampling/lineage, neighborhoods,
+fine-feature pixel coordinates), plus GPU/validated port, suitable pinned weights/
+terms and training overlap. Then freeze one54-call spent-data pilot; do not resume
+stereo-mask variants or claim SOTA from geometry tests. Core/defaults unchanged.
