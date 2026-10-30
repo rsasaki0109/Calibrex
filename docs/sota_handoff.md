@@ -905,3 +905,17 @@ Reject full block replacement. Preserve joint baseline; if pursuing scalar rescu
 use residual-based trigger and remaining budget after completed joint fit, retaining
 fallback and all regression controls. No truth-label/bias-guided triggers or combining
 sampler changes. Monotonic cost is not proof of pose accuracy. No production/SOTA.
+
+### Baseline-preserving scalar rescue (2026-10-30)
+
+[Results](research/scalar_rescue_results.md), frozen `cb8c265c`: unchanged joint
+fit first, residual-only ±.01 m probes, fixed-pose bounded bias correction using
+remaining shared 800-call budget. All 54 baseline records exactly reproduce;
+all output poses identical to baseline. Perturbed joint recovery **33/36→33/36**,
+truth starts **11/18→17/18**, six gains/no regressions. Six triggers/adoptions,
+bias errors .000218–.006862 m; 11–639 calls. Four previous unconverged cases remain
+failures. Staged joint termination + scalar termination does not prove new joint
+stationarity. Oracle-only synthetic evidence, no production/SOTA claim.
+Next prioritize image-only sampling versus the frozen bilinear baseline, with
+full bias/occlusion/truth-start and planar controls; do not tune the four oracle
+failures or combine sampler/rescue changes in one unattributable comparison.
