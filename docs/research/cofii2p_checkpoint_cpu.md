@@ -82,3 +82,38 @@ integration check, not model accuracy, a calibration fit or an official-weight r
 No learned dataset or fresh holdout is downloaded. Next obtain an official KITTI
 artifact through an authorized accessible location, establish checkpoint/image/
 training provenance and run the same CPU loader before freezing the spent-data pilot.
+
+## Integration outcome and learned-weight handoff
+
+Frozen implementation `5b90e2e6`. The separate-process full-model fixture run
+completed: [result](../assets/cofii2p_checkpoint_cpu_20261030/fixture_result.json),
+[request](../assets/cofii2p_checkpoint_cpu_20261030/fixture_request.json),
+[raw pairs](../assets/cofii2p_checkpoint_cpu_20261030/fixture_raw_pairs.npz).
+Strict CPU loading restored the raw state, then the actual prepared-image/test
+path completed with exact repeat outputs/selected rows. Initialization plus load
+took5.82s, first forward10.21s, peak process RSS1.92GiB, on two CPU threads. Timing
+excludes geometry preparation/source copying and is specific to this untrained
+fixture, not a learned-model performance guarantee.
+
+All4 raw pairs were retained, including duplicates:3 distinct voxel centroids and
+3 distinct image pixels. This is not sufficient independent support for a pose
+acceptance claim, and no pose was fitted. Centroids and all contributor IDs were
+independently reconstructed from the original prepared points; mapping source
+pixels forward reproduced the fine-grid coordinates. Related boundary/export/PnP
+tests passed32 cases. Request/result schemas and frozen source/input/output hashes
+were validated. The plan's document hash refers to the pre-run protocol.
+
+The196.97MiB fixture checkpoint stays outside git in the recorded workspace path;
+it is random initialization, not an acquired learned artifact. It uses the same
+initialization seed as the target process; loader mutation behavior is separately
+verified with different source/target states in the small-model unit test. Do not
+infer learned recovery or generalization from this integration result.
+
+For a real artifact, fill the schema-valid
+[learned request template](../assets/cofii2p_checkpoint_cpu_20261030/learned_request.example.json)
+with actual paths/SHA256 and source/training/terms declarations, then run the CLI
+without `--allow-fixture`. Zero hashes and placeholder paths deliberately cannot
+pass artifact validation. Template image/layout choices illustrate the local
+contract; they do not settle official checkpoint preprocessing. Declare and freeze
+the intended policy before any real-data comparison. Official weights remain
+unavailable; this completes the executable loading/export boundary only.

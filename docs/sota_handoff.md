@@ -1403,3 +1403,25 @@ dependency installed, no GPU/Open3D/TorchVision package install. Core/defaults u
 Next accessible official KITTI weight SHA/terms/training+image recipe, then bounded
 CPU checkpoint smoke and frozen spent-data pilot. GPU is NOT required for this
 exercised graph. Do not re-request GPU or repeat closed MI search/stereo variants.
+
+### CPU checkpoint loader and raw pair lineage exercised (2026-10-30)
+
+[Contract/results/template](research/cofii2p_checkpoint_cpu.md), freeze `5b90e2e6`:
+request pins checkpoint/bridge/prepared chain, declares image/layout/source/training/
+terms, rejects reference fields. `torch.load(weights_only=True,map_location=cpu)`
+plus exact tensor keys/shapes/dtypes/finiteness and strict load; no prefix/wrapper/
+dtype guessing, unsafe fallback or random fallback. Native fine_process indices
+observed unchanged; exports original-image pixels, LiDAR voxel centroids and CSR
+of ALL original contributor IDs. No covariance/confidence/quality/pose invented.
+Official checkpoint still absent and official hosts still policy-excluded; no
+repeat denial probes or mirror search. Full synthetic raw state196.97MiB saved,
+then loaded in separate process at20480 points: init+load5.82s/forward10.21s,
+peakRSS1.92GiB, allCPU/finite/exact repeat.4 pairs but only3 distinct voxels/pixels,
+all retained; no pose fit/accuracy. Fixture seed matches target initialization;
+different-state load mutation verified separately by small-model tests. Synthetic
+kind requires explicit --allow-fixture and remains labeled in result.32 related
+tests, schemas/digests/original centroid+ID/pixel checks pass. Source/weights outside
+core; no learned model or fresh dataset acquired. Next fill learned-request template
+with an accessible official KITTI artifact and SHA/source/terms/training+image recipe,
+then bounded CPU smoke and preregistered spent-data pilot. CPU-only user constraint
+persists; stop adding substitute random-weight experiments as accuracy evidence.
