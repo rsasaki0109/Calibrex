@@ -1,0 +1,32 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "width": {
+      "exclusiveMinimum": 0,
+      "title": "Width",
+      "type": "integer"
+    },
+    "height": {
+      "exclusiveMinimum": 0,
+      "title": "Height",
+      "type": "integer"
+    },
+    "intrinsic_matrix": {
+      "items": {
+        "items": {
+          "type": "number"
+        },
+        "type": "array"
+      },
+      "title": "Intrinsic Matrix",
+      "type": "array"
+    }
+  },
+  "required": [
+    "width",
+    "height",
+    "intrinsic_matrix"
+  ],
+  "title": "Camera",
+  "type": "object"
+}

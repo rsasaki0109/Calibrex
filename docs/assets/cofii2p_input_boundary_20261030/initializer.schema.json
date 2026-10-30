@@ -1,0 +1,32 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.explicit_initial_transform/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "transform_camera_lidar": {
+      "items": {
+        "items": {
+          "type": "number"
+        },
+        "type": "array"
+      },
+      "title": "Transform Camera Lidar",
+      "type": "array"
+    },
+    "provenance": {
+      "minLength": 1,
+      "title": "Provenance",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "transform_camera_lidar",
+    "provenance"
+  ],
+  "title": "Initializer",
+  "type": "object"
+}

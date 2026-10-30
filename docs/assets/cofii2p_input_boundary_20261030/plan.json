@@ -1,0 +1,41 @@
+{
+  "scope": "synthetic input geometry smoke only; no model or calibration fit",
+  "code_sha256": {
+    "tools/cofii2p_input_boundary.py": "14f9be0ee9bc56e688baff0ae5afbbb543e9bea915f3c397875efa7bb0156e22",
+    "tests/unit/test_cofii2p_input_boundary.py": "386c27a147510bf8ae936f2bb9feb510f1729182d1e94c4400e356e942dd09ae",
+    "docs/research/cofii2p_input_boundary.md": "af2514ff04ec50076afc87a668fe3ad3ee30c4892276d8e7e2b2bd7afbfabd99"
+  },
+  "fixture_builder": "tests/unit/test_cofii2p_input_boundary.py:make_request",
+  "workspace": "/workspace/work/cofii2p-boundary-smoke-20261030",
+  "expected": {
+    "points": 3,
+    "point_ids": [
+      9,
+      3,
+      7
+    ],
+    "image_shape": [
+      3,
+      160,
+      512
+    ],
+    "normal": [
+      0,
+      1,
+      0
+    ],
+    "model_invocations": 0
+  },
+  "checks": [
+    "all four input hashes",
+    "manifest schema",
+    "initializer point transform",
+    "rotation-only normals",
+    "IDs preserved",
+    "image shape/BGR scaling",
+    "pixel affine and intrinsics",
+    "artifact hash"
+  ],
+  "no_real_data": true,
+  "claim": "geometry boundary only; checkpoint preprocessing parity pending"
+}
