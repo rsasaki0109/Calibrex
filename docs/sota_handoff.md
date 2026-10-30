@@ -1231,3 +1231,17 @@ motion, temporal masks, ICP or calibration claim. Right images acquired but unus
 Next freeze metric stereoVO with independent controlled-motion/scale validation,
 no target extrinsic, all36 pairs/failures and explicit shared-stereo error coupling.
 No fresh recordings/holdouts, default changes or SOTA claim.
+
+### Camera-only metric motion feasibility (2026-10-30)
+
+[Results](research/stereo_metric_motion_results.md), freeze `271b9e75`:
+18 generated correspondence controls pass (<.2deg/.05m), maxima .04315deg/.005561m.
+All36 real pairs evaluated;54 unique depths,18 central arrays exact archive parity,
+all hashes verified. Metric camera-only bidirectional PnP support/cycle **34/36**;
+0013/106→107 and107→108 fail50% inlier ratios, not cycle. Cycle median .03353deg/
+.01547m. No target extrinsic/OXTS/LiDAR used; shared stereo error means no independent
+real accuracy claim. Previous eight essential failures remain included.
+Next freeze controlled-motion/visibility temporal surface consistency, then real
+estimated-motion-only diagnosis. Keep failed motion pairs and missing/out-of-view/
+occluded support explicit; reference/LiDAR score only after selection. No temporal
+filter/ICP/extrinsic calibration/default/SOTA claim yet.
