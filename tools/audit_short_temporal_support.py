@@ -30,17 +30,24 @@ def run(plan_path: Path, output: Path) -> None:
         source_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
         plan_sha256=hashlib.sha256(plan_path.read_bytes()).hexdigest(),
     )
+    workspace = Path(plan["equalized_workspace"])
+    workspace.mkdir(parents=True, exist_ok=False)
     for drive in plan["drives"]:
         timestamps = read_timestamps(Path(drive["camera_timestamps"]))
         for f in drive["frames"]:
             raw = cv2.imread(f["center_raw"], cv2.IMREAD_GRAYSCALE)
             old = cv2.imread(f["image"], cv2.IMREAD_GRAYSCALE)
-            np.testing.assert_array_equal(raw, old)
+            np.testing.assert_array_equal(cv2.equalizeHist(raw), old)
             for neighbor in f["neighbors"]:
+                neighbor_raw = cv2.imread(neighbor["path"], cv2.IMREAD_GRAYSCALE)
+                equalized = workspace / (drive["drive"] + f"-{neighbor['index']:010d}.png")
+                if not cv2.imwrite(str(equalized), cv2.equalizeHist(neighbor_raw)):
+                    raise ValueError("failed to save equalized image")
+                neighbor_path = str(equalized)
                 first, second = (
-                    (neighbor["path"], f["center_raw"])
+                    (neighbor_path, f["image"])
                     if neighbor["index"] < f["index"]
-                    else (f["center_raw"], neighbor["path"])
+                    else (f["image"], neighbor_path)
                 )
                 a, b = sorted([neighbor["index"], f["index"]])
                 result = image_pair(Path(first), Path(second), drive["intrinsics"])
@@ -55,7 +62,11 @@ def run(plan_path: Path, output: Path) -> None:
                         "second_index": b,
                         "interval_s": (timestamps[b].timestamp_ns - timestamps[a].timestamp_ns)
                         * 1e-9,
-                        "center_grayscale_matches_archive": True,
+                        "center_equalization_matches_archive": True,
+                        "derived_neighbor_path": neighbor_path,
+                        "derived_neighbor_sha256": hashlib.sha256(
+                            equalized.read_bytes()
+                        ).hexdigest(),
                         "image_support": result,
                         "independent_metric_motion_validated": False,
                     }
