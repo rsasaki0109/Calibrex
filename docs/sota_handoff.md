@@ -1150,3 +1150,17 @@ coverage63–87% under nominal95% plane bound. No real transfer/ICP or defaults.
 Next measurement-model validation: independent spatial patch prediction or
 curvature-aware fitting, exact-plane and curved/boundary coverage/support controls.
 Do not choose a window using truth or tune RMS/scale on18 spent real frames.
+
+### Disjoint surface prediction passes controlled screen (2026-10-30)
+
+[Results](research/surface_prediction_results.md), freeze `d72a83a1`:54 paired rows,
+same27 measurements.21px checkerboard221-fit/220-holdout predictive chi-square
+with shared coefficient covariance,99% gate; no truth selection. Exact-plane
+10000-draw acceptance98.88%. Noisy joint precision medians **99.92/99.87%**,
+retention **23.44/23.86%**, all18/18 noisy and9/9 clean pass quality/support screen.
+Archived baseline27/27 exact. Final full-patch estimate reuses validation pixels;
+not independent confidence. Some angular coverage<95%, no guarantee or ICP claim.
+Next parameterize camera/stereo geometry with exact analytic parity first: current
+fx240/fB120 constants must not be applied verbatim to real KITTI. Freeze real
+intrinsics/stereo/noise/resampling assumptions before18-frame quality transfer;
+no tuning to reference normals, then matched ICP only if justified. No defaults/SOTA.
