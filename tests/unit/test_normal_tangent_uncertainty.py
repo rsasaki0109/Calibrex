@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import chi2
-from tools.normal_tangent_uncertainty import cone_radius, normal_cone
 from tools.known_geometry_joint import CAMERA
+from tools.normal_tangent_uncertainty import cone_radius, normal_cone
 
 
 def test_front_plane_matches_analytic_tangent_variance():
