@@ -1013,3 +1013,16 @@ Noisy perturbed candidate convergence just 2/72. Both reject all nine planes;
 Next distinct hypothesis: independently specify direct disparity-domain error
 rather than measured-depth variance weighting, freeze the same regression controls
 before evaluation. No claim of success yet; MI real baseline/core unchanged.
+
+### Direct disparity preserves clean controls, still fails noisy recovery (2026-10-30)
+
+[Results](research/direct_disparity_results.md), frozen `c577773e`: 171 candidate
+fits against archived fixed-metric baseline, exact paired depth hashes. Bilinear
+sample disparity, residual .2*(d_observed-120/(z+bias)), same robust loss/search.
+Clean joint recovery stays **12/36 perturbed, 6/18 reference**, no regressions.
+Noisy reference **0/36→24/36**, but noisy perturbed **0/72→0/72**, all candidate
+noisy perturbed fits fail convergence/support. Nine planes rejected, 8–800 calls.
+No adoption or real transfer. Next freeze reference-versus-failed-pose objective
+landscape diagnostics with controlled bias on these same noise realizations before
+another residual variant or optimizer change. Do not relax caps/gates or claim
+reference-start gains as perturbed recovery. Core/MI defaults unchanged.
