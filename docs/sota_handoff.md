@@ -1364,3 +1364,23 @@ suitable official checkpoint SHA/terms/training recipe and prepared-image proven
 then bounded no-reference model smoke and frozen54-call spent-data pilot. User was
 asked for available GPU/checkpoint location; do not invent access, bypass proxy,
 retrain blindly or keep polishing CPU geometry instead of obtaining model evidence.
+
+### Bounded alternative-provider follow-up closed (2026-10-30)
+
+[Review](research/direct_provider_followup.md),
+[machine evidence](assets/direct_provider_followup_20261030/review.json): official
+NCLR40de8eea, FreeReg d13a45f5, FFreeReg branch0b397094 pinned,18 source hashes.
+NCLR has calibration/PnP components inside representation learning, but README
+weights are todo; no ready pretrained unknown-extrinsic provider established.
+Root Apache2.0, sparse-convolution dependencies. FreeReg has CPU fallbacks in some
+components (do NOT blanket claim CUDA-only), but multiple unpinned large weights/
+dependencies and no feasible complete current runtime verified. FFreeReg removes
+virtual-camera/diffusion requirements but still DepthPro+YOHO/FCGF weights, explicit
+CUDA demo and MinkowskiEngine. Estimated K, scale resampling and point lineage
+need frozen policy before calibration use; do NOT relabel a stereo substitution
+as Free-FreeReg reproduction. FreeReg/FFreeReg no tracked root license; dependency
+terms separate. About42MB source clones include bundled demos, none evaluated.
+Zero model calls/weight download/calibration fits; core/defaults unchanged.
+Close speculative provider search and adapter expansion. Next useful execution
+requires accessible GPU and suitable official checkpoint with SHA/terms/training
+and image provenance, as in CoFi handoff. No accuracy/SOTA advance claimed.

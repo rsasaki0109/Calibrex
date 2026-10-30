@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "observed_at_utc",
+    "source_commit",
+    "scope",
+    "selection_basis",
+    "candidates",
+    "findings",
+    "decision",
+    "checkpoint_bytes_downloaded",
+    "model_invocations",
+    "calibration_fits",
+    "data_scope",
+    "core_modified"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "observed_at_utc": {
+      "type": "string"
+    },
+    "source_commit": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "string"
+    },
+    "selection_basis": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "repository",
+              "branch",
+              "commit",
+              "source_files",
+              "tracked_checkpoint_paths",
+              "tracked_root_license_paths"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "repository": {
+                "type": "string"
+              },
+              "branch": {
+                "type": "string"
+              },
+              "commit": {
+                "type": "string"
+              },
+              "source_files": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "path",
+                    "sha256"
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "sha256": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "tracked_checkpoint_paths": {
+                "type": "array",
+                "items": {}
+              },
+              "tracked_root_license_paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "repository",
+              "branch",
+              "commit",
+              "source_files",
+              "tracked_checkpoint_paths",
+              "tracked_root_license_paths"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "repository": {
+                "type": "string"
+              },
+              "branch": {
+                "type": "string"
+              },
+              "commit": {
+                "type": "string"
+              },
+              "source_files": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "path",
+                    "sha256"
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "sha256": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "tracked_checkpoint_paths": {
+                "type": "array",
+                "items": {}
+              },
+              "tracked_root_license_paths": {
+                "type": "array",
+                "items": {}
+              }
+            }
+          }
+        ]
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "candidate",
+          "decision",
+          "mechanism",
+          "weights",
+          "runtime",
+          "terms",
+          "boundary",
+          "next"
+        ],
+        "properties": {
+          "candidate": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "mechanism": {
+            "type": "string"
+          },
+          "weights": {
+            "type": "string"
+          },
+          "runtime": {
+            "type": "string"
+          },
+          "terms": {
+            "type": "string"
+          },
+          "boundary": {
+            "type": "string"
+          },
+          "next": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "decision": {
+      "type": "string"
+    },
+    "checkpoint_bytes_downloaded": {
+      "type": "integer"
+    },
+    "model_invocations": {
+      "type": "integer"
+    },
+    "calibration_fits": {
+      "type": "integer"
+    },
+    "data_scope": {
+      "type": "string"
+    },
+    "core_modified": {
+      "type": "boolean"
+    }
+  }
+}
