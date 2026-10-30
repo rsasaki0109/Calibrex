@@ -998,3 +998,18 @@ control (range-dependent depth error from disparity noise) on known geometry,
 fixed noise/occlusion conditions and unchanged regression controls, before any
 real-data retuning. Keep full-cloud MI as baseline; do not fit noise thresholds
 to these spent real cases or consume fresh holdouts as development data.
+
+### Stereo uncertainty normalization rejected (2026-10-30)
+
+[Results](research/stereo_uncertainty_results.md), frozen `2eb1336d`: 342 paired
+synthetic fits, bilinear metric baseline versus .1/max(.1,.5*z_measured²/120)
+residual scaling before existing saturation/loss. Clean + .5 px disparity noise
+(two seeds), all three optical biases, layouts/populations/starts; nine clean
+plane controls per method. Clean fixed outputs exactly reproduce 63/63.
+Clean perturbed joint **12/36→1/36**, reference **6/18→0/18**; 18 regressions/one
+gain. Noisy perturbed recovery **0/72 for both**, reference **0/36→8/36** only.
+Noisy perturbed candidate convergence just 2/72. Both reject all nine planes;
+8–800 actual calls. Reject candidate, do not tune floor/sigma or adopt.
+Next distinct hypothesis: independently specify direct disparity-domain error
+rather than measured-depth variance weighting, freeze the same regression controls
+before evaluation. No claim of success yet; MI real baseline/core unchanged.
