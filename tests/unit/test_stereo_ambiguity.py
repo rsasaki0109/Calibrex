@@ -1,4 +1,8 @@
 import numpy as np
+import pytest
+
+pytest.importorskip("cv2")
+
 from tools.diagnose_stereo_ambiguity import patch_costs, stats
 
 

@@ -1,6 +1,9 @@
-import cv2
 import numpy as np
-from tools.audit_temporal_surface_inputs import image_pair
+import pytest
+
+cv2 = pytest.importorskip("cv2")
+
+from tools.audit_temporal_surface_inputs import image_pair  # noqa: E402
 
 
 def test_blank_images_do_not_produce_motion_support(tmp_path):

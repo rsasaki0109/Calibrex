@@ -1,4 +1,8 @@
 import numpy as np
+import pytest
+
+pytest.importorskip("cv2")
+
 from tools.stereo_metric_motion import metric_pnp, sample_points
 
 

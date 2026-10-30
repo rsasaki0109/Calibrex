@@ -2,12 +2,14 @@ import hashlib
 import json
 from pathlib import Path
 
-import cv2
 import numpy as np
 import pytest
 from pydantic import ValidationError
 from scipy.spatial.transform import Rotation
-from tools.cofii2p_input_boundary import (
+
+cv2 = pytest.importorskip("cv2")
+
+from tools.cofii2p_input_boundary import (  # noqa: E402
     Request,
     compose_correction,
     map_input_pixels_to_source,

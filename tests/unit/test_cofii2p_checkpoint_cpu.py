@@ -3,6 +3,9 @@ import hashlib
 import numpy as np
 import pytest
 from pydantic import ValidationError
+
+pytest.importorskip("cv2")
+
 from tools.cofii2p_checkpoint_cpu import (
     CheckpointRequest,
     export_pairs,
