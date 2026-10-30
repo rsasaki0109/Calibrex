@@ -1,0 +1,1562 @@
+{
+  "scope": "spent real SGBM transfer; 54 fits",
+  "source_sha256": {
+    "tools/joint_pose_bias.py": "ea6827a3931d01ca43eaf34f06a570388bd72512c7ac8bf054b50e94c3bfb5f5",
+    "tools/evaluate_pose_bias.py": "75b523ab42d7d0ff6a0da6d5aca3a57d56edb4e3337ea1d7776be486970b93a7",
+    "tools/joint_occlusion_pose.py": "c802382c25329293946b408b1b501e10acc11d6ef84ed5e7d37840289865dc17",
+    "tools/joint_metric_pose.py": "665a9d02fed4f45629b4dc987d151258bcea6ba5310738203c17e3ddce5ee64e",
+    "tools/occlusion_geometry.py": "63e69955040061b3bcecb9330ca52e5d2bd9f9a504bf7fc1242f06a4c6ea9533",
+    "tools/known_geometry_joint.py": "8b041f12e956534d9b01c89e8c4618176f5957fd974986341bec4ae15c5a998f",
+    "tools/joint_multistart_control.py": "11f4d20b3f7f68355075f0d101ae4d991405580c9d4e7e25bb8cf4bbaf865fc9",
+    "tools/run_camera_lidar_development_matrix.py": "476ca936614e98e07b0d406d040eea6267818d226a08b7419208130461242fe8",
+    "src/calibrex/solvers/borer_six_dof_solver.py": "930e6a5442488f6c2e7311b7e87f9302e44a9c02e55c3fd9c37255c7ade7b08f",
+    "src/calibrex/solvers/borer_rotation_only_solver.py": "25c97150cb002fa622ff3c244153d8d9cbda4f5309caa433a06d4b31a00350d0",
+    "docs/assets/joint_pose_bias_20261029/evaluation.json": "e03f2714228f1bd70f0e5b37e240524e3344facdf885d5e7d0c3f2f6b1f903da",
+    "tools/edge_depth_sampling.py": "e64de505e00ecfffe9e414a59dea37caf1da825e81dbec7795da90a887af49ef",
+    "tools/joint_edge_pose_bias.py": "0aefd3f73202553832ab3ac988ee63f6d2174e6421b7e99b4e15227cc0c27c5e",
+    "tools/evaluate_edge_sampling.py": "cf80fa085a619bc55987b8e517e39a1786fe08fb7141c8e8fd281eb0d78e254c",
+    "tests/unit/test_edge_depth_sampling.py": "63eacc70b8d6989f01ebc6c786eefad17aa70124eb999c327cdae825084c8520",
+    "docs/research/edge_sampling_protocol.md": "427987223846a56da8767c6974e704e8981d9d694a6f0213bfc855cf04699abb",
+    "docs/assets/edge_sampling_20261030/evaluation.json": "a5e5f546495a631ede7ce5b11c9e40db6d0817b16b118ae26010d10f1be7c670",
+    "tools/joint_edge_scalar_rescue.py": "8ca3dfbf555e4354c9d058ba314b6722b1fffe72e9d72d6776afeaee7b3777e4",
+    "tools/evaluate_edge_scalar_rescue.py": "b7dda93f5180bf5d322473ae986c7a9e293c07353aaf34c1931699a120f51db5",
+    "tools/joint_scalar_rescue.py": "d782ca57aa4799ad60913c39845f8eacee5c6669558969c084ab86e66590f07f",
+    "tools/diagnose_analytic_stopping.py": "b2e5c8c1783b5e2100604c7c6df68061aedfec6bd3866568495b4129922eed8e",
+    "tests/unit/test_joint_edge_scalar_rescue.py": "52974ac806e2e151a93bc69a615eb95e590037c4e47a8183345617933ca0d6ff",
+    "docs/research/edge_scalar_rescue_protocol.md": "18fbfbe54f32e792497e11c06e8586ca4618c3a6c50b89e6fef8abe61b2a70b3",
+    "tools/evaluate_real_metric_transfer.py": "2e9687ebe5c3fb76aa35380a98810c7fc9f5c03b155b700918ae0b52161ffec2",
+    "tests/unit/test_real_metric_transfer.py": "c71b88f2528a485f2d2b46d0ebf4956b25343bae77b1e7d1442d32973d8fd263",
+    "tools/koide_shared_bundle_pandey.py": "0c379e189365015dcef20d39019f3f6d6a960866d04b21ab265037fcf06bbf72",
+    "docs/research/real_metric_transfer_protocol.md": "a4575e5a5aaff9410ee7d8c57d32376cb05df10abac4bc9affb7994714ae556f",
+    "docs/assets/joint_learned_stereo_20261029/plan.json": "363b0bfe0cfb7552acd611067b4a8b24858bcf8b64567226ddedc345980246ea",
+    "docs/assets/joint_learned_stereo_20261029/evaluation.json": "e7bc62c67dc0633190d13b7f86d5908478d1b6dddd9daeaf8d606657c6e24114"
+  },
+  "input_sha256": {
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/calib-frontend.json": "2a9f6bf4b8282b09308a68220aa3a69aead38fcb5cadabb490742f00f687485e",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/seed.json": "e4cc1412bab9ecebcf1a65b4969a8e9865342031ca9dfa94434d87fb343513a4",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/d2d.json": "cae3c74aa6ba04270074b83be71e9ad08b1d71ce22eea8297d316281414c3394",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frontend.json": "53d285cec4a5d9352d2ed2143dd5a3140f86e513efb4e77ded7b12aafb8eb1c6",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-38-sgbm.npy": "06c7c1dc925623e811d35ca669599b0c64b571277a0cf50ebfd7266e1cfa2ca5",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-38.ply": "7ef115a70b00896027dd5ad3f8e8c70c97a470911bedc6f71eae6d3fdc5fe3da",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-76-sgbm.npy": "34711fe6fae471d103e9f15a2a75576917b82224891a36615b6569aeaa090d95",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-76.ply": "8eaa8c815367e744cbbe336fad65c923b9c8b9d6b07a016b93cd5ae8c8707ab6",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-114-sgbm.npy": "23450c369bd569df9a5b22a0c9bbd3046aa1bdaf7915ce790b9270cb0e887cf6",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-114.ply": "d973236f90739062601c4adaf805feb6dad1593ae5209b7258fa7021f8afc667",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/calib-frontend.json": "2a9f6bf4b8282b09308a68220aa3a69aead38fcb5cadabb490742f00f687485e",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/seed.json": "ee0ab853cb5c78903cc79567e366c211606b7e695d155413f18eac457b274df3",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/d2d.json": "a475d2e2e7ca60831ea7e5c245cb1e24f6ecd0d32e90c885c618b9f1bec1b570",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/frontend.json": "53d285cec4a5d9352d2ed2143dd5a3140f86e513efb4e77ded7b12aafb8eb1c6",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/frame-38.ply": "7ef115a70b00896027dd5ad3f8e8c70c97a470911bedc6f71eae6d3fdc5fe3da",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/frame-76.ply": "8eaa8c815367e744cbbe336fad65c923b9c8b9d6b07a016b93cd5ae8c8707ab6",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/frame-114.ply": "d973236f90739062601c4adaf805feb6dad1593ae5209b7258fa7021f8afc667",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/calib-frontend.json": "5a8b1fb19a6a39d84a2e96b5de654051837964d86ee2b9a8053f3d62ef48def1",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/seed.json": "b71af7121c3b2edd633c5d06028f8d0c498bf4f7b0c0baf366df5eefd6e07ab4",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/d2d.json": "51e5bd1f7204ee091dd8e3b591e16c2310b3e593b9f37453e9c912855a009b98",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frontend.json": "ccc3353f8e7999b4ff6b204699a83ab91d605328ef5e8981dfacd4acaa565236",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-93-sgbm.npy": "0891839eaaae766b9d93ed1472be908f7d16c16edd89c343c06b0ca3f7860a34",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-93.ply": "44b43d510d62227714d4b63956e29e8e423f2a294cbee51d430694040736c603",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-187-sgbm.npy": "5be3150adfdf5e49b73f42e542028e46a07ba9165ac67bacfa4e77ccabd57bc3",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-187.ply": "badfa6420d58ed12e35ca143af1e7d58644ab112dd52337e43bc772a54581031",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-281-sgbm.npy": "a33f41bf0d7bc2b0e62e9c6da7fe42c55499b8049d54914ce3011cdcc3fb6ff1",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-281.ply": "2c53b34e3f5f975c75f9599c53afe41ca7e574175d3f19332f99f60d04abba24",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/calib-frontend.json": "5a8b1fb19a6a39d84a2e96b5de654051837964d86ee2b9a8053f3d62ef48def1",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/seed.json": "e1ea0f9be6129304a6af9ab9628e286a3e6d76c0498524312b2c93cbb1773909",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/d2d.json": "1c01f9b353e9a3b44b8b4f7ed5caff669bee461bf89ea979fd6ecc51a6ab8afc",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frontend.json": "ccc3353f8e7999b4ff6b204699a83ab91d605328ef5e8981dfacd4acaa565236",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-93.ply": "44b43d510d62227714d4b63956e29e8e423f2a294cbee51d430694040736c603",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-187.ply": "badfa6420d58ed12e35ca143af1e7d58644ab112dd52337e43bc772a54581031",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-281.ply": "2c53b34e3f5f975c75f9599c53afe41ca7e574175d3f19332f99f60d04abba24",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/calib-frontend.json": "42a9806fcb8ba5450f151685e8f807b63df8951f746ba8758e02faa0419239c1",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/seed.json": "e4cc1412bab9ecebcf1a65b4969a8e9865342031ca9dfa94434d87fb343513a4",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/d2d.json": "4cca115d0f0bc00906d0f53664fce27613c8697d09944325b8815a1b11a93454",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frontend.json": "a370f7af509255b6a84a0cccbb106b63d8f684d60b33fda4343965b31fba7ce3",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-111-sgbm.npy": "ce224ee63504bb83fb19be2efaa47d40e5c12a452c6983deca970f3d0d06f1e7",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-111.ply": "711f32c8121afb289f2663f617a793b1832e2e3b53cc89f90a8d50343485051f",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-223-sgbm.npy": "a4a49da8ab010151cfb1b4f52ee76a70a50667797f25923bd6fa57770b164a27",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-223.ply": "4c64e2ef2c1fe230f4565e50fa90af9416a0aa9a16c86c423c020c8926ef5751",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-334-sgbm.npy": "45d1a69ecae770bdbc9586c1e02b7db25962f28a7cb95ba6e5e3c0f3075ed755",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-334.ply": "5790690e0769ca3d9c708ad81f3c34f3afbef7fbd1e2b15b6481275d35b9645d",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/calib-frontend.json": "42a9806fcb8ba5450f151685e8f807b63df8951f746ba8758e02faa0419239c1",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/seed.json": "ee0ab853cb5c78903cc79567e366c211606b7e695d155413f18eac457b274df3",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/d2d.json": "c7c3ea9e8667ea1dc9137f601b14148cd77b65b78b76b4e05c6e06dc9850a796",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/frontend.json": "a370f7af509255b6a84a0cccbb106b63d8f684d60b33fda4343965b31fba7ce3",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/frame-111.ply": "711f32c8121afb289f2663f617a793b1832e2e3b53cc89f90a8d50343485051f",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/frame-223.ply": "4c64e2ef2c1fe230f4565e50fa90af9416a0aa9a16c86c423c020c8926ef5751",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/frame-334.ply": "5790690e0769ca3d9c708ad81f3c34f3afbef7fbd1e2b15b6481275d35b9645d",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/calib-frontend.json": "73c631a992ead509d32a92238654deee90c2028625c8a28fea1a2d52c038a87b",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/seed.json": "e4cc1412bab9ecebcf1a65b4969a8e9865342031ca9dfa94434d87fb343513a4",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/d2d.json": "ffc8a7c860a000941be75c771b27e315de5431ab28703658ca787ae8d62230a4",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frontend.json": "76e5be2b4486258cbf9388571200415774792afe1c0e1e3b1628255c197cc202",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-58-sgbm.npy": "b92bd7d3c3395951ca315817aff7c0e5f41854271510d60ebbc6612bce0213ab",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-58.ply": "bb60fed64625508bc15db7222fb3df095f55f1e43169c760b084e54496848c83",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-116-sgbm.npy": "9a19ac1e453a63643a779cad4f67c370529bf0ada82ed26c32cbecc09c2d1dd6",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-116.ply": "a3591ea2d982b4b0fff8b084992dbb7e8bb78f55c64a434d96221458fc44ab1b",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-174-sgbm.npy": "47eb4bd8abb506abfd07502cd3ab39a67055763a29b65a5f9d2de6bd1cb909a9",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-174.ply": "23d881d4db53ac64bb62b60f3023b9e66dc8ea1db89024f6f441cd46f3a8d2a8",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/calib-frontend.json": "73c631a992ead509d32a92238654deee90c2028625c8a28fea1a2d52c038a87b",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/seed.json": "ee0ab853cb5c78903cc79567e366c211606b7e695d155413f18eac457b274df3",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/d2d.json": "28ba67c7a7031cff3abbc1cc915d576c271d3944ac83b87b1299a520c4627360",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/frontend.json": "76e5be2b4486258cbf9388571200415774792afe1c0e1e3b1628255c197cc202",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/frame-58.ply": "bb60fed64625508bc15db7222fb3df095f55f1e43169c760b084e54496848c83",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/frame-116.ply": "a3591ea2d982b4b0fff8b084992dbb7e8bb78f55c64a434d96221458fc44ab1b",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/frame-174.ply": "23d881d4db53ac64bb62b60f3023b9e66dc8ea1db89024f6f441cd46f3a8d2a8",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/calib.json": "2e3b12e122208d7efdf1859894a84970278ba7881efdfd8d68c9b0125d13879a",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/seed.json": "e4cc1412bab9ecebcf1a65b4969a8e9865342031ca9dfa94434d87fb343513a4",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/d2d.json": "abd25aa5e89347071b859c9894ed2b4a4cc3e499843231e80e5cf0e09503994c",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frontend.json": "dbae8069bd888c938ad34d373de5a3a235e88fe46f38efbfa439aeb9af0b3473",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-35-sgbm.npy": "95f1bf1fc8638e90208c34587e7b3a274a24b3e831d9da4939cf48edf6023287",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-35.ply": "3508fb626fb1a77dd6dc6e9a249f4c72b67b1b6367474f803403633e6f0a3265",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-71-sgbm.npy": "81b97b1b959dc9ad67b8ed60a82d18cad26eba8b8f140651899d0f1ab7c0f9aa",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-71.ply": "935072cf7ed4641cddf03adc3f2d7ec1dbfd5b56f2e7407f3ae0ac13dd20e13e",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-107-sgbm.npy": "50626b235897f855d98c98187d849bf6ba6bcb02653fd86f76d03a3e4f1cf3fc",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-107.ply": "41976c58d9e3eb84837aedb9e93c8fbeb203bcf8333f1b1be87cad3a07dbb005",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/calib.json": "2e3b12e122208d7efdf1859894a84970278ba7881efdfd8d68c9b0125d13879a",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/seed.json": "ee0ab853cb5c78903cc79567e366c211606b7e695d155413f18eac457b274df3",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/d2d.json": "0988cf5b677d736a874b502a2e1e574556e9d6eb2818a3f89c16f4bee4fd8f64",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frontend.json": "dbae8069bd888c938ad34d373de5a3a235e88fe46f38efbfa439aeb9af0b3473",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-35.ply": "3508fb626fb1a77dd6dc6e9a249f4c72b67b1b6367474f803403633e6f0a3265",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-71.ply": "935072cf7ed4641cddf03adc3f2d7ec1dbfd5b56f2e7407f3ae0ac13dd20e13e",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-107.ply": "41976c58d9e3eb84837aedb9e93c8fbeb203bcf8333f1b1be87cad3a07dbb005",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/calib.json": "82696aafb159073d4142064f8d0de13723633ef885598ef3601b784a3db18d48",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/seed.json": "e4cc1412bab9ecebcf1a65b4969a8e9865342031ca9dfa94434d87fb343513a4",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/d2d.json": "bea3fed0c52df96ca5849047b8d58625c2a2541800e716a52ad91547257008ef",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frontend.json": "a75b333d4d74eb883b8f2d253b3a22f3e7a67b1a5a9273932cccdbfa68c6f71a",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-74-sgbm.npy": "9bc037b907329640d32345d28b54d4e53ae786d77a4bfef061633e236963e254",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-74.ply": "1499edf6f65e1d7f9d832b35d699c27a83f554fb8cb0345446c5b1297a8e4674",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-148-sgbm.npy": "5eb35a5bc540ce1300310cdf686ec84e1cd2e2f89150404d31ceac70b2cdec32",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-148.ply": "eadf4991f09ed41b0e9d1f1193ef1111ef38969b7bae8fe5acfbe7642479b419",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-222-sgbm.npy": "eab617ec83170d3d5fa670b6d9df742ed0b5963ce698fa24ed46926f07622a59",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-222.ply": "7d53fb22c1d75c2774dfb403ff0a4d4b4ddd862b856fd85b42304bfc20c8ff1c",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/calib.json": "82696aafb159073d4142064f8d0de13723633ef885598ef3601b784a3db18d48",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/seed.json": "ee0ab853cb5c78903cc79567e366c211606b7e695d155413f18eac457b274df3",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/d2d.json": "6c46f3ee6cada81b6f3495dc9247103af09a57ff2fd2be90e5762eea9f5fbc88",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/frontend.json": "a75b333d4d74eb883b8f2d253b3a22f3e7a67b1a5a9273932cccdbfa68c6f71a",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/frame-74.ply": "1499edf6f65e1d7f9d832b35d699c27a83f554fb8cb0345446c5b1297a8e4674",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/frame-148.ply": "eadf4991f09ed41b0e9d1f1193ef1111ef38969b7bae8fe5acfbe7642479b419",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/frame-222.ply": "7d53fb22c1d75c2774dfb403ff0a4d4b4ddd862b856fd85b42304bfc20c8ff1c"
+  },
+  "cases": [
+    {
+      "case_id": "2011_09_26_0005-positive",
+      "start": "positive",
+      "frames": [
+        {
+          "name": "frame-38",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-38-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-38.ply"
+        },
+        {
+          "name": "frame-76",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-76-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-76.ply"
+        },
+        {
+          "name": "frame-114",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-114-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-114.ply"
+        }
+      ],
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          -0.017155467132486488,
+          -0.9998513431491697,
+          -0.001713456542265028,
+          0.1570524478595304
+        ],
+        [
+          -0.007153617595801984,
+          0.0018364056973287737,
+          -0.9999727149163535,
+          -0.12546671853346003
+        ],
+        [
+          0.9998272556012965,
+          -0.017142741539027197,
+          -0.0071840598855728525,
+          -0.2193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0005-reference",
+      "start": "reference",
+      "frames": [
+        {
+          "name": "frame-38",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-38-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-38.ply"
+        },
+        {
+          "name": "frame-76",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-76-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-76.ply"
+        },
+        {
+          "name": "frame-114",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-114-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-114.ply"
+        }
+      ],
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0005-negative",
+      "start": "negative",
+      "frames": [
+        {
+          "name": "frame-38",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-38-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/frame-38.ply"
+        },
+        {
+          "name": "frame-76",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-76-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/frame-76.ply"
+        },
+        {
+          "name": "frame-114",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-114-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/frame-114.ply"
+        }
+      ],
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          0.01792314133802323,
+          -0.9996626332428014,
+          -0.018797211048478302,
+          -0.04294755214046961
+        ],
+        [
+          0.027743918731786447,
+          0.019290240930632935,
+          -0.9994289063656052,
+          -0.02546671853346001
+        ],
+        [
+          0.9994543818096165,
+          0.017391396535771937,
+          0.02808029922551054,
+          -0.3193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_28_0002-positive",
+      "start": "positive",
+      "frames": [
+        {
+          "name": "frame-93",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-93-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-93.ply"
+        },
+        {
+          "name": "frame-187",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-187-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-187.ply"
+        },
+        {
+          "name": "frame-281",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-281-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-281.ply"
+        }
+      ],
+      "intrinsics": [
+        707.0493,
+        707.0493,
+        604.0814,
+        180.5066
+      ],
+      "reference": [
+        [
+          -0.00159609942076306,
+          -0.9999162467477257,
+          -0.012840436309973332,
+          0.03809494613377218
+        ],
+        [
+          -0.005270645688933059,
+          0.012848695454066989,
+          -0.9999035522454274,
+          -0.061439069752791106
+        ],
+        [
+          0.999984790046273,
+          -0.0015282672486530082,
+          -0.0052907123281999745,
+          -0.32756798283289784
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          -0.018844724574601582,
+          -0.9998154735122756,
+          -0.003717569091003312,
+          0.13809494613377218
+        ],
+        [
+          -0.02288730456743951,
+          0.004148643222876916,
+          -0.9997294345615504,
+          -0.11143906975279111
+        ],
+        [
+          0.9995603809718412,
+          -0.01875453999826432,
+          -0.02296126272421779,
+          -0.27756798283289785
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_28_0002-reference",
+      "start": "reference",
+      "frames": [
+        {
+          "name": "frame-93",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-93-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-93.ply"
+        },
+        {
+          "name": "frame-187",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-187-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-187.ply"
+        },
+        {
+          "name": "frame-281",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-281-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-281.ply"
+        }
+      ],
+      "intrinsics": [
+        707.0493,
+        707.0493,
+        604.0814,
+        180.5066
+      ],
+      "reference": [
+        [
+          -0.00159609942076306,
+          -0.9999162467477257,
+          -0.012840436309973332,
+          0.03809494613377218
+        ],
+        [
+          -0.005270645688933059,
+          0.012848695454066989,
+          -0.9999035522454274,
+          -0.061439069752791106
+        ],
+        [
+          0.999984790046273,
+          -0.0015282672486530082,
+          -0.0052907123281999745,
+          -0.32756798283289784
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          -0.00159609942076306,
+          -0.9999162467477257,
+          -0.012840436309973332,
+          0.03809494613377218
+        ],
+        [
+          -0.005270645688933059,
+          0.012848695454066989,
+          -0.9999035522454274,
+          -0.061439069752791106
+        ],
+        [
+          0.999984790046273,
+          -0.0015282672486530082,
+          -0.0052907123281999745,
+          -0.32756798283289784
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_28_0002-negative",
+      "start": "negative",
+      "frames": [
+        {
+          "name": "frame-93",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-93-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-93.ply"
+        },
+        {
+          "name": "frame-187",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-187-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-187.ply"
+        },
+        {
+          "name": "frame-281",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-281-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-281.ply"
+        }
+      ],
+      "intrinsics": [
+        707.0493,
+        707.0493,
+        604.0814,
+        180.5066
+      ],
+      "reference": [
+        [
+          -0.00159609942076306,
+          -0.9999162467477257,
+          -0.012840436309973332,
+          0.03809494613377218
+        ],
+        [
+          -0.005270645688933059,
+          0.012848695454066989,
+          -0.9999035522454274,
+          -0.061439069752791106
+        ],
+        [
+          0.999984790046273,
+          -0.0015282672486530082,
+          -0.0052907123281999745,
+          -0.32756798283289784
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          0.015960937519440548,
+          -0.9996445921994814,
+          -0.021350935014175405,
+          -0.06190505386622783
+        ],
+        [
+          0.01204347293361881,
+          0.021544320955659814,
+          -0.9996953433962875,
+          -0.011439069752791103
+        ],
+        [
+          0.9998000354052934,
+          0.01569893648007378,
+          0.012383061026817918,
+          -0.37756798283289783
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0009-positive",
+      "start": "positive",
+      "frames": [
+        {
+          "name": "frame-111",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-111-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-111.ply"
+        },
+        {
+          "name": "frame-223",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-223-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-223.ply"
+        },
+        {
+          "name": "frame-334",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-334-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-334.ply"
+        }
+      ],
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          -0.017155467132486488,
+          -0.9998513431491697,
+          -0.001713456542265028,
+          0.1570524478595304
+        ],
+        [
+          -0.007153617595801984,
+          0.0018364056973287737,
+          -0.9999727149163535,
+          -0.12546671853346003
+        ],
+        [
+          0.9998272556012965,
+          -0.017142741539027197,
+          -0.0071840598855728525,
+          -0.2193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0009-reference",
+      "start": "reference",
+      "frames": [
+        {
+          "name": "frame-111",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-111-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-111.ply"
+        },
+        {
+          "name": "frame-223",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-223-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-223.ply"
+        },
+        {
+          "name": "frame-334",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-334-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-334.ply"
+        }
+      ],
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0009-negative",
+      "start": "negative",
+      "frames": [
+        {
+          "name": "frame-111",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-111-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/frame-111.ply"
+        },
+        {
+          "name": "frame-223",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-223-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/frame-223.ply"
+        },
+        {
+          "name": "frame-334",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-334-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/frame-334.ply"
+        }
+      ],
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          0.01792314133802323,
+          -0.9996626332428014,
+          -0.018797211048478302,
+          -0.04294755214046961
+        ],
+        [
+          0.027743918731786447,
+          0.019290240930632935,
+          -0.9994289063656052,
+          -0.02546671853346001
+        ],
+        [
+          0.9994543818096165,
+          0.017391396535771937,
+          0.02808029922551054,
+          -0.3193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0011-positive",
+      "start": "positive",
+      "frames": [
+        {
+          "name": "frame-58",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-58-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-58.ply"
+        },
+        {
+          "name": "frame-116",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-116-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-116.ply"
+        },
+        {
+          "name": "frame-174",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-174-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-174.ply"
+        }
+      ],
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          -0.017155467132486488,
+          -0.9998513431491697,
+          -0.001713456542265028,
+          0.1570524478595304
+        ],
+        [
+          -0.007153617595801984,
+          0.0018364056973287737,
+          -0.9999727149163535,
+          -0.12546671853346003
+        ],
+        [
+          0.9998272556012965,
+          -0.017142741539027197,
+          -0.0071840598855728525,
+          -0.2193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0011-reference",
+      "start": "reference",
+      "frames": [
+        {
+          "name": "frame-58",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-58-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-58.ply"
+        },
+        {
+          "name": "frame-116",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-116-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-116.ply"
+        },
+        {
+          "name": "frame-174",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-174-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-174.ply"
+        }
+      ],
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0011-negative",
+      "start": "negative",
+      "frames": [
+        {
+          "name": "frame-58",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-58-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/frame-58.ply"
+        },
+        {
+          "name": "frame-116",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-116-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/frame-116.ply"
+        },
+        {
+          "name": "frame-174",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-174-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/frame-174.ply"
+        }
+      ],
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          0.01792314133802323,
+          -0.9996626332428014,
+          -0.018797211048478302,
+          -0.04294755214046961
+        ],
+        [
+          0.027743918731786447,
+          0.019290240930632935,
+          -0.9994289063656052,
+          -0.02546671853346001
+        ],
+        [
+          0.9994543818096165,
+          0.017391396535771937,
+          0.02808029922551054,
+          -0.3193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0013-positive",
+      "start": "positive",
+      "frames": [
+        {
+          "name": "frame-35",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-35-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-35.ply"
+        },
+        {
+          "name": "frame-71",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-71-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-71.ply"
+        },
+        {
+          "name": "frame-107",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-107-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-107.ply"
+        }
+      ],
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          -0.017155467132486488,
+          -0.9998513431491697,
+          -0.001713456542265028,
+          0.1570524478595304
+        ],
+        [
+          -0.007153617595801984,
+          0.0018364056973287737,
+          -0.9999727149163535,
+          -0.12546671853346003
+        ],
+        [
+          0.9998272556012965,
+          -0.017142741539027197,
+          -0.0071840598855728525,
+          -0.2193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0013-reference",
+      "start": "reference",
+      "frames": [
+        {
+          "name": "frame-35",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-35-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-35.ply"
+        },
+        {
+          "name": "frame-71",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-71-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-71.ply"
+        },
+        {
+          "name": "frame-107",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-107-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-107.ply"
+        }
+      ],
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0013-negative",
+      "start": "negative",
+      "frames": [
+        {
+          "name": "frame-35",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-35-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-35.ply"
+        },
+        {
+          "name": "frame-71",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-71-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-71.ply"
+        },
+        {
+          "name": "frame-107",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-107-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-107.ply"
+        }
+      ],
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          0.01792314133802323,
+          -0.9996626332428014,
+          -0.018797211048478302,
+          -0.04294755214046961
+        ],
+        [
+          0.027743918731786447,
+          0.019290240930632935,
+          -0.9994289063656052,
+          -0.02546671853346001
+        ],
+        [
+          0.9994543818096165,
+          0.017391396535771937,
+          0.02808029922551054,
+          -0.3193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0015-positive",
+      "start": "positive",
+      "frames": [
+        {
+          "name": "frame-74",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-74-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-74.ply"
+        },
+        {
+          "name": "frame-148",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-148-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-148.ply"
+        },
+        {
+          "name": "frame-222",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-222-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-222.ply"
+        }
+      ],
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          -0.017155467132486488,
+          -0.9998513431491697,
+          -0.001713456542265028,
+          0.1570524478595304
+        ],
+        [
+          -0.007153617595801984,
+          0.0018364056973287737,
+          -0.9999727149163535,
+          -0.12546671853346003
+        ],
+        [
+          0.9998272556012965,
+          -0.017142741539027197,
+          -0.0071840598855728525,
+          -0.2193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0015-reference",
+      "start": "reference",
+      "frames": [
+        {
+          "name": "frame-74",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-74-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-74.ply"
+        },
+        {
+          "name": "frame-148",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-148-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-148.ply"
+        },
+        {
+          "name": "frame-222",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-222-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-222.ply"
+        }
+      ],
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0015-negative",
+      "start": "negative",
+      "frames": [
+        {
+          "name": "frame-74",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-74-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/frame-74.ply"
+        },
+        {
+          "name": "frame-148",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-148-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/frame-148.ply"
+        },
+        {
+          "name": "frame-222",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-222-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/frame-222.ply"
+        }
+      ],
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "initial": [
+        [
+          0.01792314133802323,
+          -0.9996626332428014,
+          -0.018797211048478302,
+          -0.04294755214046961
+        ],
+        [
+          0.027743918731786447,
+          0.019290240930632935,
+          -0.9994289063656052,
+          -0.02546671853346001
+        ],
+        [
+          0.9994543818096165,
+          0.017391396535771937,
+          0.02808029922551054,
+          -0.3193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    }
+  ]
+}
