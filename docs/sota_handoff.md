@@ -1095,3 +1095,17 @@ Next specify measurement-only correspondence/surface reliability on independent
 controlled geometry (noise/occlusion), verify accuracy and spatial/directional
 support before frozen real comparison. Do not tune truth-based masks on these
 18 spent frames, equate eigengap with correctness or merely raise ICP iteration caps.
+
+### Measurement-only surface gate fails precision (2026-10-30)
+
+[Results](research/surface_reliability_results.md), frozen `54c0a3e0`: 27 controlled
+frame conditions, three analytic layouts/origins, clean +.5px seeds730/731.
+5x5 affine disparity fit, RMS<=1px and depth sigma<=.2m; no truth enters selection.
+Selected clean joint XYZ/normal precision100%, but noisy median **13.31/13.05%**
+(all-valid4.80/4.88%), range7.92–29.33%, failing80% screen in **18/18 noisy**.
+Retention5.17–28.58%, occupied4–13/16 cells; all noisy normal spectra pass ratio
+screen despite inaccurate normals. Reject gate; no real transfer/ICP rerun.
+Next derive/test angular uncertainty from disparity-slope covariance and verify
+coverage against exact normals before any new filtering; keep support failures
+explicit. Do not substitute planarity/depth uncertainty for normal accuracy or
+tune the18 spent real frames. Core/defaults and MI baseline unchanged.
