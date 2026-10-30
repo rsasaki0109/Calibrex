@@ -1109,3 +1109,17 @@ Next derive/test angular uncertainty from disparity-slope covariance and verify
 coverage against exact normals before any new filtering; keep support failures
 explicit. Do not substitute planarity/depth uncertainty for normal accuracy or
 tune the18 spent real frames. Core/defaults and MI baseline unchanged.
+
+### Angular confidence gate retains no points (2026-10-30)
+
+[Results](research/normal_uncertainty_results.md), freeze `ce9d5e9e`: coefficient
+covariance from .5px Gaussian noise on5x5 affine disparity, conservative95% normal
+ball→cone; same27 conditions/depth hashes. Added cone<=15deg retains **0/27**
+conditions' points, so all noisy support screens fail; empty precision is null.
+Prior gate median cone90deg, coverage~99% is uninformative. All-valid coverage
+~91–94% reveals curved/boundary model error. Exact-plane20000-sample sanity check
+coverage99.465%, median bound35.68deg versus actual9.19deg: bound is loose, so do
+not claim intrinsic absence of accurate normals. No ICP/real transfer or defaults.
+Next test tighter angular uncertainty on exact planes with coverage AND support,
+then separately test model bias on curved/boundary patches. Do not tune thresholds
+on spent real frames or treat noise covariance as coverage of model error.
