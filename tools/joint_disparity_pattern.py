@@ -53,7 +53,14 @@ def search(objective: Callable[[np.ndarray], float], budget: int = 800) -> dict[
                 success = True
                 break
             step = np.maximum(minimum, step / 2)
-    return {"delta": delta, "cost": cost, "calls": calls, "success": success, "trace": trace, "step": step}
+    return {
+        "delta": delta,
+        "cost": cost,
+        "calls": calls,
+        "success": success,
+        "trace": trace,
+        "step": step,
+    }
 
 
 def solve(batch: list[DepthToDepthObservation], initial: SE3) -> dict[str, Any]:
