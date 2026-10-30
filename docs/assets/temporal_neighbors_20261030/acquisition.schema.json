@@ -1,0 +1,63 @@
+{
+  "$defs": {
+    "Member": {
+      "additionalProperties": false,
+      "properties": {
+        "drive": {
+          "title": "Drive",
+          "type": "string"
+        },
+        "member": {
+          "title": "Member",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "bytes": {
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "drive",
+        "member",
+        "path",
+        "bytes",
+        "sha256"
+      ],
+      "title": "Member",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "members": {
+      "items": {
+        "$ref": "#/$defs/Member"
+      },
+      "title": "Members",
+      "type": "array"
+    }
+  },
+  "required": [
+    "scope",
+    "plan_sha256",
+    "members"
+  ],
+  "title": "Acquisition",
+  "type": "object"
+}
