@@ -1,0 +1,109 @@
+{
+  "$defs": {
+    "FileRef": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FileRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.cofii2p_checkpoint_cpu/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_checkout": {
+      "title": "Source Checkout",
+      "type": "string"
+    },
+    "bridge_manifest": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "checkpoint": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "checkpoint_kind": {
+      "enum": [
+        "declared_learned",
+        "synthetic_fixture"
+      ],
+      "title": "Checkpoint Kind",
+      "type": "string"
+    },
+    "declared_checkpoint_source": {
+      "minLength": 1,
+      "title": "Declared Checkpoint Source",
+      "type": "string"
+    },
+    "declared_training_provenance": {
+      "minLength": 1,
+      "title": "Declared Training Provenance",
+      "type": "string"
+    },
+    "declared_terms": {
+      "minLength": 1,
+      "title": "Declared Terms",
+      "type": "string"
+    },
+    "image_policy": {
+      "enum": [
+        "prepared_bgr",
+        "prepared_bgr_to_rgb"
+      ],
+      "title": "Image Policy",
+      "type": "string"
+    },
+    "pixel_layout": {
+      "enum": [
+        "row_major",
+        "official_eval_legacy"
+      ],
+      "title": "Pixel Layout",
+      "type": "string"
+    },
+    "seed": {
+      "maximum": 4294967295,
+      "minimum": 0,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "threads": {
+      "default": 2,
+      "maximum": 8,
+      "minimum": 1,
+      "title": "Threads",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "source_checkout",
+    "bridge_manifest",
+    "checkpoint",
+    "checkpoint_kind",
+    "declared_checkpoint_source",
+    "declared_training_provenance",
+    "declared_terms",
+    "image_policy",
+    "pixel_layout",
+    "seed"
+  ],
+  "title": "CheckpointRequest",
+  "type": "object"
+}
