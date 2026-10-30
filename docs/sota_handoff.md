@@ -1123,3 +1123,17 @@ not claim intrinsic absence of accurate normals. No ICP/real transfer or default
 Next test tighter angular uncertainty on exact planes with coverage AND support,
 then separately test model bias on curved/boundary patches. Do not tune thresholds
 on spent real frames or treat noise covariance as coverage of model error.
+
+### Tangent normal confidence fails coverage (2026-10-30)
+
+[Results](research/normal_tangent_results.md), freeze `f349514f`, import-only rerun
+`febdaa2b` (initial outputs/plan retained; final cases identical).27 exact-plane
+scenarios ×20000 draws: **9/27 fail94% coverage**, all frontal slope cases;
+minimum78.47%, median98.005%. Old ball min97.90%. Thus first-order normalized
+normal covariance is not calibrated across this noise/geometry range.
+27 surface controls: clean selections empty; noisy nonempty only near_foreground
+frame2 (10/2 points), all support screens fail. No real filter/ICP or defaults.
+Close5x5 confidence shortcuts. Next direction: coherent surface estimation with
+larger support and explicit variance-versus-curvature/boundary bias control;
+freeze independent coverage criteria before fitting or real-data selection.
+Do not tune windows/thresholds on18 spent real frames. No SOTA claim.
