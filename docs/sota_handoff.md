@@ -1040,3 +1040,16 @@ Next freeze bounded derivative-free coordinate search of the same disparity
 objective, original starts and shared 800-call cap versus archived TRF. No truth
 paths as initialization/gates, no sampler/loss changes. Full clean/noisy/bias/
 occlusion/reference/plane controls required. No adoption or SOTA claim.
+
+### Derivative-free coordinate search rejected (2026-10-30)
+
+[Results](research/disparity_pattern_results.md), frozen `3c966459`, formatting-only
+rerun `da10b9bb` (initial plan/partial output/log retained). All 171 final cases,
+paired depth hashes verified, same objective and 800-call limit. Clean perturbed
+joint **12/36→0/36**, noisy **0/72→0/72**. Reference controls clean **6/18→16/18**,
+noisy **24/36→32/36**; those are not perturbed recoveries. Nine planes rejected,
+85–800 calls, monotonic accepted cost. Reject replacement; no defaults changed.
+Close residual/weight/search micro-variants. Next review independent geometric
+camera/LiDAR correspondences and reusable external adapters for a genuinely
+distinct matched comparison; freeze assumptions/evaluation before new fits.
+Retain full-cloud MI baseline 6/12 and all negative evidence. No SOTA claim.
