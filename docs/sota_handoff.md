@@ -1026,3 +1026,17 @@ No adoption or real transfer. Next freeze reference-versus-failed-pose objective
 landscape diagnostics with controlled bias on these same noise realizations before
 another residual variant or optimizer change. Do not relax caps/gates or claim
 reference-start gains as perturbed recovery. Core/MI defaults unchanged.
+
+### Disparity pose-path diagnosis (2026-10-30)
+
+[Results](research/disparity_landscape_results.md), frozen `21203727`: all 171
+archived fits, two fixed-bias eleven-point reference→fit paths, 3762 diagnostic
+passes. Depth hashes and fitted endpoint costs reproduce. No new fitting/verdicts.
+Noisy perturbed cases at fitted bias: returned fit beats reference in 72/72,
+but an interior sample beats BOTH endpoints in **69/72** (34/36 +35/36). Same
+counts on common support. At injected bias reference beats fit in **66/72**;
+ranking depends strongly on nuisance bias. No global-minimum claim.
+Next freeze bounded derivative-free coordinate search of the same disparity
+objective, original starts and shared 800-call cap versus archived TRF. No truth
+paths as initialization/gates, no sampler/loss changes. Full clean/noisy/bias/
+occlusion/reference/plane controls required. No adoption or SOTA claim.
