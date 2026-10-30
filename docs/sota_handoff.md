@@ -919,3 +919,18 @@ stationarity. Oracle-only synthetic evidence, no production/SOTA claim.
 Next prioritize image-only sampling versus the frozen bilinear baseline, with
 full bias/occlusion/truth-start and planar controls; do not tune the four oracle
 failures or combine sampler/rescue changes in one unattributable comparison.
+
+### Image-only edge-preserving depth sampling (2026-10-30)
+
+[Results](research/edge_sampling_results.md), frozen `8a9babf4`: nearest-pixel
+anchor, retain 2x2 neighbors within .2 m optical z and renormalize bilinear weights.
+No scene/oracle information, no scalar rescue; identical joint solver functions.
+54 sphere + nine plane cases. Perturbed joint recovery **12/36→32/36**, truth
+starts **6/18→10/18**, median bias error **.055900→.002071 m**. All sphere poses
+pass pose gates and numerically converge. 26 gains but **two regressions**:
+staggered negative-bias truth starts both populations. Six negative truth starts,
+four positive-seed and two original positive truth starts still fail bias gate.
+Nine planes remain rejected as degenerate; 8–201 calls. Do not promote or relax
+thresholds. Next isolate residual-triggered scalar rescue with this image-only
+sampler, full 63-case denominator and shared budget; keep all failures and report
+staged termination honestly. No real-data or SOTA claim, core/defaults unchanged.
