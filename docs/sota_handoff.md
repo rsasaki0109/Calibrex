@@ -1273,3 +1273,17 @@ measurement-only verdict unchanged. No independent motion truth or adoption clai
 Next underlying stereo matching ambiguity/surface reconstruction attribution, review
 prior frontend evidence first; no reference-selected masks, SGBM retuning or another
 self-consistency gate. LiDAR normal/calibration/timing alternatives remain explicit.
+
+### Stereo appearance does not certify surface correctness (2026-10-30)
+
+[Results](research/stereo_ambiguity_results.md), freeze `1812d061`:18 fixed raw
+stereo appearance probes,121636 sampled/120010 common-valid, offsets±1/2/4/8,
+zero-mean5x5 SAD, no matcher/mask/depth changes.18 raw depths exact archive parity.
+Wrong-normal ambiguity median44.56% vs32.48%; but wrong-group median base cost
+LOWER in11/18, including all3 persistent failures. Association is not calibrated
+confidence; strata and exclusions explicit. No new selector or recovery claim.
+Close stereo-surface confidence variants. Next review a materially distinct direct
+RGB–LiDAR provider beyond failed SuperGlue/I2PNet: architecture/checkpoint/license,
+training overlap and CPU/GPU readiness, then ONE frozen feasible spent-data pilot.
+No fresh holdouts, SGBM/threshold retuning or runtime-as-accuracy/SOTA claim. Preserve
+full-cloud MI6/12 and all negative evidence; report concrete prerequisites if blocked.
