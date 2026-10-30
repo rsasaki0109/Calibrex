@@ -1204,3 +1204,16 @@ Next audit independent camera-motion availability and temporal overlap before an
 temporal consistency design. Pin motion/time/frame/scale assumptions, no reference
 camera/LiDAR extrinsic in measurement selection. If unavailable/insufficient overlap,
 report it. No reverse-threshold retuning, ICP or fresh-data/SOTA claim.
+
+### Temporal readiness blocked on sparse input (2026-10-30)
+
+[Results](research/temporal_surface_audit_results.md), freeze `be471af7`:12 image-only
+pair audits, intervals3.728–11.590s. Only **1/12** meets30-cheirality/6cells screen
+(0011/116→174);0002 many essential inliers but zero cheirality, not proof of no overlap.
+OXTS available, but local IMU→camera chain uses target LiDAR-camera extrinsic;
+monocular scale unknown. No independent metric camera motion in declared input set.
+±1neighbor local inventory0/36 complete stereo pairs. No data downloaded or new fits.
+Next prerequisite: freeze bounded ±1 stereo acquisition/preparation on SAME six
+spent drives (archive/member/timestamp/byte pins) before fetching, then short-gap
+support and metric-motion validation. StereoVO shares depth errors, not independent
+truth. No target-extrinsic-derived selection, arbitrary scale or fresh holdouts.
