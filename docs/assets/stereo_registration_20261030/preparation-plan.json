@@ -1,0 +1,208 @@
+{
+  "scope": "18 stereo/LiDAR pairs without pose labels",
+  "source_sha256": {
+    "tools/prepare_stereo_registration.py": "41c4c32992a1de8419315186eb059edccdc9159abcd788a600e7f2953821866a",
+    "tests/unit/test_stereo_registration_preparation.py": "e0d18c12893ff3bd3ec83af94c3ea26e252dd3ae87148bd87b509a0991e16619",
+    "tools/koide_shared_bundle_pandey.py": "0c379e189365015dcef20d39019f3f6d6a960866d04b21ab265037fcf06bbf72",
+    "docs/research/stereo_registration_protocol.md": "d6a33a39b668c2806e62d4d3fcb19db5eeee870ee7746b07d1fcae1b476e1241",
+    "docs/research/camera_lidar_sota_plan.md": "061bf8dc3e621cfc22cac6a53fda129c4d1f3363e9adbc649fcdee3b922afda5",
+    "src/calibrex/solvers/robust_point_to_point_icp_solver.py": "5f03757e1e775697c8747877d5d98f0443772589215feaa17e03c313ef7dc3f8",
+    "src/calibrex/solvers/chen_medioni_point_to_plane_icp_solver.py": "3574ea39d9993ba79972f00c41401c2669ba3048109ffb87be6d8a8a128a5390"
+  },
+  "input_sha256": {
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-38-sgbm.npy": "06c7c1dc925623e811d35ca669599b0c64b571277a0cf50ebfd7266e1cfa2ca5",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-38.ply": "7ef115a70b00896027dd5ad3f8e8c70c97a470911bedc6f71eae6d3fdc5fe3da",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-76-sgbm.npy": "34711fe6fae471d103e9f15a2a75576917b82224891a36615b6569aeaa090d95",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-76.ply": "8eaa8c815367e744cbbe336fad65c923b9c8b9d6b07a016b93cd5ae8c8707ab6",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-114-sgbm.npy": "23450c369bd569df9a5b22a0c9bbd3046aa1bdaf7915ce790b9270cb0e887cf6",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-114.ply": "d973236f90739062601c4adaf805feb6dad1593ae5209b7258fa7021f8afc667",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-93-sgbm.npy": "0891839eaaae766b9d93ed1472be908f7d16c16edd89c343c06b0ca3f7860a34",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-93.ply": "44b43d510d62227714d4b63956e29e8e423f2a294cbee51d430694040736c603",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-187-sgbm.npy": "5be3150adfdf5e49b73f42e542028e46a07ba9165ac67bacfa4e77ccabd57bc3",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-187.ply": "badfa6420d58ed12e35ca143af1e7d58644ab112dd52337e43bc772a54581031",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-281-sgbm.npy": "a33f41bf0d7bc2b0e62e9c6da7fe42c55499b8049d54914ce3011cdcc3fb6ff1",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-281.ply": "2c53b34e3f5f975c75f9599c53afe41ca7e574175d3f19332f99f60d04abba24",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-111-sgbm.npy": "ce224ee63504bb83fb19be2efaa47d40e5c12a452c6983deca970f3d0d06f1e7",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-111.ply": "711f32c8121afb289f2663f617a793b1832e2e3b53cc89f90a8d50343485051f",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-223-sgbm.npy": "a4a49da8ab010151cfb1b4f52ee76a70a50667797f25923bd6fa57770b164a27",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-223.ply": "4c64e2ef2c1fe230f4565e50fa90af9416a0aa9a16c86c423c020c8926ef5751",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-334-sgbm.npy": "45d1a69ecae770bdbc9586c1e02b7db25962f28a7cb95ba6e5e3c0f3075ed755",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-334.ply": "5790690e0769ca3d9c708ad81f3c34f3afbef7fbd1e2b15b6481275d35b9645d",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-58-sgbm.npy": "b92bd7d3c3395951ca315817aff7c0e5f41854271510d60ebbc6612bce0213ab",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-58.ply": "bb60fed64625508bc15db7222fb3df095f55f1e43169c760b084e54496848c83",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-116-sgbm.npy": "9a19ac1e453a63643a779cad4f67c370529bf0ada82ed26c32cbecc09c2d1dd6",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-116.ply": "a3591ea2d982b4b0fff8b084992dbb7e8bb78f55c64a434d96221458fc44ab1b",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-174-sgbm.npy": "47eb4bd8abb506abfd07502cd3ab39a67055763a29b65a5f9d2de6bd1cb909a9",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-174.ply": "23d881d4db53ac64bb62b60f3023b9e66dc8ea1db89024f6f441cd46f3a8d2a8",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-35-sgbm.npy": "95f1bf1fc8638e90208c34587e7b3a274a24b3e831d9da4939cf48edf6023287",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-35.ply": "3508fb626fb1a77dd6dc6e9a249f4c72b67b1b6367474f803403633e6f0a3265",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-71-sgbm.npy": "81b97b1b959dc9ad67b8ed60a82d18cad26eba8b8f140651899d0f1ab7c0f9aa",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-71.ply": "935072cf7ed4641cddf03adc3f2d7ec1dbfd5b56f2e7407f3ae0ac13dd20e13e",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-107-sgbm.npy": "50626b235897f855d98c98187d849bf6ba6bcb02653fd86f76d03a3e4f1cf3fc",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-107.ply": "41976c58d9e3eb84837aedb9e93c8fbeb203bcf8333f1b1be87cad3a07dbb005",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-74-sgbm.npy": "9bc037b907329640d32345d28b54d4e53ae786d77a4bfef061633e236963e254",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-74.ply": "1499edf6f65e1d7f9d832b35d699c27a83f554fb8cb0345446c5b1297a8e4674",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-148-sgbm.npy": "5eb35a5bc540ce1300310cdf686ec84e1cd2e2f89150404d31ceac70b2cdec32",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-148.ply": "eadf4991f09ed41b0e9d1f1193ef1111ef38969b7bae8fe5acfbe7642479b419",
+    "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-222-sgbm.npy": "eab617ec83170d3d5fa670b6d9df742ed0b5963ce698fa24ed46926f07622a59",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-222.ply": "7d53fb22c1d75c2774dfb403ff0a4d4b4ddd862b856fd85b42304bfc20c8ff1c"
+  },
+  "cases": [
+    {
+      "case_id": "2011_09_26_0005",
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "frames": [
+        {
+          "name": "frame-38",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-38-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-38.ply"
+        },
+        {
+          "name": "frame-76",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-76-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-76.ply"
+        },
+        {
+          "name": "frame-114",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0005-positive-frame-114-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-114.ply"
+        }
+      ]
+    },
+    {
+      "case_id": "2011_09_28_0002",
+      "intrinsics": [
+        707.0493,
+        707.0493,
+        604.0814,
+        180.5066
+      ],
+      "frames": [
+        {
+          "name": "frame-93",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-93-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-93.ply"
+        },
+        {
+          "name": "frame-187",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-187-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-187.ply"
+        },
+        {
+          "name": "frame-281",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_28_0002-positive-frame-281-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-281.ply"
+        }
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0009",
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "frames": [
+        {
+          "name": "frame-111",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-111-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-111.ply"
+        },
+        {
+          "name": "frame-223",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-223-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-223.ply"
+        },
+        {
+          "name": "frame-334",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0009-positive-frame-334-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-334.ply"
+        }
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0011",
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "frames": [
+        {
+          "name": "frame-58",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-58-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-58.ply"
+        },
+        {
+          "name": "frame-116",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-116-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-116.ply"
+        },
+        {
+          "name": "frame-174",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0011-positive-frame-174-sgbm.npy",
+          "cloud": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-174.ply"
+        }
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0013",
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "frames": [
+        {
+          "name": "frame-35",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-35-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-35.ply"
+        },
+        {
+          "name": "frame-71",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-71-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-71.ply"
+        },
+        {
+          "name": "frame-107",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0013-positive-frame-107-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-107.ply"
+        }
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0015",
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "frames": [
+        {
+          "name": "frame-74",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-74-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-74.ply"
+        },
+        {
+          "name": "frame-148",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-148-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-148.ply"
+        },
+        {
+          "name": "frame-222",
+          "depth": "/workspace/work/joint-learned-stereo-20261029/2011_09_26_0015-positive-frame-222-sgbm.npy",
+          "cloud": "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-222.ply"
+        }
+      ]
+    }
+  ]
+}
