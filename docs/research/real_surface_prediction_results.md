@@ -53,7 +53,7 @@ reference or LiDAR normals, and predictive output is a subset of baseline points
 
 All-frame continuation fails. The remaining frames are0005/frame38,
 0005/frame114 and0009/frame111; normal agreement is42.70%,76.28%,76.43% respectively.
-Frame38 also has only68.62% within1m. No frame is dropped, and the80% screen is
+Frame114 also has only68.62% within1m. No frame is dropped, and the80% screen is
 not relaxed. No ICP rerun is performed as specified by the prior protocol.
 
 The surrogate disparity is fB/z on restored original-camera depths. Rectification,

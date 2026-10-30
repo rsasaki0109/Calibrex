@@ -1177,3 +1177,17 @@ No ICP rerun per all-frame requirement. Restored-depth fB/z is surrogate dispari
 Next fixed spatial distance/normal residual maps for all18, emphasizing3 failures,
 compare measurement support/boundaries; diagnose before changing model and never
 turn reference-derived maps into fit masks. Matched registration remains pending.
+
+### Spatial maps show interior surface disagreement (2026-10-30)
+
+[Results/maps](research/surface_error_maps_results.md), freeze `9a8327fd`: all18
+numeric/PNG maps, unchanged predictive surface masks. Aggregate counts/fractions
+reproduce prior report; all hashes and16-cell totals verified. **18/18** interior
+normal failure rates exceed boundary-band rates; median **17.83% vs7.27%**.
+Distance failure interior higher14/18, median13.69% vs7.72%. Failed0005/38,
+0005/114,0009/111 interior normal failures68.8%,42.5%,35.5%. No semantic/dynamic
+causal claim. Prior prose distance68.62% belongs to frame114 (corrected), machine
+outputs unchanged. Numeric NPZ local, all18 PNGs committed. No fits or mask edits.
+Next review prior stereo-consistency trials before choosing an independent
+cross-view/temporal check for coherently wrong geometry. No repeat matcher/gate
+tuning or truth-derived masks on18 spent frames; freeze distinct comparison first.
