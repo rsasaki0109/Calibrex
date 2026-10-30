@@ -1081,3 +1081,17 @@ summary/schema/hashes committed. Historical joint MI6/12 is contextual only.
 Next quantify reference-pose stereo/LiDAR overlap, nearest-target distances and
 normal agreement on all18 frames before another registration variant; offline
 truth diagnostics only, no truth-filtered fitting. No defaults or SOTA claim.
+
+### Stereo geometry overlap and normal diagnosis (2026-10-30)
+
+[Results](research/stereo_geometry_diagnostic_results.md), frozen `c7ddb8c6`, all18
+prepared pairs, reference-pose diagnostics only. Camera-FOV source coverage within
+1 m **80.97–93.89%** (median86.15%), but within .2 m median46.97%. Whole-source
+within1 m median17.82% reflects partial FOV overlap. Normal pairs (both PCA-valid,
+FOV and <=1 m) agree within15 deg only **28.90–63.64%**, median49.22%; target
+normal validity median99.31% is not surface accuracy. Explicit counts/reverse
+quantiles retained. No new fits/masks or accuracy changes; input hashes verified.
+Next specify measurement-only correspondence/surface reliability on independent
+controlled geometry (noise/occlusion), verify accuracy and spatial/directional
+support before frozen real comparison. Do not tune truth-based masks on these
+18 spent frames, equate eigengap with correctness or merely raise ICP iteration caps.
