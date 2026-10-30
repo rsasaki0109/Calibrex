@@ -982,3 +982,19 @@ Next freeze full-cloud matched MI/metric control on the same spent recordings,
 including both seeds and reference starts, to resolve the input-population
 confound before changing the objective or consuming fresh data. No optimizer/
 threshold tuning; preserve low-cost inaccurate cases as evidence.
+
+### Full-cloud control rejects the metric path (2026-10-30)
+
+[Results](research/full_cloud_transfer_results.md), frozen `07398b48`: 54 full-cloud
+fits, same six drives, three frames and 18 starts; 107739–124044 points/frame.
+MI historical result records reproduce exactly **12/12**, perturbed recovery
+**6/12**; bilinear and edge+rescue remain **0/12**. Reference controls MI **5/6**,
+bilinear **1/6**, edge+rescue **0/6**. Thus thinning harmed MI but does not explain
+metric failure. Sixteen scalar adoptions leave poses unchanged. Common-support,
+equal-bias wrong-pose cost preference remains 17/18 bilinear and 15/18 rescue.
+All budgets/hashes/counts verified; no defaults/adoption/SOTA claim.
+Close sampler/scalar tuning. Next independently specify a stereo uncertainty
+control (range-dependent depth error from disparity noise) on known geometry,
+fixed noise/occlusion conditions and unchanged regression controls, before any
+real-data retuning. Keep full-cloud MI as baseline; do not fit noise thresholds
+to these spent real cases or consume fresh holdouts as development data.
