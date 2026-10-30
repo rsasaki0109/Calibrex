@@ -934,3 +934,19 @@ Nine planes remain rejected as degenerate; 8–201 calls. Do not promote or rela
 thresholds. Next isolate residual-triggered scalar rescue with this image-only
 sampler, full 63-case denominator and shared budget; keep all failures and report
 staged termination honestly. No real-data or SOTA claim, core/defaults unchanged.
+
+### Scalar rescue with image-only sampling (2026-10-30)
+
+[Results](research/edge_scalar_rescue_results.md), frozen `0b0fa0bb`: unchanged
+rescue algorithm, imports switched to image-only sampler/joint fit. All 63
+baseline records reproduce exactly, all poses unchanged. Perturbed joint recovery
+**32/36→32/36**, truth starts **10/18→16/18**, six gains/zero regressions. Six
+negative-bias truth starts recover, including the two earlier regressions. Eight
+triggers/adoptions; two positive-seed corrections improve but still fail. Six
+sphere failures remain, including two >.05 m near-threshold failures. Nine planes
+stay rejected. 8–215 optimizer calls, median bias error .002071→.001974 m.
+Staged termination is not new joint stationarity; no production/SOTA claim.
+Next prioritize a frozen transfer comparison on existing spent real recordings,
+fixed sampler/rescue versus comparable bilinear metric baseline, full drives/seeds,
+truth-start drift and rejection/runtime reporting. Real depth lacks synthetic bias
+truth. Do not tune the six synthetic failures or spend fresh holdouts first.
