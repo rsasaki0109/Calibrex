@@ -966,3 +966,19 @@ differ. Next freeze reference-vs-fit cost/support/signed-residual diagnostics an
 a matched MI control on the same selected inputs before choosing another optimizer
 or frontend. Do not tune synthetic thresholds, infer bias accuracy from unlabeled
 real depth, or spend fresh holdouts. Core/defaults unchanged; no SOTA claim.
+
+### Matched-input MI and real cost diagnosis (2026-10-30)
+
+[Results](research/real_metric_diagnosis_results.md), frozen `4a1cf7b8`: 18 MI fits
+on the same 4096 file-order points/frame as metric transfer, plus four fixed-state
+cost/support probes of all 54 archived metric fits. MI recovery **1/12**, reference
+controls **5/6**, all converge. Historical full-cloud MI 6/12 is not this selected
+input's baseline: sampling cannot be assumed harmless. At equal fitted bias,
+inaccurate fits still beat reference cost on common support in **17/18 bilinear,
+13/18 edge, 12/18 rescue** cases. Reference zero-bias support only 1414–1737/12288,
+median >1 m residual fraction ~22%. Recomputed costs match archive. Do not infer
+one exclusive cause or global minima; no adoption/SOTA claim.
+Next freeze full-cloud matched MI/metric control on the same spent recordings,
+including both seeds and reference starts, to resolve the input-population
+confound before changing the objective or consuming fresh data. No optimizer/
+threshold tuning; preserve low-cost inaccurate cases as evidence.
