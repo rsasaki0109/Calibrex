@@ -1137,3 +1137,16 @@ Close5x5 confidence shortcuts. Next direction: coherent surface estimation with
 larger support and explicit variance-versus-curvature/boundary bias control;
 freeze independent coverage criteria before fitting or real-data selection.
 Do not tune windows/thresholds on18 spent real frames. No SOTA claim.
+
+### Larger coherent surfaces improve but fail all-frame gate (2026-10-30)
+
+[Results](research/coherent_surface_results.md), freeze `f3672551`:108 conditions,
+5/11/21 and smallest-passing adaptive support, same27 measurement hashes. Plane
+smooths center depth as well as normal; not comparable to prior raw-XYZ precision.
+21px noisy median joint precision **80.94/81.69%**, retention **30.65/30.81%**,
+but only **5/9 frames per seed** pass gates; adaptive **3/9,4/9**, median79%.
+Clean21px median74.65% (2/9 pass): curvature/boundary model bias remains. Angular
+coverage63–87% under nominal95% plane bound. No real transfer/ICP or defaults.
+Next measurement-model validation: independent spatial patch prediction or
+curvature-aware fitting, exact-plane and curved/boundary coverage/support controls.
+Do not choose a window using truth or tune RMS/scale on18 spent real frames.
