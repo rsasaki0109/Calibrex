@@ -1,5 +1,11 @@
 # CoFiI2P execution and checkpoint readiness
 
+CPU-only follow-up: the user has no GPU. The [CPU execution probe](cofii2p_cpu_probe.md)
+subsequently completed the actual test-mode graph at20480 points in10.36s with
+random weights. The earlier runtime blocker below is historical; GPU access is
+no longer a prerequisite for that exercised path. Checkpoint and image/training
+provenance blockers remain, with no learned accuracy claim.
+
 Reviewed2026-10-30 after the [geometry bridge](cofii2p_model_bridge.md).
 [Machine review](../assets/cofii2p_runtime_review_20261030/review.json) and
 [schema](../assets/cofii2p_runtime_review_20261030/review.schema.json) retain runtime,

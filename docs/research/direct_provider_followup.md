@@ -1,5 +1,11 @@
 # Bounded follow-up: NCLR, FreeReg and Free-FreeReg
 
+Subsequent user constraint: no GPU is available. The [CoFiI2P CPU probe](cofii2p_cpu_probe.md)
+completed a full test-mode forward at standard point count with random weights.
+This supersedes requesting a GPU as the next action; prioritize accessible official
+weights and CPU inference validation. Findings about the three candidates below
+remain a record of their own reviewed paths.
+
 Reviewed2026-10-30 after [CoFiI2P execution blockers](cofii2p_runtime_readiness.md).
 [Machine review](../assets/direct_provider_followup_20261030/review.json) and
 [schema](../assets/direct_provider_followup_20261030/review.schema.json) pin three

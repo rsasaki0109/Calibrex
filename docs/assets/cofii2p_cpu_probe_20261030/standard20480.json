@@ -1,0 +1,100 @@
+{
+  "scope": "random-weight CPU execution only; no checkpoint or accuracy/parity claim",
+  "source_commit": "3b15f88ae96d51fa95b72e9d5ceb20923c7ee7e9",
+  "upstream_commit": "ed90edf51cca540ee76152d91133c7e79b63256c",
+  "driver": {
+    "path": "/workspace/Calibrex/tools/cofii2p_cpu_probe.py",
+    "sha256": "d0eaea50f1c8c0961dd13848682c921598300898b10ac99e745be565cd8c8bc8"
+  },
+  "bridge": {
+    "path": "/workspace/work/cofii2p-bridge-smoke-20261030/bridge_a/bridge.npz",
+    "sha256": "b7593246aedbecd38a8af590b955ed1c594060d2443e2c95e415dffd6b9c122d"
+  },
+  "patched_source_sha256": {
+    "model/network.py": "ce0c2723d3ea6e85900ad825fd63ae97d8d7ab22f521f7f226c508094595ab22",
+    "model/kpconv/kernel_points.py": "65b75ba445f1187ac0b9674f86706a374a1ef4f6d41826163dc81bfceb96d133"
+  },
+  "original_source_sha256": {
+    "model/network.py": "1cf3528a8b8293bf62d86b4b7b667359e50f941ca3d4175b90476a42d3b58936",
+    "model/kpconv/kernel_points.py": "f73b572bddf246eec555f971d41412f7bb091d8b79bcf5baea40e5738fb8ce5b"
+  },
+  "seed": 20261030,
+  "threads": 2,
+  "runtime": {
+    "torch": "2.4.0+cpu",
+    "numpy": "2.5.4",
+    "einops": "0.8.1"
+  },
+  "status": "completed",
+  "error": null,
+  "progress": {
+    "synthetic_image_sha256": "58ab60d6d5d8bbe8e8192297bbc606d4729d28028a9eb830c90dd7cdf02538ae",
+    "point_counts": [
+      20480,
+      10240,
+      5120,
+      2560,
+      1280
+    ],
+    "coarse_point_score": {
+      "shape": [
+        1,
+        1,
+        1280
+      ],
+      "finite": true,
+      "device": "cpu"
+    }
+  },
+  "init_seconds": 5.528142686991487,
+  "forward_seconds": 10.35783915000502,
+  "peak_rss_kib": 1947256,
+  "random_state_sha256": "335ab651f5d0594b4a3dc18ba16ea48c5ef44f54b0cb73b0330d77f1a45d6d33",
+  "output_shapes": {
+    "output_0": [
+      1,
+      128,
+      20,
+      64
+    ],
+    "output_1": [
+      128,
+      1280
+    ],
+    "output_2": [
+      1,
+      1,
+      20,
+      64
+    ],
+    "output_3": [
+      1,
+      1,
+      1280
+    ],
+    "output_4": [
+      4,
+      64,
+      16
+    ],
+    "output_5": [
+      4,
+      64
+    ],
+    "output_6": [
+      2,
+      4
+    ],
+    "output_7": [
+      4,
+      3
+    ]
+  },
+  "outputs": {
+    "path": "/workspace/work/cofii2p-cpu-probe-20261030/standard20480/outputs.npz",
+    "sha256": "660032114504262fe7016f54d785dfd8b20a05b0077caaef608801667f243aba"
+  },
+  "repeat_arrays_exact": true,
+  "checkpoint_loaded": false,
+  "real_frames": 0
+}

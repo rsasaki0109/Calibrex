@@ -58,3 +58,35 @@ and numerical parity remain unresolved. A random-weight CPU forward is not a
 validated scientific reproduction or a successful calibration provider. It can
 remove an assumed GPU requirement for the exercised model graph, not the need
 for suitable learned weights.
+
+## Outcome
+
+Frozen implementation `3b15f88a`; both predeclared cases completed. See
+[reduced result](../assets/cofii2p_cpu_probe_20261030/reduced2048.json) and
+[standard result](../assets/cofii2p_cpu_probe_20261030/standard20480.json).
+
+| Synthetic input | Initialization | First forward | Peak process RSS | Predicted pairs | Exact repeat |
+| --- | --- | --- | --- | --- | --- |
+| 2048 points | 5.40s | 4.13s | 735.4MiB | 10 | yes |
+| 20480 points | 5.53s | 10.36s | 1901.6MiB (1.86GiB) | 4 | yes |
+
+Both processes used two CPU threads and torch2.4.0+cpu/einops0.8.1. Every one of
+the eight returned tensors was finite and on CPU. The seeded full model-state
+hash was identical across the two point counts. Native test-mode predicted pairs
+were retained without injecting correspondences or labels. Four random predicted
+pairs are an execution output, not evidence of correct or sufficient registration
+geometry. No PnP accuracy test or learned-checkpoint inference occurred.
+
+Timing excludes geometry preparation, source copying and initialization. Peak RSS
+includes imports, initialization and repeat-forward verification. These are
+workload-specific observations, not latency/memory guarantees for learned weights
+or different pair counts. The plan's protocol hash identifies the pre-run document
+at the frozen commit; this section adds the subsequent outcome.
+
+**CPU feasibility is established for this exercised model graph and local geometry
+implementation. A GPU is no longer a prerequisite for continuing this route.**
+The source modifications are not a verified CPU/GPU or Open3D numerical reproduction.
+Checkpoint-dependent behavior, native preprocessing parity, code/checkpoint terms
+and training provenance remain open. Next obtain official weights through an
+authorized accessible location and run a bounded CPU checkpoint smoke; do not ask
+for a GPU or restart MI/stereo tuning because no GPU is available.

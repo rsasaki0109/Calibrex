@@ -1384,3 +1384,22 @@ Zero model calls/weight download/calibration fits; core/defaults unchanged.
 Close speculative provider search and adapter expansion. Next useful execution
 requires accessible GPU and suitable official checkpoint with SHA/terms/training
 and image provenance, as in CoFi handoff. No accuracy/SOTA advance claimed.
+
+### User has NO GPU; CoFiI2P CPU graph now exercised (2026-10-30)
+
+CPU-only is an explicit user constraint, not a pending GPU request. Supersedes the
+previous GPU-first next actions. [Protocol/results](research/cofii2p_cpu_probe.md),
+freeze `3b15f88a`, seed20261030/two threads: actual external CoFiI2P test-mode model
+with random weights and None label arguments completes both2048 and20480 points.
+Forward4.13/10.36s, peakRSS735.4/1901.6MiB, init5.40/5.53s. All8 outputs finite/CPU,
+repeat tensors exact; same seeded model-state hash across point counts. Random
+predicted pairs10/4 are NOT correspondence accuracy, no PnP fit/real frame/checkpoint.
+Only two external copied files patched:4 CUDA transfers to input device, unused
+Open3D/plot imports removed, native NumPy kernel generation with NPY cache instead
+of Open3D PLY, bounded predicted-pair loop. Existing SciPy geometry/order/tie/grid
+differences remain; not verified official CPU/GPU/Open3D numerical parity. Source
+copy and outputs workspace-only, no external code copied to core; einops0.8.1 tiny
+dependency installed, no GPU/Open3D/TorchVision package install. Core/defaults unchanged.
+Next accessible official KITTI weight SHA/terms/training+image recipe, then bounded
+CPU checkpoint smoke and frozen spent-data pilot. GPU is NOT required for this
+exercised graph. Do not re-request GPU or repeat closed MI search/stereo variants.
