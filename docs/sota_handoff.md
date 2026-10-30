@@ -1067,3 +1067,17 @@ No fits or new accuracy claim. Next implement/freeze 108-trial runner per
 stereo_registration_protocol.md (18 pairs ×3 starts ×2 native ICP variants),
 full failure accounting and all-three-frame drive success. Historical joint MI6/12
 is not a matched single-frame comparator. No reference-dependent preparation.
+
+### Native stereo geometry registration fails pilot (2026-10-30)
+
+[Results](research/stereo_registration_results.md), freeze `bd9709ee`: 108 fits
+(18 frame pairs ×3 starts ×2 native ICP variants), full input/artifact hashes checked.
+Perturbed frame recovery point **1/36**, plane **0/36**; all-three-frame drive/start
+recovery **0/12 both**. Reference controls **6/18, 2/18 frames**, **1/6, 0/6 drives**.
+Converged perturbed **8/36,9/36**, others iteration cap; geometric-only 5/36 each
+is not recovered. Reject adoption; no post-result cap or voxel/gate tuning.
+Full detailed gzip results under /workspace/work/stereo-registration-pilot-20261030,
+summary/schema/hashes committed. Historical joint MI6/12 is contextual only.
+Next quantify reference-pose stereo/LiDAR overlap, nearest-target distances and
+normal agreement on all18 frames before another registration variant; offline
+truth diagnostics only, no truth-filtered fitting. No defaults or SOTA claim.
