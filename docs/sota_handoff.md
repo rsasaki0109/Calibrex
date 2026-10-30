@@ -1258,3 +1258,18 @@ Close self-consistency mask sequence, no ICP/tolerance retuning. Next reference-
 assisted error attribution of estimated motion versus available OXTS/time/camera-
 conversion proxy, evaluation-only and uncertainty explicit. Target-extrinsic chain
 must never feed selection or be called independent metric truth. No defaults/SOTA.
+
+### Motion proxy and offline replacement leave main failures (2026-10-30)
+
+[Results](research/camera_motion_proxy_results.md): motion freeze `7fb15ad9`,
+reference-assisted counterfactual freeze `5bed804c`.36 OXTS camera-time/chain proxy
+comparisons: median estimate disagreement **.03515deg/.02631m**, max.10140deg/
+.13856m. Common±10ms proxy change max.02690deg/.003180m; same-index max.14515deg/
+.08386m, omit lever translation max.04472m. Sensitivity is not uncertainty bound.
+18 counterfactual centers preserve masks/gates/unsupported flags; proxy motion uses
+target calibration EVALUATION ONLY. Main failures agreement **45.20/76.21/76.54%**
+versus45.24/76.02/76.98 estimated motion. Overall13/18→14/18 diagnostic only, original
+measurement-only verdict unchanged. No independent motion truth or adoption claim.
+Next underlying stereo matching ambiguity/surface reconstruction attribution, review
+prior frontend evidence first; no reference-selected masks, SGBM retuning or another
+self-consistency gate. LiDAR normal/calibration/timing alternatives remain explicit.

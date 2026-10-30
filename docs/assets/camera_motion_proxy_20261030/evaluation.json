@@ -1,0 +1,3643 @@
+{
+  "scope": "36 evaluation-only motion proxy comparisons; no selection changes",
+  "source_commit": "7fb15ad9d7335120bd8aca09671e97b4e7c1d684",
+  "plan_sha256": "9ec52dd0ee78d7273d6444c74a4f7fb930d91305eb8570dfd270f771d1b55c51",
+  "cases": [
+    {
+      "drive": "2011_09_26_0005",
+      "indices": [
+        37,
+        38
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.003402147831532748,
+        "translation_m": 0.018234174767898233,
+        "estimate_translation_m": 0.39839052964532023,
+        "proxy_translation_m": 0.4022948920646308
+      },
+      "nominal_proxy": [
+        [
+          0.9998894240295784,
+          0.0002473896810529378,
+          0.014868708627780454,
+          -0.004236765550913901
+        ],
+        [
+          -0.0002900209332667424,
+          0.9999958535685148,
+          0.0028650885730580394,
+          -0.013137511306401506
+        ],
+        [
+          -0.014867938730711199,
+          -0.002869083710028128,
+          0.9998853498144448,
+          -0.4020580005367804
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.010628118540572294,
+            "translation_m": 0.01724709986397032,
+            "estimate_translation_m": 0.39839052964532023,
+            "proxy_translation_m": 0.40116306577249167
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.012823599889260157,
+            "translation_m": 0.0014415640710362765,
+            "estimate_translation_m": 0.40116306577249167,
+            "proxy_translation_m": 0.4022948920646308
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.003402147831532748,
+            "translation_m": 0.018234174767898233,
+            "estimate_translation_m": 0.39839052964532023,
+            "proxy_translation_m": 0.4022948920646308
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 1.7305665770440106e-14,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.4022948920646308,
+            "proxy_translation_m": 0.4022948920646308
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.006070972707845692,
+            "translation_m": 0.018816236765459654,
+            "estimate_translation_m": 0.39839052964532023,
+            "proxy_translation_m": 0.40263054614865235
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0030901007066738606,
+            "translation_m": 0.000624170407660382,
+            "estimate_translation_m": 0.40263054614865235,
+            "proxy_translation_m": 0.4022948920646308
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.058242704287288165,
+        "translation_m": 0.026590926093655803,
+        "estimate_translation_m": 0.428879773028386,
+        "proxy_translation_m": 0.4022948920646308
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 1.7305665770440106e-14,
+        "translation_m": 0.016338007738615556,
+        "estimate_translation_m": 0.4010518382762777,
+        "proxy_translation_m": 0.4022948920646308
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "indices": [
+        38,
+        39
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.035370879008381276,
+        "translation_m": 0.012646058213291903,
+        "estimate_translation_m": 0.40852522216680004,
+        "proxy_translation_m": 0.410586675684455
+      },
+      "nominal_proxy": [
+        [
+          0.9998858176834977,
+          -0.00029337673504467165,
+          0.015108458106323686,
+          -0.002139008631958317
+        ],
+        [
+          0.0002686935559378428,
+          0.999998626080281,
+          0.00163573920667924,
+          -0.010792977698560247
+        ],
+        [
+          -0.015108917790159155,
+          -0.0016314927416904604,
+          0.9998845227586827,
+          -0.41043922147387746
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.03665100506753015,
+            "translation_m": 0.012853029135393643,
+            "estimate_translation_m": 0.40852522216680004,
+            "proxy_translation_m": 0.40977730149205305
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.008716828031205716,
+            "translation_m": 0.0009058985116550611,
+            "estimate_translation_m": 0.40977730149205305,
+            "proxy_translation_m": 0.410586675684455
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.035370879008381276,
+            "translation_m": 0.012646058213291903,
+            "estimate_translation_m": 0.40852522216680004,
+            "proxy_translation_m": 0.410586675684455
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 1.6701890934525385e-14,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.410586675684455,
+            "proxy_translation_m": 0.410586675684455
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.042568183109649264,
+            "translation_m": 0.012621312028692641,
+            "estimate_translation_m": 0.40852522216680004,
+            "proxy_translation_m": 0.411788287624349
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.010432431889816624,
+            "translation_m": 0.001250279740618003,
+            "estimate_translation_m": 0.411788287624349,
+            "proxy_translation_m": 0.410586675684455
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.028277675802334225,
+        "translation_m": 0.012261988145412945,
+        "estimate_translation_m": 0.39833634316137495,
+        "proxy_translation_m": 0.410586675684455
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 1.6701890934525385e-14,
+        "translation_m": 0.016929246812558797,
+        "estimate_translation_m": 0.4082717960891018,
+        "proxy_translation_m": 0.410586675684455
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "indices": [
+        75,
+        76
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.05121435938371376,
+        "translation_m": 0.058563661238855105,
+        "estimate_translation_m": 0.4286649976499752,
+        "proxy_translation_m": 0.3778946018555325
+      },
+      "nominal_proxy": [
+        [
+          0.9997839741681327,
+          -0.0018524548237486046,
+          -0.020702014263232524,
+          0.033040286592775164
+        ],
+        [
+          0.0018786914816532592,
+          0.9999974565616652,
+          0.0012479578874207305,
+          -0.0002211087475536555
+        ],
+        [
+          0.020699650573007766,
+          -0.0012865807926933416,
+          0.9997849114578558,
+          -0.37644736774792364
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.0514238088148445,
+            "translation_m": 0.0564514251339752,
+            "estimate_translation_m": 0.4286649976499752,
+            "proxy_translation_m": 0.3791406815609489
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.013127342855387265,
+            "translation_m": 0.0023688340743583764,
+            "estimate_translation_m": 0.3791406815609489,
+            "proxy_translation_m": 0.3778946018555325
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.05121435938371376,
+            "translation_m": 0.058563661238855105,
+            "estimate_translation_m": 0.4286649976499752,
+            "proxy_translation_m": 0.3778946018555325
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 1.6969628210530955e-14,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.3778946018555325,
+            "proxy_translation_m": 0.3778946018555325
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.056528995057206446,
+            "translation_m": 0.0595117111367603,
+            "estimate_translation_m": 0.4286649976499752,
+            "proxy_translation_m": 0.37708681874305694
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.014782800632331247,
+            "translation_m": 0.0009510326427573603,
+            "estimate_translation_m": 0.37708681874305694,
+            "proxy_translation_m": 0.3778946018555325
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.03279162827344273,
+        "translation_m": 0.013699402861515516,
+        "estimate_translation_m": 0.364249700173273,
+        "proxy_translation_m": 0.3778946018555325
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 1.6969628210530955e-14,
+        "translation_m": 0.022108242097855134,
+        "estimate_translation_m": 0.38623609047262425,
+        "proxy_translation_m": 0.3778946018555325
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "indices": [
+        76,
+        77
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.0599229608212889,
+        "translation_m": 0.05874412644733435,
+        "estimate_translation_m": 0.4256251800822371,
+        "proxy_translation_m": 0.3789682149417242
+      },
+      "nominal_proxy": [
+        [
+          0.9997611064610934,
+          -0.0032150866018281314,
+          -0.02161927851748909,
+          0.022218775050734246
+        ],
+        [
+          0.003239986576090368,
+          0.9999941276172621,
+          0.0011167974555379853,
+          -0.001889531889464502
+        ],
+        [
+          0.021615561743657006,
+          -0.0011865766400565533,
+          0.9997656523055884,
+          -0.37831159596369823
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.05257491662288687,
+            "translation_m": 0.05972265893593998,
+            "estimate_translation_m": 0.4256251800822371,
+            "proxy_translation_m": 0.3786905945794778
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.008610420033192718,
+            "translation_m": 0.0012554323193056938,
+            "estimate_translation_m": 0.3786905945794778,
+            "proxy_translation_m": 0.3789682149417242
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.0599229608212889,
+            "translation_m": 0.05874412644733435,
+            "estimate_translation_m": 0.4256251800822371,
+            "proxy_translation_m": 0.3789682149417242
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 3.916444690563856e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.3789682149417242,
+            "proxy_translation_m": 0.3789682149417242
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.06294468647659457,
+            "translation_m": 0.05865660415939094,
+            "estimate_translation_m": 0.4256251800822371,
+            "proxy_translation_m": 0.3790556776141994
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.003438094535490341,
+            "translation_m": 0.00012380131930264223,
+            "estimate_translation_m": 0.3790556776141994,
+            "proxy_translation_m": 0.3789682149417242
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.08086603815998238,
+        "translation_m": 0.023811458865166925,
+        "estimate_translation_m": 0.4027794613149673,
+        "proxy_translation_m": 0.3789682149417242
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 3.916444690563856e-15,
+        "translation_m": 0.02218582916579664,
+        "estimate_translation_m": 0.38687371581565244,
+        "proxy_translation_m": 0.3789682149417242
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "indices": [
+        113,
+        114
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.011840375910021222,
+        "translation_m": 0.0387537326435876,
+        "estimate_translation_m": 0.6124227611603817,
+        "proxy_translation_m": 0.5742344127846716
+      },
+      "nominal_proxy": [
+        [
+          0.9998091638545578,
+          0.0001202478876432586,
+          -0.019535132752320227,
+          -0.01221965951548426
+        ],
+        [
+          -0.00012650551286535152,
+          0.9999999410885348,
+          -0.0003190904091436498,
+          -0.004434047699966914
+        ],
+        [
+          0.0195350939429001,
+          0.00032150083178171225,
+          0.9998091201542901,
+          -0.5740872581485124
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.012130344398755611,
+            "translation_m": 0.0385298073754664,
+            "estimate_translation_m": 0.6124227611603817,
+            "proxy_translation_m": 0.5744814700193932
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.008977643338032106,
+            "translation_m": 0.000272702580291309,
+            "estimate_translation_m": 0.5744814700193932,
+            "proxy_translation_m": 0.5742344127846716
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.011840375910021222,
+            "translation_m": 0.0387537326435876,
+            "estimate_translation_m": 0.6124227611603817,
+            "proxy_translation_m": 0.5742344127846716
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 3.379865419369766e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.5742344127846716,
+            "proxy_translation_m": 0.5742344127846716
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.017697761011533194,
+            "translation_m": 0.039096639651927285,
+            "estimate_translation_m": 0.6124227611603817,
+            "proxy_translation_m": 0.5738860857371967
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.009788684686848539,
+            "translation_m": 0.00034958867149843044,
+            "estimate_translation_m": 0.5738860857371967,
+            "proxy_translation_m": 0.5742344127846716
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.04298558967299379,
+        "translation_m": 0.017650887115522523,
+        "estimate_translation_m": 0.5565846781178753,
+        "proxy_translation_m": 0.5742344127846716
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 3.379865419369766e-15,
+        "translation_m": 0.021834701480176022,
+        "estimate_translation_m": 0.5787014165323549,
+        "proxy_translation_m": 0.5742344127846716
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "indices": [
+        114,
+        115
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.039774796425736884,
+        "translation_m": 0.03809634951969859,
+        "estimate_translation_m": 0.5984384991596591,
+        "proxy_translation_m": 0.5672027899030865
+      },
+      "nominal_proxy": [
+        [
+          0.9998290351189633,
+          0.0006591957417662801,
+          -0.018478798564828487,
+          -0.011002376860862889
+        ],
+        [
+          -0.0006520059238694567,
+          0.9999997093856475,
+          0.00039511197415437676,
+          -0.0035087635094306346
+        ],
+        [
+          0.018479054321811864,
+          -0.0003829960449761925,
+          0.9998291743425389,
+          -0.5670852150743231
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.033913349465781735,
+            "translation_m": 0.037543911509820595,
+            "estimate_translation_m": 0.5984384991596591,
+            "proxy_translation_m": 0.5679907310848274
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.007590556844311388,
+            "translation_m": 0.000802947455629508,
+            "estimate_translation_m": 0.5679907310848274,
+            "proxy_translation_m": 0.5672027899030865
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.039774796425736884,
+            "translation_m": 0.03809634951969859,
+            "estimate_translation_m": 0.5984384991596591,
+            "proxy_translation_m": 0.5672027899030865
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 1.0730394463696937e-14,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.5672027899030865,
+            "proxy_translation_m": 0.5672027899030865
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.04599687247818531,
+            "translation_m": 0.038867352950547066,
+            "estimate_translation_m": 0.5984384991596591,
+            "proxy_translation_m": 0.5663259633894674
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0063850797635397385,
+            "translation_m": 0.0008864104055529427,
+            "estimate_translation_m": 0.5663259633894674,
+            "proxy_translation_m": 0.5672027899030865
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.03794464085707899,
+        "translation_m": 0.018402323501968645,
+        "estimate_translation_m": 0.5488019634959133,
+        "proxy_translation_m": 0.5672027899030865
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 1.0730394463696937e-14,
+        "translation_m": 0.021142600564184977,
+        "estimate_translation_m": 0.5719657699940401,
+        "proxy_translation_m": 0.5672027899030865
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0009",
+      "indices": [
+        110,
+        111
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.042159842397134675,
+        "translation_m": 0.020808364195465747,
+        "estimate_translation_m": 1.1370119598531259,
+        "proxy_translation_m": 1.1296428589567964
+      },
+      "nominal_proxy": [
+        [
+          0.9999992893155426,
+          -0.0011920785208003055,
+          -0.000017627512464113973,
+          0.006880749885812054
+        ],
+        [
+          0.0011920606090067478,
+          0.9999987964494916,
+          -0.0009930246031381222,
+          0.010465132565554147
+        ],
+        [
+          0.000018811257957533098,
+          0.0009930027701995224,
+          0.9999995067955418,
+          -1.1295734261540853
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.03893854067571579,
+            "translation_m": 0.0209801319465569,
+            "estimate_translation_m": 1.1370119598531259,
+            "proxy_translation_m": 1.1298669328526603
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.012092973632147966,
+            "translation_m": 0.0006760243001516635,
+            "estimate_translation_m": 1.1298669328526603,
+            "proxy_translation_m": 1.1296428589567964
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.042159842397134675,
+            "translation_m": 0.020808364195465747,
+            "estimate_translation_m": 1.1370119598531259,
+            "proxy_translation_m": 1.1296428589567964
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 4.988680349869379e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 1.1296428589567964,
+            "proxy_translation_m": 1.1296428589567964
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.043660081232141344,
+            "translation_m": 0.020852365186098815,
+            "estimate_translation_m": 1.1370119598531259,
+            "proxy_translation_m": 1.1295577409853774
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0031394689061105354,
+            "translation_m": 0.0001453296226189401,
+            "estimate_translation_m": 1.1295577409853774,
+            "proxy_translation_m": 1.1296428589567964
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.008308252768847764,
+        "translation_m": 0.07001053813040631,
+        "estimate_translation_m": 1.1996531307440514,
+        "proxy_translation_m": 1.1296428589567964
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 4.988680349869379e-15,
+        "translation_m": 0.0013439748179331615,
+        "estimate_translation_m": 1.1289357394240485,
+        "proxy_translation_m": 1.1296428589567964
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0009",
+      "indices": [
+        111,
+        112
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.016769296194598885,
+        "translation_m": 0.01876627154885541,
+        "estimate_translation_m": 1.1428219840910914,
+        "proxy_translation_m": 1.1271342659240848
+      },
+      "nominal_proxy": [
+        [
+          0.9999995807732284,
+          -0.0009129191375999638,
+          0.00007090161338909518,
+          0.0015827776649346426
+        ],
+        [
+          0.0009130214311550683,
+          0.9999985255737902,
+          -0.0014543890670566347,
+          0.008207396364405595
+        ],
+        [
+          -0.00006957376785331394,
+          0.0014544530248375733,
+          0.9999989398621476,
+          -1.12710327249991
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.0183007815103773,
+            "translation_m": 0.018847704143408424,
+            "estimate_translation_m": 1.1428219840910914,
+            "proxy_translation_m": 1.1273964608313305
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0031199454690957677,
+            "translation_m": 0.0006790198828793933,
+            "estimate_translation_m": 1.1273964608313305,
+            "proxy_translation_m": 1.1271342659240848
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.016769296194598885,
+            "translation_m": 0.01876627154885541,
+            "estimate_translation_m": 1.1428219840910914,
+            "proxy_translation_m": 1.1271342659240848
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 5.782316259253296e-14,
+            "translation_m": 0.0,
+            "estimate_translation_m": 1.1271342659240848,
+            "proxy_translation_m": 1.1271342659240848
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.017039307765508077,
+            "translation_m": 0.018895437190840046,
+            "estimate_translation_m": 1.1428219840910914,
+            "proxy_translation_m": 1.1266383497010484
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0020333739031312545,
+            "translation_m": 0.0008132263308010643,
+            "estimate_translation_m": 1.1266383497010484,
+            "proxy_translation_m": 1.1271342659240848
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.0034261865815888907,
+        "translation_m": 0.03912951929922287,
+        "estimate_translation_m": 1.088008838706363,
+        "proxy_translation_m": 1.1271342659240848
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 5.782316259253296e-14,
+        "translation_m": 0.0018669032610201058,
+        "estimate_translation_m": 1.1260793967679512,
+        "proxy_translation_m": 1.1271342659240848
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0009",
+      "indices": [
+        222,
+        223
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.007743343153496677,
+        "translation_m": 0.022943263841482608,
+        "estimate_translation_m": 0.5117347386955041,
+        "proxy_translation_m": 0.4932270913046201
+      },
+      "nominal_proxy": [
+        [
+          0.9991882909580126,
+          0.0011032846107703127,
+          0.0402683734136238,
+          0.022323868227534738
+        ],
+        [
+          -0.0010069040896069075,
+          0.9999965801828801,
+          -0.002413661671474246,
+          0.006305818182415601
+        ],
+        [
+          -0.04027090011752298,
+          0.0023711557131698676,
+          0.9991859848428816,
+          -0.49268128152105195
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.010431840633527137,
+            "translation_m": 0.024197886678663006,
+            "estimate_translation_m": 0.5117347386955041,
+            "proxy_translation_m": 0.4914368320554715
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0055765794116285515,
+            "translation_m": 0.001825997463289461,
+            "estimate_translation_m": 0.4914368320554715,
+            "proxy_translation_m": 0.4932270913046201
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.007743343153496677,
+            "translation_m": 0.022943263841482608,
+            "estimate_translation_m": 0.5117347386955041,
+            "proxy_translation_m": 0.4932270913046201
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 2.4908083094632097e-14,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.4932270913046201,
+            "proxy_translation_m": 0.4932270913046201
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.008111829091049995,
+            "translation_m": 0.02275840462710958,
+            "estimate_translation_m": 0.5117347386955041,
+            "proxy_translation_m": 0.49378124144389524
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0014824476817756915,
+            "translation_m": 0.0013997384710632132,
+            "estimate_translation_m": 0.49378124144389524,
+            "proxy_translation_m": 0.4932270913046201
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.1451538451121589,
+        "translation_m": 0.031356324317908114,
+        "estimate_translation_m": 0.5245577232788774,
+        "proxy_translation_m": 0.4932270913046201
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 2.4908083094632097e-14,
+        "translation_m": 0.04472103259868594,
+        "estimate_translation_m": 0.4803760248230731,
+        "proxy_translation_m": 0.4932270913046201
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0009",
+      "indices": [
+        223,
+        224
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.020383705607778014,
+        "translation_m": 0.029684419398590355,
+        "estimate_translation_m": 0.5235464415014957,
+        "proxy_translation_m": 0.5127603540585332
+      },
+      "nominal_proxy": [
+        [
+          0.9991328945684127,
+          0.003802455631719585,
+          0.04146082792616908,
+          0.01761451654781615
+        ],
+        [
+          -0.003700937294633494,
+          0.9999899635837277,
+          -0.002525030441296743,
+          0.018233908539702415
+        ],
+        [
+          -0.04147001462672779,
+          0.002369396669796345,
+          0.9991369395296604,
+          -0.5121332190752566
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.03367063552071003,
+            "translation_m": 0.029419710471132853,
+            "estimate_translation_m": 0.5235464415014957,
+            "proxy_translation_m": 0.5106414139813792
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.01809682471282276,
+            "translation_m": 0.0024781304858303276,
+            "estimate_translation_m": 0.5106414139813792,
+            "proxy_translation_m": 0.5127603540585332
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.020383705607778014,
+            "translation_m": 0.029684419398590355,
+            "estimate_translation_m": 0.5235464415014957,
+            "proxy_translation_m": 0.5127603540585332
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 1.5095849178290235e-14,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.5127603540585332,
+            "proxy_translation_m": 0.5127603540585332
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.02227420516545537,
+            "translation_m": 0.03049778476924355,
+            "estimate_translation_m": 0.5235464415014957,
+            "proxy_translation_m": 0.5154488136980864
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.01450716248388976,
+            "translation_m": 0.003179628806646385,
+            "estimate_translation_m": 0.5154488136980864,
+            "proxy_translation_m": 0.5127603540585332
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.07155907123240872,
+        "translation_m": 0.014916744705447219,
+        "estimate_translation_m": 0.49787721112279165,
+        "proxy_translation_m": 0.5127603540585332
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 1.5095849178290235e-14,
+        "translation_m": 0.044255453089575854,
+        "estimate_translation_m": 0.500029018489751,
+        "proxy_translation_m": 0.5127603540585332
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0009",
+      "indices": [
+        333,
+        334
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.049551208970719185,
+        "translation_m": 0.03084008067138181,
+        "estimate_translation_m": 0.9802852161914711,
+        "proxy_translation_m": 0.9511941731768127
+      },
+      "nominal_proxy": [
+        [
+          0.9999866223143037,
+          0.001113240775891431,
+          -0.005051326088962981,
+          0.005210206907531101
+        ],
+        [
+          -0.0011132487671057679,
+          0.9999993803347641,
+          1.2629001550298791e-6,
+          -0.007044078502283835
+        ],
+        [
+          0.005051324548380003,
+          4.360512423493644e-6,
+          0.9999872419681739,
+          -0.951153820255985
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.067785015299353,
+            "translation_m": 0.03074102409191988,
+            "estimate_translation_m": 0.9802852161914711,
+            "proxy_translation_m": 0.9514938729642388
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.018483114960183993,
+            "translation_m": 0.0006104382373742417,
+            "estimate_translation_m": 0.9514938729642388,
+            "proxy_translation_m": 0.9511941731768127
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.049551208970719185,
+            "translation_m": 0.03084008067138181,
+            "estimate_translation_m": 0.9802852161914711,
+            "proxy_translation_m": 0.9511941731768127
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 8.47836725442903e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.9511941731768127,
+            "proxy_translation_m": 0.9511941731768127
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.037349066993839004,
+            "translation_m": 0.031200140476568685,
+            "estimate_translation_m": 0.9802852161914711,
+            "proxy_translation_m": 0.9506166254823839
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.012245810128445148,
+            "translation_m": 0.0008382615079858297,
+            "estimate_translation_m": 0.9506166254823839,
+            "proxy_translation_m": 0.9511941731768127
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.011104675128309593,
+        "translation_m": 0.03281829330659983,
+        "estimate_translation_m": 0.9183794236283498,
+        "proxy_translation_m": 0.9511941731768127
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 8.47836725442903e-15,
+        "translation_m": 0.0064238746549757746,
+        "estimate_translation_m": 0.9525144646844065,
+        "proxy_translation_m": 0.9511941731768127
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0009",
+      "indices": [
+        334,
+        335
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.05816100376793111,
+        "translation_m": 0.011664002088883893,
+        "estimate_translation_m": 0.9427042457594282,
+        "proxy_translation_m": 0.9467214021837471
+      },
+      "nominal_proxy": [
+        [
+          0.9999862855571682,
+          0.0015630425443118245,
+          -0.004998560353635277,
+          0.0031817096164040715
+        ],
+        [
+          -0.0015627051079350623,
+          0.999998776418508,
+          0.00007145879878676126,
+          -0.0062103965639013214
+        ],
+        [
+          0.004998666112132038,
+          -0.00006364652203377963,
+          0.9999875045639649,
+          -0.9466956855564497
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.056776597293285734,
+            "translation_m": 0.011789758739566062,
+            "estimate_translation_m": 0.9427042457594282,
+            "proxy_translation_m": 0.9472603168174636
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0021102198411084173,
+            "translation_m": 0.0005647490569583078,
+            "estimate_translation_m": 0.9472603168174636,
+            "proxy_translation_m": 0.9467214021837471
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.05816100376793111,
+            "translation_m": 0.011664002088883893,
+            "estimate_translation_m": 0.9427042457594282,
+            "proxy_translation_m": 0.9467214021837471
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 4.803977548632652e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.9467214021837471,
+            "proxy_translation_m": 0.9467214021837471
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.05793835805902832,
+            "translation_m": 0.011380749187049814,
+            "estimate_translation_m": 0.9427042457594282,
+            "proxy_translation_m": 0.9465222367787481
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0006919170420555576,
+            "translation_m": 0.00033833783639638214,
+            "estimate_translation_m": 0.9465222367787481,
+            "proxy_translation_m": 0.9467214021837471
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.018480595340090295,
+        "translation_m": 0.058269402556624515,
+        "estimate_translation_m": 1.0049902506335062,
+        "proxy_translation_m": 0.9467214021837471
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 4.803977548632652e-15,
+        "translation_m": 0.006693377056511907,
+        "estimate_translation_m": 0.9480670116692169,
+        "proxy_translation_m": 0.9467214021837471
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0011",
+      "indices": [
+        57,
+        58
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.07393553868398152,
+        "translation_m": 0.07257343608814354,
+        "estimate_translation_m": 1.202072677467832,
+        "proxy_translation_m": 1.1334958257169614
+      },
+      "nominal_proxy": [
+        [
+          0.9999811695581649,
+          0.0019515318146396457,
+          -0.005818252719555324,
+          -0.0207794266176963
+        ],
+        [
+          -0.0019379978774098925,
+          0.9999954055220345,
+          0.0023308988832372386,
+          -0.004225780548041014
+        ],
+        [
+          0.0058227750165498445,
+          -0.002319578948127335,
+          0.9999803572280835,
+          -1.1332974654193733
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.06716983213758164,
+            "translation_m": 0.07221596997030671,
+            "estimate_translation_m": 1.202072677467832,
+            "proxy_translation_m": 1.1339531549096327
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.020082123743656765,
+            "translation_m": 0.0005081372361422874,
+            "estimate_translation_m": 1.1339531549096327,
+            "proxy_translation_m": 1.1334958257169614
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.07393553868398152,
+            "translation_m": 0.07257343608814354,
+            "estimate_translation_m": 1.202072677467832,
+            "proxy_translation_m": 1.1334958257169614
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 1.3152518467175782e-14,
+            "translation_m": 0.0,
+            "estimate_translation_m": 1.1334958257169614,
+            "proxy_translation_m": 1.1334958257169614
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.07183796703556511,
+            "translation_m": 0.07307316756648458,
+            "estimate_translation_m": 1.202072677467832,
+            "proxy_translation_m": 1.1331351081713918
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.002916149432384409,
+            "translation_m": 0.000657523432395554,
+            "estimate_translation_m": 1.1331351081713918,
+            "proxy_translation_m": 1.1334958257169614
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.024712183965118237,
+        "translation_m": 0.06803348665400032,
+        "estimate_translation_m": 1.2015280374162498,
+        "proxy_translation_m": 1.1334958257169614
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 1.3152518467175782e-14,
+        "translation_m": 0.008583918465364942,
+        "estimate_translation_m": 1.1365166547396508,
+        "proxy_translation_m": 1.1334958257169614
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0011",
+      "indices": [
+        58,
+        59
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.05327474386512834,
+        "translation_m": 0.0689982076191217,
+        "estimate_translation_m": 1.1863979493011205,
+        "proxy_translation_m": 1.1196009175230435
+      },
+      "nominal_proxy": [
+        [
+          0.9999813731788281,
+          -0.002113635155670634,
+          -0.005725891400900117,
+          -0.01313710928121467
+        ],
+        [
+          0.0021167028115401123,
+          0.999997619502555,
+          0.0005296887645960292,
+          -0.004160326715550555
+        ],
+        [
+          0.005724758408627305,
+          -0.0005417988320721228,
+          0.9999834666597807,
+          -1.1195161108978262
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.06317654491890208,
+            "translation_m": 0.06761778717430533,
+            "estimate_translation_m": 1.1863979493011205,
+            "proxy_translation_m": 1.1209306280511255
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.026897618320996925,
+            "translation_m": 0.0015202469640213572,
+            "estimate_translation_m": 1.1209306280511255,
+            "proxy_translation_m": 1.1196009175230435
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.05327474386512834,
+            "translation_m": 0.0689982076191217,
+            "estimate_translation_m": 1.1863979493011205,
+            "proxy_translation_m": 1.1196009175230435
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 1.2843468297224026e-13,
+            "translation_m": 0.0,
+            "estimate_translation_m": 1.1196009175230435,
+            "proxy_translation_m": 1.1196009175230435
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.05144308832148689,
+            "translation_m": 0.07043716839582256,
+            "estimate_translation_m": 1.1863979493011205,
+            "proxy_translation_m": 1.1180746390336989
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.020105945145754287,
+            "translation_m": 0.0015835901891935824,
+            "estimate_translation_m": 1.1180746390336989,
+            "proxy_translation_m": 1.1196009175230435
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.020788798489264244,
+        "translation_m": 0.038229849271531786,
+        "estimate_translation_m": 1.0813727854713675,
+        "proxy_translation_m": 1.1196009175230435
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 1.2843468297224026e-13,
+        "translation_m": 0.005169104460768878,
+        "estimate_translation_m": 1.1213872578886523,
+        "proxy_translation_m": 1.1196009175230435
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0011",
+      "indices": [
+        115,
+        116
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.02178077385641481,
+        "translation_m": 0.020109429331107813,
+        "estimate_translation_m": 0.2519712191083651,
+        "proxy_translation_m": 0.23460708496887628
+      },
+      "nominal_proxy": [
+        [
+          0.9999999654543582,
+          0.0002535308416975603,
+          -0.00006938848738457184,
+          -0.0017623191908473501
+        ],
+        [
+          -0.0002535276798843455,
+          0.9999999667974977,
+          0.000046123591287782156,
+          -0.0022395962595250785
+        ],
+        [
+          0.00006940018121297627,
+          -0.00004610599224627589,
+          0.9999999965289087,
+          -0.23458977547467286
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.019839297673070834,
+            "translation_m": 0.01899437082773076,
+            "estimate_translation_m": 0.2519712191083651,
+            "proxy_translation_m": 0.23600099414842252
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0023019482047620834,
+            "translation_m": 0.0014077940124550099,
+            "estimate_translation_m": 0.23600099414842252,
+            "proxy_translation_m": 0.23460708496887628
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.02178077385641481,
+            "translation_m": 0.020109429331107813,
+            "estimate_translation_m": 0.2519712191083651,
+            "proxy_translation_m": 0.23460708496887628
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 2.330323666746909e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.23460708496887628,
+            "proxy_translation_m": 0.23460708496887628
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.022741724217681208,
+            "translation_m": 0.020660726064502973,
+            "estimate_translation_m": 0.2519712191083651,
+            "proxy_translation_m": 0.23393450252067124
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0011108235218041597,
+            "translation_m": 0.0006792289885795866,
+            "estimate_translation_m": 0.23393450252067124,
+            "proxy_translation_m": 0.23460708496887628
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.00202555566973431,
+        "translation_m": 0.013342166534399387,
+        "estimate_translation_m": 0.24794889583798102,
+        "proxy_translation_m": 0.23460708496887628
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 2.330323666746909e-15,
+        "translation_m": 0.0002630491068520909,
+        "estimate_translation_m": 0.2346559452884915,
+        "proxy_translation_m": 0.23460708496887628
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0011",
+      "indices": [
+        116,
+        117
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.012187291199281046,
+        "translation_m": 0.011082788422715867,
+        "estimate_translation_m": 0.23018127215433484,
+        "proxy_translation_m": 0.2247480961422509
+      },
+      "nominal_proxy": [
+        [
+          0.9999999897486708,
+          -0.000044505440868716366,
+          -0.00013609471836116657,
+          0.004663468092140632
+        ],
+        [
+          0.000044449864570041983,
+          0.9999999156206693,
+          -0.0004083909801058014,
+          -0.0015390247956722503
+        ],
+        [
+          0.00013611288852814302,
+          0.0004083848800575735,
+          0.9999999073474423,
+          -0.22469443737573558
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.011183891270647344,
+            "translation_m": 0.010048458555046916,
+            "estimate_translation_m": 0.23018127215433484,
+            "proxy_translation_m": 0.22570481822350322
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0034145965915018312,
+            "translation_m": 0.0012008894053229717,
+            "estimate_translation_m": 0.22570481822350322,
+            "proxy_translation_m": 0.2247480961422509
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.012187291199281046,
+            "translation_m": 0.011082788422715867,
+            "estimate_translation_m": 0.23018127215433484,
+            "proxy_translation_m": 0.2247480961422509
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 2.163456985080131e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.2247480961422509,
+            "proxy_translation_m": 0.2247480961422509
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.013828991812690756,
+            "translation_m": 0.01240344381307932,
+            "estimate_translation_m": 0.23018127215433484,
+            "proxy_translation_m": 0.22342165760557822
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.003143980962985618,
+            "translation_m": 0.0015585724710726343,
+            "estimate_translation_m": 0.22342165760557822,
+            "proxy_translation_m": 0.2247480961422509
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.0029399803476824796,
+        "translation_m": 0.008744575899872837,
+        "estimate_translation_m": 0.2160391966150507,
+        "proxy_translation_m": 0.2247480961422509
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 2.163456985080131e-15,
+        "translation_m": 0.0005171651407798499,
+        "estimate_translation_m": 0.22448888290724286,
+        "proxy_translation_m": 0.2247480961422509
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0011",
+      "indices": [
+        173,
+        174
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.005469105962118511,
+        "translation_m": 0.0032982355839336346,
+        "estimate_translation_m": 0.0018170822565898796,
+        "proxy_translation_m": 0.0025889948068568585
+      },
+      "nominal_proxy": [
+        [
+          0.9999999984447737,
+          -0.000035216267909894915,
+          -0.00004324475172440372,
+          0.0024999600587280457
+        ],
+        [
+          0.000035225193924139465,
+          0.999999978099444,
+          0.00020630184293414652,
+          -0.0006293197087949842
+        ],
+        [
+          0.000043237486629118044,
+          -0.00020630334216578157,
+          0.9999999777847286,
+          -0.00023885250431687766
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.0051229843215276965,
+            "translation_m": 0.003453906977399264,
+            "estimate_translation_m": 0.0018170822565898796,
+            "proxy_translation_m": 0.0026452235736813753
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0006013760659079411,
+            "translation_m": 0.0002477265844678435,
+            "estimate_translation_m": 0.0026452235736813753,
+            "proxy_translation_m": 0.0025889948068568585
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.005469105962118511,
+            "translation_m": 0.0032982355839336346,
+            "estimate_translation_m": 0.0018170822565898796,
+            "proxy_translation_m": 0.0025889948068568585
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 2.3135097829570976e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.0025889948068568585,
+            "proxy_translation_m": 0.0025889948068568585
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.0049774163874290785,
+            "translation_m": 0.0031430734656594695,
+            "estimate_translation_m": 0.0018170822565898796,
+            "proxy_translation_m": 0.0024267077890525353
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.001542487261280844,
+            "translation_m": 0.0001925909086215272,
+            "estimate_translation_m": 0.0024267077890525353,
+            "proxy_translation_m": 0.0025889948068568585
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.0005721479082985013,
+        "translation_m": 0.00021965273178340167,
+        "estimate_translation_m": 0.002472330096372809,
+        "proxy_translation_m": 0.0025889948068568585
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 2.3135097829570976e-15,
+        "translation_m": 0.000283160638717397,
+        "estimate_translation_m": 0.0026945916142649467,
+        "proxy_translation_m": 0.0025889948068568585
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0011",
+      "indices": [
+        174,
+        175
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.0071596848003589045,
+        "translation_m": 0.0021465735707276285,
+        "estimate_translation_m": 0.00047440282339398544,
+        "proxy_translation_m": 0.0019533319783781107
+      },
+      "nominal_proxy": [
+        [
+          0.9999999970019006,
+          -0.00005036686268208308,
+          -0.00005881452904479592,
+          0.0006385133940143284
+        ],
+        [
+          0.000050354503699193804,
+          0.9999999766302737,
+          -0.0002102479133578156,
+          0.00038018547496221355
+        ],
+        [
+          0.00005882511989570525,
+          0.00021024492718934925,
+          0.9999999761682977,
+          0.0018064510699287162
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.005313970648232531,
+            "translation_m": 0.0020578555390708044,
+            "estimate_translation_m": 0.00047440282339398544,
+            "proxy_translation_m": 0.0018063862683010633
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0023963422615281473,
+            "translation_m": 0.00030451629286423596,
+            "estimate_translation_m": 0.0018063862683010633,
+            "proxy_translation_m": 0.0019533319783781107
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.0071596848003589045,
+            "translation_m": 0.0021465735707276285,
+            "estimate_translation_m": 0.00047440282339398544,
+            "proxy_translation_m": 0.0019533319783781107
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 6.3683116957772244e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.0019533319783781107,
+            "proxy_translation_m": 0.0019533319783781107
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.008009260427947865,
+            "translation_m": 0.0021946299152179874,
+            "estimate_translation_m": 0.00047440282339398544,
+            "proxy_translation_m": 0.0020244492685174047
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0009916658571174095,
+            "translation_m": 0.00012602165997242627,
+            "estimate_translation_m": 0.0020244492685174047,
+            "proxy_translation_m": 0.0019533319783781107
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.0018154626234779911,
+        "translation_m": 0.00022257861655464596,
+        "estimate_translation_m": 0.0021484083108352027,
+        "proxy_translation_m": 0.0019533319783781107
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 6.3683116957772244e-15,
+        "translation_m": 0.00025652935896092107,
+        "estimate_translation_m": 0.0021384244303169313,
+        "proxy_translation_m": 0.0019533319783781107
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0013",
+      "indices": [
+        34,
+        35
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.04333981536853653,
+        "translation_m": 0.06709933798021399,
+        "estimate_translation_m": 1.127698911077267,
+        "proxy_translation_m": 1.1290865956436036
+      },
+      "nominal_proxy": [
+        [
+          0.9999940074989899,
+          0.0008658900414501697,
+          -0.003351895977542063,
+          -0.04586033729144448
+        ],
+        [
+          -0.0008678065407213998,
+          0.9999994608241903,
+          -0.0005703146701405302,
+          0.020562484068104347
+        ],
+        [
+          0.0033514004638141486,
+          0.0005732199931627371,
+          0.9999942197492868,
+          -1.1279674437564793
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.042661901485138064,
+            "translation_m": 0.06697345243468973,
+            "estimate_translation_m": 1.127698911077267,
+            "proxy_translation_m": 1.1283538455017683
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.004624488481408301,
+            "translation_m": 0.0009255679736090515,
+            "estimate_translation_m": 1.1283538455017683,
+            "proxy_translation_m": 1.1290865956436036
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.04333981536853653,
+            "translation_m": 0.06709933798021399,
+            "estimate_translation_m": 1.127698911077267,
+            "proxy_translation_m": 1.1290865956436036
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 1.0942561364543627e-14,
+            "translation_m": 0.0,
+            "estimate_translation_m": 1.1290865956436036,
+            "proxy_translation_m": 1.1290865956436036
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.04139358161467102,
+            "translation_m": 0.06638406779980069,
+            "estimate_translation_m": 1.127698911077267,
+            "proxy_translation_m": 1.128672219511127
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0022987828949968103,
+            "translation_m": 0.0008115535987793705,
+            "estimate_translation_m": 1.128672219511127,
+            "proxy_translation_m": 1.1290865956436036
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.007292815578569985,
+        "translation_m": 0.04028013663876323,
+        "estimate_translation_m": 1.0888077213859169,
+        "proxy_translation_m": 1.1290865956436036
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 1.0942561364543627e-14,
+        "translation_m": 0.004368915399923522,
+        "estimate_translation_m": 1.1293701654622523,
+        "proxy_translation_m": 1.1290865956436036
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0013",
+      "indices": [
+        35,
+        36
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.06137893889838594,
+        "translation_m": 0.04751214082469845,
+        "estimate_translation_m": 1.1540773709765675,
+        "proxy_translation_m": 1.1160480373880226
+      },
+      "nominal_proxy": [
+        [
+          0.9999926913388527,
+          0.0017077888382315152,
+          -0.0034206339168041866,
+          -0.03552955468217753
+        ],
+        [
+          -0.0017095429386739134,
+          0.999998408744159,
+          -0.0005098663100862435,
+          0.013891588363445173
+        ],
+        [
+          0.003419757855290559,
+          0.0005157102546158819,
+          0.9999940196307933,
+          -1.1153958473450059
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.05846889318622432,
+            "translation_m": 0.0474045996525049,
+            "estimate_translation_m": 1.1540773709765675,
+            "proxy_translation_m": 1.1171175330384484
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.005020879645164752,
+            "translation_m": 0.0016015676235328039,
+            "estimate_translation_m": 1.1171175330384484,
+            "proxy_translation_m": 1.1160480373880226
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.06137893889838594,
+            "translation_m": 0.04751214082469845,
+            "estimate_translation_m": 1.1540773709765675,
+            "proxy_translation_m": 1.1160480373880226
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 1.288524370109306e-14,
+            "translation_m": 0.0,
+            "estimate_translation_m": 1.1160480373880226,
+            "proxy_translation_m": 1.1160480373880226
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.06164234710477903,
+            "translation_m": 0.04751831818757186,
+            "estimate_translation_m": 1.1540773709765675,
+            "proxy_translation_m": 1.1158032537703668
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0011608320505493435,
+            "translation_m": 0.0004578719505249771,
+            "estimate_translation_m": 1.1158032537703668,
+            "proxy_translation_m": 1.1160480373880226
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.014534718274652407,
+        "translation_m": 0.07014744977479474,
+        "estimate_translation_m": 1.1861938470643936,
+        "proxy_translation_m": 1.1160480373880226
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 1.288524370109306e-14,
+        "translation_m": 0.005067417690492817,
+        "estimate_translation_m": 1.1164060895647998,
+        "proxy_translation_m": 1.1160480373880226
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0013",
+      "indices": [
+        70,
+        71
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.03003930109462432,
+        "translation_m": 0.057217680325921554,
+        "estimate_translation_m": 1.2126541225051373,
+        "proxy_translation_m": 1.160337938786946
+      },
+      "nominal_proxy": [
+        [
+          0.9999970042334164,
+          -0.0007205405930559308,
+          0.0023393033017703457,
+          0.014858929570372992
+        ],
+        [
+          0.0007195504273772715,
+          0.9999996511805574,
+          0.00042413412413622875,
+          -0.002829253698200751
+        ],
+        [
+          -0.0023396081777717647,
+          -0.0004224495647931542,
+          0.9999971738818263,
+          -1.1602393458781994
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.03928969726928281,
+            "translation_m": 0.057171123659471294,
+            "estimate_translation_m": 1.2126541225051373,
+            "proxy_translation_m": 1.1605699319137017
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.020538310584743626,
+            "translation_m": 0.0006585280034683067,
+            "estimate_translation_m": 1.1605699319137017,
+            "proxy_translation_m": 1.160337938786946
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.03003930109462432,
+            "translation_m": 0.057217680325921554,
+            "estimate_translation_m": 1.2126541225051373,
+            "proxy_translation_m": 1.160337938786946
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 8.108205870634523e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 1.160337938786946,
+            "proxy_translation_m": 1.160337938786946
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.03376477137175892,
+            "translation_m": 0.057112674486731754,
+            "estimate_translation_m": 1.2126541225051373,
+            "proxy_translation_m": 1.160341019433245
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.022736438860038562,
+            "translation_m": 0.0006113235682274723,
+            "estimate_translation_m": 1.160341019433245,
+            "proxy_translation_m": 1.160337938786946
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.016143329619961688,
+        "translation_m": 0.03867002161786986,
+        "estimate_translation_m": 1.1216704089881777,
+        "proxy_translation_m": 1.160337938786946
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 8.108205870634523e-15,
+        "translation_m": 0.0031394990020527655,
+        "estimate_translation_m": 1.1600104847133725,
+        "proxy_translation_m": 1.160337938786946
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0013",
+      "indices": [
+        71,
+        72
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.03290140738388733,
+        "translation_m": 0.06623847052521857,
+        "estimate_translation_m": 1.225429646574307,
+        "proxy_translation_m": 1.1635875309874841
+      },
+      "nominal_proxy": [
+        [
+          0.9999964326177819,
+          -0.0008838277447624615,
+          0.002520633586031396,
+          0.01487471254248518
+        ],
+        [
+          0.0008770394644461189,
+          0.9999959893454423,
+          0.0026929723118581383,
+          -0.006529957125353758
+        ],
+        [
+          -0.0025230036990555376,
+          -0.0026907517083302307,
+          0.9999931971313931,
+          -1.1634741272827123
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.04066934850960203,
+            "translation_m": 0.06658385696521256,
+            "estimate_translation_m": 1.225429646574307,
+            "proxy_translation_m": 1.163217659471362
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.01159668384582968,
+            "translation_m": 0.0004963911559198267,
+            "estimate_translation_m": 1.163217659471362,
+            "proxy_translation_m": 1.1635875309874841
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.03290140738388733,
+            "translation_m": 0.06623847052521857,
+            "estimate_translation_m": 1.225429646574307,
+            "proxy_translation_m": 1.1635875309874841
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 5.33491902186286e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 1.1635875309874841,
+            "proxy_translation_m": 1.1635875309874841
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.025720271819431057,
+            "translation_m": 0.06594118993202201,
+            "estimate_translation_m": 1.225429646574307,
+            "proxy_translation_m": 1.1641023626514588
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.009031060982779789,
+            "translation_m": 0.0007544155792379884,
+            "estimate_translation_m": 1.1641023626514588,
+            "proxy_translation_m": 1.1635875309874841
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.004638528595785379,
+        "translation_m": 0.03952647551210961,
+        "estimate_translation_m": 1.124061218734263,
+        "proxy_translation_m": 1.1635875309874841
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 5.33491902186286e-15,
+        "translation_m": 0.004791805792778472,
+        "estimate_translation_m": 1.1648572433014082,
+        "proxy_translation_m": 1.1635875309874841
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0013",
+      "indices": [
+        106,
+        107
+      ],
+      "motion_internal_pass": false,
+      "nominal_error": {
+        "rotation_deg": 0.07512713685740133,
+        "translation_m": 0.022120650098463302,
+        "estimate_translation_m": 1.2249494834075767,
+        "proxy_translation_m": 1.2276255328800074
+      },
+      "nominal_proxy": [
+        [
+          0.9999998927468955,
+          -0.00034453366006305684,
+          0.00030951692819727194,
+          -0.004725768825355581
+        ],
+        [
+          0.00034448000513142375,
+          0.9999999256070049,
+          0.0001735549307927487,
+          -0.00033766226169162916
+        ],
+        [
+          -0.00030957671237163563,
+          -0.0001734482708234187,
+          0.9999999370390877,
+          -1.2276163904380426
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.07308413116802992,
+            "translation_m": 0.02225522162945922,
+            "estimate_translation_m": 1.2249494834075767,
+            "proxy_translation_m": 1.2272128305972403
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.009890584077749339,
+            "translation_m": 0.0004949225448117321,
+            "estimate_translation_m": 1.2272128305972403,
+            "proxy_translation_m": 1.2276255328800074
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.07512713685740133,
+            "translation_m": 0.022120650098463302,
+            "estimate_translation_m": 1.2249494834075767,
+            "proxy_translation_m": 1.2276255328800074
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 3.50901935203713e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 1.2276255328800074,
+            "proxy_translation_m": 1.2276255328800074
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.07972043568670904,
+            "translation_m": 0.021979805976711914,
+            "estimate_translation_m": 1.2249494834075767,
+            "proxy_translation_m": 1.2283125964067694
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.010399874097708492,
+            "translation_m": 0.0007703729001531082,
+            "estimate_translation_m": 1.2283125964067694,
+            "proxy_translation_m": 1.2276255328800074
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.009371400449050033,
+        "translation_m": 0.04185780095790704,
+        "estimate_translation_m": 1.1857685832947797,
+        "proxy_translation_m": 1.2276255328800074
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 3.50901935203713e-15,
+        "translation_m": 0.0006476076857961987,
+        "estimate_translation_m": 1.2276739806286756,
+        "proxy_translation_m": 1.2276255328800074
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0013",
+      "indices": [
+        107,
+        108
+      ],
+      "motion_internal_pass": false,
+      "nominal_error": {
+        "rotation_deg": 0.06121268431736303,
+        "translation_m": 0.01963176533921675,
+        "estimate_translation_m": 1.2319438560736444,
+        "proxy_translation_m": 1.2358793584783125
+      },
+      "nominal_proxy": [
+        [
+          0.9999987767233555,
+          -0.0014239294409268142,
+          0.0006472777780464222,
+          -0.0031985099322311417
+        ],
+        [
+          0.0014236246970102371,
+          0.9999988755607693,
+          0.00047135725225344523,
+          -0.002176036006557913
+        ],
+        [
+          -0.0006479482543645975,
+          -0.0004704351432384988,
+          0.9999996794271045,
+          -1.2358733038278142
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.05644294950305116,
+            "translation_m": 0.019615853610102284,
+            "estimate_translation_m": 1.2319438560736444,
+            "proxy_translation_m": 1.2351048833317861
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.006718064792901679,
+            "translation_m": 0.0008047610417452172,
+            "estimate_translation_m": 1.2351048833317861,
+            "proxy_translation_m": 1.2358793584783125
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.06121268431736303,
+            "translation_m": 0.01963176533921675,
+            "estimate_translation_m": 1.2319438560736444,
+            "proxy_translation_m": 1.2358793584783125
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 6.4433735054943726e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 1.2358793584783125,
+            "proxy_translation_m": 1.2358793584783125
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.05854191287009069,
+            "translation_m": 0.01992827425441283,
+            "estimate_translation_m": 1.2319438560736444,
+            "proxy_translation_m": 1.2370241486578837
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0034030397956748767,
+            "translation_m": 0.001146785492818712,
+            "estimate_translation_m": 1.2370241486578837,
+            "proxy_translation_m": 1.2358793584783125
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.0011325615623308017,
+        "translation_m": 0.043502829434958576,
+        "estimate_translation_m": 1.1923767714056401,
+        "proxy_translation_m": 1.2358793584783125
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 6.4433735054943726e-15,
+        "translation_m": 0.0019434653231293485,
+        "estimate_translation_m": 1.2360600943169686,
+        "proxy_translation_m": 1.2358793584783125
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0015",
+      "indices": [
+        73,
+        74
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.08531330720344765,
+        "translation_m": 0.08139337518776471,
+        "estimate_translation_m": 1.1362854692712405,
+        "proxy_translation_m": 1.0615979367369828
+      },
+      "nominal_proxy": [
+        [
+          0.9999993842921329,
+          0.00005442572728559733,
+          0.0011083558793040997,
+          0.00264220396533682
+        ],
+        [
+          -0.000054406100059802275,
+          0.9999999983623851,
+          -0.000017746061617178942,
+          0.005099009923887787
+        ],
+        [
+          -0.0011083568836032806,
+          0.000017685744441116137,
+          0.9999993856162889,
+          -1.0615824028968361
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.08672727758138854,
+            "translation_m": 0.08058046337331473,
+            "estimate_translation_m": 1.1362854692712405,
+            "proxy_translation_m": 1.0625926216330852
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0030003738438520917,
+            "translation_m": 0.001020599929791523,
+            "estimate_translation_m": 1.0625926216330852,
+            "proxy_translation_m": 1.0615979367369828
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.08531330720344765,
+            "translation_m": 0.08139337518776471,
+            "estimate_translation_m": 1.1362854692712405,
+            "proxy_translation_m": 1.0615979367369828
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 1.1403068303332444e-14,
+            "translation_m": 0.0,
+            "estimate_translation_m": 1.0615979367369828,
+            "proxy_translation_m": 1.0615979367369828
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.08527499022039182,
+            "translation_m": 0.08270616263363224,
+            "estimate_translation_m": 1.1362854692712405,
+            "proxy_translation_m": 1.060116600442817
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.003362702585794294,
+            "translation_m": 0.001484715572294647,
+            "estimate_translation_m": 1.060116600442817,
+            "proxy_translation_m": 1.0615979367369828
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.00284677078929598,
+        "translation_m": 0.03805017389382526,
+        "estimate_translation_m": 1.0235481100858337,
+        "proxy_translation_m": 1.0615979367369828
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 1.1403068303332444e-14,
+        "translation_m": 0.0012020267248607998,
+        "estimate_translation_m": 1.061300679972051,
+        "proxy_translation_m": 1.0615979367369828
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0015",
+      "indices": [
+        74,
+        75
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.10139660207868935,
+        "translation_m": 0.11131878790406385,
+        "estimate_translation_m": 1.1418026448889833,
+        "proxy_translation_m": 1.049047485751009
+      },
+      "nominal_proxy": [
+        [
+          0.9999991673090274,
+          0.00004414610396456452,
+          0.0012897409631998811,
+          0.002010588503390476
+        ],
+        [
+          -0.00004355540503638778,
+          0.9999998941566886,
+          -0.000458027748809643,
+          0.0058515051941747664
+        ],
+        [
+          -0.0012897610925397785,
+          0.00045797113634301836,
+          0.9999990633893133,
+          -1.0490292392404257
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.1001218571644169,
+            "translation_m": 0.1103294914372919,
+            "estimate_translation_m": 1.1418026448889833,
+            "proxy_translation_m": 1.0502313555785339
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.002605255805088963,
+            "translation_m": 0.0011895158333264152,
+            "estimate_translation_m": 1.0502313555785339,
+            "proxy_translation_m": 1.049047485751009
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.10139660207868935,
+            "translation_m": 0.11131878790406385,
+            "estimate_translation_m": 1.1418026448889833,
+            "proxy_translation_m": 1.049047485751009
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 1.0085645434137469e-14,
+            "translation_m": 0.0,
+            "estimate_translation_m": 1.049047485751009,
+            "proxy_translation_m": 1.049047485751009
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.10183686567410523,
+            "translation_m": 0.11165469215809545,
+            "estimate_translation_m": 1.1418026448889833,
+            "proxy_translation_m": 1.0486287269930843
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0008807435407778516,
+            "translation_m": 0.00043674447139175563,
+            "estimate_translation_m": 1.0486287269930843,
+            "proxy_translation_m": 1.049047485751009
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.005579750095316773,
+        "translation_m": 0.0649764706164366,
+        "estimate_translation_m": 1.114023830310894,
+        "proxy_translation_m": 1.049047485751009
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 1.0085645434137469e-14,
+        "translation_m": 0.001602014515496059,
+        "estimate_translation_m": 1.0483904926992007,
+        "proxy_translation_m": 1.049047485751009
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0015",
+      "indices": [
+        147,
+        148
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.03491944491490792,
+        "translation_m": 0.059475899351798575,
+        "estimate_translation_m": 0.7857199329214544,
+        "proxy_translation_m": 0.7447376942985662
+      },
+      "nominal_proxy": [
+        [
+          0.9999999146150372,
+          -0.00010808283165357755,
+          0.00039885736545642203,
+          0.00021291574127008106
+        ],
+        [
+          0.00010781410687143645,
+          0.9999997672276248,
+          0.0006737368264482538,
+          0.0008053507576154528
+        ],
+        [
+          -0.0003989301082712433,
+          -0.0006736936903263494,
+          0.9999996934959057,
+          -0.7447372284142837
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.03693498257723221,
+            "translation_m": 0.059567738842776996,
+            "estimate_translation_m": 0.7857199329214544,
+            "proxy_translation_m": 0.744646813326456
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.003169226486954092,
+            "translation_m": 0.000159726476769789,
+            "estimate_translation_m": 0.744646813326456,
+            "proxy_translation_m": 0.7447376942985662
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.03491944491490792,
+            "translation_m": 0.059475899351798575,
+            "estimate_translation_m": 0.7857199329214544,
+            "proxy_translation_m": 0.7447376942985662
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 1.3838143128050357e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.7447376942985662,
+            "proxy_translation_m": 0.7447376942985662
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.03391378557079049,
+            "translation_m": 0.05935487965218222,
+            "estimate_translation_m": 0.7857199329214544,
+            "proxy_translation_m": 0.7448497442647296
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0023823457000246677,
+            "translation_m": 0.00018882767319075363,
+            "estimate_translation_m": 0.7448497442647296,
+            "proxy_translation_m": 0.7447376942985662
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.002682879399657463,
+        "translation_m": 0.025460947567966085,
+        "estimate_translation_m": 0.7192770438957851,
+        "proxy_translation_m": 0.7447376942985662
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 1.3838143128050357e-15,
+        "translation_m": 0.0009921614860156143,
+        "estimate_translation_m": 0.745119986598516,
+        "proxy_translation_m": 0.7447376942985662
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0015",
+      "indices": [
+        148,
+        149
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.04643468323077316,
+        "translation_m": 0.10193432877642106,
+        "estimate_translation_m": 0.8423550200904236,
+        "proxy_translation_m": 0.7466349017351102
+      },
+      "nominal_proxy": [
+        [
+          0.9999997567999362,
+          -0.0002047531336093063,
+          0.0006666893668848578,
+          -0.00032217559086034075
+        ],
+        [
+          0.00020463747110997498,
+          0.9999999639942111,
+          0.00017359762924187467,
+          -0.0007184403838099707
+        ],
+        [
+          -0.0006667249122265532,
+          -0.00017346113933074965,
+          0.9999997626947615,
+          -0.746634486569768
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.04324025584903241,
+            "translation_m": 0.10205904503450441,
+            "estimate_translation_m": 0.8423550200904236,
+            "proxy_translation_m": 0.746550411517543
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0037494023335172297,
+            "translation_m": 0.00017827665903621948,
+            "estimate_translation_m": 0.746550411517543,
+            "proxy_translation_m": 0.7466349017351102
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.04643468323077316,
+            "translation_m": 0.10193432877642106,
+            "estimate_translation_m": 0.8423550200904236,
+            "proxy_translation_m": 0.7466349017351102
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 5.003459761219074e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.7466349017351102,
+            "proxy_translation_m": 0.7466349017351102
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.04930557591249455,
+            "translation_m": 0.10184350181678915,
+            "estimate_translation_m": 0.8423550200904236,
+            "proxy_translation_m": 0.7466910089413239
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.003402037139944909,
+            "translation_m": 0.00017228402227978398,
+            "estimate_translation_m": 0.7466910089413239,
+            "proxy_translation_m": 0.7466349017351102
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.002747225386943093,
+        "translation_m": 0.026596444283177006,
+        "estimate_translation_m": 0.7200386774167359,
+        "proxy_translation_m": 0.7466349017351102
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 5.003459761219074e-15,
+        "translation_m": 0.0009051591151563235,
+        "estimate_translation_m": 0.7465910339257886,
+        "proxy_translation_m": 0.7466349017351102
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0015",
+      "indices": [
+        221,
+        222
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.07466898890168298,
+        "translation_m": 0.12611999440044133,
+        "estimate_translation_m": 1.4828715206696235,
+        "proxy_translation_m": 1.3630757149538062
+      },
+      "nominal_proxy": [
+        [
+          0.9999988364154536,
+          0.0014922090551058816,
+          0.0003169971566068232,
+          -0.0023294438943826656
+        ],
+        [
+          -0.0014918206003346282,
+          0.9999981395513622,
+          -0.0012228483096293626,
+          -0.0013860532945400017
+        ],
+        [
+          -0.00031882132068674555,
+          0.0012223738433475655,
+          0.9999992020771576,
+          -1.3630730197770908
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.06851884583158603,
+            "translation_m": 0.12674840363223205,
+            "estimate_translation_m": 1.4828715206696235,
+            "proxy_translation_m": 1.3624063709829064
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.006153469107384547,
+            "translation_m": 0.000679060966727905,
+            "estimate_translation_m": 1.3624063709829064,
+            "proxy_translation_m": 1.3630757149538062
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.07466898890168298,
+            "translation_m": 0.12611999440044133,
+            "estimate_translation_m": 1.4828715206696235,
+            "proxy_translation_m": 1.3630757149538062
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 6.509290120849677e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 1.3630757149538062,
+            "proxy_translation_m": 1.3630757149538062
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.07829402043695176,
+            "translation_m": 0.1257705800008548,
+            "estimate_translation_m": 1.4828715206696235,
+            "proxy_translation_m": 1.3634701345253684
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.003626749467870983,
+            "translation_m": 0.00041291866267744365,
+            "estimate_translation_m": 1.3634701345253684,
+            "proxy_translation_m": 1.3630757149538062
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.010596585360270394,
+        "translation_m": 0.08385939141903041,
+        "estimate_translation_m": 1.4469349492163501,
+        "proxy_translation_m": 1.3630757149538062
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 6.509290120849677e-15,
+        "translation_m": 0.0020895920953175003,
+        "estimate_translation_m": 1.3621130758872535,
+        "proxy_translation_m": 1.3630757149538062
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_26_0015",
+      "indices": [
+        222,
+        223
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.05465207798109822,
+        "translation_m": 0.13856409580205645,
+        "estimate_translation_m": 1.5059914154842564,
+        "proxy_translation_m": 1.3682295859700626
+      },
+      "nominal_proxy": [
+        [
+          0.9999998998203714,
+          0.0002816395108450991,
+          0.00034790758320830473,
+          0.00009829587986476263
+        ],
+        [
+          -0.0002811659469670913,
+          0.9999990348584669,
+          -0.0013605979719832216,
+          -0.0017620026781508535
+        ],
+        [
+          -0.00034829045468697645,
+          0.0013604998591246456,
+          0.9999990138663357,
+          -1.3682284478873734
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.06028454051456462,
+            "translation_m": 0.139312216911744,
+            "estimate_translation_m": 1.5059914154842564,
+            "proxy_translation_m": 1.3675023982378183
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.007872327267877647,
+            "translation_m": 0.0007793905924406877,
+            "estimate_translation_m": 1.3675023982378183,
+            "proxy_translation_m": 1.3682295859700626
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.05465207798109822,
+            "translation_m": 0.13856409580205645,
+            "estimate_translation_m": 1.5059914154842564,
+            "proxy_translation_m": 1.3682295859700626
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 3.035283016619664e-13,
+            "translation_m": 0.0,
+            "estimate_translation_m": 1.3682295859700626,
+            "proxy_translation_m": 1.3682295859700626
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.050045272589479446,
+            "translation_m": 0.13773740172428164,
+            "estimate_translation_m": 1.5059914154842564,
+            "proxy_translation_m": 1.3690339033135126
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0073105575365994165,
+            "translation_m": 0.0008537808353662518,
+            "estimate_translation_m": 1.3690339033135126,
+            "proxy_translation_m": 1.3682295859700626
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.010021279964472003,
+        "translation_m": 0.045181004342700275,
+        "estimate_translation_m": 1.3230500899000615,
+        "proxy_translation_m": 1.3682295859700626
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 3.035283016619664e-13,
+        "translation_m": 0.0018895015280983478,
+        "estimate_translation_m": 1.3671605229218864,
+        "proxy_translation_m": 1.3682295859700626
+      },
+      "camera_imu_translation_m": [
+        -0.25422760500525077,
+        0.7190941084821951,
+        -1.0863370561924168
+      ]
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "indices": [
+        92,
+        93
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.020875998669988897,
+        "translation_m": 0.01295417011754609,
+        "estimate_translation_m": 0.006091520322382588,
+        "proxy_translation_m": 0.014383077588399877
+      },
+      "nominal_proxy": [
+        [
+          0.9999999935131363,
+          -0.00010017845811880698,
+          0.0000541814971056191,
+          0.0010766394554617698
+        ],
+        [
+          0.00010010550309825903,
+          0.9999990902252482,
+          0.0013451867781623743,
+          0.010035732573175915
+        ],
+        [
+          -0.00005431622014648989,
+          -0.0013451810264618386,
+          0.9999990937696993,
+          0.01024684537389775
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.026758680018592582,
+            "translation_m": 0.012823143410612128,
+            "estimate_translation_m": 0.006091520322382588,
+            "proxy_translation_m": 0.014156584838400984
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.007584201338458525,
+            "translation_m": 0.0003008390303143607,
+            "estimate_translation_m": 0.014156584838400984,
+            "proxy_translation_m": 0.014383077588399877
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.020875998669988897,
+            "translation_m": 0.01295417011754609,
+            "estimate_translation_m": 0.006091520322382588,
+            "proxy_translation_m": 0.014383077588399877
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 3.2932729210288752e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.014383077588399877,
+            "proxy_translation_m": 0.014383077588399877
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.01565304295906374,
+            "translation_m": 0.012654069205043042,
+            "estimate_translation_m": 0.006091520322382588,
+            "proxy_translation_m": 0.014123705232568088
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.008806015376891713,
+            "translation_m": 0.00032287211740821567,
+            "estimate_translation_m": 0.014123705232568088,
+            "proxy_translation_m": 0.014383077588399877
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.003930813169823368,
+        "translation_m": 0.0003567070689417027,
+        "estimate_translation_m": 0.014072560863968707,
+        "proxy_translation_m": 0.014383077588399877
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 3.2932729210288752e-15,
+        "translation_m": 0.0018443910004071306,
+        "estimate_translation_m": 0.012593199190800304,
+        "proxy_translation_m": 0.014383077588399877
+      },
+      "camera_imu_translation_m": [
+        -0.2698746693535799,
+        0.7465750193356634,
+        -1.1324888448616464
+      ]
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "indices": [
+        93,
+        94
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.01215209518960882,
+        "translation_m": 0.005462444137394702,
+        "estimate_translation_m": 0.006538291788674168,
+        "proxy_translation_m": 0.0045373045505202846
+      },
+      "nominal_proxy": [
+        [
+          0.999999999436874,
+          -0.000033487631254659296,
+          2.002672488400554e-6,
+          0.0008058886371926088
+        ],
+        [
+          0.000033483193920574536,
+          0.9999976232361902,
+          0.002179999531457353,
+          0.0027645704702760066
+        ],
+        [
+          -2.0756973822350566e-6,
+          -0.0021799989450820454,
+          0.9999976237991764,
+          0.003506397895774782
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.012621983368795796,
+            "translation_m": 0.005586182354180157,
+            "estimate_translation_m": 0.006538291788674168,
+            "proxy_translation_m": 0.005548352307772341
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.004217963457413723,
+            "translation_m": 0.0010288995697194459,
+            "estimate_translation_m": 0.005548352307772341,
+            "proxy_translation_m": 0.0045373045505202846
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.01215209518960882,
+            "translation_m": 0.005462444137394702,
+            "estimate_translation_m": 0.006538291788674168,
+            "proxy_translation_m": 0.0045373045505202846
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 6.297965605104888e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.0045373045505202846,
+            "proxy_translation_m": 0.0045373045505202846
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.013739370983332498,
+            "translation_m": 0.005475267412035353,
+            "estimate_translation_m": 0.006538291788674168,
+            "proxy_translation_m": 0.003931241143338952
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.004710245591019128,
+            "translation_m": 0.0006247627002102005,
+            "estimate_translation_m": 0.003931241143338952,
+            "proxy_translation_m": 0.0045373045505202846
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.0022270345142172882,
+        "translation_m": 0.0006966773283497275,
+        "estimate_translation_m": 0.0038511149206167205,
+        "proxy_translation_m": 0.0045373045505202846
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 6.297965605104888e-15,
+        "translation_m": 0.0029643933797383155,
+        "estimate_translation_m": 0.0020566473642232306,
+        "proxy_translation_m": 0.0045373045505202846
+      },
+      "camera_imu_translation_m": [
+        -0.2698746693535799,
+        0.7465750193356634,
+        -1.1324888448616464
+      ]
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "indices": [
+        186,
+        187
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.00540949183743624,
+        "translation_m": 0.0017376934212906172,
+        "estimate_translation_m": 0.0008262183057530553,
+        "proxy_translation_m": 0.0009597211036211829
+      },
+      "nominal_proxy": [
+        [
+          0.9999999975069364,
+          0.000011797156155241208,
+          0.00006962301772051251,
+          -0.00012447243544772002
+        ],
+        [
+          -0.000011793713911972345,
+          0.9999999987064976,
+          -0.000049474581172726014,
+          0.0002521004644205904
+        ],
+        [
+          -0.00006962359708653692,
+          0.00004947374731244028,
+          0.9999999963523363,
+          0.0009176146061329327
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.00487997161971602,
+            "translation_m": 0.001699741841854786,
+            "estimate_translation_m": 0.0008262183057530553,
+            "proxy_translation_m": 0.000913763434289119
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.000843006488478804,
+            "translation_m": 0.00005720105366474833,
+            "estimate_translation_m": 0.000913763434289119,
+            "proxy_translation_m": 0.0009597211036211829
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.00540949183743624,
+            "translation_m": 0.0017376934212906172,
+            "estimate_translation_m": 0.0008262183057530553,
+            "proxy_translation_m": 0.0009597211036211829
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 6.675194247514885e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.0009597211036211829,
+            "proxy_translation_m": 0.0009597211036211829
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.005652488674080034,
+            "translation_m": 0.0017538047736219407,
+            "estimate_translation_m": 0.0008262183057530553,
+            "proxy_translation_m": 0.0009792084588226917
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.00035104568925071794,
+            "translation_m": 0.000023822253856466125,
+            "estimate_translation_m": 0.0009792084588226917,
+            "proxy_translation_m": 0.0009597211036211829
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.000576306925698242,
+        "translation_m": 0.00008028574828066517,
+        "estimate_translation_m": 0.0010387567750118978,
+        "proxy_translation_m": 0.0009597211036211829
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 6.675194247514885e-15,
+        "translation_m": 0.00010731845449901155,
+        "estimate_translation_m": 0.0010402638015893936,
+        "proxy_translation_m": 0.0009597211036211829
+      },
+      "camera_imu_translation_m": [
+        -0.2698746693535799,
+        0.7465750193356634,
+        -1.1324888448616464
+      ]
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "indices": [
+        187,
+        188
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.0034289669034716333,
+        "translation_m": 0.0008292141504127435,
+        "estimate_translation_m": 0.00019697467731236802,
+        "proxy_translation_m": 0.0009576054250909836
+      },
+      "nominal_proxy": [
+        [
+          0.9999999992117692,
+          -0.00003957469989339842,
+          3.055717117692069e-6,
+          -0.000028447657236085888
+        ],
+        [
+          0.00003957456427631802,
+          0.9999999981228987,
+          0.000046785964141730605,
+          0.00002443067998281201
+        ],
+        [
+          -3.05756902483361e-6,
+          -0.000046785832060824626,
+          0.9999999989009177,
+          0.0009568709541192266
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.002677230982892004,
+            "translation_m": 0.0008242136539625351,
+            "estimate_translation_m": 0.00019697467731236802,
+            "proxy_translation_m": 0.0009569433901198412
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0008139473464645871,
+            "translation_m": 0.000026840809007221427,
+            "estimate_translation_m": 0.0009569433901198412,
+            "proxy_translation_m": 0.0009576054250909836
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.0034289669034716333,
+            "translation_m": 0.0008292141504127435,
+            "estimate_translation_m": 0.00019697467731236802,
+            "proxy_translation_m": 0.0009576054250909836
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 9.997235035154626e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.0009576054250909836,
+            "proxy_translation_m": 0.0009576054250909836
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.004011307107821319,
+            "translation_m": 0.0008230042967574233,
+            "estimate_translation_m": 0.00019697467731236802,
+            "proxy_translation_m": 0.0009466559308249222
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0006544527526299368,
+            "translation_m": 0.000029511193006562646,
+            "estimate_translation_m": 0.0009466559308249222,
+            "proxy_translation_m": 0.0009576054250909836
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.0007237823432093906,
+        "translation_m": 0.000042355564390973705,
+        "estimate_translation_m": 0.000925424904625884,
+        "proxy_translation_m": 0.0009576054250909836
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 9.997235035154626e-15,
+        "translation_m": 0.00007940882002463113,
+        "estimate_translation_m": 0.0009256441826245271,
+        "proxy_translation_m": 0.0009576054250909836
+      },
+      "camera_imu_translation_m": [
+        -0.2698746693535799,
+        0.7465750193356634,
+        -1.1324888448616464
+      ]
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "indices": [
+        280,
+        281
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.004672762002201552,
+        "translation_m": 0.0021403325354073808,
+        "estimate_translation_m": 0.00014263641627379676,
+        "proxy_translation_m": 0.002113657060348667
+      },
+      "nominal_proxy": [
+        [
+          0.99999999770162,
+          0.000034626721625136996,
+          -0.000058296664595588,
+          -0.00017795664953268453
+        ],
+        [
+          -0.000034622803766465496,
+          0.9999999971345794,
+          0.00006731347759731929,
+          -0.002026163638551348
+        ],
+        [
+          0.00005829899138673037,
+          -0.0000673114423653891,
+          0.9999999960353231,
+          -0.0005749247859165862
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.0037913681969990697,
+            "translation_m": 0.0021563719633488853,
+            "estimate_translation_m": 0.00014263641627379676,
+            "proxy_translation_m": 0.0021311444772734904
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0008873802635764931,
+            "translation_m": 0.000027813869373846567,
+            "estimate_translation_m": 0.0021311444772734904,
+            "proxy_translation_m": 0.002113657060348667
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.004672762002201552,
+            "translation_m": 0.0021403325354073808,
+            "estimate_translation_m": 0.00014263641627379676,
+            "proxy_translation_m": 0.002113657060348667
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 3.085416461690001e-15,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.002113657060348667,
+            "proxy_translation_m": 0.002113657060348667
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.005080380072911375,
+            "translation_m": 0.0021716331844321038,
+            "estimate_translation_m": 0.00014263641627379676,
+            "proxy_translation_m": 0.002144248935262909
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0004274088369161665,
+            "translation_m": 0.00004173778716075554,
+            "estimate_translation_m": 0.002144248935262909,
+            "proxy_translation_m": 0.002113657060348667
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.000614330097070594,
+        "translation_m": 0.00009047154293934533,
+        "estimate_translation_m": 0.002025352051674592,
+        "proxy_translation_m": 0.002113657060348667
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 3.085416461690001e-15,
+        "translation_m": 0.0001314094353701854,
+        "estimate_translation_m": 0.002190672467208784,
+        "proxy_translation_m": 0.002113657060348667
+      },
+      "camera_imu_translation_m": [
+        -0.2698746693535799,
+        0.7465750193356634,
+        -1.1324888448616464
+      ]
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "indices": [
+        281,
+        282
+      ],
+      "motion_internal_pass": true,
+      "nominal_error": {
+        "rotation_deg": 0.005412581650737492,
+        "translation_m": 0.0029519361888418376,
+        "estimate_translation_m": 0.0004916620224252794,
+        "proxy_translation_m": 0.0031847603659925666
+      },
+      "nominal_proxy": [
+        [
+          0.9999999986233736,
+          -0.0000427530266892487,
+          -0.000030402770810839932,
+          0.0001578228964536077
+        ],
+        [
+          0.000042750778721456915,
+          0.9999999963342205,
+          -0.00007419667471494692,
+          -0.0029435292923468692
+        ],
+        [
+          0.000030405942214544292,
+          0.0000741953576479352,
+          0.9999999967852068,
+          -0.0012055811159967789
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "time_shift_variants_ms": {
+        "-10": {
+          "estimate_error": {
+            "rotation_deg": 0.004651641478721683,
+            "translation_m": 0.002842883022772586,
+            "estimate_translation_m": 0.0004916620224252794,
+            "proxy_translation_m": 0.0030711761163727605
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0010329379428431972,
+            "translation_m": 0.00011985780974670255,
+            "estimate_translation_m": 0.0030711761163727605,
+            "proxy_translation_m": 0.0031847603659925666
+          }
+        },
+        "0": {
+          "estimate_error": {
+            "rotation_deg": 0.005412581650737492,
+            "translation_m": 0.0029519361888418376,
+            "estimate_translation_m": 0.0004916620224252794,
+            "proxy_translation_m": 0.0031847603659925666
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 6.177918514206369e-14,
+            "translation_m": 0.0,
+            "estimate_translation_m": 0.0031847603659925666,
+            "proxy_translation_m": 0.0031847603659925666
+          }
+        },
+        "10": {
+          "estimate_error": {
+            "rotation_deg": 0.005333042233361309,
+            "translation_m": 0.002917424232542227,
+            "estimate_translation_m": 0.0004916620224252794,
+            "proxy_translation_m": 0.0031485946016037683
+          },
+          "proxy_change_from_nominal": {
+            "rotation_deg": 0.0006233785149930243,
+            "translation_m": 0.0000376318325341303,
+            "estimate_translation_m": 0.0031485946016037683,
+            "proxy_translation_m": 0.0031847603659925666
+          }
+        }
+      },
+      "same_index_proxy_change": {
+        "rotation_deg": 0.0004055376291284372,
+        "translation_m": 0.000058973446482814634,
+        "estimate_translation_m": 0.0031294540093229264,
+        "proxy_translation_m": 0.0031847603659925666
+      },
+      "omit_lever_arm_proxy_change": {
+        "rotation_deg": 6.177918514206369e-14,
+        "translation_m": 0.00008653076030775053,
+        "estimate_translation_m": 0.0031000744896726817,
+        "proxy_translation_m": 0.0031847603659925666
+      },
+      "camera_imu_translation_m": [
+        -0.2698746693535799,
+        0.7465750193356634,
+        -1.1324888448616464
+      ]
+    }
+  ]
+}
