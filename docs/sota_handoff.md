@@ -1191,3 +1191,16 @@ outputs unchanged. Numeric NPZ local, all18 PNGs committed. No fits or mask edit
 Next review prior stereo-consistency trials before choosing an independent
 cross-view/temporal check for coherently wrong geometry. No repeat matcher/gate
 tuning or truth-derived masks on18 spent frames; freeze distinct comparison first.
+
+### Reverse consistency still leaves three failed surfaces (2026-10-30)
+
+[Results](research/surface_cycle_results.md), freeze `d6bcae4e`: conditional1px
+cycle test after predictive surfaces, all18 frames.18 raw restored SGBM and12
+historical filtered arrays reproduce exactly. No plane refits or optimizers.
+Three failures remain agreement **45.71%,75.50%,78.83%** (<80%), retention93.78%,
+95.83%,93.69% of prior selected. Agreement improves13/18 but median88.16→87.95%;
+no remedy/adoption. Rejected/missing group noisier, yet accepted surfaces unreliable.
+Next audit independent camera-motion availability and temporal overlap before any
+temporal consistency design. Pin motion/time/frame/scale assumptions, no reference
+camera/LiDAR extrinsic in measurement selection. If unavailable/insufficient overlap,
+report it. No reverse-threshold retuning, ICP or fresh-data/SOTA claim.
