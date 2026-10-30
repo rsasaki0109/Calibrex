@@ -1,0 +1,78 @@
+{
+  "$defs": {
+    "Frame": {
+      "additionalProperties": false,
+      "properties": {
+        "drive": {
+          "title": "Drive",
+          "type": "string"
+        },
+        "frame": {
+          "title": "Frame",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source_points": {
+          "title": "Source Points",
+          "type": "integer"
+        },
+        "target_points": {
+          "title": "Target Points",
+          "type": "integer"
+        },
+        "input_cloud": {
+          "title": "Input Cloud",
+          "type": "string"
+        },
+        "input_depth": {
+          "title": "Input Depth",
+          "type": "string"
+        }
+      },
+      "required": [
+        "drive",
+        "frame",
+        "path",
+        "sha256",
+        "source_points",
+        "target_points",
+        "input_cloud",
+        "input_depth"
+      ],
+      "title": "Frame",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "frames": {
+      "items": {
+        "$ref": "#/$defs/Frame"
+      },
+      "title": "Frames",
+      "type": "array"
+    }
+  },
+  "required": [
+    "scope",
+    "plan_sha256",
+    "frames"
+  ],
+  "title": "Manifest",
+  "type": "object"
+}

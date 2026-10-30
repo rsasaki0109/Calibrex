@@ -1053,3 +1053,17 @@ Close residual/weight/search micro-variants. Next review independent geometric
 camera/LiDAR correspondences and reusable external adapters for a genuinely
 distinct matched comparison; freeze assumptions/evaluation before new fits.
 Retain full-cloud MI baseline 6/12 and all negative evidence. No SOTA claim.
+
+### Independent geometry pilot prepared (2026-10-30)
+
+[Preparation](research/stereo_registration_preparation.md), freeze `92a59724`:
+review confirms prior SuperGlue/I2PNet correspondence failures; do not rerun their
+threshold variants. Native trimmed mutual point-to-point and Chen-Medioni ICP
+exist; Open3D absent. Prepared 18 stereo/LiDAR frame pairs, original restored SGBM,
+pose-free backprojection and independent .2 m voxel selection, finite <=80 m.
+Source 25536–42927 points, target 38351–71126, all NPZ hashes/counts verified.
+Manifest/schema committed; arrays under /workspace/work/stereo-registration-20261030.
+No fits or new accuracy claim. Next implement/freeze 108-trial runner per
+stereo_registration_protocol.md (18 pairs ×3 starts ×2 native ICP variants),
+full failure accounting and all-three-frame drive success. Historical joint MI6/12
+is not a matched single-frame comparator. No reference-dependent preparation.
