@@ -1,0 +1,41 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "seed": {
+      "maximum": 4294967295,
+      "minimum": 0,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "voxel_size_m": {
+      "default": 0.1,
+      "exclusiveMinimum": 0,
+      "title": "Voxel Size M",
+      "type": "number"
+    },
+    "count": {
+      "default": 20480,
+      "exclusiveMinimum": 0,
+      "title": "Count",
+      "type": "integer"
+    },
+    "stages": {
+      "default": 5,
+      "maximum": 10,
+      "minimum": 1,
+      "title": "Stages",
+      "type": "integer"
+    },
+    "neighbors": {
+      "default": 128,
+      "exclusiveMinimum": 0,
+      "title": "Neighbors",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "seed"
+  ],
+  "title": "BridgeOptions",
+  "type": "object"
+}
