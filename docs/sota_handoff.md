@@ -1164,3 +1164,16 @@ Next parameterize camera/stereo geometry with exact analytic parity first: curre
 fx240/fB120 constants must not be applied verbatim to real KITTI. Freeze real
 intrinsics/stereo/noise/resampling assumptions before18-frame quality transfer;
 no tuning to reference normals, then matched ICP only if justified. No defaults/SOTA.
+
+### Camera-parametric predictive surfaces transfer partly (2026-10-30)
+
+[Results](research/real_surface_prediction_results.md), freeze `22453494`: explicit
+camera intrinsics/fB/noise, bitwise parity of all arrays on27 analytic conditions.
+36 paired real quality rows on18 frames: baseline **13/18**, predictive **15/18**
+pass; median normal agreement **86.12→88.16%**, retention **26.81→24.77%**.
+Failed candidate frames0005/38,0005/114,0009/111; no exclusions or relaxed gate.
+No ICP rerun per all-frame requirement. Restored-depth fB/z is surrogate disparity,
+.5px independence is uncalibrated on real data; no calibration/SOTA claim.
+Next fixed spatial distance/normal residual maps for all18, emphasizing3 failures,
+compare measurement support/boundaries; diagnose before changing model and never
+turn reference-derived maps into fit masks. Matched registration remains pending.
