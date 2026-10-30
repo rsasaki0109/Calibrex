@@ -950,3 +950,19 @@ Next prioritize a frozen transfer comparison on existing spent real recordings,
 fixed sampler/rescue versus comparable bilinear metric baseline, full drives/seeds,
 truth-start drift and rejection/runtime reporting. Real depth lacks synthetic bias
 truth. Do not tune the six synthetic failures or spend fresh holdouts first.
+
+### Real-data metric transfer fails (2026-10-30)
+
+[Results](research/real_metric_transfer_results.md), frozen `1ceb2d52`: six spent
+KITTI drives × positive/negative/reference starts × bilinear/edge/edge+rescue,
+54 fits, three archived restored-SGBM frames per drive. Fixed 4096 file-order
+points/frame, 102 input files hash-verified. Perturbed accepted recovery is
+**0/12 for all three**. Reference starts **1/6, 3/6, 3/6**; perturbed translation
+median worsens .309→.507 m with edge sampling. Rescue triggers/adopts 17/18 but
+poses are unchanged, so no recovery gain. All nested edge baselines reproduce;
+81–192 / 57–151 / 90–170 calls. Synthetic gains do not transfer; reject adoption.
+Historical MI 6/12 is not a matched baseline because objective and point sampling
+differ. Next freeze reference-vs-fit cost/support/signed-residual diagnostics and
+a matched MI control on the same selected inputs before choosing another optimizer
+or frontend. Do not tune synthetic thresholds, infer bias accuracy from unlabeled
+real depth, or spend fresh holdouts. Core/defaults unchanged; no SOTA claim.
