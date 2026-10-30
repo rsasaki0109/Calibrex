@@ -1,0 +1,38 @@
+{
+  "scope": "random-weight CPU execution; zero learned checkpoint/accuracy fits",
+  "constraint": "user has no GPU; do not wait for or provision GPU",
+  "sha256": {
+    "tools/cofii2p_cpu_probe.py": "d0eaea50f1c8c0961dd13848682c921598300898b10ac99e745be565cd8c8bc8",
+    "docs/research/cofii2p_cpu_probe.md": "9307d1eece49bc9ffabce58ddd96622405675a2e5aefa339377523eb3ea3cd32"
+  },
+  "upstream_original_sha256": {
+    "model/network.py": "1cf3528a8b8293bf62d86b4b7b667359e50f941ca3d4175b90476a42d3b58936",
+    "model/kpconv/kernel_points.py": "f73b572bddf246eec555f971d41412f7bb091d8b79bcf5baea40e5738fb8ce5b"
+  },
+  "cases": [
+    {
+      "name": "reduced2048",
+      "bridge": "/workspace/work/cofii2p-cpu-probe-20261030/bridge2048/bridge.npz",
+      "sha256": "2016c8e1e3194582af096e9fcf5563bf1624471e7c676ba3502656fec05e4e20",
+      "condition": "always"
+    },
+    {
+      "name": "standard20480",
+      "bridge": "/workspace/work/cofii2p-bridge-smoke-20261030/bridge_a/bridge.npz",
+      "sha256": "b7593246aedbecd38a8af590b955ed1c594060d2443e2c95e415dffd6b9c122d",
+      "condition": "only if reduced case completed"
+    }
+  ],
+  "seed": 20261030,
+  "threads": 2,
+  "per_process_timeout_seconds": 180,
+  "checkpoint_loaded": false,
+  "acceptance": [
+    "real test forward with None label arguments",
+    "all8 outputs finite and CPU",
+    "repeat tensors exact"
+  ],
+  "retain_failures": true,
+  "no_seed_or_score_retuning": true,
+  "no_real_frames": true
+}
