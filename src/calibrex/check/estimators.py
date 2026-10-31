@@ -156,6 +156,7 @@ class RunControls:
     memo: dict[tuple[object, ...], Any] = field(default_factory=dict)
     """Per-run results shared by pairs (the LiDAR odometry of the vehicle pairs)."""
     camera_lidar_start_scan_min_control_t: float | None = None
+    camera_lidar_start_agreement_deg: float | None = None
     edge_preparation_cache: EdgePreparationCache | None = field(
         default=None, repr=False, compare=False
     )
@@ -2251,9 +2252,20 @@ def camera_lidar_axis_estimates(
         if record.status == "estimated":
             estimates.append(AxisEstimate(name, unit, error, record.std_reported, True))
             continue
-        code: Literal["unobservable", "control_not_detected", "no_estimate"] = "unobservable"
+        code: Literal[
+            "unobservable", "control_not_detected", "no_estimate", "start_disagreement"
+        ] = "unobservable"
+        disagreement = (artifact.start_disagreement_deg or {}).get(name)
         if not solved:
             reason, code = "the estimator produced no estimate", "no_estimate"
+        elif disagreement is not None:
+            bound = artifact.options.get("start_agreement_deg")
+            reason = (
+                f"optima from different search starts differ on this axis by up to "
+                f"{disagreement:.3g} deg (above {bound:g} deg), so the data support no single "
+                "value; the candidate may be off on this axis"
+            )
+            code = "start_disagreement"
         elif not rotation:
             reason = CAMERA_LIDAR_TRANSLATION_REASON
         elif control is not None and not control.detected:
@@ -2303,6 +2315,7 @@ def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
     options = EdgeAlignmentOptions(
         max_seconds=ctx.controls.max_duration_s,
         start_scan_min_control_t=ctx.controls.camera_lidar_start_scan_min_control_t,
+        start_agreement_deg=ctx.controls.camera_lidar_start_agreement_deg,
     )
     motion_source = camera_lidar_motion_source(ctx, lidar_frame)
     ctx.controls.progress(

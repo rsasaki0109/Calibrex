@@ -1163,6 +1163,20 @@
           "description": "camera-lidar: auto moves LiDAR points to the image time with an odometry, twist or IMU topic of the bag when one is connected to the LiDAR in the frame tree; none keeps scans as recorded",
           "title": "Camera Lidar Motion"
         },
+        "camera_lidar_start_agreement_deg": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "experimental: withhold a camera-lidar rotation axis on which evidenced optima from different search starts differ by more than this (deg) and warn about it; absent keeps the ordinary rule",
+          "title": "Camera Lidar Start Agreement Deg"
+        },
         "camera_lidar_start_scan_min_control_t": {
           "anyOf": [
             {
@@ -2047,7 +2061,8 @@
               "enum": [
                 "unobservable",
                 "control_not_detected",
-                "no_estimate"
+                "no_estimate",
+                "start_disagreement"
               ],
               "type": "string"
             },

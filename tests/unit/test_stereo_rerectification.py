@@ -1,6 +1,10 @@
 """Geometry of re-rectification and the return to original optical depth."""
 
 import numpy as np
+import pytest
+
+pytest.importorskip("cv2")
+
 from tools.stereo_rerectification import rectification, restore_left_depth
 
 

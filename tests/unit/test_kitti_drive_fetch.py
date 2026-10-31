@@ -157,3 +157,42 @@ def test_a_zip64_archive_is_read_through_its_zip64_records(
     assert max(info.header_offset for info in infos) > 1 << 10
     record = fetcher.fetch_drive(DATE, DRIVE, 5, tmp_path / "out")
     assert record["frames"] == {"image_02": 5, "velodyne_points": 5, "oxts": 5}
+
+
+def test_range_retries_cut_or_short_transfers_with_fresh_requests(monkeypatch):
+    from subprocess import CompletedProcess
+
+    replies = [
+        CompletedProcess([], 18, b"par", b"curl: (18) transfer closed"),
+        CompletedProcess([], 0, b"partial-and-more", b""),
+        CompletedProcess([], 0, b"abcd", b""),
+    ]
+    commands = []
+
+    def curl(command, **kwargs):
+        commands.append(command)
+        return replies.pop(0)
+
+    monkeypatch.setattr(fetcher.subprocess, "run", curl)
+    monkeypatch.setattr(fetcher.time, "sleep", lambda seconds: None)
+    assert fetcher.fetch_range("https://example.test", 0, 3, "e") == b"abcd"
+    assert len(commands) == 3 and "--retry-all-errors" not in commands[0]
+
+
+def test_range_without_retries_and_http_rejections_are_single_requests(monkeypatch):
+    from subprocess import CompletedProcess
+
+    commands = []
+
+    def curl(command, **kwargs):
+        commands.append(command)
+        return CompletedProcess(command, 22, b"", b"HTTP 412")
+
+    monkeypatch.setattr(fetcher.subprocess, "run", curl)
+    monkeypatch.setattr(fetcher.time, "sleep", lambda seconds: None)
+    with pytest.raises(ValueError, match="without retry"):
+        fetcher.fetch_range("https://example.test", 0, 3, "e", retries=0)
+    assert len(commands) == 1
+    with pytest.raises(fetcher.HttpRejected):
+        fetcher.fetch_range("https://example.test", 0, 3, "e", retries=2)
+    assert len(commands) == 2

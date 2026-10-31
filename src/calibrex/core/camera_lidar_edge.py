@@ -169,6 +169,12 @@ class CameraLidarEdgeArtifact(StrictModel):
     reference: str | None = None
     limitations: list[str] = Field(default_factory=list)
     provenance: CameraLidarEdgeProvenance
+    start_disagreement_deg: dict[CameraLidarEdgeDofName, float] | None = Field(
+        default=None,
+        description="rotation DoFs withheld by the opt-in cross-start agreement rule, with the "
+        "largest difference (deg) between the final optimum and another evidenced optimum; "
+        "absent when the rule is off or nothing was withheld",
+    )
 
     @model_validator(mode="after")
     def check_policy(self) -> CameraLidarEdgeArtifact:

@@ -1,0 +1,299 @@
+{
+  "calibrated_dofs": [
+    "roll",
+    "pitch",
+    "yaw"
+  ],
+  "camera": {
+    "cx": 609.5593,
+    "cy": 172.854,
+    "distortion": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "distortion_model": "none",
+    "fx": 721.5377,
+    "fy": 721.5377
+  },
+  "dofs": [
+    {
+      "at_search_bound": false,
+      "delta_from_start": -2.75,
+      "error_to_reference": -2.7499999999999956,
+      "known_bad_control": {
+        "amount": 2.0,
+        "detected": true,
+        "detected_blocks": 6,
+        "held_out_blocks": 6,
+        "mean_objective_drop": 0.01913696411666443,
+        "min_t_statistic": 6.84573359446225,
+        "unit": "deg"
+      },
+      "name": "roll",
+      "reference_value": 70.60914548926468,
+      "status": "estimated",
+      "std_jackknife": 0.05270462766947281,
+      "std_reported": 0.05270462766947281,
+      "unit": "deg",
+      "value": 68.53984689851617
+    },
+    {
+      "at_search_bound": false,
+      "delta_from_start": -0.1,
+      "error_to_reference": -0.10000000000001989,
+      "known_bad_control": {
+        "amount": 2.0,
+        "detected": true,
+        "detected_blocks": 6,
+        "held_out_blocks": 6,
+        "mean_objective_drop": 0.027724720399474212,
+        "min_t_statistic": 6.213167788653599,
+        "unit": "deg"
+      },
+      "name": "pitch",
+      "reference_value": -71.31131820956274,
+      "status": "estimated",
+      "std_jackknife": 0.025,
+      "std_reported": 0.025,
+      "unit": "deg",
+      "value": -69.37470392056152
+    },
+    {
+      "at_search_bound": false,
+      "delta_from_start": 0.0,
+      "error_to_reference": -3.180860395135735e-15,
+      "known_bad_control": {
+        "amount": 2.0,
+        "detected": true,
+        "detected_blocks": 6,
+        "held_out_blocks": 6,
+        "mean_objective_drop": 0.014455774807347993,
+        "min_t_statistic": 6.8370501900215945,
+        "unit": "deg"
+      },
+      "name": "yaw",
+      "reference_value": 67.6641841849641,
+      "status": "estimated",
+      "std_jackknife": 0.06454972243679029,
+      "std_reported": 0.06454972243679029,
+      "unit": "deg",
+      "value": 69.06693723116102
+    },
+    {
+      "at_search_bound": false,
+      "delta_from_start": 0.0,
+      "error_to_reference": 0.0,
+      "known_bad_control": {
+        "amount": 0.05,
+        "detected": false,
+        "detected_blocks": 3,
+        "held_out_blocks": 6,
+        "mean_objective_drop": 0.0027805231884580318,
+        "min_t_statistic": 2.3621645861000338,
+        "unit": "m"
+      },
+      "name": "x",
+      "reference_value": 0.05705245053907293,
+      "status": "unobservable",
+      "std_jackknife": 0.0005,
+      "std_reported": 0.0005,
+      "unit": "m",
+      "value": 0.05705245053907293
+    },
+    {
+      "at_search_bound": false,
+      "delta_from_start": 0.0,
+      "error_to_reference": 0.0,
+      "known_bad_control": {
+        "amount": 0.05,
+        "detected": false,
+        "detected_blocks": 1,
+        "held_out_blocks": 6,
+        "mean_objective_drop": -3.524947662341659e-05,
+        "min_t_statistic": -0.05500974409401356,
+        "unit": "m"
+      },
+      "name": "y",
+      "reference_value": -0.061264669776543434,
+      "status": "unobservable",
+      "std_jackknife": 0.0005,
+      "std_reported": 0.0005,
+      "unit": "m",
+      "value": -0.061264669776543434
+    },
+    {
+      "at_search_bound": false,
+      "delta_from_start": 0.0,
+      "error_to_reference": 0.0,
+      "known_bad_control": {
+        "amount": 0.05,
+        "detected": false,
+        "detected_blocks": 2,
+        "held_out_blocks": 6,
+        "mean_objective_drop": -0.0011434377146796262,
+        "min_t_statistic": -1.6972006143804839,
+        "unit": "m"
+      },
+      "name": "z",
+      "reference_value": -0.2729673577914524,
+      "status": "unobservable",
+      "std_jackknife": 0.0005,
+      "std_reported": 0.0005,
+      "unit": "m",
+      "value": -0.2729673577914524
+    }
+  ],
+  "jackknife_fits": 6,
+  "limitations": [
+    "The camera frame is assumed to be the optical frame (x right, y down, z forward) and the intrinsics are taken as correct; an intrinsics error reads as an extrinsic error.",
+    "LiDAR points were moved to the image time with the rig motion from /oxts/odometry (constant velocity between each point's and the image's time; each point by its own measurement time).",
+    "Image edges and LiDAR depth discontinuities constrain rotation well and translation weakly (translation is a parallax effect that scales with 1/depth): on the Hilti 2022 and KITTI recordings the translation estimate differed from the reference by up to 11 cm with a reported std of 1-2 cm. Translation is therefore not estimated by default; its held-out control is still recorded.",
+    "The jackknife standard deviation does not include systematic effects (lens model, timing, scene composition); the verdict floors cover those.",
+    "Edge alignment needs structured scenes with depth discontinuities and image edges; textureless or very distant scenes yield an inconclusive result.",
+    "image and scan are paired at the time the camera's visible points were measured (per-point time field 'time'); the recording is shorter than 48 scans 1 s apart, so up to 48 scans at least 0.25 s apart were spread over it (median view change 0.113)"
+  ],
+  "method": "edge_alignment/v0.1",
+  "motion_compensation": {
+    "frames_moved": 48,
+    "frames_without_motion": 0,
+    "kind": "twist",
+    "max_rotation_deg": 0.03480187034631911,
+    "max_translation_m": 0.12758294213505572,
+    "median_rotation_deg": 0.0028660272794146556,
+    "median_translation_m": 0.024233924619145017,
+    "per_point_time": true,
+    "source_topic": "/oxts/odometry"
+  },
+  "objective": {
+    "estimate": 0.052845187531403735,
+    "gain": 0.030902482108026284,
+    "start": 0.02194270542337745
+  },
+  "options": {
+    "blocks": 6,
+    "edge_background_sigma_px": 20.0,
+    "estimate_translation": false,
+    "image_margin_px": 80.0,
+    "image_max_width": 960,
+    "jackknife_first_level": 1,
+    "jump_exponent": 0.5,
+    "max_edge_points_per_frame": 4000,
+    "max_frames": 48,
+    "max_gap_s": 0.06,
+    "max_moves_per_level": 12,
+    "max_seconds": null,
+    "min_control_t": 2.5,
+    "min_edge_points_per_frame": 150,
+    "min_frames": 8,
+    "min_gain": 2e-05,
+    "min_jump_m": 0.3,
+    "min_ring_fraction": 0.5,
+    "observable_rotation_std_deg": 0.5,
+    "observable_translation_std_m": 0.03,
+    "preparation_workers": 1,
+    "repeated_view_change": 0.05,
+    "rotation_bound_deg": 12.0,
+    "rotation_control_deg": 2.0,
+    "rotation_levels_deg": [
+      1.0,
+      0.5,
+      0.25,
+      0.1,
+      0.05
+    ],
+    "short_recording_min_view_change": 0.05,
+    "short_recording_spacing_s": 0.25,
+    "spacing_s": 1.0,
+    "spill_gamma": 0.98,
+    "spill_radius_px": 40,
+    "start_scan_deg": 8.0,
+    "start_scan_min_control_t": 3.5,
+    "start_scan_min_observed": 2,
+    "start_scan_step_deg": 0.5,
+    "translation_bound_m": 0.2,
+    "translation_control_m": 0.05,
+    "translation_levels_m": [
+      0.02,
+      0.01,
+      0.005,
+      0.0025,
+      0.001
+    ],
+    "unstructured_lidar": true
+  },
+  "policy_reasons": [
+    "all three rotation DoFs are observed with detected held-out controls",
+    "x: translation is not estimated (parallax resolves it too weakly; see limitations)",
+    "y: translation is not estimated (parallax resolves it too weakly; see limitations)",
+    "z: translation is not estimated (parallax resolves it too weakly; see limitations)",
+    "13 frame(s) dropped: t=1317042622.5s: repeats the last kept view (image change 0.034 < 0.05; a spinning LiDAR at a standing rig adds no view)"
+  ],
+  "policy_status": "pass",
+  "provenance": {
+    "command": [
+      "compare",
+      "/home/user/kitti-v3-batch/2011_09_26_0011/attempt_1/snapshots",
+      "--min-far-control-t",
+      "3.5"
+    ],
+    "created_at": "2026-10-31T02:49:07.060276+00:00",
+    "dataset_family": "calibrex-check",
+    "dataset_license": "user-provided",
+    "generator": "tools/kitti_camera_lidar_v3_replay.py",
+    "generator_version": "1",
+    "git_commit": "cb927546f25981533480167c14d0f730cfe275c5",
+    "image_topic": "/camera/image_raw",
+    "input_digest_scope": "snapshot JSON in full, pins full arrays.npz SHA-256",
+    "input_sha256": "5161d97149b098bd2e81354956226a15e8c2e2fa5393e836fd2a4a8ac21a7b51",
+    "lidar_topic": "/velodyne_points",
+    "sequence_ids": [
+      "bag"
+    ]
+  },
+  "reference": "deployed candidate calibration (T_camera_lidar)",
+  "samples": {
+    "blocks": 6,
+    "edge_points": 19994,
+    "first_frame_time_s": 1317042604.7620368,
+    "frames": 35,
+    "last_frame_time_s": 1317042622.1587474,
+    "max_abs_time_gap_s": 0.011026620864868164,
+    "median_abs_time_gap_s": 0.010449886322021484,
+    "median_rings": 76
+  },
+  "schema_version": "slac.camera_lidar_edge/v0.1",
+  "solver_status": "converged",
+  "start_transform": {
+    "child_frame": "velo_link",
+    "parent_frame": "cam2_optical",
+    "rotation_quat_xyzw": [
+      -0.5078345213982143,
+      0.5128846823211455,
+      -0.4866537946787112,
+      -0.49216002036064976
+    ],
+    "translation_m": [
+      0.05705245053907293,
+      -0.061264669776543434,
+      -0.2729673577914524
+    ]
+  },
+  "transform": {
+    "child_frame": "velo_link",
+    "parent_frame": "cam2_optical",
+    "rotation_quat_xyzw": [
+      0.4954535975414514,
+      -0.5014885237007927,
+      0.49926377240111913,
+      0.5037565670514248
+    ],
+    "translation_m": [
+      0.05705245053907293,
+      -0.061264669776543434,
+      -0.2729673577914524
+    ]
+  }
+}

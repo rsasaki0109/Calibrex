@@ -1,0 +1,53 @@
+{
+  "schema_version": "calibrex.camera_lidar_v3_spent_batch/v0.1",
+  "drive": "2011_09_26_0064",
+  "attempt": 1,
+  "status": "PASS_DEVELOPMENT",
+  "stage": "complete",
+  "error": null,
+  "details": {
+    "free_bytes_at_start": 12896800768,
+    "wall_s": 204.9,
+    "fetched_bytes": 1597660341,
+    "frames": {
+      "image_02": 570,
+      "velodyne_points": 570,
+      "oxts": 570
+    },
+    "members_sha256": "59918727b9eb5206af06e1438984b468102c6cb29f5fdcfd8e21e2b67c7554b4",
+    "conversion_sha256": "9cf13164ec8aba3115522739efbb5b4f3700ede89c60345dcf74071ea36b9822",
+    "raw_deleted": true,
+    "capture_exit_code": 0,
+    "bag_deleted": true,
+    "comparison_status": "incomplete",
+    "comparison_errors": {},
+    "arrays_deleted": {
+      "snapshots/2011_09_26_0064/baseline/arrays.npz": "b87100157de6592c0212e6e50960bc0fbc41e33c7bf3c7f1c790ecde449ab3b1",
+      "snapshots/2011_09_26_0064/inject_x+1/arrays.npz": "23036f46d1d06a79bf616bd52739323bf76b8692083cb6faa5b5483bce6193a2",
+      "snapshots/2011_09_26_0064/inject_x+3/arrays.npz": "a42b9c0b1643d7cdd85079538ffcbd6bf8d3202677169fdc9217f29c0f6dcf2a",
+      "snapshots/2011_09_26_0064/inject_y+1/arrays.npz": "a0c2d124802ed960654320c183d96befb47848fe352a1bac130173644f8a0d63",
+      "snapshots/2011_09_26_0064/inject_y+3/arrays.npz": "f2ebfa015d578ef8bf68e14eef099daf3dc4050131b00f1dedef992303bf90f2",
+      "snapshots/2011_09_26_0064/inject_z+1/arrays.npz": "59c6b5d8df9220a8b85f07b3224e41458e2eb28b8a665733f7e7e7b90e44ffd4",
+      "snapshots/2011_09_26_0064/inject_z+3/arrays.npz": "c8a7ba44da740659cd6fc95df6223097e31a29c7a852db499b1c432a30465bf9"
+    },
+    "arrays_kept": []
+  },
+  "provenance": {
+    "source_commit": "cb927546f25981533480167c14d0f730cfe275c5",
+    "frozen_modules_sha256": {
+      "tools/kitti_camera_lidar_v3_batch.py": "d4c140e806e996f41c47c97b5d9d2b879e9e320be5667af928e41c3173b04e4d",
+      "tools/kitti_drive_fetch.py": "28df02ab39c031ab7fafb393b66bba93fc14c3aeaedf7520d7df6511ce29691e",
+      "tools/kitti_camera_lidar_v3_replay.py": "316d516d5eca611ee3d22fc38b4eeaade2c764bb98b45ae45cce5532aa4fd8b5",
+      "tools/kitti_camera_lidar_v3_development.py": "06b3e6035ce17c41c0427ed0ad02f57d65e49d1806e01d0a3155fed95c411dfd",
+      "tools/score_kitti_camera_lidar_v2.py": "8e0bf8b1dca37ac33b1b7818ec28c22353ca5b79fcd7f49591c7d65a7674ce7d",
+      "src/calibrex/evaluation/camera_lidar_edge.py": "cc2b0b4b8967971c78a72213e9d63cfc077cc3e6bc704c61c03146d7d3d90a60",
+      "src/calibrex/data/kitti_raw_to_rosbag2.py": "56d369e7dfcc8f7a0344f9bd5dfe8e0b195dda647d6b41a6002a473172bf73ad"
+    },
+    "created_at": "2026-10-31T03:43:48.990072+00:00",
+    "python": "3.12.3",
+    "platform": "Linux-6.18.44-fc-v185-x86_64-with-glibc2.39",
+    "development_only": true,
+    "new_evaluation_started": false,
+    "new_accuracy_claim": false
+  }
+}

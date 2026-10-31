@@ -1,4 +1,8 @@
 import numpy as np
+import pytest
+
+pytest.importorskip("cv2")
+
 from tools.unimatch_depth import depth_from_prediction
 
 

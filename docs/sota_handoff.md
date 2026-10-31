@@ -510,8 +510,9 @@ no evaluation has started. This is converter readiness, not accuracy evidence.
 
 **Work needed first.**
 
-- Capture and compare all 55 spent KITTI raw drives using the existing
-  `tools/kitti_camera_lidar_v3_replay.py`, then confirm via the real driver.
+- ~~Capture and compare all 55 spent KITTI raw drives using the existing
+  `tools/kitti_camera_lidar_v3_replay.py`~~ done 2026-10-31 (see the last entry);
+  a selected new rule still needs confirmation via the real driver.
 - Complete exposure auditing and independent-platform research requirements;
   KITTI-360 sequences alone do not add dataset families or rigs.
 - KITTI-360 has few, long sequences: pre-register several disjoint 60 s segments per
@@ -1442,3 +1443,56 @@ core; no learned model or fresh dataset acquired. Next fill learned-request temp
 with an accessible official KITTI artifact and SHA/source/terms/training+image recipe,
 then bounded CPU smoke and preregistered spent-data pilot. CPU-only user constraint
 persists; stop adding substitute random-weight experiments as accuracy evidence.
+
+### v3 capture complete on all 55 spent drives (2026-10-31)
+
+[Results](benchmarks/kitti_camera_lidar_v3_development.md#all-55-spent-drives-captured-and-replayed-2026-10-31):
+`tools/kitti_camera_lidar_v3_batch.py` fetched, converted, captured (seven real
+checks) and replayed all 55 spent KITTI raw drives in one cloud session, with
+archive/calibration pins committed first (`4d82d125`). Summary `complete`; the
+current-rule replay equals the committed v2 aggregate exactly (52 scored,
+125/156 judged axes, 3 deg 122/125, 1 deg 125/125, maxima 0.450/1.503 deg).
+The proposed 3.5 margin keeps coverage but flags only **114/125** 3 deg turns and
+adds a 1.350 deg yaw error on 0036 while removing the 0002/0057 errors
+(turned-run judged axes >0.5 deg: 10 → 5). Against v2's gate values it would
+pass on these spent drives (8.8 % 3 deg misses, 1.350 deg), but only post hoc:
+3.5 was chosen after reading v2 evaluation drive 0002, and the margin moves a
+large error to 0036. Do not adopt it as a default; no threshold change. Four zip64 drives first failed on cut range transfers;
+all eight failed attempts are kept. The fetch fix `a7a83db0` retries each range
+as a fresh, length/ETag/CRC-checked request. (The interim `--retry-all-errors`
+appended partial bodies and was caught by the length check.) NPZ inputs remain
+only on the batch machine for 23 drives; the other 32 need re-capture before
+replaying a new rule. Next: a different start-selection/axis-evidence rule
+developed on cached inputs, then replayed on all 55 drives with coverage, missed
+turns and judged-axis errors reported together. KITTI-360 pre-registration stays
+pending; no fresh data was read and no SOTA claim is made.
+
+### Cross-start agreement rule screened (2026-10-31)
+
+[Results](benchmarks/kitti_camera_lidar_v3_start_agreement_results.md), protocol
+frozen `98262f84`: opt-in `start_agreement_deg=0.5` withholds a rotation axis
+when evidenced optima from different starts differ by more than the check's
+0.5 deg std bound. Screened once on all 55 spent drives (23 cached, 32
+re-captured; 32 disk-preflight failures retained). Verdict
+**not_carried_forward**: turned-run judged errors beyond 0.5 deg 10 → 2, none new,
+maximum 1.503 → 0.532 deg; but 3 deg turns flagged only 82/124 (66 %) against the
+90 % v2 value, while 1 deg 117/124 and baseline/coverage checks pass. Post hoc:
+40/42 missed 3 deg and 7/7 missed 1 deg trials show cross-start disagreement, as
+does one baseline (0029). Flagging disagreement is the next hypothesis, needing
+its own frozen protocol with that baseline cost stated. Spent data only; no
+default, CLI or SOTA change.
+
+### Opt-in cross-start disagreement warning shipped (2026-10-31)
+
+At the user's request the flagging variant is a practical opt-in, not a v3 claim:
+`calibrex check|estimate|drift --camera-lidar-start-agreement-deg 0.5` withholds
+camera-LiDAR rotation axes where evidenced optima from different starts differ by
+more than 0.5 deg, lists them as `start_disagreement` and makes the pair at least
+`warn`. Defaults, caches and v2 results are unchanged; schemas only widen. On the
+55 spent drives (motivating data,
+[measurement](assets/kitti_camera_lidar_v3/start_agreement_20261031/disagreement_warning.json)):
+KITTI calibration warned 1/55 (0029 yaw), 3 deg turns warned 122/124, 1 deg
+124/124, turned-run judged errors >0.5 deg 10 → 2. A disagreement warning does not
+identify the error's size or direction. A v3 claim still needs a separately
+pre-registered rule on unread KITTI-360 data; do not cite these rates as audited.
+

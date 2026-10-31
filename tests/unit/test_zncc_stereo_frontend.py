@@ -1,4 +1,8 @@
 import numpy as np
+import pytest
+
+pytest.importorskip("cv2")
+
 from tools.zncc_stereo_frontend import disparity_zncc
 
 

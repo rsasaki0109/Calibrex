@@ -207,7 +207,9 @@ class CheckUncheckedAxis(StrictModel):
     unit: Literal["deg", "m"]
     std: float | None = Field(default=None, ge=0.0)
     reason: str
-    reason_code: Literal["unobservable", "control_not_detected", "no_estimate"] | None = None
+    reason_code: (
+        Literal["unobservable", "control_not_detected", "no_estimate", "start_disagreement"] | None
+    ) = None
     excitation: AxisExcitation | None = Field(
         default=None,
         description="translation axes of a lever-arm estimate: why the axis is (un)observable "
@@ -358,6 +360,14 @@ class CheckOptions(StrictModel):
         description="extra held-out control t margin required on every observed rotation "
         "axis before adopting a camera-lidar fit from a distant start; absent keeps the "
         "ordinary adoption rule",
+    )
+    camera_lidar_start_agreement_deg: float | None = Field(
+        default=None,
+        gt=0.0,
+        allow_inf_nan=False,
+        description="experimental: withhold a camera-lidar rotation axis on which evidenced "
+        "optima from different search starts differ by more than this (deg) and warn about "
+        "it; absent keeps the ordinary rule",
     )
     topic_kinds: dict[str, str] = Field(
         default_factory=dict,

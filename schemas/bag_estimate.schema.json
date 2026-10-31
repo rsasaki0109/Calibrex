@@ -590,7 +590,7 @@
     },
     "EstimateAxis": {
       "additionalProperties": false,
-      "description": "One axis of a pair's estimate.\n\n``value`` is the estimated value (degrees about the parent frame's axes for\na rotation axis, metres for a translation axis); it is absent unless the\nestimator produced one. ``status`` says whether the data observed it:\n``observed``; ``unobservable`` (the data did not constrain it);\n``control_not_detected`` (the estimator's known-bad control on this axis was\nnot detected on held-out data, so the value is not trusted);\n``no_estimate`` (the estimator produced no value); ``not_estimated`` (this\nestimator does not attempt the axis, for example the translation of a\ncamera-IMU rotation estimate).",
+      "description": "One axis of a pair's estimate.\n\n``value`` is the estimated value (degrees about the parent frame's axes for\na rotation axis, metres for a translation axis); it is absent unless the\nestimator produced one. ``status`` says whether the data observed it:\n``observed``; ``unobservable`` (the data did not constrain it);\n``control_not_detected`` (the estimator's known-bad control on this axis was\nnot detected on held-out data, so the value is not trusted);\n``no_estimate`` (the estimator produced no value); ``not_estimated`` (this\nestimator does not attempt the axis, for example the translation of a\ncamera-IMU rotation estimate); ``start_disagreement`` (opt-in camera-lidar rule:\nsupported optima from different search starts disagree on the axis).",
       "properties": {
         "excitation": {
           "anyOf": [
@@ -634,7 +634,8 @@
             "unobservable",
             "control_not_detected",
             "no_estimate",
-            "not_estimated"
+            "not_estimated",
+            "start_disagreement"
           ],
           "title": "Status",
           "type": "string"
@@ -887,6 +888,20 @@
           ],
           "title": "Camera Lidar Motion",
           "type": "string"
+        },
+        "camera_lidar_start_agreement_deg": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "experimental: withhold camera-lidar rotation axes on which evidenced optima from different search starts differ by more than this (deg); absent keeps the ordinary rule",
+          "title": "Camera Lidar Start Agreement Deg"
         },
         "camera_lidar_start_scan_min_control_t": {
           "anyOf": [

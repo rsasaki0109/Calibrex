@@ -5,9 +5,12 @@ proposal after [v2 was refuted, 8 of 9 gates](kitti_camera_lidar_v2_check.md).
 It is not a pre-registration or a new audit. The v2 verdict and thresholds stay
 as published. No new evaluation sensor data was read for this work.
 
-Real capture/replay progress is **2/55 spent drives**. The proposed margin has
-an observed detection regression on 0002 and remains opt-in; no new claim or
-default change is justified by these partial results.
+Real capture/replay progress is **55/55 spent drives** after the
+[2026-10-31 batch](#all-55-spent-drives-captured-and-replayed-2026-10-31). The
+current-rule replay reproduces v2's committed aggregate exactly. The proposed 3.5
+margin loses eight 3 deg detections and still judges one turned axis 1.35 deg
+off. It is **not adopted as a default**: it stays an opt-in candidate, with no new
+claim or default change.
 
 ## Proposed far-start adoption rule
 
@@ -88,6 +91,71 @@ PYTHONPATH="$PWD/src" .venv/bin/python tools/kitti_camera_lidar_v3_development.p
 The tool reads only the committed v2 scores and their corresponding saved final
 evidence. It neither downloads recordings nor runs the estimator. Proposed-rule
 metrics and coverage change are explicitly `null`.
+
+## All 55 spent drives captured and replayed, 2026-10-31
+
+`tools/kitti_camera_lidar_v3_batch.py` ran the existing capture and single-drive
+comparison on every spent drive in one cloud session (Linux, Python 3.12.3, four
+CPUs). Archive size, ETag, frame counts and each day's calibration SHA-256 were
+pinned in [`pins.json`](../assets/kitti_camera_lidar_v3/spent_batch_20261031/pins.json)
+before any payload was read. They match the 0005 and 0002 pilot pins. Drives
+with known problems ran first, so that their inputs would stay cached. This is
+development on spent data, not an audit.
+
+The [summary](../assets/kitti_camera_lidar_v3/spent_batch_20261031/summary.json)
+is `complete`, with no failed captures, parity checks or drive scores.
+The current-rule replay equals the committed v2 aggregate on every
+measure in the table above.
+
+| Measure, 55 spent drives | Current rule | Proposed 3.5 margin |
+| --- | ---: | ---: |
+| Scored drives | 52 (3 inconclusive) | 52 (same 3) |
+| KITTI baselines flagged | 0 | 0 |
+| Maximum judged baseline axis error | 0.450 deg | 0.450 deg |
+| Maximum judged turned-run axis error | 1.503 deg (0002) | **1.350 deg (0036 yaw +3)** |
+| Baseline judged axes, scored drives | 125/156 = 80.1 % | 125/156 = 80.1 % |
+| 3 deg turns flagged on baseline-judged axes | 122/125 | **114/125** |
+| 1 deg turns flagged on baseline-judged axes | 125/125 | 125/125 |
+| Turned-run judged axes more than 0.5 deg off | 10 in 6 drives | 5 in 5 drives |
+
+The margin removes the four 0002 roll errors (up to 1.503 deg) and the two
+0057 pitch +3 errors. It also creates a new 1.350 deg yaw error on 0036 yaw +3,
+where it rejects a far optimum and keeps a wrong current fit. Errors on 0023
+(0.80 deg), 0043 (0.55 deg), 0093 (0.50 deg) and 2011_09_30_0016 (0.53 deg)
+remain under both rules. It loses eight 3 deg detections: 0014 pitch and yaw,
+0029 pitch, 0035 roll, 0101 yaw, 0002 pitch, and 0034 roll and yaw. Coverage is
+unchanged.
+
+Measured against v2's gate values, the margin would pass on these spent drives:
+3 deg misses are 8.8 %, within 10 %, and the turned-run error is 1.350 deg,
+within 1.5 deg. The current rule misses that turned-run error gate by 0.003 deg.
+This is **not evidence for adoption**. The value 3.5 was proposed after reading
+0002, which is v2 evaluation data, and these 55 drives include all of v2's
+evaluation drives. The margin also moves a large error to 0036 rather than
+removing it. The margin therefore stays an opt-in candidate. Any v3 rule still
+needs development here and a pre-registered test on unread data.
+
+Four large zip64 drives (2011_09_30_0018 and 0028, 2011_10_03_0027 and 0034)
+first failed while fetching, through truncated transfers or connection resets
+on some of their roughly 1000 ranges. All eight failed attempts are retained.
+curl's `--retry` skips these errors. The first fix, `--retry-all-errors`
+(`d94d7540`), let a retry append to the partial body. The range length check
+rejected the result, so no bad data entered. The fix at `a7a83db0` sends a
+fresh request per attempt and requires the exact length. Every range is still
+checked against its ETag, length and CRC. The latest attempt of each drive
+passes; capture and scoring code did not change between attempts. Each report
+records its commit and frozen module hashes.
+
+Captured NPZ inputs (0.21–0.74 GB per kept drive) stay on the batch machine only
+while disk allowed. They are kept for 23 drives, including 0002, 0014, 0023,
+0029, 0034, 0035, 0036 and the three inconclusive drives. The other 32 were
+deleted after their comparison, with their digests recorded in each report;
+those drives need re-capture before a new rule can be replayed. The
+[drive receipts](../assets/kitti_camera_lidar_v3/spent_batch_20261031/drives/manifest.json)
+and the [0005 smoke](../assets/kitti_camera_lidar_v3/spent_batch_20261031/smoke/manifest.json)
+publish reports, check outputs, logs, evidence and comparisons. They exclude
+images, clouds, bags, archive payloads and NPZ arrays. The smoke matched the
+2026-10-22 pilot's input members digest and its scores within about 1e-14.
 
 ## Saved far fits (post hoc diagnostic only)
 
@@ -396,14 +464,17 @@ The [2026-10-23 local recheck](kitti360_camera_lidar_v3_access.md) verified
 official KITTI-360 access and exact metadata ranges for 21 archives.
 Published-pose and opt-in raw-OXTS conversion each passed on three frames from
 spent 0000 and 0002. The earlier cloud HTTP 403 is historical evidence.
-The 0005 pilot and 0002 comparison provide real replay inputs; the other
-53 spent drives still need capture and paired comparison. KITTI-360 conversion
-checks are not calibration measurements.
+All 55 spent drives now have real captures and paired comparisons (above).
+KITTI-360 conversion checks are not calibration measurements.
 
-Before step 3 can finish, regenerate the remaining estimator inputs from the
-55 spent raw drives, compare both rules on the same inputs, then confirm via the real
-driver. Record every measure in the table above, including coverage loss and
-missed turns. Validate any additional converter behavior on spent data.
+The scalar 3.5 margin is not adopted as a default (above). A frozen
+[cross-start agreement rule](kitti_camera_lidar_v3_start_agreement_results.md)
+was then screened on all 55 drives. It cut turned-run judged errors beyond
+0.5 deg from 10 to 2 (maximum 0.532 deg), but it flagged only 66 % of 3 deg turns,
+so it was not carried forward. A post hoc count suggests flagging cross-start
+disagreement instead of only withholding axes; that needs its own frozen
+protocol, with the 0029 baseline cost stated. Confirm any selected rule via the
+real driver, and validate any additional converter behavior on spent data.
 
 Only then derive the v3 gates from the new development results using the
 [handoff rules](../sota_handoff.md#how-an-audit-is-run). Evaluation archive pins,

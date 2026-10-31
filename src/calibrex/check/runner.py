@@ -213,6 +213,8 @@ class CheckRunOptions:
     """Memory for reusing decoded LiDAR scans across passes; 0 re-reads the bag every pass."""
     camera_lidar_start_scan_min_control_t: float | None = None
     """Extra held-out control margin for adopting camera-LiDAR fits from distant starts."""
+    camera_lidar_start_agreement_deg: float | None = None
+    """Experimental: withhold and warn on camera-LiDAR axes where search starts disagree."""
     edge_preparation_cache: EdgePreparationCache | None = field(
         default=None, repr=False, compare=False
     )
@@ -225,6 +227,9 @@ class CheckRunOptions:
                 "camera_lidar_start_scan_min_control_t must be finite and at least "
                 f"{DEFAULT_MIN_CONTROL_T:g}"
             )
+        agreement = self.camera_lidar_start_agreement_deg
+        if agreement is not None and not (math.isfinite(agreement) and agreement > 0.0):
+            raise ValueError("camera_lidar_start_agreement_deg must be finite and positive")
 
 
 def classify_bag_topics(
@@ -351,6 +356,7 @@ def build_calibration_check(
             gnss_lidar_deskew=run.gnss_lidar_deskew,
             camera_lidar_motion=run.camera_lidar_motion,
             camera_lidar_start_scan_min_control_t=run.camera_lidar_start_scan_min_control_t,
+            camera_lidar_start_agreement_deg=run.camera_lidar_start_agreement_deg,
             topic_kinds=dict(topic_kinds or {}),
         )
         evidence_dir_record = _relative(evidence_dir, base_dir)
@@ -468,6 +474,7 @@ def _run_pairs(
         gnss_lidar_deskew=run.gnss_lidar_deskew,
         camera_lidar_motion=run.camera_lidar_motion,
         camera_lidar_start_scan_min_control_t=run.camera_lidar_start_scan_min_control_t,
+        camera_lidar_start_agreement_deg=run.camera_lidar_start_agreement_deg,
         frame_tree=frame_tree,
         progress=progress,
         cache=EstimatorCache(run.cache_dir) if run.cache_dir is not None else None,

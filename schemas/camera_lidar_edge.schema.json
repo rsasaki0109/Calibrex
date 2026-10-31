@@ -627,6 +627,32 @@
       "title": "Solver Status",
       "type": "string"
     },
+    "start_disagreement_deg": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "propertyNames": {
+            "enum": [
+              "roll",
+              "pitch",
+              "yaw",
+              "x",
+              "y",
+              "z"
+            ]
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "rotation DoFs withheld by the opt-in cross-start agreement rule, with the largest difference (deg) between the final optimum and another evidenced optimum; absent when the rule is off or nothing was withheld",
+      "title": "Start Disagreement Deg"
+    },
     "start_transform": {
       "anyOf": [
         {
