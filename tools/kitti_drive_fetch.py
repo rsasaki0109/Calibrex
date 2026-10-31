@@ -63,15 +63,15 @@ MAX_GAP_BYTES = 1 << 20  # members closer than this are fetched in one range
 WORKERS = 8  # ranges fetched at once
 
 
+class HttpRejected(OSError):
+    """curl -f saw an HTTP error status (exit 22); retrying would not change it."""
+
+
 def _curl(args: list[str], *, retries: int = 3) -> bytes:
     if type(retries) is not int or not 0 <= retries <= 3:
         raise ValueError("curl retries must be an integer from zero through three")
-    # curl's --retry alone skips cut transfers (exit 18) and resets (35), which end long
-    # range fetches through a proxy. Every retried range is still length-, ETag- and
-    # CRC-checked; retries=0 keeps a single, unretried request.
-    always = ["--retry-all-errors"] if retries else []
     result = subprocess.run(
-        ["curl", "-sSf", "--retry", str(retries), *always, "-m", "900", *args],
+        ["curl", "-sSf", "--retry", str(retries), "-m", "900", *args],
         capture_output=True,
         check=False,
     )
@@ -79,6 +79,8 @@ def _curl(args: list[str], *, retries: int = 3) -> bytes:
         message = result.stderr.decode("utf-8", "replace").strip()
         if retries == 0 and result.returncode == 22:
             raise ValueError(f"HTTP request rejected without retry: {message}")
+        if result.returncode == 22:
+            raise HttpRejected(f"curl exit 22: {message}")
         raise OSError(f"curl exit {result.returncode}: {message}")
     return result.stdout
 
@@ -97,10 +99,24 @@ def fetch_range(url: str, start: int, end: int, etag: str, *, retries: int = 3) 
     """Bytes ``start`` to ``end`` of the object whose ETag is ``etag`` (412 from any other)."""
 
     args = ["-H", f'If-Match: "{etag}"', "-r", f"{start}-{end}", url]
-    data = _curl(args) if retries == 3 else _curl(args, retries=retries)
-    if len(data) != end - start + 1:
-        raise OSError(f"range {start}-{end}: got {len(data)} bytes")
-    return data
+    # curl's own --retry skips cut transfers (exit 18) and resets (35), and a retry
+    # into stdout would append to the partial body. So each attempt here is a fresh
+    # request whose body must have the exact length; HTTP rejections are not retried.
+    for attempt in range(retries + 1):
+        try:
+            data = _curl(args) if retries == 3 else _curl(args, retries=retries)
+        except HttpRejected:
+            raise
+        except OSError:
+            if attempt == retries:
+                raise
+        else:
+            if len(data) == end - start + 1:
+                return data
+            if attempt == retries:
+                raise OSError(f"range {start}-{end}: got {len(data)} bytes")
+        time.sleep(2**attempt)
+    raise AssertionError("unreachable")
 
 
 def central_directory(url: str, size: int, etag: str, *, retries: int = 3) -> list[zipfile.ZipInfo]:
