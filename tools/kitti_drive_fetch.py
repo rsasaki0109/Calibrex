@@ -66,8 +66,12 @@ WORKERS = 8  # ranges fetched at once
 def _curl(args: list[str], *, retries: int = 3) -> bytes:
     if type(retries) is not int or not 0 <= retries <= 3:
         raise ValueError("curl retries must be an integer from zero through three")
+    # curl's --retry alone skips cut transfers (exit 18) and resets (35), which end long
+    # range fetches through a proxy. Every retried range is still length-, ETag- and
+    # CRC-checked; retries=0 keeps a single, unretried request.
+    always = ["--retry-all-errors"] if retries else []
     result = subprocess.run(
-        ["curl", "-sSf", "--retry", str(retries), "-m", "900", *args],
+        ["curl", "-sSf", "--retry", str(retries), *always, "-m", "900", *args],
         capture_output=True,
         check=False,
     )

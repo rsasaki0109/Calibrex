@@ -157,3 +157,20 @@ def test_a_zip64_archive_is_read_through_its_zip64_records(
     assert max(info.header_offset for info in infos) > 1 << 10
     record = fetcher.fetch_drive(DATE, DRIVE, 5, tmp_path / "out")
     assert record["frames"] == {"image_02": 5, "velodyne_points": 5, "oxts": 5}
+
+
+def test_curl_retries_cut_transfers_unless_retries_are_disabled(monkeypatch):
+    from subprocess import CompletedProcess
+
+    commands = []
+
+    def curl(command, **kwargs):
+        commands.append(command)
+        return CompletedProcess(command, 0, b"ok", b"")
+
+    monkeypatch.setattr(fetcher.subprocess, "run", curl)
+    assert fetcher._curl(["https://example.test"]) == b"ok"
+    assert fetcher._curl(["https://example.test"], retries=0) == b"ok"
+    assert "--retry-all-errors" in commands[0]
+    assert commands[0][commands[0].index("--retry") + 1] == "3"
+    assert "--retry-all-errors" not in commands[1]
