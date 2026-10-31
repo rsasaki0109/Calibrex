@@ -513,10 +513,15 @@ no evaluation has started. This is converter readiness, not accuracy evidence.
 - ~~Capture and compare all 55 spent KITTI raw drives using the existing
   `tools/kitti_camera_lidar_v3_replay.py`~~ done 2026-10-31 (see the last entry);
   a selected new rule still needs confirmation via the real driver.
-- Complete exposure auditing and independent-platform research requirements;
-  KITTI-360 sequences alone do not add dataset families or rigs.
-- KITTI-360 has few, long sequences: pre-register several disjoint 60 s segments per
-  sequence, chosen by a rule from metadata.
+- ~~Complete exposure auditing~~ done in git history 2026-10-31; the owner must still
+  confirm that no work outside git opened candidate sensor data. The independent-platform
+  requirement remains: KITTI-360 sequences alone do not add dataset families or rigs, so a
+  KITTI-360 v3 claim is scoped to that rig.
+- ~~KITTI-360 has few, long sequences: pre-register several disjoint 60 s segments per
+  sequence, chosen by a rule from metadata~~ fixed 2026-10-31: 42 evaluation and 22
+  development segments ([exposure audit and segments](benchmarks/kitti360_camera_lidar_v3_prep.md)).
+- Next: run the check on the 22 spent 0000/0002 segments, derive gates, and freeze the
+  pre-registration in its own PR before any candidate payload is read.
 
 ### 2. ins-lidar follow-up
 

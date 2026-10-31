@@ -94,8 +94,9 @@ uses archive member names only.
 Generate the [55 spent-drive comparison](kitti_camera_lidar_v3_development.md),
 confirm the selected rule through real checks, and derive gates from those
 development results. Complete exposure auditing and freeze metadata-based
-interval selection, timestamp-boundary checks, reference hashes and failure
-policy. KITTI-360 is one dataset family and one platform; separate sequences
+interval selection (both done 2026-10-31, see the
+[exposure audit and segments](kitti360_camera_lidar_v3_prep.md)), then
+timestamp-boundary checks, reference hashes and failure policy. KITTI-360 is one dataset family and one platform; separate sequences
 do not establish independent rigs. Preserve the research plan's broader
 comparison requirements. Freeze code and open a separate pre-registration PR
 for review before reading new evaluation sensor contents.
