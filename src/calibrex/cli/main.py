@@ -3136,6 +3136,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "start (finite T >= 2.5 on every observed rotation axis; default: no extra margin)",
     )
     check.add_argument(
+        "--camera-lidar-start-agreement-deg",
+        dest="camera_lidar_start_agreement_deg",
+        type=_positive_float,
+        default=None,
+        metavar="DEG",
+        help="experimental camera-lidar rule: withhold a rotation axis on which supported "
+        "optima from different search starts differ by more than DEG and warn about it "
+        "(0.5 matches the observability std bound; default: off)",
+    )
+    check.add_argument(
         "--rigid-scan-rotation-floor-deg",
         type=_positive_float,
         default=None,
@@ -4641,6 +4651,7 @@ _ESTIMATE_SHARED_DESTS = frozenset(
         "gnss_lidar_deskew",
         "camera_lidar_motion",
         "camera_lidar_start_scan_min_control_t",
+        "camera_lidar_start_agreement_deg",
         "acceleration_unit",
         "cache_dir",
         "no_cache",
@@ -4683,6 +4694,7 @@ def _cmd_estimate(args: argparse.Namespace) -> int:
         gnss_lidar_deskew=args.gnss_lidar_deskew,
         camera_lidar_motion=args.camera_lidar_motion,
         camera_lidar_start_scan_min_control_t=args.camera_lidar_start_scan_min_control_t,
+        camera_lidar_start_agreement_deg=args.camera_lidar_start_agreement_deg,
         evidence_dir=output_dir / "evidence",
         base_dir=output_dir,
         cache_dir=None
@@ -4764,6 +4776,7 @@ def _cmd_drift(args: argparse.Namespace) -> int:
         gnss_lidar_deskew=args.gnss_lidar_deskew,
         camera_lidar_motion=args.camera_lidar_motion,
         camera_lidar_start_scan_min_control_t=args.camera_lidar_start_scan_min_control_t,
+        camera_lidar_start_agreement_deg=args.camera_lidar_start_agreement_deg,
         cache_dir=None
         if args.no_cache
         else (args.cache_dir if args.cache_dir is not None else default_cache_dir()),
@@ -4872,6 +4885,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
             gnss_lidar_deskew=args.gnss_lidar_deskew,
             camera_lidar_motion=args.camera_lidar_motion,
             camera_lidar_start_scan_min_control_t=args.camera_lidar_start_scan_min_control_t,
+            camera_lidar_start_agreement_deg=args.camera_lidar_start_agreement_deg,
             rigid_scan_rotation_floor_deg=(
                 args.rigid_scan_rotation_floor_deg
                 if args.rigid_scan_rotation_floor_deg is not None

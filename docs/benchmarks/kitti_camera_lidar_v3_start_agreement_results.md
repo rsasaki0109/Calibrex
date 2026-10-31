@@ -55,6 +55,23 @@ where v2 allows none. This is a **hypothesis for a new frozen protocol**, read
 from data that were used to motivate it. It is not a result. The 0029 cost
 and the 55 spent drives' exposure must be stated in that protocol.
 
+## Shipped afterwards as an opt-in check warning
+
+The user chose to ship the flagging variant as a practical, opt-in `calibrex check` option
+(`--camera-lidar-start-agreement-deg`, see the [check page](camera_lidar_check.md#experimental-cross-start-disagreement-warning-2026-10-31-opt-in)),
+not as a v3 claim. The shipped verdict code was applied to the 385 published
+artifacts above, with each withheld axis restored from its recorded reason:
+
+- KITTI calibration warned on 1/55 baselines (0029 yaw);
+- 3 deg turns get a warn or fail verdict in 122/124 counted runs, 1 deg in 124/124;
+- judged-axis errors are those of the agreement rule above.
+
+[Measurement](../assets/kitti_camera_lidar_v3/start_agreement_20261031/disagreement_warning.json).
+Re-running the shipped estimator on 0029 and 0002 matched the restored artifacts
+in all 14 runs ([spot check](../assets/kitti_camera_lidar_v3/start_agreement_20261031/disagreement_spot_check.json)).
+These are the data that suggested the variant, so the rates describe the feature,
+not its accuracy on new recordings.
+
 ## Evidence
 
 - **Screen and inputs.** The

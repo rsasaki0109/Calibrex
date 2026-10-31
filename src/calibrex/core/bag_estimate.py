@@ -50,6 +50,7 @@ EstimateAxisStatus = Literal[
     "control_not_detected",
     "no_estimate",
     "not_estimated",
+    "start_disagreement",
 ]
 EstimatePairStatus = Literal["estimated", "partial", "failed", "skipped"]
 EstimateExportKind = Literal[
@@ -69,7 +70,8 @@ class EstimateAxis(StrictModel):
     not detected on held-out data, so the value is not trusted);
     ``no_estimate`` (the estimator produced no value); ``not_estimated`` (this
     estimator does not attempt the axis, for example the translation of a
-    camera-IMU rotation estimate).
+    camera-IMU rotation estimate); ``start_disagreement`` (opt-in camera-lidar rule:
+    supported optima from different search starts disagree on the axis).
     """
 
     name: CheckAxisName
@@ -179,6 +181,14 @@ class EstimateOptions(StrictModel):
         allow_inf_nan=False,
         description="extra held-out control t margin for adopting camera-lidar fits from "
         "distant starts; absent keeps the ordinary adoption rule",
+    )
+    camera_lidar_start_agreement_deg: float | None = Field(
+        default=None,
+        gt=0.0,
+        allow_inf_nan=False,
+        description="experimental: withhold camera-lidar rotation axes on which evidenced "
+        "optima from different search starts differ by more than this (deg); absent keeps "
+        "the ordinary rule",
     )
     topic_kinds: dict[str, str] = Field(default_factory=dict)
     frame_map: dict[str, str] = Field(default_factory=dict)

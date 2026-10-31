@@ -1,0 +1,3413 @@
+{
+  "schema_version": "calibrex.camera_lidar_disagreement_warning/v0.1",
+  "drives": 55,
+  "baseline_verdicts": {
+    "2011_09_26_0005": "pass",
+    "2011_09_26_0009": "pass",
+    "2011_09_26_0011": "pass",
+    "2011_09_26_0013": "pass",
+    "2011_09_26_0014": "pass",
+    "2011_09_26_0015": "pass",
+    "2011_09_26_0018": "pass",
+    "2011_09_26_0019": "pass",
+    "2011_09_26_0022": "pass",
+    "2011_09_26_0023": "pass",
+    "2011_09_26_0027": "pass",
+    "2011_09_26_0028": "pass",
+    "2011_09_26_0029": "warn",
+    "2011_09_26_0032": "pass",
+    "2011_09_26_0035": "pass",
+    "2011_09_26_0036": "pass",
+    "2011_09_26_0039": "pass",
+    "2011_09_26_0046": "pass",
+    "2011_09_26_0051": "pass",
+    "2011_09_26_0056": "inconclusive",
+    "2011_09_26_0057": "pass",
+    "2011_09_26_0059": "pass",
+    "2011_09_26_0061": "pass",
+    "2011_09_26_0064": "pass",
+    "2011_09_26_0070": "pass",
+    "2011_09_26_0084": "pass",
+    "2011_09_26_0086": "pass",
+    "2011_09_26_0087": "pass",
+    "2011_09_26_0091": "pass",
+    "2011_09_26_0093": "pass",
+    "2011_09_26_0095": "pass",
+    "2011_09_26_0096": "pass",
+    "2011_09_26_0101": "pass",
+    "2011_09_26_0104": "pass",
+    "2011_09_26_0106": "pass",
+    "2011_09_26_0117": "pass",
+    "2011_09_28_0002": "pass",
+    "2011_09_28_0016": "inconclusive",
+    "2011_09_28_0021": "inconclusive",
+    "2011_09_28_0039": "pass",
+    "2011_09_28_0043": "pass",
+    "2011_09_29_0004": "pass",
+    "2011_09_29_0026": "inconclusive",
+    "2011_09_29_0071": "pass",
+    "2011_09_30_0016": "pass",
+    "2011_09_30_0018": "pass",
+    "2011_09_30_0020": "pass",
+    "2011_09_30_0027": "pass",
+    "2011_09_30_0028": "pass",
+    "2011_09_30_0033": "pass",
+    "2011_09_30_0034": "pass",
+    "2011_10_03_0027": "pass",
+    "2011_10_03_0034": "pass",
+    "2011_10_03_0042": "pass",
+    "2011_10_03_0047": "pass"
+  },
+  "baselines_warned": [
+    "2011_09_26_0029"
+  ],
+  "detection": {
+    "3deg": {
+      "counted": 124,
+      "run_flagged": 122,
+      "run_flagged_fraction": 0.9838709677419355,
+      "unflagged": [
+        [
+          "2011_09_26_0070",
+          "inject_y+3"
+        ],
+        [
+          "2011_09_26_0091",
+          "inject_y+3"
+        ]
+      ]
+    },
+    "1deg": {
+      "counted": 124,
+      "run_flagged": 124,
+      "run_flagged_fraction": 1.0,
+      "unflagged": []
+    }
+  },
+  "runs": {
+    "2011_09_26_0005": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "warn"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0009": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "warn"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0011": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass"
+        },
+        "disputed": [
+          "pitch",
+          "yaw"
+        ]
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "warn"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0013": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0014": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0015": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0018": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass"
+        },
+        "disputed": [
+          "pitch",
+          "yaw"
+        ]
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "warn"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0019": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0022": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0023": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch",
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch",
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0027": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch",
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch",
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch",
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {
+          "yaw": "pass"
+        },
+        "disputed": [
+          "pitch",
+          "roll"
+        ]
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0028": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch",
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "yaw": "fail"
+        },
+        "disputed": [
+          "pitch",
+          "roll"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch",
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0029": {
+      "baseline": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_x+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0032": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "warn"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0035": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "warn"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0036": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      }
+    },
+    "2011_09_26_0039": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "warn"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0046": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "warn"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0051": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "yaw": "pass"
+        },
+        "disputed": [
+          "pitch"
+        ]
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      }
+    },
+    "2011_09_26_0056": {
+      "baseline": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      }
+    },
+    "2011_09_26_0057": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch",
+          "roll"
+        ]
+      },
+      "inject_z+3": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "warn"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0059": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "warn",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "warn"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0061": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "warn"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0064": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0070": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "warn"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0084": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "warn"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0086": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0087": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "warn"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0091": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      }
+    },
+    "2011_09_26_0093": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0095": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "warn"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0096": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "warn"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0101": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0104": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "yaw": "pass"
+        },
+        "disputed": [
+          "pitch"
+        ]
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "warn"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0106": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail"
+        },
+        "disputed": [
+          "pitch",
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_26_0117": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_28_0002": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch",
+          "roll"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": [
+          "roll"
+        ]
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": [
+          "roll"
+        ]
+      },
+      "inject_z+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_28_0016": {
+      "baseline": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      }
+    },
+    "2011_09_28_0021": {
+      "baseline": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      }
+    },
+    "2011_09_28_0039": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch",
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch",
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_28_0043": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch",
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "warn",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "warn"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_29_0004": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass"
+        },
+        "disputed": [
+          "pitch"
+        ]
+      },
+      "inject_z+3": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "warn"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_29_0026": {
+      "baseline": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      }
+    },
+    "2011_09_29_0071": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "warn",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_30_0016": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "warn"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_30_0018": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "warn",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_30_0020": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_30_0027": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "warn",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_30_0028": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "warn",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_30_0033": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "warn"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      }
+    },
+    "2011_09_30_0034": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "warn",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "warn"
+        },
+        "disputed": []
+      }
+    },
+    "2011_10_03_0027": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "fail",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "warn",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    },
+    "2011_10_03_0034": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "inject_x+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      }
+    },
+    "2011_10_03_0042": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_y+3": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": []
+      },
+      "inject_z+3": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      }
+    },
+    "2011_10_03_0047": {
+      "baseline": {
+        "verdict": "pass",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_x+3": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch",
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_y+3": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch",
+          "roll",
+          "yaw"
+        ]
+      },
+      "inject_z+3": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "inject_x+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "warn",
+          "pitch": "pass",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_y+1": {
+        "verdict": "warn",
+        "judged": {
+          "roll": "pass",
+          "pitch": "warn",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "inject_z+1": {
+        "verdict": "fail",
+        "judged": {
+          "roll": "pass",
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      }
+    }
+  },
+  "scope": "spent KITTI development drives that motivated the rule; describes the opt-in feature, not held-out accuracy or a SOTA claim",
+  "screen_proposed_options": {
+    "start_agreement_deg": 0.5
+  },
+  "provenance": {
+    "generator": "tools/kitti_camera_lidar_v3_disagreement_warning.py",
+    "generator_sha256": "29c61729aa02c450a6bd5d33cd52208901186d94723f07289f78d92df2a762ca",
+    "git_commit": "ae5b00f8d2535f16d8d949b7ee415d000544507c",
+    "created_at": "2026-10-31T10:54:25.641035+00:00",
+    "screen_sha256": "809655529130a8d4eb6253d56efa57ef366b3cdfb5238bca43a01485fac4bdb7"
+  }
+}

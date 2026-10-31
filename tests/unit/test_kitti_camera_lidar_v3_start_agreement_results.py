@@ -47,3 +47,21 @@ def test_frozen_screen_verdict_reproduces_from_the_published_comparisons():
     assert result["metrics"]["current"] == inventory["current_v2_metrics"]
     assert len(result["large_errors"]["proposed"]) == 2
     assert result["large_errors"]["new_under_proposed"] == []
+
+
+def test_disagreement_warning_measurement_reproduces_with_the_shipped_verdict():
+    from tools import kitti_camera_lidar_v3_disagreement_warning as warning
+
+    published = json.loads((RESULTS / "disagreement_warning.json").read_text())
+    counted = {
+        drive: {name: trial["counted"] for name, trial in item.get("trials", {}).items()}
+        for drive, item in warning._scores(RESULTS).items()
+    }
+    result = warning.measure(RESULTS, counted)
+    assert result["runs"] == published["runs"]
+    assert result["baselines_warned"] == ["2011_09_26_0029"]
+    assert result["detection"]["3deg"]["run_flagged"] == 122
+    assert result["detection"]["3deg"]["counted"] == 124
+    assert result["detection"]["1deg"]["run_flagged"] == result["detection"]["1deg"]["counted"]
+    spot = json.loads((RESULTS / "disagreement_spot_check.json").read_text())
+    assert spot["verdicts_identical"] == spot["rest_identical"] == spot["runs"] == 14

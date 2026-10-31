@@ -1540,7 +1540,7 @@ def _estimate_workflow(
             fit_array, jackknife, controls = widened_evidence
     estimate = _transform(candidate, theta)
     disagreement = _start_disagreement(theta, evidenced, opts)
-    withheld: dict[str, float] = {}
+    withheld: dict[CameraLidarEdgeDofName, float] = {}
 
     reference_vector = Rotation.from_matrix(estimate[:3, :3]).as_rotvec()
     dofs: list[CameraLidarEdgeDofRecord] = []
@@ -1660,6 +1660,7 @@ def _estimate_workflow(
         reference=reference_label,
         limitations=limitations,
         provenance=provenance,
+        start_disagreement_deg=withheld or None,
     )
 
 

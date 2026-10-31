@@ -658,6 +658,36 @@ freezes.
 The sections above this one (Hilti, AIST, the sensor_calib_tas bag, the thirteen KITTI
 drives) were run with `t >= 2` and the earlier start rule, and are not re-run.
 
+## Experimental: cross-start disagreement warning (2026-10-31, opt-in)
+
+`--camera-lidar-start-agreement-deg 0.5` turns on a stricter reading of the search starts
+for `calibrex check`, `estimate` and `drift`. Every start whose optimum observes at least
+one rotation axis is compared with the final fit. A rotation axis on which another such
+optimum differs by more than 0.5 deg (the check's std bound) is **not judged**. Its value
+is withheld, the axis is listed as unchecked with `reason_code: start_disagreement` (in
+`estimate`, status `start_disagreement`), and the pair verdict is at least `warn`. The
+artifact records each withheld axis and its disagreement in `start_disagreement_deg`.
+Without the flag, results and caches are unchanged.
+
+What it does on the 55 spent KITTI raw drives (the [development screen](kitti_camera_lidar_v3_start_agreement_results.md)
+and its [measurement](../assets/kitti_camera_lidar_v3/start_agreement_20261031/disagreement_warning.json)):
+
+| Measure | Default | With the flag |
+| --- | ---: | ---: |
+| KITTI calibration warned | 0/52 scored drives | **1/55** (2011_09_26_0029, yaw) |
+| Turned-run axes judged more than 0.5 deg off | 10 | 2 (0.50, 0.53 deg) |
+| Largest turned-run judged error | 1.503 deg | 0.532 deg |
+| 3 deg turns: verdict warn or fail | (axis flagged: 122/125) | 122/124 runs |
+| 1 deg turns: verdict warn or fail | (axis flagged: 125/125) | 124/124 runs |
+
+A warning from disagreement does **not** say which way, or by how much, the calibration is
+off. It says that the recording supports more than one answer on that axis, so it often
+cannot name the turned axis's error the way a judged axis does. On 0029 the published
+calibration itself triggers it. These drives motivated the rule and are not held-out data:
+the flag is a development option for users who prefer a false warning to a wrong judgement.
+It is not an audited claim. Re-running it natively on two drives reproduced all 14 run
+verdicts of the measurement ([spot check](../assets/kitti_camera_lidar_v3/start_agreement_20261031/disagreement_spot_check.json)).
+
 ## Limitations
 
 * Rotation only; translation is reported unchecked on every run.

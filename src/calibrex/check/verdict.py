@@ -101,7 +101,9 @@ class AxisEstimate:
     std: float
     estimated: bool
     unchecked_reason: str | None = None
-    unchecked_code: Literal["unobservable", "control_not_detected", "no_estimate"] | None = None
+    unchecked_code: (
+        Literal["unobservable", "control_not_detected", "no_estimate", "start_disagreement"] | None
+    ) = None
     floor: float | None = None
     """A floor for this axis (in ``unit``) that applies when larger than the option's floor."""
     excitation: AxisExcitation | None = None
@@ -184,11 +186,14 @@ def judge_pair(estimates: Sequence[AxisEstimate], options: VerdictOptions) -> Pa
                     excitation=estimate.excitation,
                 )
             )
+    # Comparably supported optima that disagree on an axis cast doubt on the candidate there
+    # (opt-in camera-lidar cross-start agreement rule): the pair is at least ``warn``.
+    disputed = any(item.reason_code == "start_disagreement" for item in unchecked)
     if not axes:
-        return PairJudgement("inconclusive", (), tuple(unchecked))
+        return PairJudgement("warn" if disputed else "inconclusive", (), tuple(unchecked))
     statuses = {axis.status for axis in axes}
     verdict: Literal["pass", "warn", "fail"] = (
-        "fail" if "fail" in statuses else "warn" if "warn" in statuses else "pass"
+        "fail" if "fail" in statuses else "warn" if "warn" in statuses or disputed else "pass"
     )
     return PairJudgement(verdict, tuple(axes), tuple(unchecked))
 

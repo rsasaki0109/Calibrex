@@ -32,6 +32,7 @@ _STATUS_TEXT = {
     "control_not_detected": "control not detected",
     "no_estimate": "no estimate",
     "not_estimated": "not estimated",
+    "start_disagreement": "starts disagree",
 }
 _PAIR_CLASS = {"estimated": "pass", "partial": "warn", "failed": "fail", "skipped": "skipped"}
 _POLICY_CLASS = {"pass": "pass", "warn": "warn", "fail": "fail"}
@@ -43,7 +44,9 @@ _CSS = (
     _CHECK_CSS
     + """
 .observed { background: var(--pass-bg); color: var(--pass-fg); }
-.unobservable, .control_not_detected { background: var(--warn-bg); color: var(--warn-fg); }
+.unobservable, .control_not_detected, .start_disagreement {
+  background: var(--warn-bg); color: var(--warn-fg);
+}
 .no_estimate { background: var(--fail-bg); color: var(--fail-fg); }
 .not_estimated { background: var(--inc-bg); color: var(--inc-fg); }
 h3 { font-size: 1rem; margin: 20px 0 4px; }

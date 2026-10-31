@@ -1,0 +1,354 @@
+{
+  "schema_version": "calibrex.camera_lidar_disagreement_spot_check/v0.1",
+  "purpose": "re-run the shipped estimator with start_agreement_deg=0.5 on two cached spent drives and compare with the restored published artifacts",
+  "verdicts_identical": 14,
+  "runs": 14,
+  "rest_identical": 14,
+  "rows": [
+    {
+      "drive": "2011_09_26_0029",
+      "run": "baseline",
+      "native": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "restored": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "native_start_disagreement_deg": {
+        "yaw": 9.75
+      },
+      "restored_start_disagreement_deg": {
+        "yaw": 9.75
+      },
+      "rest_identical": true
+    },
+    {
+      "drive": "2011_09_26_0029",
+      "run": "inject_x+3",
+      "native": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "restored": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "native_start_disagreement_deg": null,
+      "restored_start_disagreement_deg": null,
+      "rest_identical": true
+    },
+    {
+      "drive": "2011_09_26_0029",
+      "run": "inject_y+3",
+      "native": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "restored": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "native_start_disagreement_deg": null,
+      "restored_start_disagreement_deg": null,
+      "rest_identical": true
+    },
+    {
+      "drive": "2011_09_26_0029",
+      "run": "inject_z+3",
+      "native": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "restored": {
+        "verdict": "inconclusive",
+        "judged": {},
+        "disputed": []
+      },
+      "native_start_disagreement_deg": null,
+      "restored_start_disagreement_deg": null,
+      "rest_identical": true
+    },
+    {
+      "drive": "2011_09_26_0029",
+      "run": "inject_x+1",
+      "native": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "restored": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "yaw"
+        ]
+      },
+      "native_start_disagreement_deg": {
+        "yaw": 9.75
+      },
+      "restored_start_disagreement_deg": {
+        "yaw": 9.75
+      },
+      "rest_identical": true
+    },
+    {
+      "drive": "2011_09_26_0029",
+      "run": "inject_y+1",
+      "native": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "restored": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail",
+          "yaw": "pass"
+        },
+        "disputed": []
+      },
+      "native_start_disagreement_deg": null,
+      "restored_start_disagreement_deg": null,
+      "rest_identical": true
+    },
+    {
+      "drive": "2011_09_26_0029",
+      "run": "inject_z+1",
+      "native": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "restored": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "pass",
+          "yaw": "fail"
+        },
+        "disputed": []
+      },
+      "native_start_disagreement_deg": null,
+      "restored_start_disagreement_deg": null,
+      "rest_identical": true
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "baseline",
+      "native": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "restored": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "native_start_disagreement_deg": null,
+      "restored_start_disagreement_deg": null,
+      "rest_identical": true
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_x+3",
+      "native": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch",
+          "roll"
+        ]
+      },
+      "restored": {
+        "verdict": "warn",
+        "judged": {},
+        "disputed": [
+          "pitch",
+          "roll"
+        ]
+      },
+      "native_start_disagreement_deg": {
+        "pitch": 7.6499999999999995,
+        "roll": 1.35
+      },
+      "restored_start_disagreement_deg": {
+        "roll": 1.35,
+        "pitch": 7.65
+      },
+      "rest_identical": true
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_y+3",
+      "native": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": [
+          "roll"
+        ]
+      },
+      "restored": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": [
+          "roll"
+        ]
+      },
+      "native_start_disagreement_deg": {
+        "roll": 1.55
+      },
+      "restored_start_disagreement_deg": {
+        "roll": 1.55
+      },
+      "rest_identical": true
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_z+3",
+      "native": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll"
+        ]
+      },
+      "restored": {
+        "verdict": "warn",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": [
+          "roll"
+        ]
+      },
+      "native_start_disagreement_deg": {
+        "roll": 1.5
+      },
+      "restored_start_disagreement_deg": {
+        "roll": 1.5
+      },
+      "rest_identical": true
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_x+1",
+      "native": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "restored": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "native_start_disagreement_deg": null,
+      "restored_start_disagreement_deg": null,
+      "rest_identical": true
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_y+1",
+      "native": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": [
+          "roll"
+        ]
+      },
+      "restored": {
+        "verdict": "fail",
+        "judged": {
+          "pitch": "fail"
+        },
+        "disputed": [
+          "roll"
+        ]
+      },
+      "native_start_disagreement_deg": {
+        "roll": 1.5
+      },
+      "restored_start_disagreement_deg": {
+        "roll": 1.5
+      },
+      "rest_identical": true
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_z+1",
+      "native": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "restored": {
+        "verdict": "pass",
+        "judged": {
+          "pitch": "pass"
+        },
+        "disputed": []
+      },
+      "native_start_disagreement_deg": null,
+      "restored_start_disagreement_deg": null,
+      "rest_identical": true
+    }
+  ],
+  "provenance": {
+    "created_at": "2026-10-31T10:54:26.446478+00:00",
+    "base_commit": "ae5b00f8",
+    "note": "estimator code as committed with this file"
+  }
+}

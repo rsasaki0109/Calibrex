@@ -1482,3 +1482,17 @@ does one baseline (0029). Flagging disagreement is the next hypothesis, needing
 its own frozen protocol with that baseline cost stated. Spent data only; no
 default, CLI or SOTA change.
 
+### Opt-in cross-start disagreement warning shipped (2026-10-31)
+
+At the user's request the flagging variant is a practical opt-in, not a v3 claim:
+`calibrex check|estimate|drift --camera-lidar-start-agreement-deg 0.5` withholds
+camera-LiDAR rotation axes where evidenced optima from different starts differ by
+more than 0.5 deg, lists them as `start_disagreement` and makes the pair at least
+`warn`. Defaults, caches and v2 results are unchanged; schemas only widen. On the
+55 spent drives (motivating data,
+[measurement](assets/kitti_camera_lidar_v3/start_agreement_20261031/disagreement_warning.json)):
+KITTI calibration warned 1/55 (0029 yaw), 3 deg turns warned 122/124, 1 deg
+124/124, turned-run judged errors >0.5 deg 10 → 2. A disagreement warning does not
+identify the error's size or direction. A v3 claim still needs a separately
+pre-registered rule on unread KITTI-360 data; do not cite these rates as audited.
+
