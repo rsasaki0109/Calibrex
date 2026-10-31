@@ -9,7 +9,8 @@ Real capture/replay progress is **55/55 spent drives** after the
 [2026-10-31 batch](#all-55-spent-drives-captured-and-replayed-2026-10-31). The
 current-rule replay reproduces v2's committed aggregate exactly. The proposed 3.5
 margin loses eight 3 deg detections and still judges one turned axis 1.35 deg
-off, so it is **not adopted**. It stays opt-in; no new claim or default change.
+off. It is **not adopted as a default**: it stays an opt-in candidate, with no new
+claim or default change.
 
 ## Proposed far-start adoption rule
 
@@ -123,8 +124,16 @@ where it rejects a far optimum and keeps a wrong current fit. Errors on 0023
 (0.80 deg), 0043 (0.55 deg), 0093 (0.50 deg) and 2011_09_30_0016 (0.53 deg)
 remain under both rules. It loses eight 3 deg detections: 0014 pitch and yaw,
 0029 pitch, 0035 roll, 0101 yaw, 0002 pitch, and 0034 roll and yaw. Coverage is
-unchanged. A scalar margin therefore trades detections for some errors, but it
-does not bound the judged error: the rule is not adopted.
+unchanged.
+
+Measured against v2's gate values, the margin would pass on these spent drives:
+3 deg misses are 8.8 %, within 10 %, and the turned-run error is 1.350 deg,
+within 1.5 deg. The current rule misses that turned-run error gate by 0.003 deg.
+This is **not evidence for adoption**. The value 3.5 was proposed after reading
+0002, which is v2 evaluation data, and these 55 drives include all of v2's
+evaluation drives. The margin also moves a large error to 0036 rather than
+removing it. The margin therefore stays an opt-in candidate. Any v3 rule still
+needs development here and a pre-registered test on unread data.
 
 Four large zip64 drives (2011_09_30_0018 and 0028, 2011_10_03_0027 and 0034)
 first failed while fetching, through truncated transfers or connection resets
@@ -458,7 +467,7 @@ spent 0000 and 0002. The earlier cloud HTTP 403 is historical evidence.
 All 55 spent drives now have real captures and paired comparisons (above).
 KITTI-360 conversion checks are not calibration measurements.
 
-The scalar 3.5 margin is rejected. The next development step is a different
+The scalar 3.5 margin is not adopted as a default (above). The next development step is a different
 start-selection or axis-evidence rule, tested on the cached inputs and then
 replayed on all 55 drives, with re-capture of the 32 uncached ones. It must
 report together coverage, missed turns, and the turned-run judged-axis errors,

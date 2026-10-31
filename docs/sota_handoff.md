@@ -1454,8 +1454,10 @@ current-rule replay equals the committed v2 aggregate exactly (52 scored,
 125/156 judged axes, 3 deg 122/125, 1 deg 125/125, maxima 0.450/1.503 deg).
 The proposed 3.5 margin keeps coverage but flags only **114/125** 3 deg turns and
 adds a 1.350 deg yaw error on 0036 while removing the 0002/0057 errors
-(turned-run judged axes >0.5 deg: 10 → 5). Reject the scalar margin; no default
-or threshold change. Four zip64 drives first failed on cut range transfers;
+(turned-run judged axes >0.5 deg: 10 → 5). Against v2's gate values it would
+pass on these spent drives (8.8 % 3 deg misses, 1.350 deg), but only post hoc:
+3.5 was chosen after reading v2 evaluation drive 0002, and the margin moves a
+large error to 0036. Do not adopt it as a default; no threshold change. Four zip64 drives first failed on cut range transfers;
 all eight failed attempts are kept. The fetch fix `a7a83db0` retries each range
 as a fresh, length/ETag/CRC-checked request. (The interim `--retry-all-errors`
 appended partial bodies and was caught by the length check.) NPZ inputs remain
