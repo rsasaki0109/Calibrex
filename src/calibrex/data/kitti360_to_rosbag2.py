@@ -371,8 +371,11 @@ def _convert(
             "rectified": True,
             "k": list(k),
             "image_size_px": [width, height],
+            "frame": frame,
             "t_camera_velodyne": (np.linalg.inv(t_pose_rectified) @ t_pose_velo).tolist(),
+            "t_pose_velodyne": t_pose_velo.tolist(),
             "convention": "T_pose_rect = T_pose_camera * inverse(R_rect_selected); "
+            "T_pose_velo = T_pose_cam0 * inverse(calib_cam_to_velo); TF serializes both; "
             "CameraInfo P=[K|0], stereo baseline represented once in TF",
         },
         "frames": {
