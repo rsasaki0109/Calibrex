@@ -167,6 +167,7 @@ def run_drive(
     *,
     keep_arrays_free: int = KEEP_ARRAYS_FREE_BYTES,
     free: Callable[[], int] | None = None,
+    proposed: dict[str, Any] | None = None,
 ) -> DriveReport:
     """One new attempt for one drive; the attempt directory is never reused."""
 
@@ -255,8 +256,9 @@ def run_drive(
         report.stage = "compare"
         save()
         result = replay.compare_drives(
-            out / "snapshots", out / "comparison", drives=[drive], margin=MARGIN
+            out / "snapshots", out / "comparison", drives=[drive], margin=MARGIN, proposed=proposed
         )
+        report.details["proposed_options"] = result.get("proposed_options")
         report.details["comparison_status"] = result["status"]
         report.details["comparison_errors"] = result["errors"]
         if result["errors"]:
@@ -287,7 +289,11 @@ def run_drive(
 
 
 def run(
-    pins_path: Path, work: Path, drives: Sequence[str] | None = None, retry_failed: bool = False
+    pins_path: Path,
+    work: Path,
+    drives: Sequence[str] | None = None,
+    retry_failed: bool = False,
+    proposed: dict[str, Any] | None = None,
 ) -> int:
     """Process drives in the given order under a single-runner lock.
 
@@ -318,7 +324,7 @@ def run(
             if previous is not None and not retry:
                 print(drive, "skip", previous["status"], f"attempt_{attempt}", flush=True)
                 continue
-            report = run_drive(pins, drive, work)
+            report = run_drive(pins, drive, work, proposed=proposed)
             failures += report.status != "PASS_DEVELOPMENT"
             print(drive, report.status, report.stage, report.details.get("wall_s"), flush=True)
     return 1 if failures else 0
@@ -421,6 +427,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     r.add_argument("work", type=Path)
     r.add_argument("--drive", action="append")
     r.add_argument("--retry-failed", action="store_true")
+    r.add_argument("--proposed-options", type=json.loads, default=None)
     u = sub.add_parser("publish")
     u.add_argument("work", type=Path)
     u.add_argument("dest", type=Path)
@@ -432,7 +439,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         pin(args.metadata_dir, args.output)
         return 0
     if args.command == "run":
-        return run(args.pins, args.work, args.drive, args.retry_failed)
+        return run(args.pins, args.work, args.drive, args.retry_failed, args.proposed_options)
     if args.command == "publish":
         print(publish(args.work, args.dest), "files published")
         return 0

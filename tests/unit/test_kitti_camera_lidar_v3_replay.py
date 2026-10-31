@@ -124,7 +124,10 @@ def test_rounded_calibration_reference_matches_serialized_tf(tmp_path: Path) -> 
             rows.append(f"{key}:{values}")
         path.write_text("\n".join(rows) + "\n")
     result = convert_kitti_raw_to_rosbag2(
-        source, tmp_path / "bag", camera="image_02", velodyne_time="azimuth",
+        source,
+        tmp_path / "bag",
+        camera="image_02",
+        velodyne_time="azimuth",
     )
     loaded = load_bag_tf_static(result.bag)
     assert loaded is not None
@@ -345,3 +348,25 @@ def test_converged_replay_scores_real_injections_on_the_same_saved_frames(tmp_pa
         assert metrics["trials"]["3deg"]["flagged_fraction"] == 1.0
         assert metrics["max_turned_judged_error_deg"] < 0.5
     assert report["coverage_change_percentage_points"] == 0.0
+
+
+def test_replay_compares_any_declared_proposed_options(
+    tmp_path: Path,
+    captured: tuple[Path, Path],
+) -> None:
+    _, captures = captured
+    with pytest.raises(ValueError):
+        replay.compare_drives(
+            captures, tmp_path / "bad", drives=[DRIVE], proposed={"start_agreement_deg": 0.0}
+        )
+    report = replay.compare_drives(
+        captures, tmp_path / "paired", drives=[DRIVE], proposed={"start_agreement_deg": 0.5}
+    )
+    assert report["errors"] == {}
+    assert report["proposed_options"] == {"start_agreement_deg": 0.5}
+    assert report["proposed_margin"] is None
+    current = json.loads((tmp_path / "paired" / DRIVE / "current/baseline.json").read_text())
+    proposed = json.loads((tmp_path / "paired" / DRIVE / "proposed/baseline.json").read_text())
+    assert "start_agreement_deg" not in current["options"]
+    assert proposed["options"]["start_agreement_deg"] == 0.5
+    assert proposed["options"]["start_scan_min_control_t"] is None

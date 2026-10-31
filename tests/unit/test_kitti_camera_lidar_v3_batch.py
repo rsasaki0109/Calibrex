@@ -53,7 +53,7 @@ def _fake_pipeline(monkeypatch, capture_code=0, compare_errors=None):
         (output / "baseline.json").write_text("{}")
         return capture_code
 
-    def fake_compare(snapshots, output, drives, margin):
+    def fake_compare(snapshots, output, drives, margin, proposed=None):
         assert drives == [DRIVE] and margin == 3.5
         output.mkdir()
         scores = {rule: {DRIVE: {"state": "inconclusive"}} for rule in ("current", "proposed")}

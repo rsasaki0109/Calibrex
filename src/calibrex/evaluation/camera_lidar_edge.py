@@ -247,6 +247,12 @@ class EdgeAlignmentOptions:
     # observed at the current optimum. Unobserved axes do not veto it. None retains
     # the v2 adoption rule; 3.5 is a development proposal, not a validated default.
     start_scan_min_control_t: float | None = None
+    # Optional cross-start axis evidence. A rotation axis the final fit would report is
+    # withheld when another evidenced optimum (one observing at least one rotation DoF,
+    # from the candidate or a profile start) differs from it there by more than this
+    # many degrees: comparably supported optima then disagree on that axis. None keeps
+    # the v2 rule and is left out of ``as_dict``. A development proposal, not a default.
+    start_agreement_deg: float | None = None
     preparation_workers: int = 1
 
     def __post_init__(self) -> None:
@@ -273,6 +279,10 @@ class EdgeAlignmentOptions:
             and self.start_scan_min_control_t >= self.min_control_t
         ):
             raise ValueError("start_scan_min_control_t must be finite and at least min_control_t")
+        if self.start_agreement_deg is not None and not (
+            math.isfinite(self.start_agreement_deg) and self.start_agreement_deg > 0.0
+        ):
+            raise ValueError("start_agreement_deg must be finite and positive")
 
     @property
     def effective_spacing_s(self) -> float:
@@ -288,6 +298,7 @@ class EdgeAlignmentOptions:
         return {
             key: list(value) if isinstance(value, tuple) else value
             for key, value in asdict(self).items()
+            if not (key == "start_agreement_deg" and value is None)
         }
 
 
@@ -1498,6 +1509,7 @@ def _estimate_workflow(
     observed = _observed_rotation_axes(theta, jackknife, controls, std_floor, opts)
     candidate_observed = len(observed)
     tried = [theta[:3].copy()]
+    evidenced = [theta[:3].copy()] if observed else []
     for scan_start in _profile_starts((yield from _profile_workflow(objective, opts))):
         emit_stage(
             "camera-lidar: searching from the profile maxima "
@@ -1515,6 +1527,8 @@ def _estimate_workflow(
         widened_observed = _observed_rotation_axes(
             widened, widened_evidence[1], widened_evidence[2], std_floor, opts
         )
+        if widened_observed:
+            evidenced.append(widened[:3].copy())
         if _replaces_current(observed, widened_observed, widened, widened_evidence[2], opts):
             start_reason = (
                 "the estimate comes from the search started at the profile maxima "
@@ -1525,6 +1539,8 @@ def _estimate_workflow(
             theta, score, observed = widened, widened_score, widened_observed
             fit_array, jackknife, controls = widened_evidence
     estimate = _transform(candidate, theta)
+    disagreement = _start_disagreement(theta, evidenced, opts)
+    withheld: dict[str, float] = {}
 
     reference_vector = Rotation.from_matrix(estimate[:3, :3]).as_rotvec()
     dofs: list[CameraLidarEdgeDofRecord] = []
@@ -1556,6 +1572,9 @@ def _estimate_workflow(
             and (rotation_axis or opts.estimate_translation)
             else "unobservable"
         )
+        if status == "estimated" and index in disagreement:
+            status = "unobservable"
+            withheld[name] = disagreement[index]
         dofs.append(
             CameraLidarEdgeDofRecord(
                 name=name,
@@ -1597,6 +1616,11 @@ def _estimate_workflow(
         held_out = record.known_bad_control
         if record.name in {"x", "y", "z"} and not opts.estimate_translation:
             why = "translation is not estimated (parallax resolves it too weakly; see limitations)"
+        elif record.name in withheld:
+            why = (
+                f"optima from different search starts differ on it by up to "
+                f"{withheld[record.name]:.3g} deg, above {opts.start_agreement_deg:g} deg"
+            )
         elif record.at_search_bound:
             why = "reached the search bound"
         elif held_out is not None and held_out.detected:
@@ -1774,6 +1798,28 @@ def _replaces_current(
         (t := controls[axis].min_t_statistic) is not None and math.isfinite(t) and t >= margin
         for axis in widened_observed
     )
+
+
+def _start_disagreement(
+    theta: FloatArray, evidenced: Sequence[FloatArray], options: EdgeAlignmentOptions
+) -> dict[int, float]:
+    """Rotation axes on which another evidenced optimum differs beyond the agreement bound.
+
+    Optimum vectors are corrections relative to the same candidate, so they compare
+    directly. An evidenced optimum observes at least one rotation DoF; one that observes
+    none carries no evidence about any axis. Empty when the option is off.
+    """
+
+    if options.start_agreement_deg is None:
+        return {}
+    final = theta[:3]
+    spread = np.zeros(3)
+    for other in evidenced:
+        if not np.array_equal(other, final):
+            spread = np.maximum(spread, np.abs(other - final))
+    return {
+        axis: float(spread[axis]) for axis in range(3) if spread[axis] > options.start_agreement_deg
+    }
 
 
 def _profile_starts(scan_start: FloatArray | None) -> list[FloatArray]:

@@ -20,7 +20,7 @@ import tempfile
 import time
 from collections.abc import Sequence
 from contextlib import redirect_stderr, redirect_stdout
-from dataclasses import asdict, fields, replace
+from dataclasses import asdict, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from types import ModuleType
@@ -104,18 +104,21 @@ def _reference(conversion: dict[str, Any], drive: str) -> np.ndarray:
         raise ValueError("conversion reference must have a homogeneous last row")
     vendor_values = conversion["camera"].get("t_imu_velo")
     if vendor_values is None:
-        if not np.allclose(reference[:3, :3].T @ reference[:3, :3], np.eye(3),
-                           rtol=0, atol=1e-10):
+        if not np.allclose(reference[:3, :3].T @ reference[:3, :3], np.eye(3), rtol=0, atol=1e-10):
             raise ValueError("rounded calibration needs t_imu_velo provenance; regenerate the bag")
         return reference  # legacy exact-rigid snapshots remain readable
     vendor = np.asarray(vendor_values, dtype=np.float64)
-    if (vendor.shape != (4, 4) or not np.isfinite(vendor).all()
-            or not np.allclose(vendor[3], [0, 0, 0, 1], rtol=0, atol=1e-12)):
+    if (
+        vendor.shape != (4, 4)
+        or not np.isfinite(vendor).all()
+        or not np.allclose(vendor[3], [0, 0, 0, 1], rtol=0, atol=1e-12)
+    ):
         raise ValueError("conversion must record a finite homogeneous t_imu_velo")
     for matrix in (reference, vendor):
         rotation = matrix[:3, :3]
-        if (not np.allclose(rotation.T @ rotation, np.eye(3), rtol=0, atol=1e-5)
-                or not math.isclose(float(np.linalg.det(rotation)), 1.0, abs_tol=1e-5)):
+        if not np.allclose(rotation.T @ rotation, np.eye(3), rtol=0, atol=1e-5) or not math.isclose(
+            float(np.linalg.det(rotation)), 1.0, abs_tol=1e-5
+        ):
             raise ValueError("conversion calibration must be a proper near-rigid transform")
     # Match the converter's two independently quaternion-serialized TF edges.
     # Projecting T_cam_velo alone loses the translation change from inverting
@@ -248,7 +251,8 @@ def load_snapshot(
     _require_spent(metadata.drive)
     if metadata.run not in RUNS:
         raise ValueError("unknown snapshot run")
-    if set(metadata.options) != {item.name for item in fields(edge.EdgeAlignmentOptions)}:
+    # Default options record every field except opt-in ones left out while unset.
+    if set(metadata.options) != set(edge.EdgeAlignmentOptions().as_dict()):
         raise ValueError("option fields changed; use an explicit snapshot migration")
     values = dict(metadata.options)
     for key in ("rotation_levels_deg", "translation_levels_m"):
@@ -456,10 +460,16 @@ def compare_drives(
     *,
     drives: Sequence[str] | None = None,
     margin: float = 3.5,
+    proposed: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Replay both rules, retain failures, require capture parity and never set audit gates."""
+    """Replay both rules, retain failures, require capture parity and never set audit gates.
 
-    edge.EdgeAlignmentOptions(start_scan_min_control_t=margin)
+    The proposed rule is the far-start ``margin`` unless ``proposed`` names other
+    ``EdgeAlignmentOptions`` overrides; the current rule always keeps the captured options.
+    """
+
+    proposed_rule = {"start_scan_min_control_t": margin} if proposed is None else dict(proposed)
+    edge.EdgeAlignmentOptions(**proposed_rule)
     order = list(spent_drives() if drives is None else drives)
     if len(set(order)) != len(order) or not order:
         raise ValueError("choose distinct spent drives")
@@ -521,8 +531,8 @@ def compare_drives(
                 ):
                     raise ValueError("mixed snapshot identity or conversion digest")
                 captured = load_camera_lidar_edge(path / "captured_edge.json")
-                for rule, threshold in (("current", None), ("proposed", margin)):
-                    destination = output / drive / rule
+                for name, overrides in (("current", {}), ("proposed", proposed_rule)):
+                    destination = output / drive / name
                     destination.mkdir(parents=True, exist_ok=True)
                     provenance = meta.input_provenance.model_copy(
                         update={
@@ -537,8 +547,8 @@ def compare_drives(
                             "command": [
                                 "compare",
                                 str(snapshots),
-                                "--min-far-control-t",
-                                str(margin),
+                                "--proposed-options",
+                                json.dumps(proposed_rule, sort_keys=True),
                             ],
                         }
                     )
@@ -546,7 +556,7 @@ def compare_drives(
                         frames_in,
                         camera,
                         candidate,
-                        options=replace(options, start_scan_min_control_t=threshold),
+                        options=replace(options, **overrides),
                         provenance=provenance,
                         parent_frame=meta.parent_frame,
                         child_frame=meta.child_frame,
@@ -555,13 +565,13 @@ def compare_drives(
                         motion_compensation=meta.motion_compensation,
                     )
                     artifact.save(destination / f"{run}.json")
-                    if rule == "current" and not _same(
+                    if name == "current" and not _same(
                         artifact.model_dump(exclude={"provenance"}),
                         captured.model_dump(exclude={"provenance"}),
                     ):
                         raise ValueError(f"current replay differs from captured evidence: {run}")
-                    inputs[rule][run] = _run_input(artifact, candidate)
-                    if rule == "current":
+                    inputs[name][run] = _run_input(artifact, candidate)
+                    if name == "current":
                         checks = json.loads((root / f"{run}.json").read_text())["pairs"]
                         (pair,) = [item for item in checks if item["pair"] == "camera-lidar"]
                         judged = {
@@ -569,8 +579,8 @@ def compare_drives(
                             for item in pair["axes"]
                             if item["name"] in ("roll", "pitch", "yaw")
                         }
-                        if pair["verdict"] != inputs[rule][run].verdict or (
-                            judged != inputs[rule][run].judged
+                        if pair["verdict"] != inputs[name][run].verdict or (
+                            judged != inputs[name][run].judged
                         ):
                             raise ValueError(f"replayed verdict differs from real check: {run}")
             for rule in scores:
@@ -601,7 +611,8 @@ def compare_drives(
         "errors": errors,
         "metrics": metrics,
         "scores": scores,
-        "proposed_margin": margin,
+        "proposed_margin": margin if proposed is None else None,
+        "proposed_options": proposed_rule,
         "coverage_change_percentage_points": None
         if before is None or after is None
         else 100.0 * (after - before),
@@ -636,6 +647,12 @@ def main(argv: list[str] | None = None) -> int:
     compare.add_argument("--output", type=Path, required=True)
     compare.add_argument("--drive", action="append", default=None)
     compare.add_argument("--min-far-control-t", type=float, default=3.5)
+    compare.add_argument(
+        "--proposed-options",
+        type=json.loads,
+        default=None,
+        help="JSON EdgeAlignmentOptions overrides for the proposed rule instead of the margin",
+    )
     args = parser.parse_args(argv)
     if args.command == "capture":
         return capture_drive(args.bag, args.drive, args.output)
@@ -644,6 +661,7 @@ def main(argv: list[str] | None = None) -> int:
         args.output,
         drives=args.drive,
         margin=args.min_far_control_t,
+        proposed=args.proposed_options,
     )
     return 0 if report["status"] == "complete" else 1
 
