@@ -88,13 +88,48 @@ Segments are fixed by IDs, not by content. A stationary or featureless segment
 stays in the list. Whether the check can judge it is part of the coverage
 measure.
 
+## Gate rule, fixed before the development results
+
+This rule was committed while the first development segment was still being
+fetched, before any KITTI-360 check result existed. The gates themselves are
+not set yet. They follow from the rule once the development batch has run.
+
+Development values come from the 22 spent segments, scored by the frozen v2
+scorer under the default rule. KITTI raw's 55 spent drives are reported beside
+them but set no gate, because the evaluation rig is KITTI-360. The rules are
+v2's, unchanged:
+
+- **Judged-axis error, baseline and turned runs.** 1.5 times the worst
+  development value, rounded up to the next 0.25°.
+- **Judged-axis coverage.** The development rate divided by 1.5, rounded down
+  to the next 0.25.
+- **Scored segments.** The development rate divided by 1.5, rounded down to a
+  whole number of the 42 segments.
+- **3° turns missed.** The one-sided 95 % exact binomial upper bound of the
+  development miss rate (the rule of three when none is missed), rounded up to
+  the next 0.05.
+- **1° turns missed.** 0.25, v1's allowance.
+- **Vendor calibration flagged, 3° turns judged right, failed segments.** None
+  allowed.
+
+The secondary claim measures the opt-in warning
+(`--camera-lidar-start-agreement-deg 0.5`) on the same runs. Its baseline
+warning rate, and its run-level 3° and 1° miss rates, get the binomial
+allowance above. Its judged-axis errors get the 1.5× rule. The warning's
+development numbers on KITTI raw come from the data that motivated it, so
+only KITTI-360 development values set its gates too.
+
+If the development batch already fails a gate that the rule derives from the
+batch itself, for example a flagged vendor baseline, the pre-registration
+records that. It is not tuned away.
+
 ## Not yet decided
 
 The following are decided only after development runs on the 22 spent
 segments:
 
 - timestamp-boundary checks and the failure policy for a segment;
-- the gates;
+- the gate values, by the rule above;
 - the per-sequence reporting.
 
 Spent segments may also be used to develop the batch tool. The pre-registration
