@@ -347,7 +347,32 @@ def publish(work: Path, dest: Path) -> int:
             (target / relative).parent.mkdir(parents=True, exist_ok=True)
             (target / relative).write_bytes(data)
             count += 1
+    files = [
+        {"path": p.relative_to(dest).as_posix(), "bytes": p.stat().st_size, "sha256": _sha(p)}
+        for p in sorted(dest.rglob("*"))
+        if p.is_file() and p.name != "manifest.json"
+    ]
+    manifest = {
+        "schema_version": SCHEMA,
+        "policy": "unmodified reports and non-sensor receipts; no images, clouds, bags, "
+        "archive payloads or NPZ inputs; fetch member lists replaced by their digest",
+        "files": files,
+        "provenance": _provenance(),
+    }
+    (dest / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", "utf-8")
     return count
+
+
+def _provenance() -> dict[str, Any]:
+    commit = subprocess.run(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], capture_output=True, text=True, check=False
+    ).stdout.strip()
+    return {
+        "generator": "tools/kitti_camera_lidar_v3_batch.py",
+        "generator_sha256": _sha(Path(__file__)),
+        "git_commit": commit,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 def aggregate(dest: Path, output: Path) -> dict[str, Any]:
@@ -378,6 +403,8 @@ def aggregate(dest: Path, output: Path) -> dict[str, Any]:
         "drive_status": statuses,
         "metrics": {rule: summarize(values) for rule, values in scores.items()},
         "margin": MARGIN,
+        "attempts": {drive: _latest(dest, drive)[0] for drive in replay.spent_drives()},
+        "provenance": _provenance(),
     }
     output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     return result

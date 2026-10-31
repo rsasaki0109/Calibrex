@@ -1,0 +1,74 @@
+check: 1 pair to run
+check: running camera-lidar (cam2_optical / velo_link) [pair 1/1]
+check:   camera-lidar: /camera/image_raw + /velodyne_points (intrinsics: CameraInfo /camera/camera_info) [0s elapsed]
+check:   camera-lidar: pairing /camera/image_raw with /velodyne_points [0s elapsed]
+check:   camera-lidar: preparing 48 frame(s) [7s elapsed]
+check:   camera-lidar: maximising the edge-alignment objective [9s elapsed]
+check:   camera-lidar: jackknife fit 1/6 [10s elapsed]
+check:   camera-lidar: jackknife fit 2/6 [10s elapsed]
+check:   camera-lidar: jackknife fit 3/6 [10s elapsed]
+check:   camera-lidar: jackknife fit 4/6 [10s elapsed]
+check:   camera-lidar: jackknife fit 5/6 [10s elapsed]
+check:   camera-lidar: jackknife fit 6/6 [10s elapsed]
+check:   camera-lidar: profiling the objective along each rotation axis [10s elapsed]
+check:   camera-lidar: searching from the profile maxima (-1.0, +0.0, +0.0 deg) [10s elapsed]
+check:   camera-lidar: searching from the profile maxima (+0.0, -1.0, +0.0 deg) [10s elapsed]
+check:   camera-lidar: searching from the profile maxima (+0.0, +0.0, -3.0 deg) [10s elapsed]
+check:   camera-lidar: searching from the profile maxima (-1.0, -1.0, -3.0 deg) [10s elapsed]
+check: camera-lidar (cam2_optical / velo_link) -> warn (10 s) [pair 1/1 done]
+calibrex check (run)
+bag: /home/user/kitti-v3-batch/2011_10_03_0047/attempt_1/bag (8 topics)
+
+candidate sources:
+  bag_tf_static: /home/user/kitti-v3-batch/2011_10_03_0047/attempt_1/bag (3 frames) sha256=c172c9cbab75
+    note: read 1 tf_static message(s) from 1 topic(s)
+  frames_yaml: /home/user/kitti-v3-batch/2011_10_03_0047/attempt_1/snapshots/2011_10_03_0047/inject_x+1_frames.yaml (1 frames) sha256=922b128eb1b6
+    note: 1 frame(s) read
+frame tree: 4 frames, 1 root(s) [base_link]
+  override: /home/user/kitti-v3-batch/2011_10_03_0047/attempt_1/snapshots/2011_10_03_0047/inject_x+1_frames.yaml overrides bag tf_static for frame 'cam2_optical' (parent 'imu_link' -> 'imu_link')
+
+topics:
+topic              role       header frame  tree frame
+-----------------  ---------  ------------  ---------------------
+/camera/image_raw  camera     cam2_optical  cam2_optical (header)
+/oxts/fix          gnss       imu_link      imu_link (header)
+/oxts/imu          imu        imu_link      imu_link (header)
+/oxts/odometry     odometry   imu_link      imu_link (header)
+/oxts/twist        twist      base_link     base_link (header)
+/tf_static         tf_static  -             -
+/velodyne_points   lidar      velo_link     velo_link (header)
+
+pairs (no --vehicle-frame: vehicle pairs are skipped):
+pair                  sensors                   verdict                                reason             |delta|/tolerance                                                 unchecked  detectable
+--------------------  ------------------------  -------------------------------------  -----------------  ----------------------------------------------------------------  ---------  ----------------------------------------
+lidar-lidar           velo_link                 skipped                                missing_topic
+camera-lidar          cam2_optical / velo_link  warn (partial: roll, pitch, yaw only)                     roll 0.8/0.5 deg [warn]; pitch 6.05e-15/0.5 deg; yaw 0.4/0.5 deg  x, y, z    roll 1.3 deg; pitch 0.5 deg; yaw 0.9 deg
+camera-camera         cam2_optical              skipped                                missing_topic
+gnss-imu              imu_link / imu_link       skipped                                degenerate_frames
+lidar-vehicle         -                         skipped                                no_vehicle_frame
+imu-vehicle           -                         skipped                                no_vehicle_frame
+lidar-wheel_odometry  -                         skipped                                missing_topic
+  not selected: imu-lidar, camera-imu, camera-focal, gnss-lidar, ins-lidar
+  camera-lidar: unchecked x: translation is not estimated: the edge objective sees it only through parallax, and on the recordings evaluated its estimate differed from the reference by up to 11 cm
+  camera-lidar: unchecked y: translation is not estimated: the edge objective sees it only through parallax, and on the recordings evaluated its estimate differed from the reference by up to 11 cm
+  camera-lidar: unchecked z: translation is not estimated: the edge objective sees it only through parallax, and on the recordings evaluated its estimate differed from the reference by up to 11 cm
+
+closure of the estimates (independent estimates against each other):
+  no loop: fewer than two independent estimates share a frame
+
+which frame's rotation the pair errors point to (informational):
+  cam2_optical, velo_link: ambiguous
+    cam2_optical, velo_link each explain the pair errors alone; these pairs cannot tell which candidate is off
+
+overall verdict: warn
+WARNING: 1 pair(s) have partial coverage: unchecked axes were not judged, so a pass covers only the judged axes
+
+summary: 13 pair record(s), 1 runnable (skipped=12, warn=1)
+
+next steps:
+  - lidar-lidar: needs a second distinct lidar sensor (found one); expected another sensor_msgs/msg/PointCloud2 topic with its own frame_id
+  - camera-camera: needs a second distinct camera sensor (found one); expected another sensor_msgs/msg/Image (plus a CameraInfo or a Kalibr camchain for its intrinsics) topic with its own frame_id
+  - both sensors are stamped in one frame: point the topics at their sensor frames with --frame-map TOPIC=FRAME, or list the sensor frames in --tf
+  - vehicle pairs are opt-in for ground vehicles: add --vehicle-frame base_link (use your vehicle frame name)
+  - lidar-wheel_odometry: the bag lacks a topic for this pair; expected wheel: nav_msgs/msg/Odometry or TwistStamped classified as wheel (--topic-kind TOPIC=wheel)
+artifact: /home/user/kitti-v3-batch/2011_10_03_0047/attempt_1/snapshots/2011_10_03_0047/inject_x+1.json

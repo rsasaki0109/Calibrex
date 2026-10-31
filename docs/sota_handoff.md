@@ -510,8 +510,9 @@ no evaluation has started. This is converter readiness, not accuracy evidence.
 
 **Work needed first.**
 
-- Capture and compare all 55 spent KITTI raw drives using the existing
-  `tools/kitti_camera_lidar_v3_replay.py`, then confirm via the real driver.
+- ~~Capture and compare all 55 spent KITTI raw drives using the existing
+  `tools/kitti_camera_lidar_v3_replay.py`~~ done 2026-10-31 (see the last entry);
+  a selected new rule still needs confirmation via the real driver.
 - Complete exposure auditing and independent-platform research requirements;
   KITTI-360 sequences alone do not add dataset families or rigs.
 - KITTI-360 has few, long sequences: pre-register several disjoint 60 s segments per
@@ -1442,3 +1443,24 @@ core; no learned model or fresh dataset acquired. Next fill learned-request temp
 with an accessible official KITTI artifact and SHA/source/terms/training+image recipe,
 then bounded CPU smoke and preregistered spent-data pilot. CPU-only user constraint
 persists; stop adding substitute random-weight experiments as accuracy evidence.
+
+### v3 capture complete on all 55 spent drives (2026-10-31)
+
+[Results](benchmarks/kitti_camera_lidar_v3_development.md#all-55-spent-drives-captured-and-replayed-2026-10-31):
+`tools/kitti_camera_lidar_v3_batch.py` fetched, converted, captured (seven real
+checks) and replayed all 55 spent KITTI raw drives in one cloud session, with
+archive/calibration pins committed first (`4d82d125`). Summary `complete`; the
+current-rule replay equals the committed v2 aggregate exactly (52 scored,
+125/156 judged axes, 3 deg 122/125, 1 deg 125/125, maxima 0.450/1.503 deg).
+The proposed 3.5 margin keeps coverage but flags only **114/125** 3 deg turns and
+adds a 1.350 deg yaw error on 0036 while removing the 0002/0057 errors
+(turned-run judged axes >0.5 deg: 10 → 5). Reject the scalar margin; no default
+or threshold change. Four zip64 drives first failed on cut range transfers;
+all eight failed attempts are kept. The fetch fix `a7a83db0` retries each range
+as a fresh, length/ETag/CRC-checked request. (The interim `--retry-all-errors`
+appended partial bodies and was caught by the length check.) NPZ inputs remain
+only on the batch machine for 23 drives; the other 32 need re-capture before
+replaying a new rule. Next: a different start-selection/axis-evidence rule
+developed on cached inputs, then replayed on all 55 drives with coverage, missed
+turns and judged-axis errors reported together. KITTI-360 pre-registration stays
+pending; no fresh data was read and no SOTA claim is made.

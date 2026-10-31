@@ -1,0 +1,133 @@
+{
+  "camera": {
+    "calib_cam_to_cam_sha256": "878f2e4873392ca8e94970e389ea3aa2026f33e48910bd20068e9f8bcbeb067a",
+    "calib_velo_to_cam_sha256": "a1b4a74c75443293c9a27790b511c12c17906bdf89afce06451b2e8e20c62579",
+    "convention": "tf imu_link->frame is T_imu_cam = T_imu_velo * inv(T_cam_velo); T_cam_velo = [I|baseline] * R_rect_00 * [R|T] of calib_velo_to_cam.txt",
+    "directory": "image_02",
+    "frame": "cam2_optical",
+    "image_size_px": [
+      1241,
+      376
+    ],
+    "k": [
+      718.856,
+      0.0,
+      607.1928,
+      0.0,
+      718.856,
+      185.2157,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "rectified_baseline_m": [
+      0.059938577872451784,
+      -0.0011311859112919694,
+      0.003779761
+    ],
+    "t_cam_velo": [
+      [
+        0.00042768023855836203,
+        -0.9999672484946015,
+        -0.008084491683471012,
+        0.047953978595318754
+      ],
+      [
+        -0.007210626507497482,
+        0.008081198471645075,
+        -0.9999413164503825,
+        -0.0551710332087719
+      ],
+      [
+        0.9999738645903279,
+        0.00048594858103900374,
+        -0.007206933692422334,
+        -0.28841710386859104
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "t_imu_velo": [
+      [
+        0.9999976849177095,
+        -0.0007854027876673971,
+        0.0020244058080916678,
+        0.8105439720319256
+      ],
+      [
+        0.0007553071054852943,
+        0.9998898503302319,
+        0.014824543793941894,
+        -0.30705437225086085
+      ],
+      [
+        -0.002035826202683151,
+        -0.014822975798690638,
+        0.9998880222079657,
+        0.8027239945583536
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "command": [
+    "/home/user/Calibrex/.venv/bin/python",
+    "/home/user/calibrex-batch/tools/kitti_camera_lidar_v3_batch.py",
+    "run",
+    "SPENT_DEVELOPMENT_ONLY"
+  ],
+  "created_at": "2026-10-31T06:07:29.736346+00:00",
+  "frames": {
+    "base_link": "defined as the OXTS/IMU frame (KITTI convention; no separate vehicle frame is published). base_link -> imu_link is the identity.",
+    "imu_link": "OXTS unit; x forward, y left, z up (KITTI IMU/GPS frame)",
+    "odom": "ENU-like local frame of the OXTS trajectory: Mercator projection of the first packet's latitude, origin at the first packet of each drive (kitti_oxts_pose_world_imu)",
+    "velo_link": "Velodyne HDL-64E; tf imu_link -> velo_link is the inverse of calib_imu_to_velo.txt"
+  },
+  "generator": "calibrex convert kitti-raw",
+  "generator_version": "0.5.1",
+  "git_commit": "a7a83db0",
+  "message_counts": {
+    "/camera/camera_info": 600,
+    "/camera/image_raw": 600,
+    "/oxts/fix": 600,
+    "/oxts/imu": 600,
+    "/oxts/odometry": 600,
+    "/oxts/twist": 600,
+    "/tf_static": 1,
+    "/velodyne_points": 600
+  },
+  "schema_version": "calibrex.rosbag_conversion/v0.1",
+  "source": {
+    "calib_imu_to_velo_sha256": "07ca9ed33a2d968fc6358617d2c70e048b6f8e0f6ee5b73ae963afc1b19456ce",
+    "dataset_family": "kitti_raw",
+    "drives": [
+      {
+        "drive": "2011_10_03_drive_0027_sync",
+        "input_sha256": "3796401ebd5e2ee3d11337d52ddcaddce5a24bc3d2a3656abe72ec257e17f486",
+        "missing_velodyne_indices": []
+      }
+    ],
+    "input_digest_scope": "per drive: calib_imu_to_velo.txt, OXTS and Velodyne timestamps, every OXTS packet and every Velodyne sweep (calibrex.data.kitti_ins_lidar); the combined digest hashes the per-drive digests in time order",
+    "input_sha256": "d540c31ddfdb2098183fe57c8d92441fe75ffdeb3a38e9d0b93e7a71dbb8bc7b",
+    "license": "CC BY-NC-SA 3.0"
+  },
+  "topics": {
+    "/camera/camera_info": "CameraInfo cam2_optical: pinhole K from P_rect, no distortion (the images are rectified); one per image",
+    "/camera/image_raw": "Image cam2_optical: rectified 8-bit luminance (mono8) of image_02, stamped with the camera's timestamps.txt",
+    "/oxts/fix": "NavSatFix imu_link: OXTS lat/lon/alt; the GNSS position solution is taken at the OXTS unit (antenna lever arm not published)",
+    "/oxts/imu": "Imu imu_link: OXTS body-frame wx wy wz and ax ay az; no orientation",
+    "/oxts/odometry": "Odometry odom->imu_link: INS pose; twist = body-frame velocity and angular rate (OXTS vf,vl,vu / wf,wl,wu rotated from the level frame by roll, pitch)",
+    "/oxts/twist": "TwistStamped base_link: the same body-frame velocity and rate as a wheel-odometry proxy (KITTI has no wheel odometry); declare with --topic-kind /oxts/twist=wheel",
+    "/tf_static": "TFMessage transient-local: base_link->imu_link (identity), imu_link->velo_link (T_imu_velo), imu_link->cam2_optical (T_imu_velo composed with the inverse of the vendor Velodyne-to-rectified-camera transform)",
+    "/velodyne_points": "PointCloud2 velo_link: x y z intensity time (float32); time is each point's offset (s) from the header stamp, modelled from its azimuth: -atan2(y, x) / (2 pi) * (t_end - t_start) of its sweep (velodyne_points timestamps_start.txt and timestamps_end.txt)"
+  },
+  "velodyne_time": "azimuth"
+}

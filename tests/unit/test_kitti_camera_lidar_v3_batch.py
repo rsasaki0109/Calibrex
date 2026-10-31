@@ -142,9 +142,17 @@ def test_publish_excludes_arrays_and_aggregate_counts_missing_drives(tmp_path, m
     assert batch.publish(work, dest) > 0
     published = dest / DRIVE / "attempt_1"
     assert not list(published.rglob("*.npz"))
+    manifest = json.loads((dest / "manifest.json").read_text())
+    assert {f["path"] for f in manifest["files"]} == {
+        p.relative_to(dest).as_posix()
+        for p in dest.rglob("*")
+        if p.is_file() and p.name != "manifest.json"
+    }
+    assert manifest["provenance"]["generator_sha256"] == batch._sha(Path(batch.__file__))
     assert json.loads((published / "fetch.json").read_text()) == {"members_sha256": "m"}
     summary = batch.aggregate(dest, tmp_path / "summary.json")
     assert summary["status"] == "incomplete" and summary["audit_thresholds"] is None
+    assert summary["attempts"][DRIVE] == 1 and summary["provenance"]["git_commit"]
     assert summary["drive_status"][DRIVE] == "PASS_DEVELOPMENT"
     assert summary["metrics"]["current"]["inconclusive_drives"] == [DRIVE]
     assert len(summary["metrics"]["current"]["failed_drives"]) == 54

@@ -1,0 +1,28 @@
+Traceback (most recent call last):
+  File "/home/user/calibrex-batch/tools/kitti_camera_lidar_v3_batch.py", line 216, in run_drive
+    acquired = fetch.fetch_drive(
+               ^^^^^^^^^^^^^^^^^^
+  File "/home/user/calibrex-batch/tools/kitti_drive_fetch.py", line 263, in fetch_drive
+    for index, blob in blobs:
+  File "/usr/lib/python3.12/concurrent/futures/_base.py", line 619, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/concurrent/futures/_base.py", line 317, in _result_or_cancel
+    return fut.result(timeout)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/usr/lib/python3.12/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/calibrex-batch/tools/kitti_drive_fetch.py", line 255, in get
+    fetch_range(url, lo, hi, etag)
+  File "/home/user/calibrex-batch/tools/kitti_drive_fetch.py", line 96, in fetch_range
+    data = _curl(args) if retries == 3 else _curl(args, retries=retries)
+           ^^^^^^^^^^^
+  File "/home/user/calibrex-batch/tools/kitti_drive_fetch.py", line 78, in _curl
+    raise OSError(f"curl exit {result.returncode}: {message}")
+OSError: curl exit 18: curl: (18) transfer closed with 1980060 bytes remaining to read
