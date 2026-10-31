@@ -56,6 +56,8 @@ SCHEMA = "calibrex.kitti360_camera_lidar_v3_batch/v0.1"
 BINDINGS = ROOT / "docs/assets/kitti360_sota_readiness/metadata-range-bindings.json"
 SEGMENTS = ROOT / "docs/assets/kitti_camera_lidar_v3/kitti360_prep/segments.json"
 SEQUENCES = ("0000", "0002")
+CANDIDATES = ("0004", "0005", "0006", "0007", "0009", "0010")
+PREREGISTRATION = ROOT / "docs/benchmarks/kitti360_camera_lidar_v3_preregistration.yaml"
 SHARED_ARCHIVES = ("calibration", "oxts", "perspective-timestamps", "velodyne-timestamps")
 AGREEMENT = {"start_agreement_deg": 0.5}
 REQUEST_BYTES = 64 * 1024**2
@@ -128,22 +130,79 @@ def segments() -> dict[str, dict[str, Any]]:
     return result
 
 
-def archive_names(sequence: str) -> tuple[str, ...]:
-    if sequence not in SEQUENCES:
-        raise ValueError(f"not a spent development sequence: {sequence}")
+def archive_names(sequence: str, *, evaluation: bool = False) -> tuple[str, ...]:
+    if sequence not in (CANDIDATES if evaluation else SEQUENCES):
+        kind = "pre-registered candidate" if evaluation else "spent development"
+        raise ValueError(f"not a {kind} sequence: {sequence}")
     return (*SHARED_ARCHIVES, f"{sequence}-camera00", f"{sequence}-velodyne")
+
+
+def _git(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(["git", "-C", str(ROOT), *args], capture_output=True, text=True)
+
+
+def verify_preregistration(path: Path) -> dict[str, dict[str, Any]]:
+    """The evaluation segments, only from the committed, frozen v3 pre-registration.
+
+    The file must be the repository's pre-registration, tracked and unmodified; its
+    ``frozen_code_commit`` must be an ancestor of HEAD with ``src/`` and ``tools/``
+    unchanged since and clean in the working tree; it must record the owner's exposure
+    confirmation; and its segments and archive pins must equal the committed ones.
+    """
+
+    import yaml
+
+    if path.resolve() != PREREGISTRATION.resolve():
+        raise ValueError("evaluation runs only from the repository's v3 pre-registration")
+    relative = PREREGISTRATION.relative_to(ROOT).as_posix()
+    if _git("ls-files", "--error-unmatch", relative).returncode != 0:
+        raise ValueError("the pre-registration is not committed")
+    if _git("diff", "--quiet", "HEAD", "--", relative).returncode != 0:
+        raise ValueError("the pre-registration differs from its committed version")
+    plan = yaml.safe_load(PREREGISTRATION.read_text(encoding="utf-8"))
+    frozen = str(plan.get("frozen_code_commit", ""))
+    if not frozen or _git("merge-base", "--is-ancestor", frozen, "HEAD").returncode != 0:
+        raise ValueError("frozen_code_commit is not an ancestor of HEAD")
+    if (
+        _git("diff", "--quiet", frozen, "HEAD", "--", "src", "tools").returncode != 0
+        or _git("diff", "--quiet", "HEAD", "--", "src", "tools").returncode != 0
+        or _git("ls-files", "--others", "--exclude-standard", "src", "tools").stdout.strip()
+    ):
+        raise ValueError("src/ or tools/ differ from frozen_code_commit")
+    recordings = plan["recordings"]
+    if not str(recordings.get("exposure", {}).get("owner_confirmation", "")).strip():
+        raise ValueError("the owner's exposure confirmation is not recorded")
+    fixed = json.loads(SEGMENTS.read_text())["evaluation"]
+    if recordings["evaluation"] != fixed:
+        raise ValueError("pre-registered evaluation segments differ from the fixed list")
+    bindings = _bindings()
+    for sequence in CANDIDATES:
+        for name in archive_names(sequence, evaluation=True):
+            pin = recordings["archives"][name]
+            if (pin["size_bytes"], pin["etag"]) != (
+                bindings[name]["size_bytes"],
+                bindings[name]["etag"],
+            ):
+                raise ValueError(f"{name}: pre-registered pin differs from the bindings")
+    return {item["id"]: item for item in fixed}
 
 
 def _bindings() -> dict[str, dict[str, Any]]:
     return {item["name"]: item for item in json.loads(BINDINGS.read_text())["archives"]}
 
 
-def inventory(work: Path, *, read: Callable[[str], dict[str, Any]] | None = None) -> list[str]:
-    """Re-list the spent archives' central directories; every range must match its binding."""
+def inventory(
+    work: Path,
+    *,
+    read: Callable[[str], dict[str, Any]] | None = None,
+    names: Sequence[str] | None = None,
+) -> list[str]:
+    """Re-list archives' central directories (spent ones by default); ranges must match."""
 
     read = read or _tool("kitti360_archive_metadata").inventory
     bindings = _bindings()
-    names = sorted({name for sequence in SEQUENCES for name in archive_names(sequence)})
+    if names is None:
+        names = sorted({name for sequence in SEQUENCES for name in archive_names(sequence)})
     directory = work / "inventory"
     directory.mkdir(parents=True, exist_ok=True)
     written = []
@@ -289,11 +348,12 @@ def acquire(
     *,
     cap_bytes: int = FETCH_CAP_BYTES,
     get: Callable[..., bytes] = _get,
+    evaluation: bool = False,
 ) -> dict[str, Any]:
-    """Range-read exactly one spent segment's members into the official split layout."""
+    """Range-read exactly one segment's members into the official split layout."""
 
     sequence = segment["sequence"]
-    names = archive_names(sequence)
+    names = archive_names(sequence, evaluation=evaluation)
     seq = f"2013_05_28_drive_{sequence}_sync"
     frames = range(segment["start_frame"], segment["start_frame"] + segment["frames"])
     # Archive -> (prefix of the extracted path, member names).
@@ -378,10 +438,15 @@ def run_segment(
     keep_arrays_free: int = KEEP_ARRAYS_FREE_BYTES,
     free: Callable[[], int] | None = None,
     get: Callable[..., bytes] = _get,
+    evaluation: dict[str, dict[str, Any]] | None = None,
 ) -> SegmentReport:
-    """One new attempt for one spent segment; the attempt directory is never reused."""
+    """One new attempt for one segment; the attempt directory is never reused.
 
-    segment = segments()[segment_id]
+    ``evaluation`` holds the segments ``verify_preregistration`` returned; without it only
+    spent development segments can run.
+    """
+
+    segment = (segments() if evaluation is None else evaluation)[segment_id]
     free = free or (lambda: shutil.disk_usage(work).free)
     attempt = _latest(work, segment_id)[0] + 1
     out = work / segment_id / f"attempt_{attempt}"
@@ -401,8 +466,10 @@ def run_segment(
             "created_at": datetime.now(timezone.utc).isoformat(),
             "python": platform.python_version(),
             "platform": platform.platform(),
-            "development_only": True,
-            "evaluation_candidate_bytes_read": 0,
+            "phase": "development" if evaluation is None else "evaluation",
+            "development_only": evaluation is None,
+            "evaluation_candidate_bytes_read": 0 if evaluation is None else None,
+            "preregistration_sha256": None if evaluation is None else _sha(PREREGISTRATION),
             "new_accuracy_claim": False,
         },
     )
@@ -418,7 +485,7 @@ def run_segment(
             raise RuntimeError("insufficient free disk before acquisition")
         report.stage = "fetch"
         save()
-        acquired = acquire(work, segment, out / "raw", get=get)
+        acquired = acquire(work, segment, out / "raw", get=get, evaluation=evaluation is not None)
         (out / "fetch.json").write_text(json.dumps(acquired, indent=2) + "\n", "utf-8")
         report.details |= {
             "fetched_bytes": acquired["fetched_bytes"],
@@ -437,7 +504,12 @@ def run_segment(
             motion_source="oxts",
             start_frame=segment["start_frame"],
             max_frames=segment["frames"],
-            command=[sys.executable, str(Path(__file__)), "run", "SPENT_DEVELOPMENT_ONLY"],
+            command=[
+                sys.executable,
+                str(Path(__file__)),
+                "run" if evaluation is None else "evaluate",
+                "SPENT_DEVELOPMENT_ONLY" if evaluation is None else segment_id,
+            ],
         )
         shutil.copyfile(converted.provenance_path, out / "conversion.json")
         report.details["conversion_sha256"] = _sha(out / "conversion.json")
@@ -445,6 +517,8 @@ def run_segment(
         report.details["raw_deleted"] = True
         report.stage = "capture"
         save()
+        if evaluation is not None:
+            replay.authorize_evaluation(evaluation)
         code = replay.capture_drive(out / "bag", segment_id, out / "snapshots" / segment_id)
         report.details["capture_exit_code"] = code
         shutil.rmtree(out / "bag")
@@ -485,12 +559,17 @@ def run_segment(
     return report
 
 
-def run(work: Path, chosen: Sequence[str] | None = None, retry_failed: bool = False) -> int:
+def run(
+    work: Path,
+    chosen: Sequence[str] | None = None,
+    retry_failed: bool = False,
+    evaluation: dict[str, dict[str, Any]] | None = None,
+) -> int:
     """Process segments in order under a single-runner lock; earlier attempts stay untouched."""
 
     import fcntl
 
-    known = segments()
+    known = segments() if evaluation is None else evaluation
     order = list(known) if not chosen else list(chosen)
     unknown = [item for item in order if item not in known]
     if unknown or len(set(order)) != len(order):
@@ -508,10 +587,28 @@ def run(work: Path, chosen: Sequence[str] | None = None, retry_failed: bool = Fa
             if previous is not None and not retry:
                 print(segment_id, "skip", previous["status"], f"attempt_{attempt}", flush=True)
                 continue
-            report = run_segment(segment_id, work)
+            report = run_segment(segment_id, work, evaluation=evaluation)
             failures += report.status != "PASS_DEVELOPMENT"
             print(segment_id, report.status, report.stage, report.details.get("wall_s"), flush=True)
     return 1 if failures else 0
+
+
+def evaluate(
+    preregistration: Path,
+    work: Path,
+    chosen: Sequence[str] | None = None,
+    retry_failed: bool = False,
+    *,
+    read: Callable[[str], dict[str, Any]] | None = None,
+) -> int:
+    """The frozen v3 evaluation: verify the pre-registration, list the archives, run."""
+
+    evaluation = verify_preregistration(preregistration)
+    names = sorted(
+        {name for sequence in CANDIDATES for name in archive_names(sequence, evaluation=True)}
+    )
+    inventory(work, read=read, names=names)
+    return run(work, chosen, retry_failed, evaluation=evaluation)
 
 
 def publish(work: Path, dest: Path) -> int:
@@ -554,14 +651,17 @@ def _provenance() -> dict[str, Any]:
     }
 
 
-def aggregate(dest: Path, output: Path) -> dict[str, Any]:
+def aggregate(
+    dest: Path, output: Path, chosen: dict[str, dict[str, Any]] | None = None
+) -> dict[str, Any]:
     """Pool each segment's latest published scores under the default and agreement rules."""
 
+    chosen = segments() if chosen is None else chosen
     summarize = _tool("kitti_camera_lidar_v3_development").summarize_scores
     scorer = _tool("score_kitti_camera_lidar_v2")
     scores: dict[str, dict[str, Any]] = {"current": {}, "proposed": {}}
     statuses: dict[str, str] = {}
-    for segment_id in segments():
+    for segment_id in chosen:
         attempt, report = _latest(dest, segment_id)
         statuses[segment_id] = "missing" if report is None else report["status"]
         comparison = dest / segment_id / f"attempt_{attempt}" / "comparison" / "comparison.json"
@@ -575,13 +675,15 @@ def aggregate(dest: Path, output: Path) -> dict[str, Any]:
     complete = all(status == "PASS_DEVELOPMENT" for status in statuses.values())
     result = {
         "schema_version": SCHEMA,
-        "analysis": "development; spent KITTI-360 segments only",
+        "analysis": "development; spent KITTI-360 segments only"
+        if set(chosen) <= set(segments())
+        else "KITTI-360 v3 evaluation segments",
         "status": "complete" if complete else "incomplete",
         "audit_thresholds": None,
         "segment_status": statuses,
         "metrics": {rule: summarize(values) for rule, values in scores.items()},
         "rules": {"current": "default", "proposed": AGREEMENT},
-        "attempts": {segment_id: _latest(dest, segment_id)[0] for segment_id in segments()},
+        "attempts": {segment_id: _latest(dest, segment_id)[0] for segment_id in chosen},
         "provenance": _provenance(),
     }
     output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
@@ -597,6 +699,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     r.add_argument("work", type=Path)
     r.add_argument("--segment", action="append")
     r.add_argument("--retry-failed", action="store_true")
+    e = sub.add_parser("evaluate")
+    e.add_argument("preregistration", type=Path)
+    e.add_argument("work", type=Path)
+    e.add_argument("--segment", action="append")
+    e.add_argument("--retry-failed", action="store_true")
     u = sub.add_parser("publish")
     u.add_argument("work", type=Path)
     u.add_argument("dest", type=Path)
@@ -609,6 +716,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "run":
         return run(args.work, args.segment, args.retry_failed)
+    if args.command == "evaluate":
+        return evaluate(args.preregistration, args.work, args.segment, args.retry_failed)
     if args.command == "publish":
         print(publish(args.work, args.dest), "files published")
         return 0
