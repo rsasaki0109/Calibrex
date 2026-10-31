@@ -148,3 +148,28 @@ def test_publish_excludes_arrays_and_aggregate_counts_missing_drives(tmp_path, m
     assert summary["drive_status"][DRIVE] == "PASS_DEVELOPMENT"
     assert summary["metrics"]["current"]["inconclusive_drives"] == [DRIVE]
     assert len(summary["metrics"]["current"]["failed_drives"]) == 54
+
+
+def test_interrupted_attempt_is_retried_only_on_request_and_runner_is_exclusive(
+    tmp_path, monkeypatch
+):
+    _fake_pipeline(monkeypatch)
+    pins_path = _pins(tmp_path)
+    work = tmp_path / "work"
+    interrupted = work / DRIVE / "attempt_1"
+    interrupted.mkdir(parents=True)
+    (interrupted / "report.json").write_text(json.dumps({"status": "RUNNING"}))
+    monkeypatch.setattr(batch.shutil, "disk_usage", lambda path: type("U", (), {"free": 99 * GIB}))
+    assert batch.run(pins_path, work, [DRIVE]) == 0
+    assert not (work / DRIVE / "attempt_2").exists()
+    assert batch.run(pins_path, work, [DRIVE], retry_failed=True) == 0
+    assert json.loads((interrupted / "report.json").read_text()) == {"status": "RUNNING"}
+    assert (work / DRIVE / "attempt_2" / "report.json").is_file()
+    import fcntl
+
+    with (work / ".batch.lock").open("w") as held:
+        fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with pytest.raises(RuntimeError, match="another batch runner"):
+            batch.run(pins_path, work, [DRIVE])
+    with pytest.raises(ValueError, match="distinct pinned"):
+        batch.run(pins_path, work, [DRIVE, DRIVE])

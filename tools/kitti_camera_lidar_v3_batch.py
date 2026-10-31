@@ -58,6 +58,7 @@ FROZEN = (
     "src/calibrex/data/kitti_raw_to_rosbag2.py",
 )
 PUBLISHED_SUFFIXES = {".json", ".log", ".yaml"}
+RETRYABLE = {"FAIL", "RUNNING"}
 
 
 class DriveReport(BaseModel):
@@ -288,24 +289,38 @@ def run_drive(
 def run(
     pins_path: Path, work: Path, drives: Sequence[str] | None = None, retry_failed: bool = False
 ) -> int:
-    """Process drives in pin order. A drive with an attempt is skipped unless its latest
-    attempt failed and ``retry_failed`` asks for a new, separate attempt."""
+    """Process drives in the given order under a single-runner lock.
+
+    A drive with an attempt is skipped unless ``retry_failed`` asks for a new, separate
+    attempt after a failed one or one left ``RUNNING`` by an interrupted process (the lock
+    guarantees no live runner owns it). Earlier attempts are never modified.
+    """
+
+    import fcntl
 
     pins = json.loads(pins_path.read_text())
     if pins.get("schema_version") != SCHEMA:
         raise ValueError("unexpected pin schema")
     order = list(pins["drives"]) if not drives else list(drives)
-    failures = 0
-    for drive in order:
-        if drive not in pins["drives"]:
-            raise ValueError(f"{drive} is not pinned")
-        attempt, previous = _latest(work, drive)
-        if previous is not None and not (retry_failed and previous["status"] == "FAIL"):
-            print(drive, "skip", previous["status"], f"attempt_{attempt}", flush=True)
-            continue
-        report = run_drive(pins, drive, work)
-        failures += report.status != "PASS_DEVELOPMENT"
-        print(drive, report.status, report.stage, report.details.get("wall_s"), flush=True)
+    unknown = [drive for drive in order if drive not in pins["drives"]]
+    if unknown or len(set(order)) != len(order):
+        raise ValueError(f"choose distinct pinned drives: {unknown}")
+    work.mkdir(parents=True, exist_ok=True)
+    with (work / ".batch.lock").open("w") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            raise RuntimeError("another batch runner holds this work root") from None
+        failures = 0
+        for drive in order:
+            attempt, previous = _latest(work, drive)
+            retry = retry_failed and previous is not None and previous["status"] in RETRYABLE
+            if previous is not None and not retry:
+                print(drive, "skip", previous["status"], f"attempt_{attempt}", flush=True)
+                continue
+            report = run_drive(pins, drive, work)
+            failures += report.status != "PASS_DEVELOPMENT"
+            print(drive, report.status, report.stage, report.details.get("wall_s"), flush=True)
     return 1 if failures else 0
 
 
