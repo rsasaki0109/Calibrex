@@ -1,0 +1,247 @@
+{
+  "schema_version": "calibrex.camera_lidar_v3_rule_screen/v0.1",
+  "analysis": "development screen on spent drives; not an audit or a SOTA claim",
+  "proposed_options": {
+    "start_agreement_deg": 0.5
+  },
+  "criteria": {
+    "baseline_flagged_max": 0,
+    "baseline_judged_error_max_deg": 0.75,
+    "turned_judged_error_max_deg": 1.5,
+    "turn_3deg_missed_fraction_max": 0.1,
+    "turn_1deg_missed_fraction_max": 0.25,
+    "judged_fraction_scored_min": 0.5,
+    "scored_drives_fraction_min": 0.6666666666666666
+  },
+  "large_error_deg": 0.5,
+  "metrics": {
+    "current": {
+      "drives": 55,
+      "scored_drives": 52,
+      "failed_drives": [],
+      "inconclusive_drives": [
+        "2011_09_28_0016",
+        "2011_09_28_0021",
+        "2011_09_29_0026"
+      ],
+      "flagged_baselines": [],
+      "max_baseline_judged_error_deg": 0.45000000000000573,
+      "max_turned_judged_error_deg": 1.502977473509024,
+      "judged_axes": 125,
+      "scored_axes": 156,
+      "all_axes": 165,
+      "judged_fraction_scored": 0.8012820512820513,
+      "judged_fraction_all": 0.7575757575757576,
+      "trials": {
+        "3deg": {
+          "counted": 125,
+          "flagged": 122,
+          "flagged_fraction": 0.976,
+          "judged_right": 0
+        },
+        "1deg": {
+          "counted": 125,
+          "flagged": 125,
+          "flagged_fraction": 1.0,
+          "judged_right": 0
+        }
+      }
+    },
+    "proposed": {
+      "drives": 55,
+      "scored_drives": 52,
+      "failed_drives": [],
+      "inconclusive_drives": [
+        "2011_09_28_0016",
+        "2011_09_28_0021",
+        "2011_09_29_0026"
+      ],
+      "flagged_baselines": [],
+      "max_baseline_judged_error_deg": 0.45000000000000573,
+      "max_turned_judged_error_deg": 0.5324930679785973,
+      "judged_axes": 124,
+      "scored_axes": 156,
+      "all_axes": 165,
+      "judged_fraction_scored": 0.7948717948717948,
+      "judged_fraction_all": 0.7515151515151515,
+      "trials": {
+        "3deg": {
+          "counted": 124,
+          "flagged": 82,
+          "flagged_fraction": 0.6612903225806451,
+          "judged_right": 0
+        },
+        "1deg": {
+          "counted": 124,
+          "flagged": 117,
+          "flagged_fraction": 0.9435483870967742,
+          "judged_right": 0
+        }
+      }
+    }
+  },
+  "large_errors": {
+    "current": [
+      [
+        "2011_09_26_0023",
+        "z:3",
+        "yaw"
+      ],
+      [
+        "2011_09_26_0057",
+        "y:3",
+        "pitch"
+      ],
+      [
+        "2011_09_26_0057",
+        "y:3",
+        "roll"
+      ],
+      [
+        "2011_09_26_0093",
+        "z:1",
+        "yaw"
+      ],
+      [
+        "2011_09_28_0002",
+        "x:3",
+        "roll"
+      ],
+      [
+        "2011_09_28_0002",
+        "y:1",
+        "roll"
+      ],
+      [
+        "2011_09_28_0002",
+        "y:3",
+        "roll"
+      ],
+      [
+        "2011_09_28_0002",
+        "z:3",
+        "roll"
+      ],
+      [
+        "2011_09_28_0043",
+        "x:3",
+        "yaw"
+      ],
+      [
+        "2011_09_30_0016",
+        "y:3",
+        "roll"
+      ]
+    ],
+    "proposed": [
+      [
+        "2011_09_26_0093",
+        "z:1",
+        "yaw"
+      ],
+      [
+        "2011_09_30_0016",
+        "y:3",
+        "roll"
+      ]
+    ],
+    "new_under_proposed": [],
+    "removed_by_proposed": [
+      [
+        "2011_09_26_0023",
+        "z:3",
+        "yaw"
+      ],
+      [
+        "2011_09_26_0057",
+        "y:3",
+        "pitch"
+      ],
+      [
+        "2011_09_26_0057",
+        "y:3",
+        "roll"
+      ],
+      [
+        "2011_09_28_0002",
+        "x:3",
+        "roll"
+      ],
+      [
+        "2011_09_28_0002",
+        "y:1",
+        "roll"
+      ],
+      [
+        "2011_09_28_0002",
+        "y:3",
+        "roll"
+      ],
+      [
+        "2011_09_28_0002",
+        "z:3",
+        "roll"
+      ],
+      [
+        "2011_09_28_0043",
+        "x:3",
+        "yaw"
+      ]
+    ]
+  },
+  "checks": {
+    "baseline_not_flagged": true,
+    "baseline_judged_accuracy": true,
+    "turned_judged_accuracy": true,
+    "turn_3deg_flagged": false,
+    "turn_1deg_flagged": true,
+    "judged_axis_coverage": true,
+    "scored_drives_coverage": true,
+    "fewer_large_errors": true,
+    "no_new_large_errors": true,
+    "no_failed_drives": true
+  },
+  "errors": {},
+  "verdict": "not_carried_forward",
+  "provenance": {
+    "generator": "tools/kitti_camera_lidar_v3_rule_screen.py",
+    "generator_sha256": "0ae469d0957aa0b956397eccd6eaa3b5154d2cc49b39e4b81df741986be7608d",
+    "git_commit": "98262f845696c76960bfc271cc2cabaec6ff9998",
+    "created_at": "2026-10-31T08:49:45.792854+00:00",
+    "inputs_sha256": {
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/cached/comparison.json": "ddd084773f84a72875fc68d86b25f1e0627d11cafcdafa18fb697b91b245c479",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0046/attempt_2/comparison/comparison.json": "8fcc296172da90a29afa69eb95b8417137d2c63b9156d4934dc204e2954e98b4",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0051/attempt_2/comparison/comparison.json": "e5d93fcd315f4301084fb7012fbc4fd96e02a64c2c883f4b329c18c6620be060",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0057/attempt_2/comparison/comparison.json": "a94f185ad0fc584bd65dd3245fb6f8e52d317a0dc56fd76c02030d513a958c6f",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0059/attempt_2/comparison/comparison.json": "07f2b1545932ff864397b950ec822bca14a3dbf89134158fbaa14b60caab86d6",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0061/attempt_2/comparison/comparison.json": "6c45f408d17103df9e4f2a81689612da6909d579c47e7db839528c81f2a0c826",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0064/attempt_2/comparison/comparison.json": "f46f6762db4981b7746233adf5bad6e8866c7826b5a35b69c3c505249f208927",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0070/attempt_2/comparison/comparison.json": "427420eede9660c30a9aa75af04be9460e003820755bad761691ca6ad48358f5",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0084/attempt_2/comparison/comparison.json": "dfdf3874536d3f047b8dfefc79a26ab8747dd9a2fc41d60772096e23a1a2c707",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0086/attempt_2/comparison/comparison.json": "5b94c1a532e4ca0ec886e6ff2e263b68ca25915e05e70789f356f5c58669bbcf",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0087/attempt_2/comparison/comparison.json": "238b90e241b5d14a4fd65951507ffae74595187f0e26e09f37d97dbb29ee6aa6",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0091/attempt_2/comparison/comparison.json": "69dd22105161e5040446b382ede3a6ee00a227e9e4a7701635244b8239787f09",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0093/attempt_2/comparison/comparison.json": "84ed24e4e13f41362f1c051eb00daeb2f19d56ecc557993f8f67314fd7bdc0e3",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0095/attempt_2/comparison/comparison.json": "e2e47fcb10fa1b2448b13a24c62378fdfbc03bcf64d3d467cdff6a6af5f39c64",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0096/attempt_2/comparison/comparison.json": "56a329f276d0770d5c147b51c6fc796dd068b4946e6ce11a94d34551628a057b",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0101/attempt_2/comparison/comparison.json": "9f1ef43f2dac61fa3f244f734fdc5593b5eb347b90b937aa2c0c06078d1f148c",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0104/attempt_2/comparison/comparison.json": "18164fdc003b35c62b6741ba7bb4ed2929796c0e598426f2047d304d4fdb0c0f",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0106/attempt_2/comparison/comparison.json": "9256520e54b931a429203a92887ebfadea927083a7ec9de907c11809295b4204",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_26_0117/attempt_2/comparison/comparison.json": "e0774d05a2e9808ad15ca4ae66bbddecdcfbf14c19bd532613d217edacdf8ee4",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_28_0039/attempt_2/comparison/comparison.json": "230ac602297d961a79e80474b0dd93cc2b248bb7e402cd0b07c9c5ad2d26312e",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_28_0043/attempt_2/comparison/comparison.json": "36e7001922de5700637871b2d77cbffd35d878dd27688fecc75473556e4ab153",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_29_0004/attempt_2/comparison/comparison.json": "0dcc397b78bfb4eb947e4bf7eec9893b7f4da7222a74261be07f4712e02a7a73",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_29_0071/attempt_2/comparison/comparison.json": "91b099cb923fa332b4cd0712681d85044745abcd9ee065f6842760bef49d10b8",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_30_0016/attempt_2/comparison/comparison.json": "e40450a232cbc3020e4b3091292ecc77aea5302cfc37630130a9e3fc5d6caf3e",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_30_0018/attempt_2/comparison/comparison.json": "0c5b2a9d57588a8f479a6321df32ba493ff1b2563e533671bd9ff5b9289a6131",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_30_0020/attempt_2/comparison/comparison.json": "24932be334d0302a4d240d10b9a74a12d1fec65a6a98e5c8947ac1f08a5e5b61",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_30_0027/attempt_2/comparison/comparison.json": "dbff2d7f117584fee90b2863f25a0d7845189429725cb10602aca2f331ab4488",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_30_0028/attempt_2/comparison/comparison.json": "723bd4a79aefc0da856aa586dc21eeddc86cff79f02388dbe1e668c23fb0c1ca",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_09_30_0033/attempt_2/comparison/comparison.json": "e8f8be46dd3526f34d5c7d53b9053a88afa6522cdd3d738aa8ca90720b0128e2",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_10_03_0027/attempt_2/comparison/comparison.json": "e2713bca827246984b0db186e1d6a5e80e55450472869c1a3561ecf54ab2ff72",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_10_03_0034/attempt_2/comparison/comparison.json": "ea87ff21fcae07d7e68fd86ce5716e2dbe96e30ac6a635985d764e8fbf7a2a75",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_10_03_0042/attempt_2/comparison/comparison.json": "c69412c1f4972864708c5dea14b9d4abbababe23cbb55507629804945f35b603",
+      "/home/user/calibrex-dev/docs/assets/kitti_camera_lidar_v3/start_agreement_20261031/recaptured/2011_10_03_0047/attempt_2/comparison/comparison.json": "4c749f2eb036b30811cc219d9bd14c638dbe33701a8aef344e171638068a6936"
+    }
+  }
+}

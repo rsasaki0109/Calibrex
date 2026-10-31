@@ -1,6 +1,7 @@
 # KITTI camera-LiDAR v3: cross-start agreement rule (development protocol)
 
-**Status: frozen before any replay of this rule on real inputs.** This page
+**Status: frozen before any replay of this rule on real inputs; screened once,
+[not carried forward](kitti_camera_lidar_v3_start_agreement_results.md).** This page
 fixes one opt-in rule, how it is screened on the 55 spent KITTI raw drives and
 what the result can and cannot decide. It is development, not a pre-registration
 or an audit. No evaluation data is read.

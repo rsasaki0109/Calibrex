@@ -1,0 +1,7 @@
+import json, sys
+from pathlib import Path
+sys.path.insert(0, "/home/user/calibrex-batch"); sys.path.insert(0, "/home/user/calibrex-batch/src")
+from tools import kitti_camera_lidar_v3_replay as r
+drives = "2011_09_26_0005 2011_09_26_0009 2011_09_26_0011 2011_09_26_0013 2011_09_26_0014 2011_09_26_0015 2011_09_26_0018 2011_09_26_0019 2011_09_26_0022 2011_09_26_0023 2011_09_26_0027 2011_09_26_0028 2011_09_26_0029 2011_09_26_0032 2011_09_26_0035 2011_09_26_0036 2011_09_26_0039 2011_09_26_0056 2011_09_28_0002 2011_09_28_0016 2011_09_28_0021 2011_09_29_0026 2011_09_30_0034".split()
+rep = r.compare_drives(Path("/home/user/kitti-v3-cache"), Path("/home/user/kitti-v3-agreement/cached"), drives=drives, proposed={"start_agreement_deg": 0.5})
+print("CACHED DONE", rep["status"], json.dumps(rep["errors"]), flush=True)

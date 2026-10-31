@@ -467,13 +467,14 @@ spent 0000 and 0002. The earlier cloud HTTP 403 is historical evidence.
 All 55 spent drives now have real captures and paired comparisons (above).
 KITTI-360 conversion checks are not calibration measurements.
 
-The scalar 3.5 margin is not adopted as a default (above). The next development step is a different
-start-selection or axis-evidence rule, tested on the cached inputs and then
-replayed on all 55 drives, with re-capture of the 32 uncached ones. It must
-report together coverage, missed turns, and the turned-run judged-axis errors,
-including the 0036, 0023, 0043, 0093 and 2011_09_30_0016 cases. Confirm a
-selected rule via the real driver, and validate any additional converter
-behavior on spent data.
+The scalar 3.5 margin is not adopted as a default (above). A frozen
+[cross-start agreement rule](kitti_camera_lidar_v3_start_agreement_results.md)
+was then screened on all 55 drives. It cut turned-run judged errors beyond
+0.5 deg from 10 to 2 (maximum 0.532 deg), but it flagged only 66 % of 3 deg turns,
+so it was not carried forward. A post hoc count suggests flagging cross-start
+disagreement instead of only withholding axes; that needs its own frozen
+protocol, with the 0029 baseline cost stated. Confirm any selected rule via the
+real driver, and validate any additional converter behavior on spent data.
 
 Only then derive the v3 gates from the new development results using the
 [handoff rules](../sota_handoff.md#how-an-audit-is-run). Evaluation archive pins,

@@ -1,0 +1,55 @@
+{
+  "schema_version": "calibrex.camera_lidar_v3_spent_batch/v0.1",
+  "drive": "2011_09_26_0057",
+  "attempt": 2,
+  "status": "PASS_DEVELOPMENT",
+  "stage": "complete",
+  "error": null,
+  "details": {
+    "free_bytes_at_start": 13486989312,
+    "wall_s": 205.1,
+    "fetched_bytes": 917732008,
+    "frames": {
+      "image_02": 361,
+      "velodyne_points": 361,
+      "oxts": 361
+    },
+    "members_sha256": "499a9e936059506d82eb72d22db0c6376babf8bfe71b20a40ca2fad358d1f7f6",
+    "conversion_sha256": "67d30b669e2626dc76f0646d839ad069789f43527215fa863863b0c9404ce161",
+    "raw_deleted": true,
+    "capture_exit_code": 0,
+    "bag_deleted": true,
+    "proposed_options": {
+      "start_agreement_deg": 0.5
+    },
+    "comparison_status": "incomplete",
+    "comparison_errors": {},
+    "arrays_kept": [
+      "snapshots/2011_09_26_0057/baseline/arrays.npz",
+      "snapshots/2011_09_26_0057/inject_x+1/arrays.npz",
+      "snapshots/2011_09_26_0057/inject_x+3/arrays.npz",
+      "snapshots/2011_09_26_0057/inject_y+1/arrays.npz",
+      "snapshots/2011_09_26_0057/inject_y+3/arrays.npz",
+      "snapshots/2011_09_26_0057/inject_z+1/arrays.npz",
+      "snapshots/2011_09_26_0057/inject_z+3/arrays.npz"
+    ]
+  },
+  "provenance": {
+    "source_commit": "98262f845696c76960bfc271cc2cabaec6ff9998",
+    "frozen_modules_sha256": {
+      "tools/kitti_camera_lidar_v3_batch.py": "376d0b4cd445c2f5b53de108bf638bbbd34f5f49519b30594b329a87ef4bb873",
+      "tools/kitti_drive_fetch.py": "c3a994f138e4d3cd541ed5b3417878218794ff4fae26c7fad512c1e287fc05f5",
+      "tools/kitti_camera_lidar_v3_replay.py": "a4c40e9113d4b1b57843fe899a7f5fd08d30f353d765ca6286d5eb3d4a3e96f1",
+      "tools/kitti_camera_lidar_v3_development.py": "06b3e6035ce17c41c0427ed0ad02f57d65e49d1806e01d0a3155fed95c411dfd",
+      "tools/score_kitti_camera_lidar_v2.py": "8e0bf8b1dca37ac33b1b7818ec28c22353ca5b79fcd7f49591c7d65a7674ce7d",
+      "src/calibrex/evaluation/camera_lidar_edge.py": "bc0de157625536abd8e75ad346eecf8d4e4ff475b9a71302a491d02d1e2b506f",
+      "src/calibrex/data/kitti_raw_to_rosbag2.py": "56d369e7dfcc8f7a0344f9bd5dfe8e0b195dda647d6b41a6002a473172bf73ad"
+    },
+    "created_at": "2026-10-31T07:02:42.147908+00:00",
+    "python": "3.12.3",
+    "platform": "Linux-6.18.44-fc-v185-x86_64-with-glibc2.39",
+    "development_only": true,
+    "new_evaluation_started": false,
+    "new_accuracy_claim": false
+  }
+}

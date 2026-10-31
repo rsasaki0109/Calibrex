@@ -1466,3 +1466,19 @@ replaying a new rule. Next: a different start-selection/axis-evidence rule
 developed on cached inputs, then replayed on all 55 drives with coverage, missed
 turns and judged-axis errors reported together. KITTI-360 pre-registration stays
 pending; no fresh data was read and no SOTA claim is made.
+
+### Cross-start agreement rule screened (2026-10-31)
+
+[Results](benchmarks/kitti_camera_lidar_v3_start_agreement_results.md), protocol
+frozen `98262f84`: opt-in `start_agreement_deg=0.5` withholds a rotation axis
+when evidenced optima from different starts differ by more than the check's
+0.5 deg std bound. Screened once on all 55 spent drives (23 cached, 32
+re-captured; 32 disk-preflight failures retained). Verdict
+**not_carried_forward**: turned-run judged errors beyond 0.5 deg 10 → 2, none new,
+maximum 1.503 → 0.532 deg; but 3 deg turns flagged only 82/124 (66 %) against the
+90 % v2 value, while 1 deg 117/124 and baseline/coverage checks pass. Post hoc:
+40/42 missed 3 deg and 7/7 missed 1 deg trials show cross-start disagreement, as
+does one baseline (0029). Flagging disagreement is the next hypothesis, needing
+its own frozen protocol with that baseline cost stated. Spent data only; no
+default, CLI or SOTA change.
+
