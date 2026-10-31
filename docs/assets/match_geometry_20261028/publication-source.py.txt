@@ -1,0 +1,62 @@
+"""Retain every fixed-input result and paired diagnostic, without selecting cases."""
+import hashlib
+import json
+import shutil
+from pathlib import Path
+from typing import Any, Literal
+
+import jsonschema
+from calibrex.core.result import StrictModel
+
+class Summary(StrictModel):
+    schema_version: Literal['calibrex.match_geometry_summary/v0.1'] = 'calibrex.match_geometry_summary/v0.1'
+    provenance: dict[str, Any]
+    metrics: dict[str, Any]
+    changed_flags: list[dict[str, Any]]
+    limitations: list[str] = ['Two spent drives; correlated controls are not independent evaluations.', 'Reference disagreement of training folds is not a native calibration verdict.']
+
+base = Path('/workspace/work/match-geometry-full-20261028')
+root = Path('/workspace/Calibrex')
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+r = json.loads((base / 'report.json').read_text())
+assert r['status'] == 'complete' and len(r['inputs']) == 14
+assert all(row['original_parity'] for row in r['inputs'])
+metrics = {}
+changes = []
+for arm in ['original', 'match_geometry']:
+    rows = [(x, a) for x in r['inputs'] for a in x['arms'][arm]['axes']]
+    passed = [(x, a) for x, a in rows if a['control']['detected']]
+    worst = max([(abs(v), x['drive'], x['run'], a['axis'], i, v) for x, a in passed for i, v in enumerate(a['fold_active_axis_reference_errors_deg'])], default=None)
+    target = next(a for x, a in rows if x['drive'] == '2011_09_28_0002' and x['run'] == 'inject_y+3' and a['axis'] == 1)
+    metrics[arm] = dict(total=len(rows), detected=len(passed), per_drive={d: sum(a['control']['detected'] for x, a in rows if x['drive']==d) for d in ['2011_09_26_0005','2011_09_28_0002']}, worst_detected_fold=worst, pitch_target=target, profile_seconds=sum(x['arms'][arm]['elapsed_s'] for x in r['inputs']))
+for row in r['inputs']:
+    for a, b in zip(row['arms']['original']['axes'], row['arms']['match_geometry']['axes'], strict=True):
+        if a['control']['detected'] != b['control']['detected']:
+            changes.append(dict(drive=row['drive'],run=row['run'],axis=a['axis'],original=a,match_geometry=b))
+common = [(x, i) for x in r['inputs'] for i in range(3) if x['arms']['original']['axes'][i]['control']['detected'] and x['arms']['match_geometry']['axes'][i]['control']['detected']]
+for arm in ['original', 'match_geometry']:
+    metrics[arm]['common_detected_count'] = len(common)
+    metrics[arm]['common_detected_max_abs_fold_error_deg'] = max(abs(v) for x,i in common for v in x['arms'][arm]['axes'][i]['fold_active_axis_reference_errors_deg'])
+for arm in ['original', 'match_geometry']:
+    axes = [a for x in r['inputs'] for a in x['arms'][arm]['axes']]
+    metrics[arm]['max_full_rotation_error_all_folds_deg'] = max(v for a in axes for v in a['fold_full_rotation_error_norms_deg'])
+    metrics[arm]['max_full_rotation_error_detected_folds_deg'] = max((v for a in axes if a['control']['detected'] for v in a['fold_full_rotation_error_norms_deg']), default=None)
+s = Summary(provenance=dict(experiment_git_commit=r['provenance']['git_commit'],report_sha256=sha(base/'report.json'),generator_sha256=sha(Path(__file__)),new_evaluation_started=False,new_accuracy_claim=False),metrics=metrics,changed_flags=changes)
+(base/'summary.json').write_text(s.model_dump_json(indent=2))
+(base/'summary.schema.json').write_text(json.dumps(Summary.model_json_schema(),indent=2))
+out = root/'docs/assets/match_geometry_20261028'
+shutil.copytree(base,out)
+screen = Path('/workspace/work/match-geometry-20261028')
+old_screen = json.loads((root/'docs/assets/contour_coherence_20261028/report.json').read_text())
+new_screen = json.loads((screen/'report.json').read_text())
+for old_fold, new_fold in zip(old_screen['folds'], new_screen['folds'], strict=True):
+    for old_frame, new_frame in zip(old_fold['frames'], new_fold['frames'], strict=True):
+        for old_value, new_values in zip(old_frame['coherent_scores'], new_frame['match_support_by_pose'], strict=True):
+            assert abs(old_value - new_values['component_only_score']) <= 1e-9
+shutil.copytree(screen,out/'fixed-pose-screen')
+shutil.copyfile(__file__,out/'publication-source.py.txt')
+shutil.copyfile('/workspace/work/match-geometry-full-20261028.log',out/'batch.log')
+for schema in out.rglob('*.schema.json'):
+    jsonschema.validate(json.loads(schema.with_name(schema.name.replace('.schema.json','.json')).read_text()),json.loads(schema.read_text()))
+(out/'manifest.json').write_text(json.dumps(dict(provenance=s.provenance,files={str(p.relative_to(out)):sha(p) for p in sorted(out.rglob('*')) if p.is_file()}),indent=2)+'\n')
+print(json.dumps(metrics,indent=2))

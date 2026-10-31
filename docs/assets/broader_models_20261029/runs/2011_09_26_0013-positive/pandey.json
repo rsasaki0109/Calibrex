@@ -1,0 +1,351 @@
+{
+  "scope": "spent-data shared-bundle optimizer comparison; no held-out evaluation",
+  "source_commit": "fa09ba7ef43479f4f6c85c2eda75114c0cd1b053",
+  "driver_sha256": "0c379e189365015dcef20d39019f3f6d6a960866d04b21ab265037fcf06bbf72",
+  "input_sha256": {
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/calib-seeded.json": "99c2c1bde8fa0c1b36be8cab80446e94c49f2c2d97a2381690b49c40bbb6601e",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/seed.json": "e4cc1412bab9ecebcf1a65b4969a8e9865342031ca9dfa94434d87fb343513a4",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-35.png": "c6488c4c2984e798d7e1af439a64b5d45836fab187c3e8ade2ebbe78ddecddd0",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-35.ply": "3508fb626fb1a77dd6dc6e9a249f4c72b67b1b6367474f803403633e6f0a3265",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-71.png": "c12eba4ada283a7a6f1f2dcd3ef6e71520207b5cea97450607388bb834668463",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-71.ply": "935072cf7ed4641cddf03adc3f2d7ec1dbfd5b56f2e7407f3ae0ac13dd20e13e",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-107.png": "434796b71fa8a1cb8ab329dceb9e4ed729ac1c48cc8974f50230cc79cef38af5",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-107.ply": "41976c58d9e3eb84837aedb9e93c8fbeb203bcf8333f1b1be87cad3a07dbb005"
+  },
+  "options": {
+    "min_train_observations": 1,
+    "holdout_ratio": 0,
+    "split_seed": 0,
+    "histogram_bins": 32,
+    "min_projected_points": 64,
+    "max_iterations": 40,
+    "convergence_tolerance": 0.00001,
+    "gradient_steps": [
+      0.005,
+      0.005,
+      0.005,
+      0.0017453292519943296,
+      0.0017453292519943296,
+      0.0017453292519943296
+    ],
+    "curvature_steps": [
+      0.01,
+      0.01,
+      0.01,
+      0.004363323129985824,
+      0.004363323129985824,
+      0.004363323129985824
+    ],
+    "initial_step_size": 0.02,
+    "min_step_size": 0.00001,
+    "max_step_size": 0.1,
+    "max_backtracks": 8,
+    "known_bad_translation_m": 0.05,
+    "known_bad_rotation_deg": 5.0,
+    "rank_tolerance": 1e-6,
+    "histogram_smoothing_backend": "vectorized",
+    "coarse_search_translation_steps_m": [],
+    "coarse_search_rotation_steps_deg": [],
+    "coarse_search_sweeps_per_level": 1
+  },
+  "initial_T_camera_lidar": [
+    [
+      -0.017155467132486488,
+      -0.9998513431491697,
+      -0.001713456542265028,
+      0.1570524478595304
+    ],
+    [
+      -0.007153617595801984,
+      0.0018364056973287737,
+      -0.9999727149163535,
+      -0.12546671853346003
+    ],
+    [
+      0.9998272556012965,
+      -0.017142741539027197,
+      -0.0071840598855728525,
+      -0.2193869124058732
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "output_T_camera_lidar": [
+    [
+      -0.036089604688972626,
+      -0.9990756495314983,
+      0.0233535210751743,
+      0.15802374979789813
+    ],
+    [
+      -0.015630766524671547,
+      -0.02280156406490144,
+      -0.9996178108727583,
+      -0.12740776216321142
+    ],
+    [
+      0.999226310487892,
+      -0.036440845069909134,
+      -0.014793418784918938,
+      -0.2157186707511492
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "elapsed_seconds": 3.0703124339925125,
+  "result": {
+    "status": "converged",
+    "reason": "no improving step remained after monotonic backtracking",
+    "transform_camera_lidar": {
+      "translation_m": [
+        0.15802374979789813,
+        -0.12740776216321142,
+        -0.2157186707511492
+      ],
+      "rotation_quat_xyzw": [
+        0.5003762030115061,
+        -0.5069717594227982,
+        0.5109055074005748,
+        0.4812264052556777
+      ]
+    },
+    "train_frame_ids": [
+      "frame-107",
+      "frame-35",
+      "frame-71"
+    ],
+    "holdout_frame_ids": [],
+    "train_evaluation": {
+      "raw_mutual_information": 0.020067990354,
+      "normalized_mutual_information": 0.005825386464,
+      "projected_point_count": 58927,
+      "observation_count": 3
+    },
+    "holdout_evaluation": {
+      "raw_mutual_information": 0.0,
+      "normalized_mutual_information": 0.0,
+      "projected_point_count": 0,
+      "observation_count": 0
+    },
+    "iterations": [
+      {
+        "iteration": 1,
+        "raw_mutual_information": 0.01876365081,
+        "gradient_norm": 0.3842483434803277,
+        "step_size": 0.005,
+        "parameter_delta_norm": 0.004999999999999965,
+        "backtrack_count": 2
+      },
+      {
+        "iteration": 2,
+        "raw_mutual_information": 0.01916454281,
+        "gradient_norm": 0.04256107593552006,
+        "step_size": 0.012484139124120877,
+        "parameter_delta_norm": 0.012484139124120858,
+        "backtrack_count": 0
+      },
+      {
+        "iteration": 3,
+        "raw_mutual_information": 0.020067990354,
+        "gradient_norm": 0.15900865300886963,
+        "step_size": 0.025,
+        "parameter_delta_norm": 0.025000000000000067,
+        "backtrack_count": 2
+      }
+    ],
+    "known_bad_probes": [
+      {
+        "dof": "x",
+        "amount": -0.05,
+        "unit": "m",
+        "normalized_mutual_information": 0.005758083528,
+        "score_drop": 0.00006730293599999972,
+        "detectable": true
+      },
+      {
+        "dof": "x",
+        "amount": 0.05,
+        "unit": "m",
+        "normalized_mutual_information": 0.005428415322,
+        "score_drop": 0.00039697114199999974,
+        "detectable": true
+      },
+      {
+        "dof": "y",
+        "amount": -0.05,
+        "unit": "m",
+        "normalized_mutual_information": 0.0053586252,
+        "score_drop": 0.00046676126400000024,
+        "detectable": true
+      },
+      {
+        "dof": "y",
+        "amount": 0.05,
+        "unit": "m",
+        "normalized_mutual_information": 0.005210295408,
+        "score_drop": 0.0006150910559999997,
+        "detectable": true
+      },
+      {
+        "dof": "z",
+        "amount": -0.05,
+        "unit": "m",
+        "normalized_mutual_information": 0.005587289079,
+        "score_drop": 0.00023809738500000024,
+        "detectable": true
+      },
+      {
+        "dof": "z",
+        "amount": 0.05,
+        "unit": "m",
+        "normalized_mutual_information": 0.005701217929,
+        "score_drop": 0.00012416853500000005,
+        "detectable": true
+      },
+      {
+        "dof": "roll",
+        "amount": -5.0,
+        "unit": "deg",
+        "normalized_mutual_information": 0.004191532656,
+        "score_drop": 0.0016338538079999996,
+        "detectable": true
+      },
+      {
+        "dof": "roll",
+        "amount": 5.0,
+        "unit": "deg",
+        "normalized_mutual_information": 0.004714013202,
+        "score_drop": 0.0011113732620000004,
+        "detectable": true
+      },
+      {
+        "dof": "pitch",
+        "amount": -5.0,
+        "unit": "deg",
+        "normalized_mutual_information": 0.004705999509,
+        "score_drop": 0.001119386955,
+        "detectable": true
+      },
+      {
+        "dof": "pitch",
+        "amount": 5.0,
+        "unit": "deg",
+        "normalized_mutual_information": 0.006285379902,
+        "score_drop": -0.00045999343799999967,
+        "detectable": false
+      },
+      {
+        "dof": "yaw",
+        "amount": -5.0,
+        "unit": "deg",
+        "normalized_mutual_information": 0.004370726337,
+        "score_drop": 0.001454660127,
+        "detectable": true
+      },
+      {
+        "dof": "yaw",
+        "amount": 5.0,
+        "unit": "deg",
+        "normalized_mutual_information": 0.004131593832,
+        "score_drop": 0.0016937926319999996,
+        "detectable": true
+      }
+    ],
+    "curvature": {
+      "parameter_dimension": 6,
+      "objective_at_center": -0.020067990354,
+      "finite_difference_steps": [
+        0.01,
+        0.01,
+        0.01,
+        0.004363323129985824,
+        0.004363323129985824,
+        0.004363323129985824
+      ],
+      "hessian": [
+        [
+          7.141483090000004,
+          -0.10767180500000431,
+          -0.324504860000005,
+          -1.5518511403536648,
+          1.7559057848243635,
+          -1.099987052761697
+        ],
+        [
+          -0.10767180500000431,
+          8.464123679999997,
+          -1.003305729999999,
+          -3.0517952093644944,
+          -5.160675465507674,
+          -2.4647272570974996
+        ],
+        [
+          -0.324504860000005,
+          -1.003305729999999,
+          0.2775947100000162,
+          0.7432195320841593,
+          0.8916871118854311,
+          1.0510808306821189
+        ],
+        [
+          -1.5518511403536648,
+          -3.0517952093644944,
+          0.7432195320841593,
+          77.76628701203931,
+          17.94853747966307,
+          30.754843615180434
+        ],
+        [
+          1.7559057848243635,
+          -5.160675465507674,
+          0.8916871118854311,
+          17.94853747966307,
+          136.13648332073979,
+          18.16799634070522
+        ],
+        [
+          -1.099987052761697,
+          -2.4647272570974996,
+          1.0510808306821189,
+          30.754843615180434,
+          18.16799634070522,
+          81.62172419886292
+        ]
+      ],
+      "eigenvalues": [
+        0.13408523591988097,
+        7.075374235583644,
+        8.279000404890171,
+        48.88404923126348,
+        94.83947499833623,
+        152.19571190564852
+      ],
+      "rank": 6,
+      "positive_eigenvalue_count": 6,
+      "negative_eigenvalue_count": 0,
+      "near_zero_eigenvalue_count": 0,
+      "positive_condition_number": 1135.0668913062805,
+      "evaluation_count": 73,
+      "rank_tolerance": 1e-6,
+      "diagnostic_kind": "central_difference_objective_hessian_not_covariance"
+    },
+    "coarse_search": null,
+    "method": "pandey_mutual_information_bb_ascent/v0.1",
+    "paper_doi": "10.1609/aaai.v26i1.8379",
+    "paper_url": "https://robots.engin.umich.edu/publications/gpandey-2012a.pdf",
+    "frame_convention": "p_camera = R_camera_lidar p_lidar + t_camera_lidar",
+    "objective": "raw mutual information; equations 1--8",
+    "optimizer": "optional deterministic coarse-to-fine coordinate search followed by numerical gradient and Barzilai--Borwein ascent; equations 9--11",
+    "kde_specialization": "finite 2D histogram convolved with covariance-derived Gaussian kernel",
+    "numerical_safeguards": "step clipping and monotonic backtracking",
+    "curvature_claim": "central-difference objective Hessian; not covariance or CRLB"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "default": "synthetic diagnostic only; not held-out real calibration evidence",
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "cases": {
+      "default": [],
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Cases",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source_commit",
+    "plan_sha256"
+  ],
+  "title": "Report",
+  "type": "object"
+}

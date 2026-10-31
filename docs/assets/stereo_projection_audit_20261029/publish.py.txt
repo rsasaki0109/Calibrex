@@ -1,0 +1,75 @@
+import json
+from pathlib import Path
+import jsonschema
+root=Path('docs/assets/stereo_projection_audit_20261029')
+r=json.loads((root/'audit.json').read_text())
+jsonschema.validate(r,json.loads((root/'audit.schema.json').read_text()))
+assert len(r['frames'])==12
+assert len({(f['case_id'],f['frame_id']) for f in r['frames']})==12
+text='''
+
+## Results
+
+The fix and diagnostic were committed at `4f1ebd2c` before the numerical audit.
+All 12 distinct frames completed. Raw source hashes and stereo timestamp identity
+checks passed. The reference extrinsic reconstructed as
+`R_rect_00 * T_cam0_lidar`, followed by the camera-02 offset `K^-1 P[:,3]`, agrees
+with the saved reference to within **6.94e-18** in matrix entries. No camera-origin
+omission was found in the reference transform.
+
+The conversion bug is material for **2011-09-28**: left/right z offsets differ by
+about 1.78 mm. At the selected pixels the corrected stereo depths are lower by a
+median **3.25–3.59 cm**. For 2011-09-26 the z-offset difference is only about
+0.016 mm, and depth corrections are below 0.34 mm in magnitude at the median.
+
+Values below use the same originally selected pairs, not a new correspondence
+search. Signed residual is LiDAR z minus stereo z at the dataset reference.
+
+| Recording | Frame | Median depth correction (m) | Old median z residual (m) | Corrected median z residual (m) | Predicted median right-row offset (px) |
+| --- | --- | ---: | ---: | ---: | ---: |
+'''
+for f in r['frames']:
+    assert f['selected_pairs']==f['corrected_valid_pairs']==2000
+    text+=f"| {f['case_id'][11:15]} | {f['frame_id']} | {f['depth_correction_median_m']:.6f} | {f['old_signed_z_median_m']:.6f} | {f['corrected_signed_z_median_m']:.6f} | {f['predicted_right_row_shift_median_px']:.3f} |\n"
+text+='''
+The 0002 residual medians decrease in magnitude by roughly 3 cm, but remain
+negative (−0.059 to −0.070 m). The other nine frames barely change. This proves a
+projection-conversion inconsistency and its local effect; it does **not** show
+improved end-to-end calibration or explain most residuals across all four drives.
+No optimizer was rerun and no old verdict was updated.
+
+### Timing and remaining assumptions
+
+The source left/right timestamps match the saved headers exactly. Right images
+precede left images by **0.473–0.641 ms**, within the existing 1 ms gate. This is
+not zero time offset; motion can still produce image disagreement. Saved clouds
+use OXTS position interpolation, SLERP orientation and modeled azimuth point times
+relative to the scan header, transformed to the left camera timestamp. The
+IMU/LiDAR transform is inverted to map LiDAR points into IMU coordinates and
+inverted again after transport; that algebra is consistent with the frame names.
+Existing synthetic alignment tests pass, but this audit does not reconstruct the
+bags or validate the physical acquisition-time model.
+
+There is also a predicted **0.133–0.288 px median vertical stereo mismatch** on
+these selected points. The depth formula now accounts for the x/z projection
+geometry, but horizontal SGBM still does not compensate this vertical offset.
+This remains a concrete frontend hypothesis, alongside stereo matching error,
+visibility, motion and reference uncertainty. Next compare a properly rectified
+stereo frontend on the same spent frames, preserving a control and evaluating
+both depth consistency and downstream calibration. Do not subtract a fitted
+median from depth or loosen solver gates.
+
+Artifacts: [audit](../assets/stereo_projection_audit_20261029/audit.json),
+[schema](../assets/stereo_projection_audit_20261029/audit.schema.json).
+Historical arrays remain unchanged. Future bundles record the corrected formula
+and true horizontal baseline. Reproduce the diagnostic with existing bundles:
+
+```sh
+PYTHONPATH=src:. OPENBLAS_NUM_THREADS=1 \\
+  python tools/audit_stereo_projection_geometry.py \\
+  docs/assets/stereo_priority_20261029 /tmp/projection-audit.json
+```
+'''
+p=Path('docs/research/stereo_projection_audit.md')
+p.write_text(p.read_text().split('\n\n## Results')[0]+text)
+print('12 frames, 24000 unchanged selected pairs, schema validated')

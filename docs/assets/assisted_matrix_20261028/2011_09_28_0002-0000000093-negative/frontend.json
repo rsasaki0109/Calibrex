@@ -1,0 +1,61 @@
+{
+  "scope": "spent-data stereo-assisted frontend; no camera-LiDAR reference used",
+  "source_sha256": {
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000093.png": "88dbb9203664eafd9b526da814ba0442afd4de8fdb443c3a65753d460d0527ac",
+    "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_28_0002/0000000093.png": "dbd684c2f2c61f8021f5a48652e5aa6ff5f4af1ffc3b629fbe853120e9fa2dc8",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/image_02/timestamps.txt": "62d30c4f96380e119b2d89a4b4f91fdb403f77df7dd40138fab66b5950b7ebb2",
+    "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_28_0002/timestamps.txt": "bdff043fb133c0c1d5d3c27ecfd29e041accc4959bbd6b0d2046e4ff8513ce07",
+    "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_28/calib_imu_to_velo.txt": "07ca9ed33a2d968fc6358617d2c70e048b6f8e0f6ee5b73ae963afc1b19456ce",
+    "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_28/calib_cam_to_cam.txt": "e2ca2f12fbe7900e762b909f58438f7147e707eed120ad87511e752551a209ab",
+    "/workspace/work/camera-lidar-recovery-20261027/bags/2011_09_28_0002/2011_09_28_0002_0.db3": "3da9729ab9d6613f80294f66b7347fe0fa034a0e69e74e9ed062d6b9b471b50f",
+    "driver": "c58790d26f65601ea05e97e6146a323ecf20a80d2f1e9a17edec43f669b62196"
+  },
+  "output_sha256": {
+    "points.npy": "fe13adc90e060f9023f8dc548d6164f7e4122423a0c0f8e39447959e2fe121a1",
+    "depth.npy": "dce640173e7814314b5f5c501bc53a1883d517c917165b4f5e51a3753beb4f1e",
+    "aligned.ply": "44b43d510d62227714d4b63956e29e8e423f2a294cbee51d430694040736c603",
+    "calib.json": "c09581643130dab1dd7e6f45adaab973dc43a41437180519249f0ce57320b0c6",
+    "aligned.png": "f12b389051e7eeafef4ee8ac4a13cbe1b2cfb5ffb296bb4e30b833b084cac888"
+  },
+  "timing": {
+    "image_header_ns": 1317212825869020928,
+    "right_image_header_ns": 1317212825868412672,
+    "scan_header_ns": 1317212825870585210,
+    "image_minus_scan_s": -0.0015642820000000002,
+    "first_point_minus_image_s": -0.050257206887073025,
+    "last_point_minus_image_s": 0.053383882164888874
+  },
+  "stereo": {
+    "provider": "OpenCV StereoSGBM",
+    "opencv_version": "4.14.0",
+    "settings": {
+      "minDisparity": 0,
+      "numDisparities": 128,
+      "blockSize": 5,
+      "P1": 200,
+      "P2": 800,
+      "disp12MaxDiff": 1,
+      "preFilterCap": 31,
+      "uniquenessRatio": 10,
+      "speckleWindowSize": 100,
+      "speckleRange": 2,
+      "mode": 2
+    },
+    "baseline_m": 0.5372559028062116,
+    "valid_pixels": 343379,
+    "total_pixels": 452880,
+    "depth_convention": "optical-axis z metres",
+    "depth_range_m": [
+      0.1,
+      80.0
+    ]
+  },
+  "motion": {
+    "model": "OXTS linear position and SLERP rotation; KITTI modeled point times",
+    "point_count": 120930,
+    "median_point_shift_m": 0.0028827200861710044,
+    "max_point_shift_m": 0.0844732476329325,
+    "extrapolation": false,
+    "auxiliary_calibration": "IMU-to-LiDAR only"
+  }
+}

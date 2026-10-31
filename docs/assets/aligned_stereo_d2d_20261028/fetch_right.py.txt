@@ -1,0 +1,19 @@
+import json,hashlib
+from pathlib import Path
+from tools.kitti_drive_fetch import head,central_directory,fetch_range,extract
+root=Path('/workspace/work/stereo-d2d-20261028')
+record=json.loads(Path('/workspace/work/camera-lidar-recovery-20261027/2011_09_26_0005_fetch.json').read_text())
+url=record['url']; size,etag=head(url)
+assert (size,etag)==(record['size_bytes'],record['etag'])
+infos=central_directory(url,size,etag)
+names=['2011_09_26/2011_09_26_drive_0005_sync/image_03/data/0000000001.png','2011_09_26/2011_09_26_drive_0005_sync/image_03/timestamps.txt']
+records=[]
+for name in names:
+ info=next(i for i in infos if i.filename==name)
+ end=info.header_offset+30+len(info.filename.encode())+len(info.extra)+info.compress_size+4096
+ blob=fetch_range(url,info.header_offset,min(end,size-1),etag)
+ data=extract(blob,info.header_offset,info)
+ dest=root/Path(name).name;dest.write_bytes(data)
+ records.append(dict(member=name,sha256=hashlib.sha256(data).hexdigest(),bytes=len(data)))
+(root/'fetch-frame1.json').write_text(json.dumps(dict(url=url,etag=etag,size_bytes=size,members=records,scope='additional stereo channel from already-spent drive 0005'),indent=2))
+print(records)

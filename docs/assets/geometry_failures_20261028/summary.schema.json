@@ -1,0 +1,30 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.geometry_failure_summary/v0.1",
+      "default": "calibrex.geometry_failure_summary/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    },
+    "cases": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Cases",
+      "type": "array"
+    }
+  },
+  "required": [
+    "provenance",
+    "cases"
+  ],
+  "title": "Summary",
+  "type": "object"
+}

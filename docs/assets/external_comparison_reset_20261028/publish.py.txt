@@ -1,0 +1,65 @@
+import hashlib
+import json
+import shutil
+from pathlib import Path
+import numpy as np
+from scipy.spatial.transform import Rotation
+from pydantic import BaseModel, ConfigDict
+
+work = Path('/workspace/work/external-comparison-20261028')
+out = Path('/workspace/Calibrex/docs/assets/external_comparison_reset_20261028')
+class SmokeReport(BaseModel):
+    model_config = ConfigDict(extra='forbid', allow_inf_nan=False)
+    scope: str
+    source_commit: str
+    official_image_digest: str
+    runtime_exit_code: int
+    fresh_sensor_payloads_read: int
+    initial_rotation_error_deg: float
+    output_rotation_error_deg: float
+    initial_translation_error_m: float
+    output_translation_error_m: float
+    output_T_camera_lidar: list[list[float]]
+    limitations: list[str]
+    artifact_sha256: dict[str, str]
+
+files = ['smoke-input.json', 'seed.json', 'calib-seeded.json',
+         'koide-rootfs.identity.json', 'runtime-inspection.log', 'import.log',
+         'apt-image.log', 'preprocess.log', 'calibrate.log', 'calibrate-xvfb.log',
+         'prepare_smoke.py', 'seed_smoke.py']
+for name in files:
+    shutil.copyfile(work / name, out / name)
+shutil.copyfile(work / 'preprocessed/calib.json', out / 'calib-output.json')
+shutil.copyfile(__file__, out / 'publish.py.txt')
+seed = json.loads((work / 'seed.json').read_text())
+raw = json.loads((out / 'calib-output.json').read_text())['results']['T_lidar_camera']
+assert len(raw) == 7 and np.isfinite(raw).all()
+assert abs(np.linalg.norm(raw[3:]) - 1) < 1e-6
+inverse = np.eye(4)
+inverse[:3, :3] = Rotation.from_quat(raw[3:]).as_matrix()
+inverse[:3, 3] = raw[:3]
+estimate = np.linalg.inv(inverse)
+reference = np.array(seed['reference_T_camera_lidar'])
+initial = np.array(seed['initial_T_camera_lidar'])
+def errors(transform):
+    return (float(np.degrees(Rotation.from_matrix(transform[:3,:3] @ reference[:3,:3].T).magnitude())),
+            float(np.linalg.norm(transform[:3,3] - reference[:3,3])))
+ri, ti = errors(initial)
+ro, to = errors(estimate)
+report = SmokeReport(scope='spent-data runtime smoke; not a benchmark or SOTA audit',
+    source_commit='02a0dc039f5509708f384be4ff3228e0ae09352d',
+    official_image_digest='sha256:f7363cc3deadc2419f3527a7b9ec7bdabaa3031fd8e1b9c6cc46666ae1301bbb',
+    runtime_exit_code=0, fresh_sensor_payloads_read=0,
+    initial_rotation_error_deg=ri, output_rotation_error_deg=ro,
+    initial_translation_error_m=ti, output_translation_error_m=to,
+    output_T_camera_lidar=estimate.tolist(),
+    limitations=['Three frames from spent KITTI 0005 only; reference-derived seed.',
+        'Negative per-point timestamp warnings; temporal validity unresolved.',
+        'Wolfe line-search warnings; process completion does not imply convergence.',
+        'Derived flattened runtime with Xvfb and software Mesa; no native comparator.',
+        'Runtime container had network access during package installation and calibration.'],
+    artifact_sha256={p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(out.iterdir()) if p.is_file()})
+(out / 'smoke-report.json').write_text(report.model_dump_json(indent=2)+'\n')
+(out / 'smoke-report.schema.json').write_text(json.dumps(SmokeReport.model_json_schema(), indent=2)+'\n')
+SmokeReport.model_validate_json((out / 'smoke-report.json').read_text())
+print(f'rotation {ri:.6f} -> {ro:.6f} deg; translation {ti:.6f} -> {to:.6f} m')

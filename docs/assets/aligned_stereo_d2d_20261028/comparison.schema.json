@@ -1,0 +1,98 @@
+{
+  "$defs": {
+    "Diagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "rotation_reference_disagreement_deg": {
+          "title": "Rotation Reference Disagreement Deg",
+          "type": "number"
+        },
+        "translation_reference_disagreement_m": {
+          "title": "Translation Reference Disagreement M",
+          "type": "number"
+        },
+        "scoped_recovery_event": {
+          "title": "Scoped Recovery Event",
+          "type": "boolean"
+        },
+        "T_camera_lidar": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "T Camera Lidar",
+          "type": "array"
+        }
+      },
+      "required": [
+        "rotation_reference_disagreement_deg",
+        "translation_reference_disagreement_m",
+        "scoped_recovery_event",
+        "T_camera_lidar"
+      ],
+      "title": "Diagnostic",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "frame_id": {
+      "title": "Frame Id",
+      "type": "string"
+    },
+    "reference_used_in_frontend": {
+      "title": "Reference Used In Frontend",
+      "type": "boolean"
+    },
+    "fresh_evaluation_payloads_read": {
+      "title": "Fresh Evaluation Payloads Read",
+      "type": "integer"
+    },
+    "diagnostics": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Diagnostic"
+      },
+      "title": "Diagnostics",
+      "type": "object"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "artifact_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Artifact Sha256",
+      "type": "object"
+    },
+    "source_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Source Sha256",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "frame_id",
+    "reference_used_in_frontend",
+    "fresh_evaluation_payloads_read",
+    "diagnostics",
+    "limitations",
+    "artifact_sha256",
+    "source_sha256"
+  ],
+  "title": "Report",
+  "type": "object"
+}

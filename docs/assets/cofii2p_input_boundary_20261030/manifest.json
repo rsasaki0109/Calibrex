@@ -1,0 +1,97 @@
+{
+  "scope": "geometry/preprocessing boundary only; no CoFiI2P inference or pyramid",
+  "frame_id": "test",
+  "source_commit": "333e368b9dde82f9dbd170eaed790fdeeaa15a94",
+  "driver_sha256": "14f9be0ee9bc56e688baff0ae5afbbb543e9bea915f3c397875efa7bb0156e22",
+  "input_sha256": {
+    "/workspace/work/cofii2p-boundary-smoke-20261030/inputs/image.png": "65f8f910176ef827cb99cce2de21fa42c3f3040ef23fae27cca12add58986c94",
+    "/workspace/work/cofii2p-boundary-smoke-20261030/inputs/cloud.npz": "a6060c229ed242893992cf5578232dbf259ac6af2a5dddfeac6f92d39434f79c",
+    "/workspace/work/cofii2p-boundary-smoke-20261030/inputs/initial.json": "d2bb88ff462dae8088139f10b2910667d84cab2e8c30e7d176a888f2bb034908",
+    "/workspace/work/cofii2p-boundary-smoke-20261030/inputs/camera.json": "1e9ed07a14b4c316e5bfce88c5644c4ba3e78a4eb4c163ccef62d8d67fd081ff",
+    "/workspace/work/cofii2p-boundary-smoke-20261030/inputs/request.json": "b650697e8cbba73cd601ccf15d543831bbc154618a238e65531b4bcbcea84a84"
+  },
+  "artifact": {
+    "path": "/workspace/work/cofii2p-boundary-smoke-20261030/prepared/input.npz",
+    "sha256": "5993aedd7eb63522cfbfdd3bdf0facd96f9de3c7e4806f42aa591032ea5b4450"
+  },
+  "array_shapes": {
+    "point_lidar_m": [
+      3,
+      3
+    ],
+    "point_initial_camera_m": [
+      3,
+      3
+    ],
+    "normal_initial_camera": [
+      3,
+      3
+    ],
+    "intensity": [
+      3,
+      1
+    ],
+    "point_id": [
+      3
+    ],
+    "image_bgr_chw": [
+      3,
+      160,
+      512
+    ],
+    "input_intrinsics": [
+      3,
+      3
+    ]
+  },
+  "source_to_input_pixel": [
+    [
+      0.5,
+      0.0,
+      -54.25
+    ],
+    [
+      0.0,
+      0.5013333333333333,
+      -14.249333333333333
+    ],
+    [
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "initial_camera_lidar": [
+    [
+      2.220446049250313e-16,
+      -1.0,
+      0.0,
+      0.2
+    ],
+    [
+      1.0,
+      2.220446049250313e-16,
+      0.0,
+      -0.1
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.3
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "preprocessing": {
+    "resize": "half dimensions rounded; OpenCV pixel-center affine",
+    "crop": "center512x160",
+    "source_crop_top_rows": 0,
+    "channel_order": "BGR (explicit OpenCV convention; checkpoint parity pending)",
+    "point_sampling": "none; original rows/IDs preserved"
+  }
+}

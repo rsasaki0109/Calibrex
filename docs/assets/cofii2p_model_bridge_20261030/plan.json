@@ -1,0 +1,48 @@
+{
+  "scope": "default-shape synthetic geometry smoke only; zero inference or calibration fits",
+  "sha256": {
+    "tools/cofii2p_model_bridge.py": "f956fae606abb550820760a263edc7e350b147d58b4168b2faef49a3e5b2f792",
+    "tools/cofii2p_bridge_smoke.py": "b1f920dcb1e22f0560506a4742d74729c49533a51d1063b69b7b5400a7fc9233",
+    "tests/unit/test_cofii2p_model_bridge.py": "bb2404f498e4d8f6cfd508bba0da23d7663af6088f0fe8aa91f2872819c482fc",
+    "docs/research/cofii2p_model_bridge.md": "695fc5d1787c5a786f15e2fbde8d3a4b2708006a88b2a7807209e21dc3aee1dd",
+    "docs/assets/cofii2p_model_bridge_20261030/options.json": "91f7a0da846c7395fdbd96a0e3798e5f4cdd567adeee8830d53f52154df4e455"
+  },
+  "official_source": {
+    "repository": "https://github.com/WHU-USI3DV/CoFiI2P",
+    "commit": "ed90edf51cca540ee76152d91133c7e79b63256c",
+    "sha256": {
+      "data/kitti.py": "4f55906ba4cfac7b50d3a6e1639d4e5f6ea89cad5adb379124a2cde226087b71",
+      "data/options.py": "36d50042dd5845ee56bcda4915eebd4b7300eb63eccf6982572b60509f1e582a",
+      "model/network.py": "1cf3528a8b8293bf62d86b4b7b667359e50f941ca3d4175b90476a42d3b58936",
+      "model/kpconv/preprocess_data.py": "6622057b9fff09751746af7b4c6d047110d03c2409cc35efc815b96ec90baf42",
+      "evaluation/eval_all.py": "e3dbede27e9ade881edb11242d03db5a55359ecc682e430e023048b5b8f3d901"
+    }
+  },
+  "command": [
+    "python",
+    "tools/cofii2p_bridge_smoke.py",
+    "/workspace/work/cofii2p-bridge-smoke-20261030"
+  ],
+  "environment": {
+    "PYTHONPATH": "src:.",
+    "OPENBLAS_NUM_THREADS": "1"
+  },
+  "expected_stage_counts": [
+    20480,
+    10240,
+    5120,
+    2560,
+    1280
+  ],
+  "knn_checks": 39,
+  "decoder_positions": 16,
+  "expected_legacy_differences": 12,
+  "model_invocations": 0,
+  "real_frames": 0,
+  "limitations": [
+    "no Open3D numerical parity",
+    "no checkpoint image parity",
+    "no learned inference",
+    "no accuracy claim"
+  ]
+}

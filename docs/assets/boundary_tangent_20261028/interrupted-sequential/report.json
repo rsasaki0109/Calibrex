@@ -1,0 +1,384 @@
+{
+  "schema_version": "calibrex.camera_lidar_initialization_comparison/v0.1",
+  "status": "running",
+  "provenance": {
+    "experiment": "local_boundary_tangent",
+    "git_commit": "e289bc3e",
+    "generator_sha256": "b2a0853363e9ad28899e9b902ebb4132272b6167031764f912173e80f5cd6a75",
+    "probe_sha256": "e1c76b47262a5ce44ff708b034c28fb7d67f768d48122e9461d867d123ea45db",
+    "estimator_sha256": "cc2b0b4b8967971c78a72213e9d63cfc077cc3e6bc704c61c03146d7d3d90a60",
+    "new_evaluation_started": false,
+    "new_accuracy_claim": false,
+    "hypothesis": "Local boundary directions reject incorrect edge alignments.",
+    "selection": "all fourteen reacquired spent inputs, paired objective ablation, original search settings"
+  },
+  "inputs": [
+    {
+      "drive": "2011_09_26_0005",
+      "run": "baseline",
+      "arms": {
+        "original": {
+          "elapsed_s": 14.813074575999053,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.04791998454827504,
+                "min_t_statistic": 4.615844424244516,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.05,
+                -0.10000000000000007,
+                -0.05000000000000003,
+                -0.10000000000000007,
+                -0.05000000000000003,
+                -0.10000000000000007
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.027907743949540386,
+                "min_t_statistic": 7.962343859701239,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.09999999999999998,
+                -0.10000000000000003,
+                -0.10000000000000003,
+                -0.15000000000000002,
+                -0.10000000000000003,
+                -0.10000000000000003
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.024211709417559377,
+                "min_t_statistic": 3.933635375742272,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.19999999999999998,
+                0.09999999999999996,
+                0.050000000000000114,
+                -0.3500000000000001,
+                0.050000000000000114,
+                0.10000000000000002
+              ]
+            }
+          ],
+          "report_sha256": "756fd90855c6df8ed547c2277d3cc5faa3c0e779c315e5a96466b1a2759d2b23"
+        },
+        "boundary_tangent": {
+          "elapsed_s": 80.77885499499826,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.047897300790680886,
+                "min_t_statistic": 5.022839446368463,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.14999999999999997,
+                -0.049999999999999906,
+                -0.050000000000000044,
+                -0.05000000000000003,
+                -1.0537393744204108e-17,
+                -0.10000000000000007
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.03652385957913134,
+                "min_t_statistic": 7.143319267908575,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.10000000000000002,
+                -0.049999999999999996,
+                -0.09999999999999998,
+                -0.1,
+                -0.09999999999999998,
+                -0.10000000000000003
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.026852575199130185,
+                "min_t_statistic": 5.026257873880043,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.15000000000000002,
+                -0.19999999999999996,
+                -0.09999999999999996,
+                -0.2999999999999999,
+                -0.09999999999999996,
+                0.10000000000000002
+              ]
+            }
+          ],
+          "report_sha256": "f30d17ab77dc9731f7ee39a2de3d146d7ad9e21b503a220b7703308599570582"
+        }
+      },
+      "arrays_sha256": "aa9853d34d512c6e75a7268e1b98f9d6fd8716e37ebe1afdd3b3381db8e598fb",
+      "snapshot_sha256": "0ee39ac0b63a72329683b1ac977ed4ef9d68f8a9447074b7b49d513ac5436d79",
+      "original_parity": true,
+      "previous_report_sha256": "869782fcaab190a08a3c7cc2deb055d4caa7cbc3ecfe051fe00278cb16f92a3e"
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_x+3",
+      "arms": {
+        "original": {
+          "elapsed_s": 17.19258016099775,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.024521763361017742,
+                "min_t_statistic": 4.612708835571133,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.09999752530710158,
+                -9.517990175571619e-7,
+                -7.614392040655886e-7,
+                -7.614392040655886e-7,
+                -1.5228784857092976e-6,
+                -0.050000761436894546
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 4,
+                "mean_objective_drop": 0.013036469602991764,
+                "min_t_statistic": 1.7382728397561698,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                9.552213797668816,
+                -0.09864561573690611,
+                -0.0999543136465903,
+                7.926796094720041,
+                9.602191097135927,
+                9.653477097653095
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 4,
+                "mean_objective_drop": 0.010888048315879048,
+                "min_t_statistic": 2.2205991443628372,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.1525488662755933,
+                0.05259455264048864,
+                -3.14045742389691,
+                0.0026173958176514737,
+                3.9997079654767527,
+                0.05259435236626384
+              ]
+            }
+          ],
+          "report_sha256": "a79638ed8245089f31b7c2b72a3342fcaeb0aee2e18dae5b09752871d0df07b7"
+        },
+        "boundary_tangent": {
+          "elapsed_s": 86.32887538300565,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.02894652584310325,
+                "min_t_statistic": 4.178067132551998,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.14999619276797932,
+                0.04999980963962362,
+                -1.9035979397997414e-7,
+                -7.614392040655886e-7,
+                0.04999847711685629,
+                -7.614392040655886e-7
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 1,
+                "mean_objective_drop": -0.0007965787456400264,
+                "min_t_statistic": -0.27912617016192837,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                9.744210813368708,
+                9.694302234411552,
+                5.308007254147459,
+                5.34497856369098,
+                11.058033924205624,
+                11.058033924205624
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 5,
+                "mean_objective_drop": 0.019850156535630825,
+                "min_t_statistic": 2.5411242138055328,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.1525500280567504,
+                -0.14862503631865875,
+                -0.048668644239686795,
+                0.0026173958176514737,
+                6.547143977022878,
+                0.002617395817651126
+              ]
+            }
+          ],
+          "report_sha256": "543549eff24b6f5653152851de570de79a4930e96846870bb56245ca94733b02"
+        }
+      },
+      "arrays_sha256": "739c449871fb9b0a6199781a9c32508996b2f88e84e92e75746416b3fe27aeff",
+      "snapshot_sha256": "3a22787c27fef7398707e1674545aa636dae8249c7469c89dc6aac7e3f2e31df",
+      "original_parity": true,
+      "previous_report_sha256": "38e38700ebab7a66f42443c959548657dbbaa0eb5920f6ed291b0b17105b8c45"
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_y+3",
+      "arms": {
+        "original": {
+          "elapsed_s": 15.36533403100475,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.02294381285603991,
+                "min_t_statistic": 4.0108486114294,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.05521173821134384,
+                -0.05259435236626351,
+                -0.04997696651713639,
+                -0.05259435236626351,
+                -0.051285659442171505,
+                -0.10257131887895984
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.028676759223172227,
+                "min_t_statistic": 11.107592221869718,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.05000190359238123,
+                -0.05000095179612956,
+                -0.050000190359216046,
+                -0.10000951793810144,
+                -0.05000038071843737,
+                -0.05000152287386552
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.024181428513188396,
+                "min_t_statistic": 3.7959013767329743,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.1985991731152678,
+                0.09864524010533789,
+                0.048668273591227114,
+                -0.34852874537732353,
+                0.048668273591227114,
+                0.09733654717734598
+              ]
+            }
+          ],
+          "report_sha256": "fa96ac7dbd0745fd0f0a1d1118013553d3937db440ab0e0b6c5e83ca35ef954f"
+        }
+      },
+      "arrays_sha256": "b58e564b3fdfea2a5761ef96b8ee7e86c389d61e94cda3540ea30f4c3a4da722",
+      "snapshot_sha256": "174938f666ce74d9a6709db79d2ab3e2bd4c660666d8cd6aeedfdd9bc8af50e3",
+      "original_parity": true,
+      "previous_report_sha256": "73040eecf78e0fff39937fd27c50639de01de3b1d294ebb19b221a566b704bf9"
+    }
+  ],
+  "limitations": [
+    "Reacquired arrays are not byte-identical to the original cache.",
+    "Same-input code parity does not resolve historical cross-capture numerical drift.",
+    "42 axis controls are correlated diagnostics, not independent recordings.",
+    "Detection is not accuracy, native coverage, or SOTA support; reference is not truth.",
+    "No fresh evaluation, threshold tuning, or estimator default changes."
+  ]
+}

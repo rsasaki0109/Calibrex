@@ -1,0 +1,155 @@
+{
+  "schema_version": "calibrex.direct_provider_followup/v0.1",
+  "observed_at_utc": "2026-10-30T09:20:28.898515+00:00",
+  "source_commit": "622482073c848451afd34c09f24535c4400a0f3f",
+  "scope": "bounded official-source readiness review; no external model code execution",
+  "selection_basis": [
+    "NCLR linked by pinned CorrI2P README",
+    "FreeReg acknowledged by pinned CoFiI2P README",
+    "FFreeReg recommended by pinned FreeReg README"
+  ],
+  "candidates": [
+    {
+      "name": "NCLR",
+      "repository": "https://github.com/Eaphan/NCLR",
+      "branch": "default",
+      "commit": "40de8eea555ffce1d47374fdac8c0b2659455a4d",
+      "source_files": [
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/NCLR/README.md",
+          "sha256": "5062cd77b9cb1b9fc3c7c734f11fec27eed1d9ffa068014fa02c66f0ccccbe46"
+        },
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/NCLR/LICENSE",
+          "sha256": "3cc68ff5a0d2faebbff2465814108d299a31b1493e61a4ebf443179ebec49da9"
+        },
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/NCLR/requirements.txt",
+          "sha256": "2bc0ee834419f5c9c5850d7fa3f289470bd8041f676ec6c13be7bea359df990d"
+        },
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/NCLR/bevlab/models.py",
+          "sha256": "bfdd3cdb13422e0ee262d2a3727ebb3429fc814c39104be14103006f762779a0"
+        },
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/NCLR/bevlab/datasets.py",
+          "sha256": "0b70364249f7c29f16c6d87795ed221c898d72bdd5135a6b6e3b73246f4a4d5f"
+        },
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/NCLR/train.py",
+          "sha256": "a426d05cf69cc50b48294e1500e48c10d5696fbeeb7577ee481d9331039b01e7"
+        }
+      ],
+      "tracked_checkpoint_paths": [],
+      "tracked_root_license_paths": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "FreeReg",
+      "repository": "https://github.com/WHU-USI3DV/FreeReg",
+      "branch": "default",
+      "commit": "d13a45f5fa0f1568a311d6e336bcbeaf3c99cd9b",
+      "source_files": [
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/FreeReg/Readme.md",
+          "sha256": "b0f7d56c7ddaac880ce62e30e90832e91db87375fa84f30f7ce60d216d67f969"
+        },
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/FreeReg/environment.yaml",
+          "sha256": "d7e0e8c5229b9bd93440595e318e80ce9472c9c6665790a5e8c6bc594895d1c7"
+        },
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/FreeReg/config/kitti.yaml",
+          "sha256": "e41ce07579b82565551fcd1f0a9e8aece5c6e29266652bbdaf03747a2720f9cb"
+        },
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/FreeReg/demo.py",
+          "sha256": "e9846987cfdf2f8b2af47803b8eb126df00e04c184298210595f9c0993bd7342"
+        },
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/FreeReg/tools/controlnet/diff_feature/basic.py",
+          "sha256": "2f2b78d41eed12da4d3405aee4da44961480d7abd1962f5a474268cabfaf20b2"
+        },
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/FreeReg/pipeline/gen_match.py",
+          "sha256": "c207e8de8b7439cf3359498e79049b0d5ce4bf611a8e7ccd53213fe099885352"
+        }
+      ],
+      "tracked_checkpoint_paths": [],
+      "tracked_root_license_paths": []
+    },
+    {
+      "name": "FFreeReg",
+      "repository": "https://github.com/WHU-USI3DV/FreeReg",
+      "branch": "FFreeReg",
+      "commit": "0b397094feab8060f67afbc78471d4c95477d96d",
+      "source_files": [
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/FFreeReg/readme.md",
+          "sha256": "6b5f68dfb58dd7b097369c3d2dc1277c75b086fcabf0fcb5f3250f5125a725d4"
+        },
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/FFreeReg/demo.py",
+          "sha256": "ae906377c86bfc3c590bec7c523523b99f3f5ada25e625e4ca4cc2c6edbba7b6"
+        },
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/FFreeReg/tools/YOHO/fcgf_feat.py",
+          "sha256": "576b3827559b9e774a99d13a18de08178351d5c436df5656c70127d688ca80db"
+        },
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/FFreeReg/tools/YOHO/yoho_extract.py",
+          "sha256": "d4fcc93d8e3bacabc8eb4b2ba98c0520912b4ca4c590175feeafb27d5796f63e"
+        },
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/FFreeReg/tools/DepthPro/get_pretrained_models.sh",
+          "sha256": "5c67a043d70cfe5fb18dda5eef0975e1ef7298831a7d4279e479b6e3b7373d90"
+        },
+        {
+          "path": "/workspace/work/direct-provider-followup-20261030/FFreeReg/tools/DepthPro/LICENSE",
+          "sha256": "21a6551d1f8f851d2d10b5c6cc56535956b983c3cb997d25f3db4dd6f59ef99f"
+        }
+      ],
+      "tracked_checkpoint_paths": [],
+      "tracked_root_license_paths": []
+    }
+  ],
+  "findings": [
+    {
+      "candidate": "NCLR",
+      "decision": "not a ready pretrained calibration provider",
+      "mechanism": "2D-3D neural calibration used in self-supervised point representation learning; soft image correspondence and differentiable PnP exist in model source",
+      "weights": "README links are todo and pretrained-weight TODO remains unchecked; no tracked checkpoint files",
+      "runtime": "TorchSparse/Minkowski/torch-scatter ecosystem; no inference runtime or port verified here",
+      "terms": "root Apache-2.0; dependencies and any future checkpoint terms still separate",
+      "boundary": "training dataset reads calibration and model uses calibration-derived projections; safe unknown-extrinsic inference boundary not established",
+      "next": "Do not mistake title/README segmentation scores for a ready calibration benchmark; require actual compatible checkpoint and independent inference path first"
+    },
+    {
+      "candidate": "FreeReg",
+      "decision": "conditional distinct mechanism; not feasible in current bounded runtime",
+      "mechanism": "diffusion cross-modal features and ZoeDepth/FCGF geometry; PnP or 3D registration",
+      "weights": "README requires Stable Diffusion1.5, fine-tuned depth ControlNet, ZoeDepth and/or FCGF weights depending on feature configuration; no artifact digests obtained",
+      "runtime": "source includes CPU device fallbacks, so not all code is intrinsically CUDA-only; full selected pipeline CPU feasibility unverified, missing dependencies/weights, 1.3GB free disk",
+      "terms": "no tracked root LICENSE/COPYING; bundled dependencies and checkpoint terms require separate review, no redistribution assumed",
+      "boundary": "virtual depth-camera pose must be explicit and have overlap; demo uses identity and loads evaluation-only GT separately; cannot pass unknown KITTI calibration as initializer",
+      "next": "Do not install/download a multi-model environment without a usable resource/weight plan; no adapter before prerequisites"
+    },
+    {
+      "candidate": "FFreeReg",
+      "decision": "simpler registration mechanism; not a CPU/weight-free fallback",
+      "mechanism": "DepthPro reconstructed surface, YOHO/FCGF descriptors, scale adjustment and mixed Kabsch/reprojection registration; no virtual LiDAR camera",
+      "weights": "README requires DepthPro plus YOHO backbone and PartI weights; links only, no bytes or hashes acquired",
+      "runtime": "demo explicitly selects cuda for DepthPro and YOHO, FCGF imports MinkowskiEngine; changing a device string is not a validated port",
+      "terms": "no tracked root LICENSE/COPYING; DepthPro subdirectory has Apple terms that do not automatically license whole repository or checkpoints",
+      "boundary": "demo estimates intrinsics, rescales image-derived 3D and uses random sampling; calibration comparison needs frozen known-intrinsics/scale/seed policy and original point lineage",
+      "next": "No descriptor swap using rejected stereo surfaces and calling it Free-FreeReg; obtain model prerequisites before pilot"
+    }
+  ],
+  "decision": "No newly reviewed provider is ready for inference in the current runtime. Close this bounded search; prioritize execution resources and pinned model artifacts.",
+  "checkpoint_bytes_downloaded": 0,
+  "model_invocations": 0,
+  "calibration_fits": 0,
+  "data_scope": "source checkouts include bundled demo assets, none used for evaluation; no new KITTI archive or holdout fetched",
+  "core_modified": false
+}

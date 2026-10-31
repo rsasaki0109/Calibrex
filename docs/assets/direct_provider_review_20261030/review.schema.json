@@ -1,0 +1,47 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "runtime": {
+      "additionalProperties": true,
+      "title": "Runtime",
+      "type": "object"
+    },
+    "candidates": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Candidates",
+      "type": "array"
+    },
+    "attempted_unresolved_urls": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Attempted Unresolved Urls",
+      "type": "array"
+    },
+    "release_ready": {
+      "title": "Release Ready",
+      "type": "boolean"
+    },
+    "report_source_commit": {
+      "title": "Report Source Commit",
+      "type": "string"
+    }
+  },
+  "required": [
+    "scope",
+    "runtime",
+    "candidates",
+    "attempted_unresolved_urls",
+    "release_ready",
+    "report_source_commit"
+  ],
+  "title": "Review",
+  "type": "object"
+}

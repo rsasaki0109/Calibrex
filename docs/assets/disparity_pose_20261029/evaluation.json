@@ -1,0 +1,2059 @@
+{
+  "scope": "spent-data six-drive twelve-case joint six-DoF pixel-scaled inverse-depth comparison; no SOTA claim",
+  "source_commit": "517c4eb6c8e71f60ced73940ce784dd110482f7b",
+  "plan_sha256": "ae86c8275c441f28c9ce935c40c91bd7e245c1f21760afa0c72ddb9d6652adc9",
+  "cases": [
+    {
+      "case_id": "2011_09_26_0005-positive",
+      "input_sha256": {
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/seed.json": "e4cc1412bab9ecebcf1a65b4969a8e9865342031ca9dfa94434d87fb343513a4",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/d2d.json": "cae3c74aa6ba04270074b83be71e9ad08b1d71ce22eea8297d316281414c3394",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/calib-frontend.json": "2a9f6bf4b8282b09308a68220aa3a69aead38fcb5cadabb490742f00f687485e",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frontend.json": "53d285cec4a5d9352d2ed2143dd5a3140f86e513efb4e77ded7b12aafb8eb1c6",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-38.ply": "7ef115a70b00896027dd5ad3f8e8c70c97a470911bedc6f71eae6d3fdc5fe3da",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-38.depth.npy": "00449e0948fda40fc5e8a8e69dc6a8cd574a72f693d240dcf565000062351adb",
+        "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_26_0005/frame-38/frontend.json": "44bae8e3cd37456c366650da07bd89179f8f77c666c3bf02ce5cd511164354c6",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-76.ply": "8eaa8c815367e744cbbe336fad65c923b9c8b9d6b07a016b93cd5ae8c8707ab6",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-76.depth.npy": "4622d97490b20addfd8f68f82f145b66bfd7beeb719577b818797d36f769d181",
+        "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_26_0005/frame-76/frontend.json": "5d915e80a96044f6d6161ed291ddccd00b07b3c2698c0c999b6fc0990d81b8f9",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-114.ply": "d973236f90739062601c4adaf805feb6dad1593ae5209b7258fa7021f8afc667",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-114.depth.npy": "ef2a9a4dc64738be42684ded2ff8aabba840b8917264f2373bb11450e77bd79a",
+        "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_26_0005/frame-114/frontend.json": "772ffcf9da2579ebd6fc4fe1d4589c264298210b41d87ab3e0007f9a82f4d5cd"
+      },
+      "initial_T_camera_lidar": [
+        [
+          -0.017155467132486488,
+          -0.9998513431491697,
+          -0.001713456542265028,
+          0.1570524478595304
+        ],
+        [
+          -0.007153617595801984,
+          0.0018364056973287737,
+          -0.9999727149163535,
+          -0.12546671853346003
+        ],
+        [
+          0.9998272556012965,
+          -0.017142741539027197,
+          -0.0071840598855728525,
+          -0.2193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "result": {
+        "status": "lost_support",
+        "accepted": false,
+        "output_T_camera_lidar": [
+          [
+            -0.017155467132486488,
+            -0.9998513431491697,
+            -0.001713456542265028,
+            0.1570524478595304
+          ],
+          [
+            -0.007153617595801984,
+            0.0018364056973287737,
+            -0.9999727149163535,
+            -0.12546671853346003
+          ],
+          [
+            0.9998272556012965,
+            -0.017142741539027197,
+            -0.0071840598855728525,
+            -0.2193869124058732
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "candidate_T_camera_lidar": [
+          [
+            -0.008697659863699943,
+            -0.9999000340810709,
+            -0.011145714268215961,
+            0.10842464432318433
+          ],
+          [
+            0.01221136012633285,
+            0.011039096232928763,
+            -0.9998644899615041,
+            -0.08989086238087497
+          ],
+          [
+            0.9998876230543218,
+            -0.008832585668497837,
+            0.012114123757710184,
+            -0.15036820323519257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "options": {
+          "points_per_frame": 3000,
+          "min_points_per_frame": 128,
+          "max_nfev": 150,
+          "rotation_bound_deg": 3.0,
+          "translation_bound_m": 0.5,
+          "sigma_px": 0.5,
+          "initial_gate_px": 8.0,
+          "neighborhood_range_px": 2.0,
+          "min_retained_fraction": 0.9,
+          "max_condition_number": 1000000.0
+        },
+        "diagnostics": {
+          "initial_counts": [
+            3000,
+            3000,
+            3000
+          ],
+          "nfev": 24,
+          "termination": 3,
+          "cost": 32902.314231989825,
+          "initial_cost": 52182.0821835543,
+          "retained_counts": [
+            2332,
+            2601,
+            2546
+          ],
+          "scaled_parameters": [
+            -0.36754601914318824,
+            0.1610914600584675,
+            -0.18054667522609194,
+            -0.09725560707269215,
+            0.07115171230517012,
+            0.13803741834136132
+          ],
+          "weighted_jacobian_singular_values": [
+            373621.05360993766,
+            265391.83710771793,
+            1483.2006821271516,
+            517.3452198144118,
+            450.092149931732,
+            251.91698566321742
+          ],
+          "condition_number": 1483.1117982231808,
+          "median_absolute_residual_px": 0.5497640484731612
+        }
+      },
+      "initial": {
+        "valid_output": true,
+        "rotation_deg": 1.502893399187307,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "d2d": {
+        "valid_output": true,
+        "rotation_deg": 0.8405941879012846,
+        "translation_m": 0.2773338466541724,
+        "recovered": false
+      },
+      "candidate": {
+        "valid_output": true,
+        "rotation_deg": 0.5227047392673043,
+        "translation_m": 0.1304324025228633,
+        "recovered": false
+      },
+      "returned": {
+        "valid_output": true,
+        "rotation_deg": 1.502893399187307,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "stage_recovered": false
+    },
+    {
+      "case_id": "2011_09_26_0005-negative",
+      "input_sha256": {
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/seed.json": "ee0ab853cb5c78903cc79567e366c211606b7e695d155413f18eac457b274df3",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/d2d.json": "a475d2e2e7ca60831ea7e5c245cb1e24f6ecd0d32e90c885c618b9f1bec1b570",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/calib-frontend.json": "2a9f6bf4b8282b09308a68220aa3a69aead38fcb5cadabb490742f00f687485e",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/frontend.json": "53d285cec4a5d9352d2ed2143dd5a3140f86e513efb4e77ded7b12aafb8eb1c6",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/frame-38.ply": "7ef115a70b00896027dd5ad3f8e8c70c97a470911bedc6f71eae6d3fdc5fe3da",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/frame-38.depth.npy": "00449e0948fda40fc5e8a8e69dc6a8cd574a72f693d240dcf565000062351adb",
+        "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_26_0005/frame-38/frontend.json": "44bae8e3cd37456c366650da07bd89179f8f77c666c3bf02ce5cd511164354c6",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/frame-76.ply": "8eaa8c815367e744cbbe336fad65c923b9c8b9d6b07a016b93cd5ae8c8707ab6",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/frame-76.depth.npy": "4622d97490b20addfd8f68f82f145b66bfd7beeb719577b818797d36f769d181",
+        "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_26_0005/frame-76/frontend.json": "5d915e80a96044f6d6161ed291ddccd00b07b3c2698c0c999b6fc0990d81b8f9",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/frame-114.ply": "d973236f90739062601c4adaf805feb6dad1593ae5209b7258fa7021f8afc667",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-negative/frame-114.depth.npy": "ef2a9a4dc64738be42684ded2ff8aabba840b8917264f2373bb11450e77bd79a",
+        "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_26_0005/frame-114/frontend.json": "772ffcf9da2579ebd6fc4fe1d4589c264298210b41d87ab3e0007f9a82f4d5cd"
+      },
+      "initial_T_camera_lidar": [
+        [
+          0.01792314133802323,
+          -0.9996626332428014,
+          -0.018797211048478302,
+          -0.04294755214046961
+        ],
+        [
+          0.027743918731786447,
+          0.019290240930632935,
+          -0.9994289063656052,
+          -0.02546671853346001
+        ],
+        [
+          0.9994543818096165,
+          0.017391396535771937,
+          0.02808029922551054,
+          -0.3193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "result": {
+        "status": "lost_support",
+        "accepted": false,
+        "output_T_camera_lidar": [
+          [
+            0.01792314133802323,
+            -0.9996626332428014,
+            -0.018797211048478302,
+            -0.04294755214046961
+          ],
+          [
+            0.027743918731786447,
+            0.019290240930632935,
+            -0.9994289063656052,
+            -0.02546671853346001
+          ],
+          [
+            0.9994543818096165,
+            0.017391396535771937,
+            0.02808029922551054,
+            -0.3193869124058732
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "candidate_T_camera_lidar": [
+          [
+            0.011690565527850395,
+            -0.9998577922903834,
+            -0.012152377653561768,
+            0.02362114956666797
+          ],
+          [
+            0.01255438382519969,
+            0.01229901640524884,
+            -0.9998455375150773,
+            -0.09516413709466942
+          ],
+          [
+            0.9998528609074787,
+            0.011536193575943253,
+            0.012696379621604964,
+            -0.19571157171237868
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "options": {
+          "points_per_frame": 3000,
+          "min_points_per_frame": 128,
+          "max_nfev": 150,
+          "rotation_bound_deg": 3.0,
+          "translation_bound_m": 0.5,
+          "sigma_px": 0.5,
+          "initial_gate_px": 8.0,
+          "neighborhood_range_px": 2.0,
+          "min_retained_fraction": 0.9,
+          "max_condition_number": 1000000.0
+        },
+        "diagnostics": {
+          "initial_counts": [
+            3000,
+            3000,
+            3000
+          ],
+          "nfev": 25,
+          "termination": 3,
+          "cost": 26501.254532151488,
+          "initial_cost": 52904.60923467133,
+          "retained_counts": [
+            2529,
+            2769,
+            2738
+          ],
+          "scaled_parameters": [
+            0.2921071618263935,
+            -0.11646483641675844,
+            0.12932505848266607,
+            0.13313740341427516,
+            -0.13939483712241882,
+            0.24735068138698899
+          ],
+          "weighted_jacobian_singular_values": [
+            1858073.4601246472,
+            1267536.4618470152,
+            13522.922275442303,
+            1985.8326473751515,
+            349.6408258516269,
+            280.0344537709163
+          ],
+          "condition_number": 6635.16019226925,
+          "median_absolute_residual_px": 0.5204947851621071
+        }
+      },
+      "initial": {
+        "valid_output": true,
+        "rotation_deg": 1.4970755748483753,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "d2d": {
+        "valid_output": true,
+        "rotation_deg": 0.2415984495818533,
+        "translation_m": 0.1288470508005519,
+        "recovered": true
+      },
+      "candidate": {
+        "valid_output": true,
+        "rotation_deg": 0.6736673197730904,
+        "translation_m": 0.0832688166712144,
+        "recovered": false
+      },
+      "returned": {
+        "valid_output": true,
+        "rotation_deg": 1.4970755748483753,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "stage_recovered": false
+    },
+    {
+      "case_id": "2011_09_28_0002-positive",
+      "input_sha256": {
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/seed.json": "b71af7121c3b2edd633c5d06028f8d0c498bf4f7b0c0baf366df5eefd6e07ab4",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/d2d.json": "51e5bd1f7204ee091dd8e3b591e16c2310b3e593b9f37453e9c912855a009b98",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/calib-frontend.json": "5a8b1fb19a6a39d84a2e96b5de654051837964d86ee2b9a8053f3d62ef48def1",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frontend.json": "ccc3353f8e7999b4ff6b204699a83ab91d605328ef5e8981dfacd4acaa565236",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-93.ply": "44b43d510d62227714d4b63956e29e8e423f2a294cbee51d430694040736c603",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-93.depth.npy": "dce640173e7814314b5f5c501bc53a1883d517c917165b4f5e51a3753beb4f1e",
+        "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_28_0002/frame-93/frontend.json": "4e675e97a1f620b26d9ba4900b3ddaf77eec6d1ff9a67e3e47efe44fb71ca671",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-187.ply": "badfa6420d58ed12e35ca143af1e7d58644ab112dd52337e43bc772a54581031",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-187.depth.npy": "ddb207baeae9030ac9fd818bf9005b2f8cd4c45be65f6f7fcbe3f2a3ebb60faf",
+        "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_28_0002/frame-187/frontend.json": "57b539830b84a088f2d407a40607307e647efc67d68b5fd902e2dbb4919de1fa",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-281.ply": "2c53b34e3f5f975c75f9599c53afe41ca7e574175d3f19332f99f60d04abba24",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-281.depth.npy": "4d95e8590282b6eca8e760129190f425c6f1d38ed6eef7a969eb5df909bf5124",
+        "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_28_0002/frame-281/frontend.json": "9ac46e19a89ea81f8ec4a23b49442f3622e62309665ca476130bb666950e8a05"
+      },
+      "initial_T_camera_lidar": [
+        [
+          -0.018844724574601582,
+          -0.9998154735122756,
+          -0.003717569091003312,
+          0.13809494613377218
+        ],
+        [
+          -0.02288730456743951,
+          0.004148643222876916,
+          -0.9997294345615504,
+          -0.11143906975279111
+        ],
+        [
+          0.9995603809718412,
+          -0.01875453999826432,
+          -0.02296126272421779,
+          -0.27756798283289785
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "result": {
+        "status": "lost_support",
+        "accepted": false,
+        "output_T_camera_lidar": [
+          [
+            -0.018844724574601582,
+            -0.9998154735122756,
+            -0.003717569091003312,
+            0.13809494613377218
+          ],
+          [
+            -0.02288730456743951,
+            0.004148643222876916,
+            -0.9997294345615504,
+            -0.11143906975279111
+          ],
+          [
+            0.9995603809718412,
+            -0.01875453999826432,
+            -0.02296126272421779,
+            -0.27756798283289785
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "candidate_T_camera_lidar": [
+          [
+            -0.009537119903368344,
+            -0.9999056511860515,
+            -0.009882154791221785,
+            0.09487077084193234
+          ],
+          [
+            -0.0021778124697379225,
+            0.009903360234354258,
+            -0.9999485801832609,
+            -0.08861221146246923
+          ],
+          [
+            0.9999521028729441,
+            -0.009515107355148883,
+            -0.002272056503908787,
+            -0.1913624065528551
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "options": {
+          "points_per_frame": 3000,
+          "min_points_per_frame": 128,
+          "max_nfev": 150,
+          "rotation_bound_deg": 3.0,
+          "translation_bound_m": 0.5,
+          "sigma_px": 0.5,
+          "initial_gate_px": 8.0,
+          "neighborhood_range_px": 2.0,
+          "min_retained_fraction": 0.9,
+          "max_condition_number": 1000000.0
+        },
+        "diagnostics": {
+          "initial_counts": [
+            3000,
+            3000,
+            3000
+          ],
+          "nfev": 21,
+          "termination": 3,
+          "cost": 23426.49062193465,
+          "initial_cost": 71811.24524807636,
+          "retained_counts": [
+            2649,
+            2692,
+            2718
+          ],
+          "scaled_parameters": [
+            -0.3939612004396068,
+            0.1792450406982197,
+            -0.1154866354632363,
+            -0.0864483505836797,
+            0.04565371658064375,
+            0.1724111525600855
+          ],
+          "weighted_jacobian_singular_values": [
+            80227.0740938713,
+            1885.9593693707475,
+            703.3781340807578,
+            640.2476337483341,
+            299.4059428446148,
+            178.4961848877451
+          ],
+          "condition_number": 449.4610018938248,
+          "median_absolute_residual_px": 0.33314810459027555
+        }
+      },
+      "initial": {
+        "valid_output": true,
+        "rotation_deg": 1.5028933991873084,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "d2d": {
+        "valid_output": true,
+        "rotation_deg": 0.1652364102811489,
+        "translation_m": 0.10643366478704008,
+        "recovered": true
+      },
+      "candidate": {
+        "valid_output": true,
+        "rotation_deg": 0.5171845951857046,
+        "translation_m": 0.1500461026199765,
+        "recovered": false
+      },
+      "returned": {
+        "valid_output": true,
+        "rotation_deg": 1.5028933991873084,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "stage_recovered": false
+    },
+    {
+      "case_id": "2011_09_28_0002-negative",
+      "input_sha256": {
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/seed.json": "e1ea0f9be6129304a6af9ab9628e286a3e6d76c0498524312b2c93cbb1773909",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/d2d.json": "1c01f9b353e9a3b44b8b4f7ed5caff669bee461bf89ea979fd6ecc51a6ab8afc",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/calib-frontend.json": "5a8b1fb19a6a39d84a2e96b5de654051837964d86ee2b9a8053f3d62ef48def1",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frontend.json": "ccc3353f8e7999b4ff6b204699a83ab91d605328ef5e8981dfacd4acaa565236",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-93.ply": "44b43d510d62227714d4b63956e29e8e423f2a294cbee51d430694040736c603",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-93.depth.npy": "dce640173e7814314b5f5c501bc53a1883d517c917165b4f5e51a3753beb4f1e",
+        "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_28_0002/frame-93/frontend.json": "4e675e97a1f620b26d9ba4900b3ddaf77eec6d1ff9a67e3e47efe44fb71ca671",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-187.ply": "badfa6420d58ed12e35ca143af1e7d58644ab112dd52337e43bc772a54581031",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-187.depth.npy": "ddb207baeae9030ac9fd818bf9005b2f8cd4c45be65f6f7fcbe3f2a3ebb60faf",
+        "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_28_0002/frame-187/frontend.json": "57b539830b84a088f2d407a40607307e647efc67d68b5fd902e2dbb4919de1fa",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-281.ply": "2c53b34e3f5f975c75f9599c53afe41ca7e574175d3f19332f99f60d04abba24",
+        "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-negative/frame-281.depth.npy": "4d95e8590282b6eca8e760129190f425c6f1d38ed6eef7a969eb5df909bf5124",
+        "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_28_0002/frame-281/frontend.json": "9ac46e19a89ea81f8ec4a23b49442f3622e62309665ca476130bb666950e8a05"
+      },
+      "initial_T_camera_lidar": [
+        [
+          0.015960937519440548,
+          -0.9996445921994814,
+          -0.021350935014175405,
+          -0.06190505386622783
+        ],
+        [
+          0.01204347293361881,
+          0.021544320955659814,
+          -0.9996953433962875,
+          -0.011439069752791103
+        ],
+        [
+          0.9998000354052934,
+          0.01569893648007378,
+          0.012383061026817918,
+          -0.37756798283289783
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "result": {
+        "status": "converged",
+        "accepted": true,
+        "output_T_camera_lidar": [
+          [
+            0.012767633243350774,
+            -0.9998671732330128,
+            -0.01012661361636276,
+            -0.013645042935951417
+          ],
+          [
+            -0.0025625251654756535,
+            0.010094696902115813,
+            -0.9999457550208776,
+            -0.08307239525372792
+          ],
+          [
+            0.9999151606858293,
+            0.012792891432053212,
+            -0.0024332996089330788,
+            -0.33465023634899527
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "candidate_T_camera_lidar": [
+          [
+            0.012767633243350774,
+            -0.9998671732330128,
+            -0.01012661361636276,
+            -0.013645042935951417
+          ],
+          [
+            -0.0025625251654756535,
+            0.010094696902115813,
+            -0.9999457550208776,
+            -0.08307239525372792
+          ],
+          [
+            0.9999151606858293,
+            0.012792891432053212,
+            -0.0024332996089330788,
+            -0.33465023634899527
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "options": {
+          "points_per_frame": 3000,
+          "min_points_per_frame": 128,
+          "max_nfev": 150,
+          "rotation_bound_deg": 3.0,
+          "translation_bound_m": 0.5,
+          "sigma_px": 0.5,
+          "initial_gate_px": 8.0,
+          "neighborhood_range_px": 2.0,
+          "min_retained_fraction": 0.9,
+          "max_condition_number": 1000000.0
+        },
+        "diagnostics": {
+          "initial_counts": [
+            3000,
+            3000,
+            3000
+          ],
+          "nfev": 20,
+          "termination": 3,
+          "cost": 13302.400046824769,
+          "initial_cost": 62872.46400633444,
+          "retained_counts": [
+            2863,
+            2874,
+            2871
+          ],
+          "scaled_parameters": [
+            0.2820699475430529,
+            -0.059976582499808806,
+            0.21469932188831822,
+            0.09652002186055282,
+            -0.14326665100187363,
+            0.08583549296780515
+          ],
+          "weighted_jacobian_singular_values": [
+            890864.2361351335,
+            1187.6863030891145,
+            723.8195157554369,
+            670.5831108527981,
+            315.00210680052015,
+            163.7428990633234
+          ],
+          "condition_number": 5440.628211856775,
+          "median_absolute_residual_px": 0.3062508627992786
+        }
+      },
+      "initial": {
+        "valid_output": true,
+        "rotation_deg": 1.4970755748483735,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "d2d": {
+        "valid_output": true,
+        "rotation_deg": 0.1167899042491158,
+        "translation_m": 0.18211002855416833,
+        "recovered": true
+      },
+      "candidate": {
+        "valid_output": true,
+        "rotation_deg": 0.8516451275224826,
+        "translation_m": 0.05652597240234682,
+        "recovered": false
+      },
+      "returned": {
+        "valid_output": true,
+        "rotation_deg": 0.8516451275224826,
+        "translation_m": 0.05652597240234682,
+        "recovered": false
+      },
+      "stage_recovered": false
+    },
+    {
+      "case_id": "2011_09_26_0009-positive",
+      "input_sha256": {
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/seed.json": "e4cc1412bab9ecebcf1a65b4969a8e9865342031ca9dfa94434d87fb343513a4",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/d2d.json": "4cca115d0f0bc00906d0f53664fce27613c8697d09944325b8815a1b11a93454",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/calib-frontend.json": "42a9806fcb8ba5450f151685e8f807b63df8951f746ba8758e02faa0419239c1",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frontend.json": "a370f7af509255b6a84a0cccbb106b63d8f684d60b33fda4343965b31fba7ce3",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-111.ply": "711f32c8121afb289f2663f617a793b1832e2e3b53cc89f90a8d50343485051f",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-111.depth.npy": "16c5294e5a5c135fa8c2e02702bb3681c91f78cb02ff73ba25163c6a15e50eb4",
+        "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0009/frame-111/frontend.json": "9a58804c84a4103bbfc6bcb537eda73046a553028d890ffcbcbc56ea17f2302c",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-223.ply": "4c64e2ef2c1fe230f4565e50fa90af9416a0aa9a16c86c423c020c8926ef5751",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-223.depth.npy": "ef3fe5b16c4b50a26cee3d8e7a44111a111f81c6dce37cc565ccbe2266595caa",
+        "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0009/frame-223/frontend.json": "cb02faf82b3c16f702a2bd257aaf7e9a7f23ac7a61f61ae29e55e29174b3c354",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-334.ply": "5790690e0769ca3d9c708ad81f3c34f3afbef7fbd1e2b15b6481275d35b9645d",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-334.depth.npy": "530bde425d8203f3074289c6b89eabdd8a4ce0b259a7e2264a1dbd7a615b1689",
+        "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0009/frame-334/frontend.json": "80b6e527c028837e8301f342154dbf0e034d8aea0013e8fa449201ac2edbc03f"
+      },
+      "initial_T_camera_lidar": [
+        [
+          -0.017155467132486488,
+          -0.9998513431491697,
+          -0.001713456542265028,
+          0.1570524478595304
+        ],
+        [
+          -0.007153617595801984,
+          0.0018364056973287737,
+          -0.9999727149163535,
+          -0.12546671853346003
+        ],
+        [
+          0.9998272556012965,
+          -0.017142741539027197,
+          -0.0071840598855728525,
+          -0.2193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "result": {
+        "status": "lost_support",
+        "accepted": false,
+        "output_T_camera_lidar": [
+          [
+            -0.017155467132486488,
+            -0.9998513431491697,
+            -0.001713456542265028,
+            0.1570524478595304
+          ],
+          [
+            -0.007153617595801984,
+            0.0018364056973287737,
+            -0.9999727149163535,
+            -0.12546671853346003
+          ],
+          [
+            0.9998272556012965,
+            -0.017142741539027197,
+            -0.0071840598855728525,
+            -0.2193869124058732
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "candidate_T_camera_lidar": [
+          [
+            -0.01118258974476236,
+            -0.9998533388105711,
+            -0.012969385118799503,
+            0.1133219218916039
+          ],
+          [
+            0.011418707694198818,
+            0.012841661589065793,
+            -0.9998523301385102,
+            -0.08435247760847567
+          ],
+          [
+            0.9998722859153844,
+            -0.011329032065592,
+            0.011273428634482005,
+            -0.11255677111136028
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "options": {
+          "points_per_frame": 3000,
+          "min_points_per_frame": 128,
+          "max_nfev": 150,
+          "rotation_bound_deg": 3.0,
+          "translation_bound_m": 0.5,
+          "sigma_px": 0.5,
+          "initial_gate_px": 8.0,
+          "neighborhood_range_px": 2.0,
+          "min_retained_fraction": 0.9,
+          "max_condition_number": 1000000.0
+        },
+        "diagnostics": {
+          "initial_counts": [
+            3000,
+            3000,
+            3000
+          ],
+          "nfev": 23,
+          "termination": 3,
+          "cost": 27041.25466746432,
+          "initial_cost": 61117.445584510984,
+          "retained_counts": [
+            2650,
+            2632,
+            2629
+          ],
+          "scaled_parameters": [
+            -0.35169391505848546,
+            0.11362690344839485,
+            -0.21521457450252104,
+            -0.087461051935853,
+            0.08222848184996873,
+            0.21366028258902586
+          ],
+          "weighted_jacobian_singular_values": [
+            1840115.6951526743,
+            1473.9889057003306,
+            749.609133168176,
+            593.6609684809227,
+            304.88055847312893,
+            164.28641676927342
+          ],
+          "condition_number": 11200.656337504539,
+          "median_absolute_residual_px": 0.45338152403901333
+        }
+      },
+      "initial": {
+        "valid_output": true,
+        "rotation_deg": 1.502893399187307,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "d2d": {
+        "valid_output": true,
+        "rotation_deg": 0.8123814635684007,
+        "translation_m": 0.2569350598886808,
+        "recovered": false
+      },
+      "candidate": {
+        "valid_output": true,
+        "rotation_deg": 0.6708012312755538,
+        "translation_m": 0.16685593678572633,
+        "recovered": false
+      },
+      "returned": {
+        "valid_output": true,
+        "rotation_deg": 1.502893399187307,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "stage_recovered": false
+    },
+    {
+      "case_id": "2011_09_26_0009-negative",
+      "input_sha256": {
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/seed.json": "ee0ab853cb5c78903cc79567e366c211606b7e695d155413f18eac457b274df3",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/d2d.json": "c7c3ea9e8667ea1dc9137f601b14148cd77b65b78b76b4e05c6e06dc9850a796",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/calib-frontend.json": "42a9806fcb8ba5450f151685e8f807b63df8951f746ba8758e02faa0419239c1",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/frontend.json": "a370f7af509255b6a84a0cccbb106b63d8f684d60b33fda4343965b31fba7ce3",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/frame-111.ply": "711f32c8121afb289f2663f617a793b1832e2e3b53cc89f90a8d50343485051f",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/frame-111.depth.npy": "16c5294e5a5c135fa8c2e02702bb3681c91f78cb02ff73ba25163c6a15e50eb4",
+        "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0009/frame-111/frontend.json": "9a58804c84a4103bbfc6bcb537eda73046a553028d890ffcbcbc56ea17f2302c",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/frame-223.ply": "4c64e2ef2c1fe230f4565e50fa90af9416a0aa9a16c86c423c020c8926ef5751",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/frame-223.depth.npy": "ef3fe5b16c4b50a26cee3d8e7a44111a111f81c6dce37cc565ccbe2266595caa",
+        "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0009/frame-223/frontend.json": "cb02faf82b3c16f702a2bd257aaf7e9a7f23ac7a61f61ae29e55e29174b3c354",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/frame-334.ply": "5790690e0769ca3d9c708ad81f3c34f3afbef7fbd1e2b15b6481275d35b9645d",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-negative/frame-334.depth.npy": "530bde425d8203f3074289c6b89eabdd8a4ce0b259a7e2264a1dbd7a615b1689",
+        "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0009/frame-334/frontend.json": "80b6e527c028837e8301f342154dbf0e034d8aea0013e8fa449201ac2edbc03f"
+      },
+      "initial_T_camera_lidar": [
+        [
+          0.01792314133802323,
+          -0.9996626332428014,
+          -0.018797211048478302,
+          -0.04294755214046961
+        ],
+        [
+          0.027743918731786447,
+          0.019290240930632935,
+          -0.9994289063656052,
+          -0.02546671853346001
+        ],
+        [
+          0.9994543818096165,
+          0.017391396535771937,
+          0.02808029922551054,
+          -0.3193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "result": {
+        "status": "converged",
+        "accepted": true,
+        "output_T_camera_lidar": [
+          [
+            0.007790104628271255,
+            -0.9999096491671645,
+            -0.01095272435139044,
+            -0.007110865796136033
+          ],
+          [
+            0.012762649081953414,
+            0.011051583131641769,
+            -0.9998574671164596,
+            -0.09734908571650007
+          ],
+          [
+            0.9998882209520987,
+            0.007649208013920732,
+            0.012847587621225832,
+            -0.22806531930611926
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "candidate_T_camera_lidar": [
+          [
+            0.007790104628271255,
+            -0.9999096491671645,
+            -0.01095272435139044,
+            -0.007110865796136033
+          ],
+          [
+            0.012762649081953414,
+            0.011051583131641769,
+            -0.9998574671164596,
+            -0.09734908571650007
+          ],
+          [
+            0.9998882209520987,
+            0.007649208013920732,
+            0.012847587621225832,
+            -0.22806531930611926
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "options": {
+          "points_per_frame": 3000,
+          "min_points_per_frame": 128,
+          "max_nfev": 150,
+          "rotation_bound_deg": 3.0,
+          "translation_bound_m": 0.5,
+          "sigma_px": 0.5,
+          "initial_gate_px": 8.0,
+          "neighborhood_range_px": 2.0,
+          "min_retained_fraction": 0.9,
+          "max_condition_number": 1000000.0
+        },
+        "diagnostics": {
+          "initial_counts": [
+            3000,
+            3000,
+            3000
+          ],
+          "nfev": 23,
+          "termination": 3,
+          "cost": 18020.11193645725,
+          "initial_cost": 61709.17040634484,
+          "retained_counts": [
+            2836,
+            2755,
+            2811
+          ],
+          "scaled_parameters": [
+            0.28818347015368134,
+            -0.19046875712226888,
+            0.1537663741266504,
+            0.07167337268866715,
+            -0.14376473436608012,
+            0.18264318619950787
+          ],
+          "weighted_jacobian_singular_values": [
+            893262.0228887838,
+            2251.9305396835716,
+            662.2879585420566,
+            411.11705062594416,
+            404.17372847022955,
+            210.66830199746042
+          ],
+          "condition_number": 4240.134915501203,
+          "median_absolute_residual_px": 0.4620937529032112
+        }
+      },
+      "initial": {
+        "valid_output": true,
+        "rotation_deg": 1.4970755748483753,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "d2d": {
+        "valid_output": true,
+        "rotation_deg": 0.33401368761445016,
+        "translation_m": 0.29154759474226505,
+        "recovered": false
+      },
+      "candidate": {
+        "valid_output": true,
+        "rotation_deg": 0.453313592849473,
+        "translation_m": 0.07939296485905066,
+        "recovered": true
+      },
+      "returned": {
+        "valid_output": true,
+        "rotation_deg": 0.453313592849473,
+        "translation_m": 0.07939296485905066,
+        "recovered": true
+      },
+      "stage_recovered": true
+    },
+    {
+      "case_id": "2011_09_26_0011-positive",
+      "input_sha256": {
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/seed.json": "e4cc1412bab9ecebcf1a65b4969a8e9865342031ca9dfa94434d87fb343513a4",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/d2d.json": "ffc8a7c860a000941be75c771b27e315de5431ab28703658ca787ae8d62230a4",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/calib-frontend.json": "73c631a992ead509d32a92238654deee90c2028625c8a28fea1a2d52c038a87b",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frontend.json": "76e5be2b4486258cbf9388571200415774792afe1c0e1e3b1628255c197cc202",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-58.ply": "bb60fed64625508bc15db7222fb3df095f55f1e43169c760b084e54496848c83",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-58.depth.npy": "25cccaa299abcd113d33e19198a5a06157979b3ce7f450a38b1b9a685d4375ed",
+        "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0011/frame-58/frontend.json": "c1a758845c41c5f531930965017fadc875767efbf94de636674cabc7bcdf813e",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-116.ply": "a3591ea2d982b4b0fff8b084992dbb7e8bb78f55c64a434d96221458fc44ab1b",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-116.depth.npy": "c21a87f4486d1deda3c918c5322499331d2228f2d97c428e95ee2c68d036d0de",
+        "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0011/frame-116/frontend.json": "10b3bb8d138b58191e95c5a0f06fde775173084150c0f64f4e5f92b14f231a02",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-174.ply": "23d881d4db53ac64bb62b60f3023b9e66dc8ea1db89024f6f441cd46f3a8d2a8",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-174.depth.npy": "1ebd8a086450dde535fbcb7b325d1833999b042052db71fcfdd5a633edd69aec",
+        "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0011/frame-174/frontend.json": "cf8585bed17e35d85cdd0df93d99c141b9b62764b1b281761fefc2e732bc72fa"
+      },
+      "initial_T_camera_lidar": [
+        [
+          -0.017155467132486488,
+          -0.9998513431491697,
+          -0.001713456542265028,
+          0.1570524478595304
+        ],
+        [
+          -0.007153617595801984,
+          0.0018364056973287737,
+          -0.9999727149163535,
+          -0.12546671853346003
+        ],
+        [
+          0.9998272556012965,
+          -0.017142741539027197,
+          -0.0071840598855728525,
+          -0.2193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "result": {
+        "status": "lost_support",
+        "accepted": false,
+        "output_T_camera_lidar": [
+          [
+            -0.017155467132486488,
+            -0.9998513431491697,
+            -0.001713456542265028,
+            0.1570524478595304
+          ],
+          [
+            -0.007153617595801984,
+            0.0018364056973287737,
+            -0.9999727149163535,
+            -0.12546671853346003
+          ],
+          [
+            0.9998272556012965,
+            -0.017142741539027197,
+            -0.0071840598855728525,
+            -0.2193869124058732
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "candidate_T_camera_lidar": [
+          [
+            -0.007584923380179708,
+            -0.9999087915435383,
+            -0.011172820581198277,
+            0.10964183475338156
+          ],
+          [
+            0.013144965539162065,
+            0.011072475551846463,
+            -0.999852282798524,
+            -0.09594812227571337
+          ],
+          [
+            0.9998848454490908,
+            -0.0077306694181424355,
+            0.01305978138352404,
+            -0.05748336973630486
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "options": {
+          "points_per_frame": 3000,
+          "min_points_per_frame": 128,
+          "max_nfev": 150,
+          "rotation_bound_deg": 3.0,
+          "translation_bound_m": 0.5,
+          "sigma_px": 0.5,
+          "initial_gate_px": 8.0,
+          "neighborhood_range_px": 2.0,
+          "min_retained_fraction": 0.9,
+          "max_condition_number": 1000000.0
+        },
+        "diagnostics": {
+          "initial_counts": [
+            3000,
+            3000,
+            3000
+          ],
+          "nfev": 30,
+          "termination": 3,
+          "cost": 17665.088282600416,
+          "initial_cost": 75252.64423658539,
+          "retained_counts": [
+            2753,
+            2691,
+            2773
+          ],
+          "scaled_parameters": [
+            -0.38546934233726865,
+            0.1822583691734008,
+            -0.18120299145043509,
+            -0.09482122621229769,
+            0.05903719251549333,
+            0.3238070853391367
+          ],
+          "weighted_jacobian_singular_values": [
+            715865.2944501782,
+            2705.5129911624244,
+            645.6459699919886,
+            579.3124619472708,
+            396.4956665958061,
+            148.77844533960277
+          ],
+          "condition_number": 4811.61967256842,
+          "median_absolute_residual_px": 0.3667728857112671
+        }
+      },
+      "initial": {
+        "valid_output": true,
+        "rotation_deg": 1.502893399187307,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "d2d": {
+        "valid_output": true,
+        "rotation_deg": 0.3000935285997469,
+        "translation_m": 0.13578475614000268,
+        "recovered": true
+      },
+      "candidate": {
+        "valid_output": true,
+        "rotation_deg": 0.4751665024865559,
+        "translation_m": 0.21929031649627834,
+        "recovered": false
+      },
+      "returned": {
+        "valid_output": true,
+        "rotation_deg": 1.502893399187307,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "stage_recovered": false
+    },
+    {
+      "case_id": "2011_09_26_0011-negative",
+      "input_sha256": {
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/seed.json": "ee0ab853cb5c78903cc79567e366c211606b7e695d155413f18eac457b274df3",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/d2d.json": "28ba67c7a7031cff3abbc1cc915d576c271d3944ac83b87b1299a520c4627360",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/calib-frontend.json": "73c631a992ead509d32a92238654deee90c2028625c8a28fea1a2d52c038a87b",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/frontend.json": "76e5be2b4486258cbf9388571200415774792afe1c0e1e3b1628255c197cc202",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/frame-58.ply": "bb60fed64625508bc15db7222fb3df095f55f1e43169c760b084e54496848c83",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/frame-58.depth.npy": "25cccaa299abcd113d33e19198a5a06157979b3ce7f450a38b1b9a685d4375ed",
+        "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0011/frame-58/frontend.json": "c1a758845c41c5f531930965017fadc875767efbf94de636674cabc7bcdf813e",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/frame-116.ply": "a3591ea2d982b4b0fff8b084992dbb7e8bb78f55c64a434d96221458fc44ab1b",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/frame-116.depth.npy": "c21a87f4486d1deda3c918c5322499331d2228f2d97c428e95ee2c68d036d0de",
+        "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0011/frame-116/frontend.json": "10b3bb8d138b58191e95c5a0f06fde775173084150c0f64f4e5f92b14f231a02",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/frame-174.ply": "23d881d4db53ac64bb62b60f3023b9e66dc8ea1db89024f6f441cd46f3a8d2a8",
+        "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-negative/frame-174.depth.npy": "1ebd8a086450dde535fbcb7b325d1833999b042052db71fcfdd5a633edd69aec",
+        "/workspace/work/expanded-joint-20261029/prepared-v2/2011_09_26_0011/frame-174/frontend.json": "cf8585bed17e35d85cdd0df93d99c141b9b62764b1b281761fefc2e732bc72fa"
+      },
+      "initial_T_camera_lidar": [
+        [
+          0.01792314133802323,
+          -0.9996626332428014,
+          -0.018797211048478302,
+          -0.04294755214046961
+        ],
+        [
+          0.027743918731786447,
+          0.019290240930632935,
+          -0.9994289063656052,
+          -0.02546671853346001
+        ],
+        [
+          0.9994543818096165,
+          0.017391396535771937,
+          0.02808029922551054,
+          -0.3193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "result": {
+        "status": "converged",
+        "accepted": true,
+        "output_T_camera_lidar": [
+          [
+            0.01031342128513317,
+            -0.999888397886329,
+            -0.010806457179226306,
+            0.004653371695626712
+          ],
+          [
+            0.013018822623518408,
+            0.01094038301026595,
+            -0.999855387307656,
+            -0.09797737964690756
+          ],
+          [
+            0.9998620749580185,
+            0.010171241932855856,
+            0.01313020114223416,
+            -0.3249606475182641
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "candidate_T_camera_lidar": [
+          [
+            0.01031342128513317,
+            -0.999888397886329,
+            -0.010806457179226306,
+            0.004653371695626712
+          ],
+          [
+            0.013018822623518408,
+            0.01094038301026595,
+            -0.999855387307656,
+            -0.09797737964690756
+          ],
+          [
+            0.9998620749580185,
+            0.010171241932855856,
+            0.01313020114223416,
+            -0.3249606475182641
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "options": {
+          "points_per_frame": 3000,
+          "min_points_per_frame": 128,
+          "max_nfev": 150,
+          "rotation_bound_deg": 3.0,
+          "translation_bound_m": 0.5,
+          "sigma_px": 0.5,
+          "initial_gate_px": 8.0,
+          "neighborhood_range_px": 2.0,
+          "min_retained_fraction": 0.9,
+          "max_condition_number": 1000000.0
+        },
+        "diagnostics": {
+          "initial_counts": [
+            3000,
+            3000,
+            3000
+          ],
+          "nfev": 24,
+          "termination": 3,
+          "cost": 13684.634677237915,
+          "initial_cost": 67715.78207631432,
+          "retained_counts": [
+            2887,
+            2786,
+            2895
+          ],
+          "scaled_parameters": [
+            0.2835142136871063,
+            -0.14220819259574613,
+            0.15559372058942245,
+            0.09520184767219264,
+            -0.1450213222268951,
+            -0.011147470224781828
+          ],
+          "weighted_jacobian_singular_values": [
+            146317.29377395613,
+            2601.590389314192,
+            658.7401248537982,
+            523.2832210592754,
+            366.6890103718817,
+            218.12612428405365
+          ],
+          "condition_number": 670.7921586843728,
+          "median_absolute_residual_px": 0.37485228780978375
+        }
+      },
+      "initial": {
+        "valid_output": true,
+        "rotation_deg": 1.4970755748483753,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "d2d": {
+        "valid_output": true,
+        "rotation_deg": 0.16007666281260466,
+        "translation_m": 0.2750710135583173,
+        "recovered": false
+      },
+      "candidate": {
+        "valid_output": true,
+        "rotation_deg": 0.5961378957498539,
+        "translation_m": 0.07962934811322547,
+        "recovered": false
+      },
+      "returned": {
+        "valid_output": true,
+        "rotation_deg": 0.5961378957498539,
+        "translation_m": 0.07962934811322547,
+        "recovered": false
+      },
+      "stage_recovered": false
+    },
+    {
+      "case_id": "2011_09_26_0013-positive",
+      "input_sha256": {
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/seed.json": "e4cc1412bab9ecebcf1a65b4969a8e9865342031ca9dfa94434d87fb343513a4",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/d2d.json": "abd25aa5e89347071b859c9894ed2b4a4cc3e499843231e80e5cf0e09503994c",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/calib.json": "2e3b12e122208d7efdf1859894a84970278ba7881efdfd8d68c9b0125d13879a",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frontend.json": "dbae8069bd888c938ad34d373de5a3a235e88fe46f38efbfa439aeb9af0b3473",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-35.ply": "3508fb626fb1a77dd6dc6e9a249f4c72b67b1b6367474f803403633e6f0a3265",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-35.depth.npy": "2ec56bed952f7a73f83c9c3e2267382ef7b41cdf8b68e79053d1bbdc9c185ac2",
+        "/workspace/work/broader-models-inputs-20261029/2011_09_26_0013/frame-35/frontend.json": "7ff86086fdb8897c6b5ee7713698e4281abf72fffa522bd03a86c72271926737",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-71.ply": "935072cf7ed4641cddf03adc3f2d7ec1dbfd5b56f2e7407f3ae0ac13dd20e13e",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-71.depth.npy": "303d8c0c4a770eb22fc64e7ec36c182177a3d3ce046c82d720050c1cd90e546c",
+        "/workspace/work/broader-models-inputs-20261029/2011_09_26_0013/frame-71/frontend.json": "797ad2e97891595bd94dea73e728b3d409a942f45f985e6a5c00fd04ec3dede0",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-107.ply": "41976c58d9e3eb84837aedb9e93c8fbeb203bcf8333f1b1be87cad3a07dbb005",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-107.depth.npy": "e2c3dc80e2e0666b0fc6be36a03ac7bf327a217cf68937b1f02bbbcab93ba543",
+        "/workspace/work/broader-models-inputs-20261029/2011_09_26_0013/frame-107/frontend.json": "cc5b28d5f748797143ce90f215d2dd27870dec4114abe16fc7db7ed7688265d1"
+      },
+      "initial_T_camera_lidar": [
+        [
+          -0.017155467132486488,
+          -0.9998513431491697,
+          -0.001713456542265028,
+          0.1570524478595304
+        ],
+        [
+          -0.007153617595801984,
+          0.0018364056973287737,
+          -0.9999727149163535,
+          -0.12546671853346003
+        ],
+        [
+          0.9998272556012965,
+          -0.017142741539027197,
+          -0.0071840598855728525,
+          -0.2193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "result": {
+        "status": "lost_support",
+        "accepted": false,
+        "output_T_camera_lidar": [
+          [
+            -0.017155467132486488,
+            -0.9998513431491697,
+            -0.001713456542265028,
+            0.1570524478595304
+          ],
+          [
+            -0.007153617595801984,
+            0.0018364056973287737,
+            -0.9999727149163535,
+            -0.12546671853346003
+          ],
+          [
+            0.9998272556012965,
+            -0.017142741539027197,
+            -0.0071840598855728525,
+            -0.2193869124058732
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "candidate_T_camera_lidar": [
+          [
+            -0.008596407853441658,
+            -0.9998856844503714,
+            -0.012436808057829806,
+            0.07213914478373065
+          ],
+          [
+            0.011955994810269524,
+            0.012333603285882932,
+            -0.9998524459450557,
+            -0.08934541069892396
+          ],
+          [
+            0.9998915847733568,
+            -0.008743833927757311,
+            0.01184860202584195,
+            -0.23883216428924736
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "options": {
+          "points_per_frame": 3000,
+          "min_points_per_frame": 128,
+          "max_nfev": 150,
+          "rotation_bound_deg": 3.0,
+          "translation_bound_m": 0.5,
+          "sigma_px": 0.5,
+          "initial_gate_px": 8.0,
+          "neighborhood_range_px": 2.0,
+          "min_retained_fraction": 0.9,
+          "max_condition_number": 1000000.0
+        },
+        "diagnostics": {
+          "initial_counts": [
+            3000,
+            3000,
+            3000
+          ],
+          "nfev": 27,
+          "termination": 3,
+          "cost": 26191.34205647375,
+          "initial_cost": 66665.75029541098,
+          "retained_counts": [
+            2564,
+            2519,
+            2614
+          ],
+          "scaled_parameters": [
+            -0.36235897022785635,
+            0.16298873677442147,
+            -0.20518964285989721,
+            -0.1698266061515995,
+            0.07224261566907214,
+            -0.0388905037667483
+          ],
+          "weighted_jacobian_singular_values": [
+            1201395.335826427,
+            1495.9362905043904,
+            989.9640215190065,
+            558.7396833215415,
+            415.2690827179474,
+            196.98108666547475
+          ],
+          "condition_number": 6099.0390304156945,
+          "median_absolute_residual_px": 0.48338955071793244
+        }
+      },
+      "initial": {
+        "valid_output": true,
+        "rotation_deg": 1.502893399187307,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "d2d": {
+        "valid_output": true,
+        "rotation_deg": 0.6570379704729372,
+        "translation_m": 0.3020761493398643,
+        "recovered": false
+      },
+      "candidate": {
+        "valid_output": true,
+        "rotation_deg": 0.5243454694797619,
+        "translation_m": 0.036794281522769735,
+        "recovered": false
+      },
+      "returned": {
+        "valid_output": true,
+        "rotation_deg": 1.502893399187307,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "stage_recovered": false
+    },
+    {
+      "case_id": "2011_09_26_0013-negative",
+      "input_sha256": {
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/seed.json": "ee0ab853cb5c78903cc79567e366c211606b7e695d155413f18eac457b274df3",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/d2d.json": "0988cf5b677d736a874b502a2e1e574556e9d6eb2818a3f89c16f4bee4fd8f64",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/calib.json": "2e3b12e122208d7efdf1859894a84970278ba7881efdfd8d68c9b0125d13879a",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frontend.json": "dbae8069bd888c938ad34d373de5a3a235e88fe46f38efbfa439aeb9af0b3473",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-35.ply": "3508fb626fb1a77dd6dc6e9a249f4c72b67b1b6367474f803403633e6f0a3265",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-35.depth.npy": "2ec56bed952f7a73f83c9c3e2267382ef7b41cdf8b68e79053d1bbdc9c185ac2",
+        "/workspace/work/broader-models-inputs-20261029/2011_09_26_0013/frame-35/frontend.json": "7ff86086fdb8897c6b5ee7713698e4281abf72fffa522bd03a86c72271926737",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-71.ply": "935072cf7ed4641cddf03adc3f2d7ec1dbfd5b56f2e7407f3ae0ac13dd20e13e",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-71.depth.npy": "303d8c0c4a770eb22fc64e7ec36c182177a3d3ce046c82d720050c1cd90e546c",
+        "/workspace/work/broader-models-inputs-20261029/2011_09_26_0013/frame-71/frontend.json": "797ad2e97891595bd94dea73e728b3d409a942f45f985e6a5c00fd04ec3dede0",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-107.ply": "41976c58d9e3eb84837aedb9e93c8fbeb203bcf8333f1b1be87cad3a07dbb005",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-107.depth.npy": "e2c3dc80e2e0666b0fc6be36a03ac7bf327a217cf68937b1f02bbbcab93ba543",
+        "/workspace/work/broader-models-inputs-20261029/2011_09_26_0013/frame-107/frontend.json": "cc5b28d5f748797143ce90f215d2dd27870dec4114abe16fc7db7ed7688265d1"
+      },
+      "initial_T_camera_lidar": [
+        [
+          0.01792314133802323,
+          -0.9996626332428014,
+          -0.018797211048478302,
+          -0.04294755214046961
+        ],
+        [
+          0.027743918731786447,
+          0.019290240930632935,
+          -0.9994289063656052,
+          -0.02546671853346001
+        ],
+        [
+          0.9994543818096165,
+          0.017391396535771937,
+          0.02808029922551054,
+          -0.3193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "result": {
+        "status": "converged",
+        "accepted": true,
+        "output_T_camera_lidar": [
+          [
+            0.01325645383001018,
+            -0.9998108481879493,
+            0.014229850761588485,
+            -0.06392034332224678
+          ],
+          [
+            0.01747582939289048,
+            -0.013997263753661181,
+            -0.9997492932220765,
+            -0.11419044502049885
+          ],
+          [
+            0.9997594146390144,
+            0.013501808162674614,
+            0.017286968392587598,
+            -0.3823397598448407
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "candidate_T_camera_lidar": [
+          [
+            0.01325645383001018,
+            -0.9998108481879493,
+            0.014229850761588485,
+            -0.06392034332224678
+          ],
+          [
+            0.01747582939289048,
+            -0.013997263753661181,
+            -0.9997492932220765,
+            -0.11419044502049885
+          ],
+          [
+            0.9997594146390144,
+            0.013501808162674614,
+            0.017286968392587598,
+            -0.3823397598448407
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "options": {
+          "points_per_frame": 3000,
+          "min_points_per_frame": 128,
+          "max_nfev": 150,
+          "rotation_bound_deg": 3.0,
+          "translation_bound_m": 0.5,
+          "sigma_px": 0.5,
+          "initial_gate_px": 8.0,
+          "neighborhood_range_px": 2.0,
+          "min_retained_fraction": 0.9,
+          "max_condition_number": 1000000.0
+        },
+        "diagnostics": {
+          "initial_counts": [
+            3000,
+            3000,
+            3000
+          ],
+          "nfev": 30,
+          "termination": 3,
+          "cost": 27479.76193932093,
+          "initial_cost": 64436.633692564166,
+          "retained_counts": [
+            2854,
+            2752,
+            2757
+          ],
+          "scaled_parameters": [
+            0.20603006118552156,
+            -0.07484301655245638,
+            0.6326634835910886,
+            -0.04194558236355432,
+            -0.17744745297407769,
+            -0.12590569487793507
+          ],
+          "weighted_jacobian_singular_values": [
+            2066645.4409306182,
+            50670.93387433143,
+            1473.1365215985802,
+            530.3249725493465,
+            354.110517446133,
+            214.284081992994
+          ],
+          "condition_number": 9644.418856078106,
+          "median_absolute_residual_px": 1.1996732702188257
+        }
+      },
+      "initial": {
+        "valid_output": true,
+        "rotation_deg": 1.4970755748483753,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "d2d": {
+        "valid_output": true,
+        "rotation_deg": 0.9425899614521958,
+        "translation_m": 0.5408326913195983,
+        "recovered": false
+      },
+      "candidate": {
+        "valid_output": true,
+        "rotation_deg": 1.6520846617496294,
+        "translation_m": 0.16997731891026968,
+        "recovered": false
+      },
+      "returned": {
+        "valid_output": true,
+        "rotation_deg": 1.6520846617496294,
+        "translation_m": 0.16997731891026968,
+        "recovered": false
+      },
+      "stage_recovered": false
+    },
+    {
+      "case_id": "2011_09_26_0015-positive",
+      "input_sha256": {
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/seed.json": "e4cc1412bab9ecebcf1a65b4969a8e9865342031ca9dfa94434d87fb343513a4",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/d2d.json": "bea3fed0c52df96ca5849047b8d58625c2a2541800e716a52ad91547257008ef",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/calib.json": "82696aafb159073d4142064f8d0de13723633ef885598ef3601b784a3db18d48",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frontend.json": "a75b333d4d74eb883b8f2d253b3a22f3e7a67b1a5a9273932cccdbfa68c6f71a",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-74.ply": "1499edf6f65e1d7f9d832b35d699c27a83f554fb8cb0345446c5b1297a8e4674",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-74.depth.npy": "c8859da797459a4bdbd56741808f2e66285cba3fdf455c635cc5228e76c8e81c",
+        "/workspace/work/broader-models-inputs-20261029/2011_09_26_0015/frame-74/frontend.json": "5d72acb18daa16bda9261c1dae03438de26f0d1e86bf92052945a2e174253953",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-148.ply": "eadf4991f09ed41b0e9d1f1193ef1111ef38969b7bae8fe5acfbe7642479b419",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-148.depth.npy": "bc0c0ff8da9e7ebfe2db87c48626172605eea55e66166e629a2641225b923d96",
+        "/workspace/work/broader-models-inputs-20261029/2011_09_26_0015/frame-148/frontend.json": "12203655c2efc1ad084324ac80b9dad6df991f5143733a39e8a5da7014592e21",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-222.ply": "7d53fb22c1d75c2774dfb403ff0a4d4b4ddd862b856fd85b42304bfc20c8ff1c",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-222.depth.npy": "c4ab1ce8b33ca4cddd206db79903b60a90cf8414d82889a93a871e129dfb81f4",
+        "/workspace/work/broader-models-inputs-20261029/2011_09_26_0015/frame-222/frontend.json": "72a9624837245d1a26036730a5965feb701cc07d13bc28d9c41b24f9bb5d2ab1"
+      },
+      "initial_T_camera_lidar": [
+        [
+          -0.017155467132486488,
+          -0.9998513431491697,
+          -0.001713456542265028,
+          0.1570524478595304
+        ],
+        [
+          -0.007153617595801984,
+          0.0018364056973287737,
+          -0.9999727149163535,
+          -0.12546671853346003
+        ],
+        [
+          0.9998272556012965,
+          -0.017142741539027197,
+          -0.0071840598855728525,
+          -0.2193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "result": {
+        "status": "lost_support",
+        "accepted": false,
+        "output_T_camera_lidar": [
+          [
+            -0.017155467132486488,
+            -0.9998513431491697,
+            -0.001713456542265028,
+            0.1570524478595304
+          ],
+          [
+            -0.007153617595801984,
+            0.0018364056973287737,
+            -0.9999727149163535,
+            -0.12546671853346003
+          ],
+          [
+            0.9998272556012965,
+            -0.017142741539027197,
+            -0.0071840598855728525,
+            -0.2193869124058732
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "candidate_T_camera_lidar": [
+          [
+            -0.013956147115444755,
+            -0.9997412707492147,
+            -0.017960287481958565,
+            0.1433562770542803
+          ],
+          [
+            0.01129739779599002,
+            0.017803231355977892,
+            -0.999777670778077,
+            -0.09105348787524323
+          ],
+          [
+            0.9998387970574018,
+            -0.014155948735020907,
+            0.011046008965817252,
+            -0.06420775090602329
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "options": {
+          "points_per_frame": 3000,
+          "min_points_per_frame": 128,
+          "max_nfev": 150,
+          "rotation_bound_deg": 3.0,
+          "translation_bound_m": 0.5,
+          "sigma_px": 0.5,
+          "initial_gate_px": 8.0,
+          "neighborhood_range_px": 2.0,
+          "min_retained_fraction": 0.9,
+          "max_condition_number": 1000000.0
+        },
+        "diagnostics": {
+          "initial_counts": [
+            3000,
+            3000,
+            3000
+          ],
+          "nfev": 18,
+          "termination": 3,
+          "cost": 27365.20460652361,
+          "initial_cost": 69156.56180922873,
+          "retained_counts": [
+            2659,
+            2569,
+            2630
+          ],
+          "scaled_parameters": [
+            -0.3475996843518604,
+            0.060466344830240805,
+            -0.3104314612638516,
+            -0.027392341610500213,
+            0.06882646131643361,
+            0.31035832299969984
+          ],
+          "weighted_jacobian_singular_values": [
+            88180.33505180983,
+            2256.160178372785,
+            649.6909301885227,
+            470.1341338447669,
+            213.19951485841403,
+            165.71854193558352
+          ],
+          "condition_number": 532.1090447807973,
+          "median_absolute_residual_px": 0.5366469712690858
+        }
+      },
+      "initial": {
+        "valid_output": true,
+        "rotation_deg": 1.502893399187307,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "d2d": {
+        "valid_output": true,
+        "rotation_deg": 0.26879680675555395,
+        "translation_m": 0.20194368026754392,
+        "recovered": false
+      },
+      "candidate": {
+        "valid_output": true,
+        "rotation_deg": 0.9181262765306409,
+        "translation_m": 0.22313625125911749,
+        "recovered": false
+      },
+      "returned": {
+        "valid_output": true,
+        "rotation_deg": 1.502893399187307,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "stage_recovered": false
+    },
+    {
+      "case_id": "2011_09_26_0015-negative",
+      "input_sha256": {
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/seed.json": "ee0ab853cb5c78903cc79567e366c211606b7e695d155413f18eac457b274df3",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/d2d.json": "6c46f3ee6cada81b6f3495dc9247103af09a57ff2fd2be90e5762eea9f5fbc88",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/calib.json": "82696aafb159073d4142064f8d0de13723633ef885598ef3601b784a3db18d48",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/frontend.json": "a75b333d4d74eb883b8f2d253b3a22f3e7a67b1a5a9273932cccdbfa68c6f71a",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/frame-74.ply": "1499edf6f65e1d7f9d832b35d699c27a83f554fb8cb0345446c5b1297a8e4674",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/frame-74.depth.npy": "c8859da797459a4bdbd56741808f2e66285cba3fdf455c635cc5228e76c8e81c",
+        "/workspace/work/broader-models-inputs-20261029/2011_09_26_0015/frame-74/frontend.json": "5d72acb18daa16bda9261c1dae03438de26f0d1e86bf92052945a2e174253953",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/frame-148.ply": "eadf4991f09ed41b0e9d1f1193ef1111ef38969b7bae8fe5acfbe7642479b419",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/frame-148.depth.npy": "bc0c0ff8da9e7ebfe2db87c48626172605eea55e66166e629a2641225b923d96",
+        "/workspace/work/broader-models-inputs-20261029/2011_09_26_0015/frame-148/frontend.json": "12203655c2efc1ad084324ac80b9dad6df991f5143733a39e8a5da7014592e21",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/frame-222.ply": "7d53fb22c1d75c2774dfb403ff0a4d4b4ddd862b856fd85b42304bfc20c8ff1c",
+        "/workspace/work/broader-models-results-20261029/2011_09_26_0015-negative/frame-222.depth.npy": "c4ab1ce8b33ca4cddd206db79903b60a90cf8414d82889a93a871e129dfb81f4",
+        "/workspace/work/broader-models-inputs-20261029/2011_09_26_0015/frame-222/frontend.json": "72a9624837245d1a26036730a5965feb701cc07d13bc28d9c41b24f9bb5d2ab1"
+      },
+      "initial_T_camera_lidar": [
+        [
+          0.01792314133802323,
+          -0.9996626332428014,
+          -0.018797211048478302,
+          -0.04294755214046961
+        ],
+        [
+          0.027743918731786447,
+          0.019290240930632935,
+          -0.9994289063656052,
+          -0.02546671853346001
+        ],
+        [
+          0.9994543818096165,
+          0.017391396535771937,
+          0.02808029922551054,
+          -0.3193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "result": {
+        "status": "lost_support",
+        "accepted": false,
+        "output_T_camera_lidar": [
+          [
+            0.01792314133802323,
+            -0.9996626332428014,
+            -0.018797211048478302,
+            -0.04294755214046961
+          ],
+          [
+            0.027743918731786447,
+            0.019290240930632935,
+            -0.9994289063656052,
+            -0.02546671853346001
+          ],
+          [
+            0.9994543818096165,
+            0.017391396535771937,
+            0.02808029922551054,
+            -0.3193869124058732
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "candidate_T_camera_lidar": [
+          [
+            0.016754113654471194,
+            -0.9997577531550954,
+            -0.014271969335467313,
+            -0.039103077933017615
+          ],
+          [
+            0.012909504854388933,
+            0.01448907775017025,
+            -0.9998116765440488,
+            -0.10587553708071322
+          ],
+          [
+            0.9997763098316189,
+            0.016566713698935323,
+            0.013149127895446287,
+            -0.3175150815823721
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "options": {
+          "points_per_frame": 3000,
+          "min_points_per_frame": 128,
+          "max_nfev": 150,
+          "rotation_bound_deg": 3.0,
+          "translation_bound_m": 0.5,
+          "sigma_px": 0.5,
+          "initial_gate_px": 8.0,
+          "neighborhood_range_px": 2.0,
+          "min_retained_fraction": 0.9,
+          "max_condition_number": 1000000.0
+        },
+        "diagnostics": {
+          "initial_counts": [
+            3000,
+            3000,
+            3000
+          ],
+          "nfev": 24,
+          "termination": 3,
+          "cost": 22345.600540668664,
+          "initial_cost": 67503.4650791205,
+          "retained_counts": [
+            2747,
+            2682,
+            2759
+          ],
+          "scaled_parameters": [
+            0.2849266601295177,
+            -0.020568236225896878,
+            0.0868809878569568,
+            0.0076889484149039854,
+            -0.16081763709450642,
+            0.003743661647002083
+          ],
+          "weighted_jacobian_singular_values": [
+            4238294.653470787,
+            2198.8947106873097,
+            461.7510789271009,
+            431.62744451126736,
+            337.05643402091994,
+            192.02304557591333
+          ],
+          "condition_number": 22071.802062920844,
+          "median_absolute_residual_px": 0.5133840688913205
+        }
+      },
+      "initial": {
+        "valid_output": true,
+        "rotation_deg": 1.4970755748483753,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "d2d": {
+        "valid_output": true,
+        "rotation_deg": 0.24164122096321805,
+        "translation_m": 0.1663016836956259,
+        "recovered": true
+      },
+      "candidate": {
+        "valid_output": true,
+        "rotation_deg": 0.980580043878055,
+        "translation_m": 0.1117448077279783,
+        "recovered": false
+      },
+      "returned": {
+        "valid_output": true,
+        "rotation_deg": 1.4970755748483753,
+        "translation_m": 0.12247448713915891,
+        "recovered": false
+      },
+      "stage_recovered": false
+    }
+  ]
+}

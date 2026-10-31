@@ -1,0 +1,48 @@
+2011_09_26_0005 baseline complete
+2011_09_26_0005 inject_x+3 complete
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/workspace/work/boundary-tangent-source/tools/kitti_camera_lidar_baseline_experiment.py", line 138, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/workspace/work/boundary-tangent-source/tools/kitti_camera_lidar_baseline_experiment.py", line 131, in main
+    if run(args.captures, args.output, boundary_tangent=args.boundary_tangent).status
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/boundary-tangent-source/tools/kitti_camera_lidar_baseline_experiment.py", line 74, in run
+    result = probe.profile_snapshot(
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/boundary-tangent-source/tools/kitti_camera_lidar_profile_probe.py", line 383, in profile_snapshot
+    report.axes.append(profile_axis(training, held, axis, correction, options,
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/boundary-tangent-source/tools/kitti_camera_lidar_profile_probe.py", line 188, in profile_axis
+    shifted, profiled = controls_for(base)
+                        ^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/boundary-tangent-source/tools/kitti_camera_lidar_profile_probe.py", line 183, in controls_for
+    fitted = refit_nuisance(objective, shift, axis, options, multi_start=multi_start)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/boundary-tangent-source/tools/kitti_camera_lidar_profile_probe.py", line 115, in refit_nuisance
+    index, _ = edge._drive_edge_workflow(edge._edge_maximum(fixed_objective, poses))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/boundary-tangent-source/src/calibrex/evaluation/camera_lidar_edge.py", line 1210, in _drive_edge_workflow
+    reply = request.evaluate(memo)
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/boundary-tangent-source/src/calibrex/evaluation/camera_lidar_edge.py", line 1187, in evaluate
+    self.objective.score(pose) if memo is None else memo.score(self.objective, pose)
+                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/boundary-tangent-source/src/calibrex/evaluation/camera_lidar_edge.py", line 1143, in score
+    return self._compute(objective, theta)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/boundary-tangent-source/src/calibrex/evaluation/camera_lidar_edge.py", line 1134, in _compute
+    return objective.score(theta)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/boundary-tangent-source/tools/kitti_camera_lidar_profile_probe.py", line 95, in score
+    return objective.score(actual)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/boundary-tangent-source/tools/kitti_camera_lidar_orientation.py", line 105, in score
+    values = sum(c[:, None] * self._orientation[i]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/boundary-tangent-source/tools/kitti_camera_lidar_orientation.py", line 105, in <genexpr>
+    values = sum(c[:, None] * self._orientation[i]
+                 ~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~
+KeyboardInterrupt

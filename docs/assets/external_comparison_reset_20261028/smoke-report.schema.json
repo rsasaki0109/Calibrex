@@ -1,0 +1,81 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "official_image_digest": {
+      "title": "Official Image Digest",
+      "type": "string"
+    },
+    "runtime_exit_code": {
+      "title": "Runtime Exit Code",
+      "type": "integer"
+    },
+    "fresh_sensor_payloads_read": {
+      "title": "Fresh Sensor Payloads Read",
+      "type": "integer"
+    },
+    "initial_rotation_error_deg": {
+      "title": "Initial Rotation Error Deg",
+      "type": "number"
+    },
+    "output_rotation_error_deg": {
+      "title": "Output Rotation Error Deg",
+      "type": "number"
+    },
+    "initial_translation_error_m": {
+      "title": "Initial Translation Error M",
+      "type": "number"
+    },
+    "output_translation_error_m": {
+      "title": "Output Translation Error M",
+      "type": "number"
+    },
+    "output_T_camera_lidar": {
+      "items": {
+        "items": {
+          "type": "number"
+        },
+        "type": "array"
+      },
+      "title": "Output T Camera Lidar",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "artifact_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Artifact Sha256",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "source_commit",
+    "official_image_digest",
+    "runtime_exit_code",
+    "fresh_sensor_payloads_read",
+    "initial_rotation_error_deg",
+    "output_rotation_error_deg",
+    "initial_translation_error_m",
+    "output_translation_error_m",
+    "output_T_camera_lidar",
+    "limitations",
+    "artifact_sha256"
+  ],
+  "title": "SmokeReport",
+  "type": "object"
+}

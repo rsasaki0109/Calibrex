@@ -1,0 +1,83 @@
+"""Publish accepted outputs and rejected geometric candidates separately."""
+import hashlib
+import json
+import shutil
+from pathlib import Path
+import numpy as np
+from pydantic import BaseModel, ConfigDict
+from tools.evaluate_stereo_translation_refinement import RefinementPlan, RefinementEvaluation
+from tools.run_stereo_translation_refinement import RefinementRun
+
+root=Path('/workspace/work/stereo-translation-20261029')
+out=Path('/workspace/Calibrex/docs/assets/stereo_translation_20261029')
+plan=RefinementPlan.model_validate_json((out/'plan.json').read_text())
+evaluation=RefinementEvaluation.model_validate_json((root/'evaluation.json').read_text())
+assert len(evaluation.cases)==len(plan.cases)==8
+assert {r['case_id'] for r in evaluation.cases}=={c.case_id for c in plan.cases}
+assert evaluation.plan_sha256==hashlib.sha256((out/'plan.json').read_bytes()).hexdigest()
+assert evaluation.driver_sha256==plan.source_sha256['tools/evaluate_stereo_translation_refinement.py']
+
+class Diagnostic(BaseModel):
+    model_config=ConfigDict(extra='forbid',allow_inf_nan=False)
+    case_id: str
+    status: str
+    accepted: bool
+    baseline_translation_m: float
+    returned_translation_m: float
+    raw_candidate_translation_m: float
+    last_step_m: float
+    last_condition_number: float
+    last_support_counts: list[int]
+class Summary(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    scheduled: int
+    completed: int
+    accepted: int
+    stage_recovered: int
+    returned_pipeline_recovered: int
+    baseline_recovered: int
+    raw_candidate_translation_improved: int
+    raw_candidate_translation_worsened: int
+    cases: list[Diagnostic]
+    limitations: list[str]
+    artifact_sha256: dict[str,str]
+
+for name in ['evaluation.json','evaluation.schema.json']:
+    shutil.copyfile(root/name,out/name)
+shutil.copyfile('/workspace/work/stereo-translation-20261029.log',out/'execution.log')
+shutil.copyfile(__file__,out/'publish.py.txt')
+rows=[]
+for record in evaluation.cases:
+    source=root/record['case_id'];target=out/record['case_id'];target.mkdir(exist_ok=True)
+    for p in source.iterdir():
+        if p.suffix in ['.json','.log']:
+            shutil.copyfile(p,target/p.name)
+    run=RefinementRun.model_validate_json((source/'refinement.json').read_text())
+    assert run.solver_sha256==plan.source_sha256['src/calibrex/solvers/stereo_translation_refiner.py']
+    assert run.driver_sha256==plan.source_sha256['tools/run_stereo_translation_refinement.py']
+    result=run.result
+    np.testing.assert_array_equal(np.array(result.output_T_camera_lidar)[:3,:3],np.array(run.initial_T_camera_lidar)[:3,:3])
+    if not result.accepted:
+        np.testing.assert_array_equal(result.output_T_camera_lidar,run.initial_T_camera_lidar)
+    trace=result.trace
+    rows.append(Diagnostic(case_id=record['case_id'],status=record['status'],accepted=record['accepted'],
+        baseline_translation_m=record['baseline']['translation_m'],returned_translation_m=record['returned']['translation_m'],
+        raw_candidate_translation_m=record['raw_candidate']['translation_m'],last_step_m=trace[-1]['step_m'],
+        last_condition_number=trace[-1]['condition_number'],last_support_counts=trace[-1]['counts']))
+summary=Summary(scheduled=8,completed=sum(r['returncode']==0 for r in evaluation.cases),
+    accepted=sum(r['accepted'] for r in evaluation.cases),stage_recovered=sum(r['stage_recovered'] for r in evaluation.cases),
+    returned_pipeline_recovered=sum(r['returned']['recovered'] for r in evaluation.cases),
+    baseline_recovered=sum(r['baseline']['recovered'] for r in evaluation.cases),
+    raw_candidate_translation_improved=sum(r.raw_candidate_translation_m<r.baseline_translation_m for r in rows),
+    raw_candidate_translation_worsened=sum(r.raw_candidate_translation_m>r.baseline_translation_m for r in rows),
+    cases=rows,limitations=['All eight candidates hit the predeclared outer-iteration limit; none is an accepted improvement.',
+        'Reference errors of rejected candidates are post-fit diagnostics, not recovery claims.',
+        'Rotation remains fixed; two baselines already fail the rotation threshold.',
+        'Reassociation and sampling change between outer iterations; inner costs are not a common fixed objective across iterations.',
+        'Synthetic rank/recovery tests do not validate noisy stereo geometry or uncertainty on real recordings.',
+        'Four spent drives with unequal stereo information; no held-out evaluation, learned baseline or independent-family claim.'],
+    artifact_sha256={str(p.relative_to(out)):hashlib.sha256(p.read_bytes()).hexdigest() for p in out.rglob('*') if p.is_file() and p.name not in ['summary.json','summary.schema.json']})
+(out/'summary.json').write_text(summary.model_dump_json(indent=2)+'\n')
+(out/'summary.schema.json').write_text(json.dumps(Summary.model_json_schema(),indent=2)+'\n')
+Summary.model_validate_json((out/'summary.json').read_text())
+print(summary.model_dump_json(exclude={'cases','artifact_sha256','limitations'},indent=2))

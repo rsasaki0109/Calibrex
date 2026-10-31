@@ -1,0 +1,136 @@
+{
+  "$defs": {
+    "MessageRecord": {
+      "additionalProperties": false,
+      "description": "Source/output message identity, including unchanged camera messages.",
+      "properties": {
+        "topic": {
+          "title": "Topic",
+          "type": "string"
+        },
+        "source_bag_timestamp_ns": {
+          "title": "Source Bag Timestamp Ns",
+          "type": "integer"
+        },
+        "source_sha256": {
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "output_bag_timestamp_ns": {
+          "title": "Output Bag Timestamp Ns",
+          "type": "integer"
+        },
+        "output_sha256": {
+          "title": "Output Sha256",
+          "type": "string"
+        },
+        "timing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimingRecord"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "topic",
+        "source_bag_timestamp_ns",
+        "source_sha256",
+        "output_bag_timestamp_ns",
+        "output_sha256"
+      ],
+      "title": "MessageRecord",
+      "type": "object"
+    },
+    "TimingRecord": {
+      "additionalProperties": false,
+      "description": "Acquisition-time preservation evidence, in seconds and integer nanoseconds.",
+      "properties": {
+        "source_header_ns": {
+          "title": "Source Header Ns",
+          "type": "integer"
+        },
+        "output_header_ns": {
+          "title": "Output Header Ns",
+          "type": "integer"
+        },
+        "header_shift_ns": {
+          "title": "Header Shift Ns",
+          "type": "integer"
+        },
+        "point_count": {
+          "title": "Point Count",
+          "type": "integer"
+        },
+        "source_offset_min_s": {
+          "title": "Source Offset Min S",
+          "type": "number"
+        },
+        "source_offset_max_s": {
+          "title": "Source Offset Max S",
+          "type": "number"
+        },
+        "output_offset_min_s": {
+          "title": "Output Offset Min S",
+          "type": "number"
+        },
+        "output_offset_max_s": {
+          "title": "Output Offset Max S",
+          "type": "number"
+        },
+        "max_absolute_time_change_s": {
+          "title": "Max Absolute Time Change S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "source_header_ns",
+        "output_header_ns",
+        "header_shift_ns",
+        "point_count",
+        "source_offset_min_s",
+        "source_offset_max_s",
+        "output_offset_min_s",
+        "output_offset_max_s",
+        "max_absolute_time_change_s"
+      ],
+      "title": "TimingRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema for an explicitly derived bag; no timing measurement claim.",
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "source": {
+      "title": "Source",
+      "type": "string"
+    },
+    "destination": {
+      "title": "Destination",
+      "type": "string"
+    },
+    "messages": {
+      "items": {
+        "$ref": "#/$defs/MessageRecord"
+      },
+      "title": "Messages",
+      "type": "array"
+    }
+  },
+  "required": [
+    "scope",
+    "source",
+    "destination",
+    "messages"
+  ],
+  "title": "AdaptationReport",
+  "type": "object"
+}

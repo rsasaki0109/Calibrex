@@ -1,0 +1,17 @@
+"""Publish the complete fixed-pose falsification screen, including negative outcomes."""
+import hashlib
+import json
+import shutil
+from pathlib import Path
+
+import jsonschema
+
+source = Path('/workspace/work/contour-coherence-20261028')
+out = Path('/workspace/Calibrex/docs/assets/contour_coherence_20261028')
+r = json.loads((source / 'report.json').read_text())
+jsonschema.validate(r, json.loads((source / 'report.schema.json').read_text()))
+assert len(r['folds']) == 6 and sum(len(f['frames']) for f in r['folds']) == 11
+shutil.copytree(source, out)
+shutil.copyfile(__file__, out / 'publication-source.py.txt')
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+(out / 'manifest.json').write_text(json.dumps(dict(provenance=r['provenance'], files={str(p.relative_to(out)): sha(p) for p in sorted(out.iterdir()) if p.is_file()}), indent=2) + '\n')

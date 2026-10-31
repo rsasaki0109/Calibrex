@@ -1,0 +1,2012 @@
+{
+  "schema_version": "calibrex.camera_lidar_initialization_comparison/v0.1",
+  "status": "complete",
+  "provenance": {
+    "experiment": "one_pass_control_seeded_baseline",
+    "git_commit": "f1ff144f",
+    "generator_sha256": "77f1d1b1f8ec3bbc3c7f64be28468064f5172d01d97ddb4bea94870c106daf2d",
+    "probe_sha256": "dc18834f404ddf393fb73426363d43273c809e2ade947e4956f67ebaa6131c64",
+    "estimator_sha256": "cc2b0b4b8967971c78a72213e9d63cfc077cc3e6bc704c61c03146d7d3d90a60",
+    "new_evaluation_started": false,
+    "new_accuracy_claim": false,
+    "hypothesis": "A baseline trapped in a local basin may underestimate pitch controls.",
+    "selection": "all fourteen reacquired spent inputs, scalar objective, original settings"
+  },
+  "inputs": [
+    {
+      "drive": "2011_09_26_0005",
+      "run": "baseline",
+      "arms": {
+        "original": {
+          "elapsed_s": 15.260310579003999,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.04791998454827504,
+                "min_t_statistic": 4.615844424244516,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.05,
+                -0.10000000000000007,
+                -0.05000000000000003,
+                -0.10000000000000007,
+                -0.05000000000000003,
+                -0.10000000000000007
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.027907743949540386,
+                "min_t_statistic": 7.962343859701239,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.09999999999999998,
+                -0.10000000000000003,
+                -0.10000000000000003,
+                -0.15000000000000002,
+                -0.10000000000000003,
+                -0.10000000000000003
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.024211709417559377,
+                "min_t_statistic": 3.933635375742272,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.19999999999999998,
+                0.09999999999999996,
+                0.050000000000000114,
+                -0.3500000000000001,
+                0.050000000000000114,
+                0.10000000000000002
+              ]
+            }
+          ],
+          "report_sha256": "e2ace722d4cd47cf04b70c7f5a4c44c4ba199036dda83a3b58a6f42368ddf3bf"
+        },
+        "control_seeded": {
+          "elapsed_s": 20.109720843000105,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.022420518671355943,
+                "min_t_statistic": 3.4728197954470317,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.05,
+                -0.10000000000000007,
+                -0.05000000000000003,
+                0.0499999999999999,
+                -0.05000000000000003,
+                -0.10000000000000007
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.027907743949540386,
+                "min_t_statistic": 7.962343859701239,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.09999999999999998,
+                -0.10000000000000003,
+                -0.10000000000000003,
+                -0.15000000000000002,
+                -0.10000000000000003,
+                -0.10000000000000003
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.024211709417559377,
+                "min_t_statistic": 3.933635375742272,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.19999999999999998,
+                0.09999999999999996,
+                0.050000000000000114,
+                -0.3500000000000001,
+                0.050000000000000114,
+                0.10000000000000002
+              ]
+            }
+          ],
+          "report_sha256": "04d54df16efa5d983c7052221d273190fef973e3fd021b217f8674d29bc36ebb"
+        }
+      },
+      "arrays_sha256": "aa9853d34d512c6e75a7268e1b98f9d6fd8716e37ebe1afdd3b3381db8e598fb",
+      "snapshot_sha256": "0ee39ac0b63a72329683b1ac977ed4ef9d68f8a9447074b7b49d513ac5436d79",
+      "original_parity": true,
+      "previous_report_sha256": "869782fcaab190a08a3c7cc2deb055d4caa7cbc3ecfe051fe00278cb16f92a3e"
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_x+3",
+      "arms": {
+        "original": {
+          "elapsed_s": 15.956555024000409,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.024521763361017742,
+                "min_t_statistic": 4.612708835571133,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.09999752530710158,
+                -9.517990175571619e-7,
+                -7.614392040655886e-7,
+                -7.614392040655886e-7,
+                -1.5228784857092976e-6,
+                -0.050000761436894546
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 4,
+                "mean_objective_drop": 0.013036469602991764,
+                "min_t_statistic": 1.7382728397561698,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                9.552213797668816,
+                -0.09864561573690611,
+                -0.0999543136465903,
+                7.926796094720041,
+                9.602191097135927,
+                9.653477097653095
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 4,
+                "mean_objective_drop": 0.010888048315879048,
+                "min_t_statistic": 2.2205991443628372,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.1525488662755933,
+                0.05259455264048864,
+                -3.14045742389691,
+                0.0026173958176514737,
+                3.9997079654767527,
+                0.05259435236626384
+              ]
+            }
+          ],
+          "report_sha256": "04c12641cfa1f4cf46a32f5d3e1d28695b6d6e96010ad1ae6f053d5ba82b4728"
+        },
+        "control_seeded": {
+          "elapsed_s": 20.24887850200321,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.024521763361017742,
+                "min_t_statistic": 4.612708835571133,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.09999752530710158,
+                -9.517990175571619e-7,
+                -7.614392040655886e-7,
+                -7.614392040655886e-7,
+                -1.5228784857092976e-6,
+                -0.050000761436894546
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 4,
+                "mean_objective_drop": 0.016294154062476505,
+                "min_t_statistic": 1.6025871022531808,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.09602821991259408,
+                -0.09864561573690611,
+                -0.0999543136465903,
+                -0.16040288601985414,
+                4.982314022414574,
+                2.151635104611262
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.023068489584059396,
+                "min_t_statistic": 3.5722211154153385,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.15255002805675022,
+                0.05259455264048864,
+                0.002617395817649337,
+                -0.39589568316934937,
+                0.10257170946067243,
+                0.05259435236626384
+              ]
+            }
+          ],
+          "report_sha256": "2e3c2a7583bfcb9cb84512c69c8bcff3e8a54bd1e2f5a5b5f3467e7c220f97a5"
+        }
+      },
+      "arrays_sha256": "739c449871fb9b0a6199781a9c32508996b2f88e84e92e75746416b3fe27aeff",
+      "snapshot_sha256": "3a22787c27fef7398707e1674545aa636dae8249c7469c89dc6aac7e3f2e31df",
+      "original_parity": true,
+      "previous_report_sha256": "38e38700ebab7a66f42443c959548657dbbaa0eb5920f6ed291b0b17105b8c45"
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_y+3",
+      "arms": {
+        "original": {
+          "elapsed_s": 14.567506624000089,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.02294381285603991,
+                "min_t_statistic": 4.0108486114294,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.05521173821134384,
+                -0.05259435236626351,
+                -0.04997696651713639,
+                -0.05259435236626351,
+                -0.051285659442171505,
+                -0.10257131887895984
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.028676759223172227,
+                "min_t_statistic": 11.107592221869718,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.05000190359238123,
+                -0.05000095179612956,
+                -0.050000190359216046,
+                -0.10000951793810144,
+                -0.05000038071843737,
+                -0.05000152287386552
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.024181428513188396,
+                "min_t_statistic": 3.7959013767329743,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.1985991731152678,
+                0.09864524010533789,
+                0.048668273591227114,
+                -0.34852874537732353,
+                0.048668273591227114,
+                0.09733654717734598
+              ]
+            }
+          ],
+          "report_sha256": "8d019fd5e6118133b5c986270ff947c0c81c1ab36f1ae42ad4239eb462ee5c3e"
+        },
+        "control_seeded": {
+          "elapsed_s": 19.016381134999392,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 5,
+                "mean_objective_drop": 0.020707681485488832,
+                "min_t_statistic": 3.01083506051258,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.05390304528934377,
+                -0.05259435236626351,
+                -0.051285659442171457,
+                0.05913759177926446,
+                -0.051285659442171505,
+                -0.10257131887895984
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.028676759223172227,
+                "min_t_statistic": 11.107592221869718,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.05000190359238123,
+                -0.05000095179612956,
+                -0.050000190359216046,
+                -0.10000951793810144,
+                -0.05000038071843737,
+                -0.05000152287386552
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.024181428513188396,
+                "min_t_statistic": 3.7959013767329743,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.1985991731152678,
+                0.09864524010533789,
+                0.048668273591227114,
+                -0.34852874537732353,
+                0.048668273591227114,
+                0.09733654717734598
+              ]
+            }
+          ],
+          "report_sha256": "b8da69a41e71bae1f0f8cda51e4829ab94d092f97dbc1113a2031fa0faf009b1"
+        }
+      },
+      "arrays_sha256": "b58e564b3fdfea2a5761ef96b8ee7e86c389d61e94cda3540ea30f4c3a4da722",
+      "snapshot_sha256": "174938f666ce74d9a6709db79d2ab3e2bd4c660666d8cd6aeedfdd9bc8af50e3",
+      "original_parity": true,
+      "previous_report_sha256": "73040eecf78e0fff39937fd27c50639de01de3b1d294ebb19b221a566b704bf9"
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_z+3",
+      "arms": {
+        "original": {
+          "elapsed_s": 15.01024283299921,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.048387580903361725,
+                "min_t_statistic": 4.555363194568283,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.052595153465056624,
+                -0.052594953189870446,
+                -0.05259475291501955,
+                -0.0539034558048866,
+                -0.05259475291501945,
+                -0.052594953189870446
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.02882080645275466,
+                "min_t_statistic": 8.963935022308322,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.09864674263515794,
+                -0.09864636700178751,
+                -0.0986459913690464,
+                -0.14862333849324066,
+                -0.0986459913690464,
+                -0.097337659123685
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.01207019596469912,
+                "min_t_statistic": 3.776343647747275,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.19999923855136337,
+                0.0999990481951361,
+                0.04999904819807179,
+                0.049998096396021464,
+                0.0999990481951361,
+                0.09999847711215917
+              ]
+            }
+          ],
+          "report_sha256": "c987839ff8631c11becf6976ab5d262ca268115f7881d24554fb13dd7002e37d"
+        },
+        "control_seeded": {
+          "elapsed_s": 20.06097984900407,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.04840028620516551,
+                "min_t_statistic": 4.557176920416116,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.052595153465056624,
+                -0.052594953189870446,
+                -0.05259475291501955,
+                -0.0539034558048866,
+                -0.052594953189870446,
+                -0.052594953189870446
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.027584239815505684,
+                "min_t_statistic": 7.989434482758902,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.09864674263515794,
+                -0.09864636700178751,
+                -0.0986459913690464,
+                -0.15254480006709215,
+                -0.0986463670017876,
+                -0.097337659123685
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.02438535302113037,
+                "min_t_statistic": 3.8878119765846666,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.14999904819217605,
+                0.0999990481951361,
+                0.04999904819807179,
+                -0.35000247462646644,
+                0.0999990481951361,
+                0.09999847711215917
+              ]
+            }
+          ],
+          "report_sha256": "86b8ffd5e508a645dc3b93127e0b5919d9aa3a34c9b079258a9b6f92d4a2b564"
+        }
+      },
+      "arrays_sha256": "37687222455aaf5763844ced40463301474c80a99aecb6c219ed870cb8f18074",
+      "snapshot_sha256": "aa425e01e8f59a081f1242c798861f20cb05ca9eccbde7e49f4f02baa2932d65",
+      "original_parity": true,
+      "previous_report_sha256": "5ba641643b7dd299038abd7345138f9c97f725319178c62656abedf01d5264b7"
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_x+1",
+      "arms": {
+        "original": {
+          "elapsed_s": 14.301026696994086,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.04828766420016176,
+                "min_t_statistic": 4.561410718416673,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.05000082499225542,
+                -0.05000050768750962,
+                -0.050000253843742015,
+                -0.05000031730468147,
+                -0.05000050768750962,
+                -0.05000050768750962
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.027780176477287626,
+                "min_t_statistic": 7.880045174613064,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.09868595940836214,
+                -0.0991221548352346,
+                -0.09999479620184153,
+                -0.15304702183834124,
+                -0.09912215483523458,
+                -0.09955834915438537
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.01254707164879113,
+                "min_t_statistic": 3.676504668554119,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.2008624887105942,
+                0.10086743756766232,
+                0.0008726413662172429,
+                0.05087003946708806,
+                0.10086743756766232,
+                0.10086743756766252
+              ]
+            }
+          ],
+          "report_sha256": "b3cfc1bfe8c191d9531700d91d134c43c33b0cf9d44edc237d42a25f90a95271"
+        },
+        "control_seeded": {
+          "elapsed_s": 18.707076799997594,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.04828766420016176,
+                "min_t_statistic": 4.561410718416673,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.05000082499225542,
+                -0.05000050768750962,
+                -0.050000253843742015,
+                -0.05000031730468147,
+                -0.05000050768750962,
+                -0.05000050768750962
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.02810598150797855,
+                "min_t_statistic": 8.330587003863075,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.09868595940836214,
+                -0.0991221548352346,
+                -0.09999479620184153,
+                -0.15304702183834124,
+                -0.09912215483523458,
+                -0.09955847551863514
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.02517415965104809,
+                "min_t_statistic": 3.9719128857500188,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.15086483566764558,
+                0.10086743756766232,
+                0.0008726413662172429,
+                -0.34867415229611015,
+                0.10086743756766232,
+                0.10086743756766252
+              ]
+            }
+          ],
+          "report_sha256": "3c9da6d15b485a1603a30722849cb1b52156b198287c4bca76ff40a442277b2c"
+        }
+      },
+      "arrays_sha256": "10515d8abbf77f489be51bba54b28363af198bef414bb2ad7d1a45ebed758a21",
+      "snapshot_sha256": "dcf12e51ea0e2969bbe10f3529870b751dd1ef1ce9fa03b9033652f72bae93c9",
+      "original_parity": true,
+      "previous_report_sha256": "47b5f18976d3d12139228d786b74b08b6022b4c1a5263d4f54b4cb6d6a0895ba"
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_y+1",
+      "arms": {
+        "original": {
+          "elapsed_s": 14.55809952600248,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.04751458184907819,
+                "min_t_statistic": 4.598791328127731,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.05130629502952049,
+                -0.10086730954201231,
+                -0.0499973346420473,
+                -0.10086730954201231,
+                -0.05043365477130839,
+                -0.10086730954201231
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.027812000557327476,
+                "min_t_statistic": 9.28815164829196,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.1000006346087829,
+                -0.10000050768701357,
+                -0.10000006346087122,
+                -0.10000234805330102,
+                -0.1000001269217439,
+                -0.10000050768701357
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.011702552502052191,
+                "min_t_statistic": 3.8809296579299417,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.14955568379548598,
+                0.09912202902477853,
+                -0.0004363201293114743,
+                -0.2995476877122015,
+                0.04956101451268628,
+                0.09912202902477858
+              ]
+            }
+          ],
+          "report_sha256": "2d48654ac3f8da2b3deec1633659314eb6dc33fba5ca44897f18f7fc6eb83f5d"
+        },
+        "control_seeded": {
+          "elapsed_s": 19.23402409899427,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.0220599517697278,
+                "min_t_statistic": 3.5019085862927364,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.05130629502952049,
+                -0.10086730954201231,
+                -0.05043371878412854,
+                0.052615255416024215,
+                -0.05043365477130839,
+                -0.10086730954201231
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.027812000557327476,
+                "min_t_statistic": 9.28815164829196,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.1000006346087829,
+                -0.10000050768701357,
+                -0.10000006346087122,
+                -0.10000234805330102,
+                -0.1000001269217439,
+                -0.10000050768701357
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.011571326968410898,
+                "min_t_statistic": 3.8044862925951497,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.14955568379548598,
+                0.09912202902477853,
+                0.049561077417909556,
+                -0.2995476877122015,
+                0.04956101451268628,
+                0.09912202902477858
+              ]
+            }
+          ],
+          "report_sha256": "b8a03c3af9f181b786bbad70d31bdeac38ff9a41bcfd1edc11ad3496b2ba53b5"
+        }
+      },
+      "arrays_sha256": "e6ed0e4826c843c89086d1ca664b279f829288249bd57085df4459a008d7b38d",
+      "snapshot_sha256": "ad4773ff2173b85825b966e4b67e53fb00735403ec7d2883dcafd18f6aa8ed31",
+      "original_parity": true,
+      "previous_report_sha256": "9079c9b3c013e0c2cfdbd41a25d155154b6672611c691ee37ff868aa57ccb58f"
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_z+1",
+      "arms": {
+        "original": {
+          "elapsed_s": 14.677941792004276,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.04780615032302715,
+                "min_t_statistic": 4.657053996679303,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.050870297733900394,
+                -0.05087016860041885,
+                -0.05087016860041885,
+                -0.10130388682978386,
+                -0.05087016860041885,
+                -0.10086782164498312
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.02798750870234416,
+                "min_t_statistic": 7.704802819816651,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.09955898097627523,
+                -0.09955885461174967,
+                -0.09955872824730756,
+                -0.15042736940041376,
+                -0.09955872824730759,
+                -0.09912253226696649
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.024290817886641263,
+                "min_t_statistic": 3.9649742659750715,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.1499996826939974,
+                0.049999682694674176,
+                0.049999682694674176,
+                -0.35000063460592346,
+                0.049999682694673975,
+                0.09999949231092452
+              ]
+            }
+          ],
+          "report_sha256": "58612c4049a19dc727324ad93e9466d30c3ad7da8228241217fa48f5089d6685"
+        },
+        "control_seeded": {
+          "elapsed_s": 20.181752175994916,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.022382308578409702,
+                "min_t_statistic": 3.545109058647998,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.050870297733900394,
+                -0.050870233167138366,
+                -0.05087016860041885,
+                0.048688065265748086,
+                -0.05087016860041885,
+                -0.10086782164498312
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.02798750870234416,
+                "min_t_statistic": 7.704802819816651,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.09955898097627523,
+                -0.09955885461174967,
+                -0.09955872824730756,
+                -0.15042736940041376,
+                -0.09955872824730759,
+                -0.09912253226696649
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.024290817886641263,
+                "min_t_statistic": 3.9649742659750715,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.1499996826939974,
+                0.049999682694674176,
+                0.049999682694674176,
+                -0.35000063460592346,
+                0.049999682694673975,
+                0.09999949231092452
+              ]
+            }
+          ],
+          "report_sha256": "e23113e590f57377a5560078ebc6a4934fbebb53da79afa7aff5f5412ed9d88e"
+        }
+      },
+      "arrays_sha256": "d176b4854e75078ea90f4c111960ed2c7f3b04b02205e16e83c4a80c8709b6fc",
+      "snapshot_sha256": "cc747689d9baa37aaec987140497da25baaf4166d98b20c864af770392e781a4",
+      "original_parity": true,
+      "previous_report_sha256": "af6bd6f0c18808cca84e5636fa2df51ca0116e3ec3fbbebed640874960216321"
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "baseline",
+      "arms": {
+        "original": {
+          "elapsed_s": 4.951842690999911,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 1,
+                "mean_objective_drop": -0.010287096384436025,
+                "min_t_statistic": -1.3435878027496457,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -6.1756262216666304e-18,
+                -4.052374013033941e-18,
+                -4.052374013033941e-18,
+                -0.05000000000000001,
+                -2.050000000000001,
+                -1.7
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 4,
+                "mean_objective_drop": 0.006785657261747668,
+                "min_t_statistic": 0.6793335240776309,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.049999999999999996,
+                0.05,
+                0.05,
+                0.05,
+                -0.09999999999999983,
+                -0.05000000000000001
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 0,
+                "mean_objective_drop": -0.006443019478994279,
+                "min_t_statistic": -1.2003640256967065,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.09999999999999992,
+                0.05000000000000002,
+                -5.000000000000001,
+                0.10000000000000005,
+                -4.699999999999999,
+                -4.600000000000001
+              ]
+            }
+          ],
+          "report_sha256": "b9ccb4b359d9099860dfd390ce13bb3ba82e611e2178b20e95265d78c2a86e7d"
+        },
+        "control_seeded": {
+          "elapsed_s": 7.374306059005903,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 3,
+                "mean_objective_drop": -0.005483546701819317,
+                "min_t_statistic": -0.642060360914722,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -1.9,
+                -4.052374013033941e-18,
+                -4.052374013033941e-18,
+                -1.6999999999999997,
+                -1.550000000000001,
+                -1.7
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 5,
+                "mean_objective_drop": 0.011238468208006253,
+                "min_t_statistic": 3.463569065331572,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.09999999999999978,
+                -0.0999999999999998,
+                -0.09999999999999987,
+                -0.09999999999999981,
+                -0.09999999999999994,
+                -0.04999999999999967
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 2,
+                "mean_objective_drop": 0.006143123498120802,
+                "min_t_statistic": 1.0989106742682746,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -1.8500000000000003,
+                -2.250000000000001,
+                -3.0999999999999996,
+                -1.9000000000000004,
+                -2.6999999999999997,
+                -2.2500000000000013
+              ]
+            }
+          ],
+          "report_sha256": "b4a70de93b884139f5636297f12b873b95b9b641e04fbd16be49b622ff1213ca"
+        }
+      },
+      "arrays_sha256": "0bc9fbcbb42c83b71520753b0a1ba5b6a41134f455d403294826efe799a447f6",
+      "snapshot_sha256": "dfed22c30bc64c7345e90dbd0479cd5f161012f2cc26cb8717b5b1ab4ce3ea5d",
+      "original_parity": true,
+      "previous_report_sha256": "d4209b33693923677ebbe2ccf340e07af359155ff6976981114f8d03ba27b4a1"
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_x+3",
+      "arms": {
+        "original": {
+          "elapsed_s": 4.8832945879985346,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 3,
+                "mean_objective_drop": -0.00558144090160764,
+                "min_t_statistic": -0.6176103436303542,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -1.4504029712014708,
+                -0.050019797384366474,
+                0.14999809638423126,
+                -1.4504029712014708,
+                -1.8002796176780858,
+                -1.4504027808462416
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 0,
+                "mean_objective_drop": -0.03125018418074376,
+                "min_t_statistic": -4.363937274162056,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -7.292119554646528,
+                -4.763304123116288,
+                -7.048755747236903,
+                -6.251977041949074,
+                -7.985288095528704,
+                -9.129953814480956
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 2,
+                "mean_objective_drop": -0.004496694897850589,
+                "min_t_statistic": -0.9117880527478978,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -11.14427928169902,
+                -11.993235908598049,
+                -10.89680079850597,
+                -8.892987729169379,
+                -9.646470083127124,
+                -9.245448672914067
+              ]
+            }
+          ],
+          "report_sha256": "d587636e145491850da92e40764f4187e362d9695bba981e072c2a877d32cda5"
+        },
+        "control_seeded": {
+          "elapsed_s": 6.918201827000303,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 5,
+                "mean_objective_drop": 0.010401178811776237,
+                "min_t_statistic": 1.6103639723925847,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -1.4504029712014708,
+                -1.4004027817818578,
+                -1.650304745791237,
+                -1.4504029712014708,
+                -1.7002750504871544,
+                -1.4504027808462416
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 2,
+                "mean_objective_drop": 0.004528773790394875,
+                "min_t_statistic": 0.9401050518812899,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -7.676875681266926,
+                -7.741418687679699,
+                -7.692754145948136,
+                -0.1101650916668692,
+                -7.8990390785535425,
+                -9.129953814480956
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 2,
+                "mean_objective_drop": -0.0017183478528330104,
+                "min_t_statistic": -0.47502941246829516,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -7.774853004787613,
+                -10.18066093960206,
+                -8.894296571623101,
+                -7.272067879232795,
+                -7.873536077744729,
+                -7.669437785093173
+              ]
+            }
+          ],
+          "report_sha256": "152887ea3a6f3bb29103493065f72fe376bbae6a61b382f7d39d0f830819a019"
+        }
+      },
+      "arrays_sha256": "8e8d866ed22d9d4e084194a9862faab7ce2120f8d33051f377235f015c2ebdc2",
+      "snapshot_sha256": "50fb893623400752513a1e1817036da4ba33df08faa15b77ce74befee05648c6",
+      "original_parity": true,
+      "previous_report_sha256": "aaa2d69d0063cacef9834c24bcb92a8106d8a024aa17fc3685d4768aa0d28d1b"
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_y+3",
+      "arms": {
+        "original": {
+          "elapsed_s": 4.800322536000749,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 2,
+                "mean_objective_drop": -0.004210360743624079,
+                "min_t_statistic": -1.050245485364914,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.8985093251828302,
+                -0.8498284484561194,
+                -0.8970978068497206,
+                -0.9471613475800899,
+                -0.8511180340033192,
+                -1.3839026122598794
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 4,
+                "mean_objective_drop": 0.0057109359300548295,
+                "min_t_statistic": 0.7739712386895016,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.1499998096384448,
+                0.1499998096384448,
+                0.15000000000000005,
+                0.14999904819217644,
+                -0.10059774994294783,
+                0.14999923855375125
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 2,
+                "mean_objective_drop": -0.0065410698240226895,
+                "min_t_statistic": -1.414679010419546,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -4.105451736652014,
+                -4.2488508206319535,
+                -5.99980690979025,
+                -4.1617137063020895,
+                -2.3408096551742306,
+                -2.289541632828227
+              ]
+            }
+          ],
+          "report_sha256": "0b3f8014f986de2adaa534ea83d116fa0e1d0e8e38d1c6c1ccbb0c3fadf138a4"
+        },
+        "control_seeded": {
+          "elapsed_s": 7.615403363997757,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 3,
+                "mean_objective_drop": 0.0010116667252255591,
+                "min_t_statistic": 0.16990566727855175,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -1.3313029897455282,
+                -1.282639603766856,
+                0.7835641729848429,
+                0.9506446716789844,
+                -1.5390571508868545,
+                -1.3839026122598794
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 3,
+                "mean_objective_drop": 0.005747076941974419,
+                "min_t_statistic": 0.847661300447358,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.05056843414393315,
+                0.1499998096384448,
+                -0.002154611086261002,
+                -0.05056843414393355,
+                -0.10059774994294783,
+                -0.0005684358683332903
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 4,
+                "mean_objective_drop": 0.0035510195655472465,
+                "min_t_statistic": 1.6542054869683422,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -2.290832882177963,
+                -2.289541632828227,
+                -7.482898063525549,
+                -2.289532914177684,
+                -2.3408096551742306,
+                -2.289541632828227
+              ]
+            }
+          ],
+          "report_sha256": "752424897255a63ddee8518b1c6773a7e6ca3ee96513484cf17e95eb7a8e7b02"
+        }
+      },
+      "arrays_sha256": "b1a8971efa5c172abed169c51e4d79356b6c72304ffb55832e0fcbec10e465d5",
+      "snapshot_sha256": "159663f8abb726d35efe87fef480e4c63c7dc31b15a006d11781022a44680401",
+      "original_parity": true,
+      "previous_report_sha256": "62f9caa36170bb251ac056093da95b245fb51ee61312233a966d1119d6a75f44"
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_z+3",
+      "arms": {
+        "original": {
+          "elapsed_s": 4.869693475993699,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 2,
+                "mean_objective_drop": -0.0030231790057225704,
+                "min_t_statistic": -0.5323165324334221,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -1.446973571744849,
+                -1.796950212100581,
+                -1.7469555556637526,
+                -1.6482637990355056,
+                -1.4956391648704015,
+                -1.6995727521472674
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 2,
+                "mean_objective_drop": -0.011344651738316516,
+                "min_t_statistic": -1.817894442180961,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.14186019205550984,
+                0.1523399293107591,
+                0.053670100216229207,
+                0.09318263602851505,
+                -10.163562358392506,
+                0.04450487878885558
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 0,
+                "mean_objective_drop": -0.0062222926879163636,
+                "min_t_statistic": -1.1288833060810926,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.10000000000000041,
+                0.04999980963962433,
+                -5.000020745558653,
+                0.04999980963962433,
+                -4.700016177781028,
+                -4.650030832998245
+              ]
+            }
+          ],
+          "report_sha256": "cb62996d7c384e900508449847d350d81204de77bdbf49a3c70ea0d700071a34"
+        },
+        "control_seeded": {
+          "elapsed_s": 6.90022262599814,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 5,
+                "mean_objective_drop": 0.0036567143868947807,
+                "min_t_statistic": 0.40642466935261107,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -1.7028964764725638,
+                0.05128585473301295,
+                -1.7028964764725634,
+                -1.8541565469724846,
+                -1.8028428085025427,
+                -1.7029029619628142
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 4,
+                "mean_objective_drop": 0.008758571317966942,
+                "min_t_statistic": 2.712774376330213,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.1106511468839573,
+                -0.11196004203183836,
+                -0.11065072545283551,
+                -0.11065114688395734,
+                -8.16546926858046,
+                -0.06068297575519174
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 2,
+                "mean_objective_drop": 0.006620125320480913,
+                "min_t_statistic": 1.1784443196805956,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -1.8502348852653199,
+                -2.250161789545897,
+                -3.0501024000731367,
+                -1.9502217503689456,
+                -2.7001404689315307,
+                -2.250172068058439
+              ]
+            }
+          ],
+          "report_sha256": "bc4b11edf37bd23345b1f1c9627dc827020e9bd4c57425a17ac97f5f39d44762"
+        }
+      },
+      "arrays_sha256": "037d5016833d131853ce8ab4756987c16e56d0d9bd69249c3aa37fe888eda29b",
+      "snapshot_sha256": "2e1edd03658201c5f0b709da812af8d880a1f8efe9e15a7fcae5215f44b5f323",
+      "original_parity": true,
+      "previous_report_sha256": "508bf1c62b9189651ad3c4a2cff2e34e29fcd04a3eaf3afaa75c9d4f60d743ec"
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_x+1",
+      "arms": {
+        "original": {
+          "elapsed_s": 4.629878172003373,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 2,
+                "mean_objective_drop": -0.011211477124811152,
+                "min_t_statistic": -1.3981427080990767,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.09999993653887124,
+                0.09999993653887124,
+                0.049999682694674044,
+                -6.346100394532008e-7,
+                -1.850093922141462,
+                -1.7000918913866288
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 4,
+                "mean_objective_drop": 0.002995160203777523,
+                "min_t_statistic": 0.300575515939732,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.053487827783680206,
+                0.051306425270396125,
+                0.05087016860041886,
+                0.053487827783680206,
+                -0.12049743245078827,
+                0.00043632123690867837
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 2,
+                "mean_objective_drop": -0.002039548576642472,
+                "min_t_statistic": -0.9862027463500046,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -6.79756797128022,
+                -6.449516866492946,
+                -7.247588192226565,
+                -7.697196196975737,
+                -9.548036268874082,
+                -9.34808833253819
+              ]
+            }
+          ],
+          "report_sha256": "150953d16cb732b59691f869c8ae5c065f5bdcd82cae59d44f9da83c0fab141d"
+        },
+        "control_seeded": {
+          "elapsed_s": 6.942576879002445,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 6,
+                "mean_objective_drop": 0.019852111860211383,
+                "min_t_statistic": 2.573967165753867,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -1.8500693624299924,
+                -1.7000824990181107,
+                -1.5001404404546166,
+                -1.7000918913866288,
+                -1.7500871317238447,
+                -1.7000871317360091
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 5,
+                "mean_objective_drop": 0.010609055409393239,
+                "min_t_statistic": 3.1501410509513406,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.12006112784549863,
+                -0.0696293539899903,
+                -0.1440617207493776,
+                -0.12006112784549863,
+                -0.12049743245078827,
+                -0.06962926560610112
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 2,
+                "mean_objective_drop": -0.00017309375958551922,
+                "min_t_statistic": -0.024133396936907157,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -8.173565398443944,
+                -2.5993458877256828,
+                -5.049249559835365,
+                -5.791389249421465,
+                -7.447581836626315,
+                -7.690563866260076
+              ]
+            }
+          ],
+          "report_sha256": "784f29108214fa71e9cbd2f76903cd0a3c826174a46ab32a6ab875aac5a6b775"
+        }
+      },
+      "arrays_sha256": "8054eff86af33b02fc8afee5f34435d3e9c7b716bb00af200ef381026fa43a94",
+      "snapshot_sha256": "8fe5f84273e8a8d17f4f5ccdbc871f5b1ed29801e4004d0644764d56b3ced6ec",
+      "original_parity": true,
+      "previous_report_sha256": "ba842999ce27c8a0aa8c1216fe8d54af682b5de73f922c829a0b68ef6f01567f"
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_y+1",
+      "arms": {
+        "original": {
+          "elapsed_s": 4.681387893004285,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 3,
+                "mean_objective_drop": 0.004095855113303802,
+                "min_t_statistic": 0.4921759580703654,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -1.8855001473619046,
+                -0.15261069949571118,
+                -1.5294103229846063,
+                -1.7337628631966304,
+                -1.5298466432546627,
+                -2.4946372167895725
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 4,
+                "mean_objective_drop": 0.004281333101172743,
+                "min_t_statistic": 0.4585811134519667,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.04999974615574271,
+                0.09999999999999981,
+                0.09999999999999981,
+                0.09999999999999981,
+                -0.10019527672374888,
+                -0.050004696113397265
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 2,
+                "mean_objective_drop": -0.00016250873959618392,
+                "min_t_statistic": -0.018834375044540008,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -2.313403310434867,
+                -2.5116505555295445,
+                -5.054093948132702,
+                -2.6120783559090985,
+                -4.654127098098202,
+                -5.599850690481629
+              ]
+            }
+          ],
+          "report_sha256": "081743c0ffcc92d630d8f3c2b52361914d8cdb451b868a682ca8869e79c78a71"
+        },
+        "control_seeded": {
+          "elapsed_s": 6.486761366002611,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 3,
+                "mean_objective_drop": -0.007094000300594373,
+                "min_t_statistic": -0.7451219571513198,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -1.7337628631966302,
+                -0.15261069949571118,
+                0.5033393717606707,
+                -1.7337628631966304,
+                -1.5298466432546627,
+                -1.6833292085458074
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 4,
+                "mean_objective_drop": 0.009169661398315742,
+                "min_t_statistic": 2.627079452979673,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.10016462291714566,
+                -0.0502049237483724,
+                -0.0506537965424999,
+                -0.10018562993662851,
+                -0.10019527672374888,
+                -0.05018563011805286
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 3,
+                "mean_objective_drop": 0.007059049943519496,
+                "min_t_statistic": 1.5322489376817758,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -2.313403310434867,
+                -2.5116505555295445,
+                -3.0603129676390184,
+                -2.262969656162074,
+                -2.6620756900977702,
+                -2.2629725285385582
+              ]
+            }
+          ],
+          "report_sha256": "7f5c4f732359df3ffbf444b827f9aac7c68558866fc3646387a8db38ddb0214f"
+        }
+      },
+      "arrays_sha256": "4492fe70c5edebd03736c03d297d63f6496a2c510ac06f605f50310ceef73801",
+      "snapshot_sha256": "cbbac63cb3b6f81b830cc64fd2f9564bf213ccc2ed51c466f9922debce1d1576",
+      "original_parity": true,
+      "previous_report_sha256": "e4f4e85435bb931572f9360d8278b2ab6ad4c9ab4b632c4c9152d17f6dbf5e12"
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_z+1",
+      "arms": {
+        "original": {
+          "elapsed_s": 4.985303241999645,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 2,
+                "mean_objective_drop": -0.0048144492390059575,
+                "min_t_statistic": -0.37730395264946265,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.5999855305262678,
+                -0.5991121043685486,
+                -0.5991121043685486,
+                -0.5999855305262678,
+                -0.6495463429859392,
+                -1.7007064593166692
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 4,
+                "mean_objective_drop": 0.004960803979762784,
+                "min_t_statistic": 0.5613508763560299,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.005235994401270998,
+                0.055234788611758616,
+                0.10523344925456073,
+                0.005235994401270998,
+                0.053488914020506886,
+                -0.045198845833372664
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 0,
+                "mean_objective_drop": -0.00624329693779031,
+                "min_t_statistic": -1.1257245513492604,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                0.09999993653887122,
+                0.04999993653893816,
+                -5.0000069174337405,
+                0.04999993653893796,
+                -4.700005394280582,
+                -4.600010280846549
+              ]
+            }
+          ],
+          "report_sha256": "b150795bdd1776daffdd76b948afd763e21a857ad2685fdfa38250a1896ca46b"
+        },
+        "control_seeded": {
+          "elapsed_s": 6.976386588998139,
+          "axes": [
+            {
+              "axis": 0,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 4,
+                "mean_objective_drop": 0.0008504803145795176,
+                "min_t_statistic": 0.16019221531353584,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -1.851135149102689,
+                -1.3007240877373576,
+                1.2965932366207125,
+                -1.5007088611756263,
+                -2.550561863875914,
+                -1.7007064593166692
+              ]
+            },
+            {
+              "axis": 1,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 5,
+                "mean_objective_drop": 0.010549372170577812,
+                "min_t_statistic": 2.979993073474133,
+                "detected": true
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -0.08690021181051133,
+                -0.08864471972186168,
+                -0.08995188415714546,
+                -0.08690021181051133,
+                -0.13645811191181767,
+                -0.08690032212208487
+              ]
+            },
+            {
+              "axis": 2,
+              "control": {
+                "amount": 2.0,
+                "unit": "deg",
+                "held_out_blocks": 6,
+                "detected_blocks": 3,
+                "mean_objective_drop": 0.007605285776388804,
+                "min_t_statistic": 1.409765655475296,
+                "detected": false
+              },
+              "fold_active_axis_reference_errors_deg": [
+                -1.8500783105139855,
+                -2.250053624044609,
+                -3.1000338244604837,
+                -1.9500739316528624,
+                -2.7000468338190178,
+                -2.2500573682516296
+              ]
+            }
+          ],
+          "report_sha256": "8036c7cf15e36d018386ec1a26521b0535033fe2dd41fdd15e5e51868e4d7e17"
+        }
+      },
+      "arrays_sha256": "c4b4814dadc61cc004d7357470b235ee24c3646aecef1888e5ce5ce8f6cdd696",
+      "snapshot_sha256": "8a522266df6eb60bbb7b069e8ed1f0783e1f08a5bfc237eae1088222da99e14c",
+      "original_parity": true,
+      "previous_report_sha256": "641563c572d24e65b7d1beb7707c8aa676bec0d8460e05783451bc9212d4c32b"
+    }
+  ],
+  "limitations": [
+    "Reacquired arrays are not byte-identical to the original cache.",
+    "Same-input code parity does not resolve historical cross-capture numerical drift.",
+    "42 axis controls are correlated diagnostics, not independent recordings.",
+    "Detection is not accuracy, native coverage, or SOTA support; reference is not truth.",
+    "No fresh evaluation, threshold tuning, or estimator default changes."
+  ]
+}

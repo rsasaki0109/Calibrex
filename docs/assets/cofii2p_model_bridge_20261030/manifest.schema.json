@@ -1,0 +1,131 @@
+{
+  "$defs": {
+    "BridgeOptions": {
+      "additionalProperties": false,
+      "properties": {
+        "seed": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "voxel_size_m": {
+          "default": 0.1,
+          "exclusiveMinimum": 0,
+          "title": "Voxel Size M",
+          "type": "number"
+        },
+        "count": {
+          "default": 20480,
+          "exclusiveMinimum": 0,
+          "title": "Count",
+          "type": "integer"
+        },
+        "stages": {
+          "default": 5,
+          "maximum": 10,
+          "minimum": 1,
+          "title": "Stages",
+          "type": "integer"
+        },
+        "neighbors": {
+          "default": 128,
+          "exclusiveMinimum": 0,
+          "title": "Neighbors",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seed"
+      ],
+      "title": "BridgeOptions",
+      "type": "object"
+    },
+    "FileRef": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FileRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "const": "CPU geometry only; no model inference or official numerical parity",
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "driver_sha256": {
+      "title": "Driver Sha256",
+      "type": "string"
+    },
+    "prepared_manifest": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "prepared_artifact": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "options": {
+      "$ref": "#/$defs/BridgeOptions"
+    },
+    "artifact": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "array_shapes": {
+      "additionalProperties": {
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
+      "title": "Array Shapes",
+      "type": "object"
+    },
+    "conventions": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Conventions",
+      "type": "object"
+    },
+    "runtime": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Runtime",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "source_commit",
+    "driver_sha256",
+    "prepared_manifest",
+    "prepared_artifact",
+    "options",
+    "artifact",
+    "array_shapes",
+    "conventions",
+    "runtime"
+  ],
+  "title": "BridgeManifest",
+  "type": "object"
+}

@@ -1,0 +1,702 @@
+{
+  "scope": "36 evaluation-only camera motion comparisons",
+  "motion_report": "docs/assets/stereo_metric_motion_20261030/evaluation.json",
+  "source_sha256": {
+    "tools/diagnose_camera_motion_proxy.py": "08d8640820156ec2dc49b7956e60558977708eb845061a98bc5a8d1df963371b",
+    "tests/unit/test_camera_motion_proxy.py": "c57ef0e5cb47db17e09863549b3d2010cb945c99e215bcbede0989638e2917f4",
+    "tools/known_geometry_joint.py": "8b041f12e956534d9b01c89e8c4618176f5957fd974986341bec4ae15c5a998f",
+    "tools/joint_multistart_control.py": "11f4d20b3f7f68355075f0d101ae4d991405580c9d4e7e25bb8cf4bbaf865fc9",
+    "src/calibrex/data/kitti.py": "d36065eec311fe7bdeb57696abd21405fae8e8cca5f84352b5394b7ae79e71eb",
+    "src/calibrex/core/geometry.py": "edc75ef201e05b2b3146996e10a9acd39f9c02521be753e186d4c473a7c11bbb",
+    "docs/research/camera_motion_proxy_protocol.md": "fb1b592302b5e1dd6f71a8edb34b4d4db450c0ec87bbc09be67627868b17dae8",
+    "docs/assets/stereo_metric_motion_20261030/evaluation.json": "04f06fdfb96741e32da5dbfe769d8046554a960b2389c92ad48f916cdc53716c"
+  },
+  "input_sha256": {
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000036.txt": "c6cfbd38fdaa06216c0fe181547052f842015f12c6bdb9352f0da324be7aae1e",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000037.txt": "7ad9e43757ca7f238fa0385fb6b1c7678e8a5a87d349ec3b8af7d6a9a591214c",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000038.txt": "b8b63e2281d1ea83e55406cf02586a7e276709c0c59095e4df426b7568b92437",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000039.txt": "832f585bcc20173ac2edc5bd8acd475bc0ca90ebba9c10b8934a6b62229f0854",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000040.txt": "76e6a24e7c7ec61fae6f62e780fd038a9f0bb4e2d231dfbf930679564a74ee3f",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000074.txt": "b16cd8c5c319a4a7b01d7288fdbaddffe98c39c45ea0e661cb389bef8c031750",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000075.txt": "d45b6c60ae971e05d50b5fea50a35ce22a1e11ab5545326684d66295b402ec7b",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000076.txt": "479c712c80de8ae5a7afd08f4a93f25464572e72e6974ebc0ad040a0ac491e8f",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000077.txt": "46c75b8ac6d94af5c0e8172f924476130f9b38476d496b5b583f1cab8aa9dedb",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000078.txt": "478d9d470b77cc9d909c0f60ddc5a3755ab49f2ce95a5633dfe4e72016deb602",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000112.txt": "48e1aeb0fa05c5287066bb3078d3df43ddee126836bd2a8bed7a0de2273d66d4",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000113.txt": "4c6ca1b6135cdb7cc16b9327bfc8159529b49fbf8b255827214a881db9f977e8",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000114.txt": "f2f6b256f7b322d58d9ae157794e887d812bcebab0d8e5e74274b6884c83c704",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000115.txt": "9607b4b23d6e6990c17c80ff558ee1c34f2f24cab92565d3bff5ac29f12395da",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000116.txt": "f21e131eb258ea4ee837f4d1035f4284ff24dfd92c2d94152a6ab0047f7f3520",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/timestamps.txt": "8eaabc126357728a515716198399297454a77cca2f038cd2b20b1b05b85da8cf",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/timestamps.txt": "7634f124214b226588ff14125f77b660f60373c3cf17dfd45e9c257bd8dbffbc",
+    "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_cam_to_cam.txt": "edc1eae281cb95e41798a98dcc545521449527145477ff852dbf3a4ec48c643c",
+    "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_imu_to_velo.txt": "07ca9ed33a2d968fc6358617d2c70e048b6f8e0f6ee5b73ae963afc1b19456ce",
+    "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_velo_to_cam.txt": "9dc0c3e92dfceceb9500caa2c9488261a52640e43c3f7c3045ca1ed7927e7266",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000109.txt": "363e8d687e8901cc9f9f5a306bd401c59323b0de67f0335195616a0a0eec835c",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000110.txt": "61db5c7c2f6a69f07948b7feb4071bd96f6c5be87648734405b7bb4bfd6902b2",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000111.txt": "b204a3f4b006e5c8be937716326cf760063cd3f5c362b5bff42b49556b7141b1",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000112.txt": "e74f73efd6ff7f36d6a3525ea137dd447913662998c58c33d59e192432cdead3",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000113.txt": "5901d84da136c68007e6cbd88aea3d6d7c062827701a5638d02e90d2433ec04f",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000221.txt": "6bd44965cfb866b47b58ad14ce70ff1785a3cbd197fa1550b5da4cf986cb6aca",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000222.txt": "8b5031b2fc3487d1a4ef23f366c9248fe6da015208120cf7a253471e76960f80",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000223.txt": "dabd06486c589a850fc3d250a83291763b2242c0c650c9caeca6e128b485b518",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000224.txt": "f17a33032a9f15cbc958e4a909509704ed4529cdd7c8d7787ca7c6a73d1e85f7",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000225.txt": "c8e4c33fa643852e1fa5ce391c89d61fdbd907c139ba9fe9204bde72a9633203",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000332.txt": "043439095c79d3856941a32471c2e7a676550c74a1f3bba3374522ae636881e9",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000333.txt": "15d8a0656e52297784b969badd67f4eb82566c492710d94bde3b3a01c92bef02",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000334.txt": "018f16f93c7ddff284cd3b1ba73b42bcaafecf9925d42981d5d77013fff9225c",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000335.txt": "172a2ad47ebb2edf11c9ae6ffce658661d925c3fb9e777cbaf51742d4f86916a",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000336.txt": "84c63bd13e142d2287ae4f3cf3ce6a89a678c6043bdc4731b51a3a1fed9bc9d6",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/image_02/timestamps.txt": "b1f15319a46e75837a886a93969a37cf87f4bc1ba735616332f142343567b1fd",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/timestamps.txt": "68d959c6c7bcf6407bc75c5cce25edbab738cbf2f3dfecfc15abfe67a889c4ed",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000056.txt": "b505690e34e99a8c137ef77a0fc230169b892e11615e3f164d4ef4e996d0941d",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000057.txt": "c698f27e7c5a0d0bc02050e43574837c181bcf95481e86c1ab70f08540ea0192",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000058.txt": "236690481a6302662751dcd2f2dfbf75eb1ad75e6c4df3675babc90dd7fd2c9f",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000059.txt": "67eff15a6850db33d78aac10313241fe43f6af7568cd38d8d6eaff6d9dff49fd",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000060.txt": "f205c24fa1445f6536707e3f1515bbaedc453deb96a11e18e51e976eadcc3931",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000114.txt": "4442e7c0f33404d3e706a8dc29a811c766e406ea705e8a00f7d0d7ab178f7dc9",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000115.txt": "43e98e47f0f3dffabe797cb86209c5567113eddf891ec0ebd3ba8543bb56e219",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000116.txt": "c0997fbc71ea70b161fe2c14ab02c59c1509392df50855ac3d2c0a10066948a7",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000117.txt": "c70d4ceff0a92d1413f2d55be4d156dd3011bd5d64e2c0742ec42b78a8058c9b",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000118.txt": "abd596e343d4ed5a3d4be5632584986e020f51f5701e09002403a3a05600e20f",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000172.txt": "2eac44b56fc7d446161a186fb60004cd0148e4cc6bb611b40e96b89e7254f89c",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000173.txt": "d0b053a4ca420b51e6d1e3862e6627161180a78ae9ca38c2f145123755f6ac80",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000174.txt": "034f04babc96cc51a423678356bc39815d23206d16ee531fe7f61abba963cae1",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000175.txt": "16337648bcbdabd96342845d9b50ccf5d4415376d16a00e630a1b65b3c3af80e",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000176.txt": "d1e1372ac441a4759a528436d4586dd9036acd0161998f344ab8c232c53ad41d",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/image_02/timestamps.txt": "8e78c976b0599693654c8ca173463970b8d818257d97d0b8e1e3e10b0f8f3420",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/timestamps.txt": "36cbdba39694cc2cd3d50edc91fd8bee4b6e33eb116d92cf0db21989154a7b64",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000033.txt": "3dd3af58f6bc41b36ada2b98dbf943b90779e30b1a2fd607c2241b4ef7716e08",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000034.txt": "98805475e1a9d7a7f6e8f866ffdd4dbcfb3cfdf980fabfad28b18c612b5b277b",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000035.txt": "d240899d12265c27693d0d035b4a3c123482f9844de122e4792e6507dcba9d06",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000036.txt": "90ed47fc175cae2e10670898ccd51b6af358bdf78933d43f0c9fa833ab4827be",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000037.txt": "27af8dae152d9ebd509b8161d5638bcf36f92ae8b3b5e48bd5a99c04a783b196",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000069.txt": "ff9d13cf8676ff3daac62533413d165a5892b45c56bb2af69d2011f2dbb95a90",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000070.txt": "076e06c518d3405d2a93e4d6e5b81f154b9eda5480ae9f235cd856f86d8f9511",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000071.txt": "f6fe8d202af5b6983aa2f57453c50b4a0e36420ea88c37cbbe4438a97cb09497",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000072.txt": "b381b8c43dd78ca18dba6de4a42156432de4095720172dfc96ddb2028d1b780d",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000073.txt": "6d4ab0777ce9ae083f82cc5c2245defc6cdbbafeb7750ffcc73e2018a55ff48c",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000105.txt": "4f9348ca27ef73e1fff741fcf0acd0009eabb9742e4c94ee34b311030609c35d",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000106.txt": "bb0c43fc9af764b43e1ac68d1085c41474153485208115fd9534e0b09d65feb9",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000107.txt": "9280ab977e14680521bdcc07ab0cbf71fc2bf00da1bb92920aedd1189626e6d9",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000108.txt": "cdab811ed0acbb6250931a2a414b499c207cee75802fcad5df07bcea40576d14",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000109.txt": "405079a462a5e72d6626f10a6472644bf67ddc814d712196cc08a48265d9b70b",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/image_02/timestamps.txt": "3cf3055b0843202e61c684161bfd57b555c0f0db8b360aa8be573d10083973f5",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/timestamps.txt": "3a479db35436c7693ef57479c15419caadcaeb3615c0042dd7e3aed5a05eac9c",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000072.txt": "25914e3ab262f27f0b61171f9ee940c14ef763d1a20acc2d6735d8cc6b2e8286",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000073.txt": "983f145f9183c02bd55d14c5eea2a7cc4c1620389b21c4f2758fb8fccdd4eba7",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000074.txt": "ae3b6ca6d154107de3384ae9fe865c48c6a02c82356ab6570b0fff7285c76abd",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000075.txt": "4b8d6ec0abb97dba2b837deb859afc2a8df40bc92526e208382487ca04cea425",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000076.txt": "2c62e79ab361aea5fcff6b0c9edc0fa6b2b0752c1c6923888a90176851952d58",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000146.txt": "2958d229c379949c3e2ce0333a60d308d1a3b89a7babeed2ceee91f12602b2dd",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000147.txt": "43e4bd234f30e1aa1b6c3a79203acd6da9fb150946a57e3baf27917172a2c48b",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000148.txt": "fab4b8af22baefb8e7179084a893828fbc9b3d4a632f8836f111483c4e5308ff",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000149.txt": "6eefd9ee85e59b05f2c6b882bc0ebebd152f78fe614add816193487c0d8c1623",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000150.txt": "039f574af462dd6381dd808e5eecff3f7b012530c07405a82283a9a4aba7047f",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000220.txt": "206c5ecf68f53ca04f86c2e79fe817ecf221905bc21161ac25574efa1411f430",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000221.txt": "59d296f31522b7dc48d5dbca5ff522f2c0718986d5b295011749259060842b40",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000222.txt": "7d63915a631fe2ebcadff4837aad21ffc15f938887fcc24a8d4798580562ed7d",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000223.txt": "71b240909dfcbac5e97084b95f66d3d6f91cb85922212ea1c2c593a13ba2d790",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000224.txt": "35f354103fda6b766cd96fec808ea8437ef2d7ae21e9ad556ea2bcb25b3a3a95",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/image_02/timestamps.txt": "6c6bd8f7ee97e494e8287e8b8296bb691728bf9b315e009e43cef0bb1b064bbe",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/timestamps.txt": "b9a6ec0a38d86167739a1047eaeae0b8a345121645db8dc98e4b0e43981872e7",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000091.txt": "bc88e59c010fa1d4eb79e4d923f247976c545e273b5a78d5e726ddc17b9a0236",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000092.txt": "2aad16b6aa616454c45628ddb109de17197bdf8a4d98c8f7bec037fb05361714",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000093.txt": "0c060c6693eefc2cf246896a46028e70ecd0aaa63d21e3a99b22bd82df2040d2",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000094.txt": "5a2b7ca3cc672f0e13587bc0cfa28736c610dc1de6c4739ed1a1d703ba69c578",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000095.txt": "4d3487d1c6ac1ea09582e68d9a45edd50d027b7b80bf9454e1314dd88b361763",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000185.txt": "7e5f7ffbd27ee1e1cf27ea4d3f50d98f3527c5a5edddd89273d4ac71d17f333d",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000186.txt": "907084890554d7b028b881a7941388e2807404b0df664c31eb07230744d4084b",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000187.txt": "1c35b2d771a9c77469fe0e09bbc007c0643429c7e1c08a5eb649801cc013c76d",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000188.txt": "bc50ca7ee628a4c3a53998d2f0d264486caf92d35c7c3bc9d8dd4443d4d5d350",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000189.txt": "59f19c61675847d88946489c42152f25df5b19a88ed7f74af1b073dc9973d560",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000279.txt": "209a71c3dd3e3c4b620632eb079efc1aced68c3ba55353fb30f56600b8db54c1",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000280.txt": "ce06178ebae9d7a258ee897cb8d483cecaaaffaca70e64ae0eb1074ffd0610ad",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000281.txt": "6750b9b85cd5ec42ce9824521413715844b9c9d121e25a82ed214a407e130a6a",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000282.txt": "b1350d1026211e92f66b864e0737d3ba23fa46f714e9cab2a1d0e18435c52b08",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000283.txt": "9a5738ebf17d55d6c906ffdf6926ab90ee5604e00dc4cdff2df2b21ae8c3b788",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/image_02/timestamps.txt": "62d30c4f96380e119b2d89a4b4f91fdb403f77df7dd40138fab66b5950b7ebb2",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/timestamps.txt": "c8bb96bdf45c0944866733184069860bdaa4a2e2ba734db7e451d132e25650b5",
+    "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_28/calib_cam_to_cam.txt": "e2ca2f12fbe7900e762b909f58438f7147e707eed120ad87511e752551a209ab",
+    "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_28/calib_imu_to_velo.txt": "07ca9ed33a2d968fc6358617d2c70e048b6f8e0f6ee5b73ae963afc1b19456ce",
+    "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_28/calib_velo_to_cam.txt": "2d02e9436d95d942f02190c38397752a667bd0d901580acdca5e015c002607fd"
+  },
+  "drives": [
+    {
+      "drive": "2011_09_26_0005",
+      "packets": [
+        {
+          "index": 36,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000036.txt"
+        },
+        {
+          "index": 37,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000037.txt"
+        },
+        {
+          "index": 38,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000038.txt"
+        },
+        {
+          "index": 39,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000039.txt"
+        },
+        {
+          "index": 40,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000040.txt"
+        },
+        {
+          "index": 74,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000074.txt"
+        },
+        {
+          "index": 75,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000075.txt"
+        },
+        {
+          "index": 76,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000076.txt"
+        },
+        {
+          "index": 77,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000077.txt"
+        },
+        {
+          "index": 78,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000078.txt"
+        },
+        {
+          "index": 112,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000112.txt"
+        },
+        {
+          "index": 113,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000113.txt"
+        },
+        {
+          "index": 114,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000114.txt"
+        },
+        {
+          "index": 115,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000115.txt"
+        },
+        {
+          "index": 116,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000116.txt"
+        }
+      ],
+      "camera_timestamps": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/timestamps.txt",
+      "imu_timestamps": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/timestamps.txt",
+      "camera_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_cam_to_cam.txt",
+      "lidar_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_velo_to_cam.txt",
+      "imu_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_imu_to_velo.txt",
+      "camera_lidar_reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "drive": "2011_09_26_0009",
+      "packets": [
+        {
+          "index": 109,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000109.txt"
+        },
+        {
+          "index": 110,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000110.txt"
+        },
+        {
+          "index": 111,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000111.txt"
+        },
+        {
+          "index": 112,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000112.txt"
+        },
+        {
+          "index": 113,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000113.txt"
+        },
+        {
+          "index": 221,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000221.txt"
+        },
+        {
+          "index": 222,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000222.txt"
+        },
+        {
+          "index": 223,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000223.txt"
+        },
+        {
+          "index": 224,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000224.txt"
+        },
+        {
+          "index": 225,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000225.txt"
+        },
+        {
+          "index": 332,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000332.txt"
+        },
+        {
+          "index": 333,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000333.txt"
+        },
+        {
+          "index": 334,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000334.txt"
+        },
+        {
+          "index": 335,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000335.txt"
+        },
+        {
+          "index": 336,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000336.txt"
+        }
+      ],
+      "camera_timestamps": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/image_02/timestamps.txt",
+      "imu_timestamps": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/timestamps.txt",
+      "camera_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_cam_to_cam.txt",
+      "lidar_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_velo_to_cam.txt",
+      "imu_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_imu_to_velo.txt",
+      "camera_lidar_reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "drive": "2011_09_26_0011",
+      "packets": [
+        {
+          "index": 56,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000056.txt"
+        },
+        {
+          "index": 57,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000057.txt"
+        },
+        {
+          "index": 58,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000058.txt"
+        },
+        {
+          "index": 59,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000059.txt"
+        },
+        {
+          "index": 60,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000060.txt"
+        },
+        {
+          "index": 114,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000114.txt"
+        },
+        {
+          "index": 115,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000115.txt"
+        },
+        {
+          "index": 116,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000116.txt"
+        },
+        {
+          "index": 117,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000117.txt"
+        },
+        {
+          "index": 118,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000118.txt"
+        },
+        {
+          "index": 172,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000172.txt"
+        },
+        {
+          "index": 173,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000173.txt"
+        },
+        {
+          "index": 174,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000174.txt"
+        },
+        {
+          "index": 175,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000175.txt"
+        },
+        {
+          "index": 176,
+          "path": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000176.txt"
+        }
+      ],
+      "camera_timestamps": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/image_02/timestamps.txt",
+      "imu_timestamps": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/timestamps.txt",
+      "camera_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_cam_to_cam.txt",
+      "lidar_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_velo_to_cam.txt",
+      "imu_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_imu_to_velo.txt",
+      "camera_lidar_reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "drive": "2011_09_26_0013",
+      "packets": [
+        {
+          "index": 33,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000033.txt"
+        },
+        {
+          "index": 34,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000034.txt"
+        },
+        {
+          "index": 35,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000035.txt"
+        },
+        {
+          "index": 36,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000036.txt"
+        },
+        {
+          "index": 37,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000037.txt"
+        },
+        {
+          "index": 69,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000069.txt"
+        },
+        {
+          "index": 70,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000070.txt"
+        },
+        {
+          "index": 71,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000071.txt"
+        },
+        {
+          "index": 72,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000072.txt"
+        },
+        {
+          "index": 73,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000073.txt"
+        },
+        {
+          "index": 105,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000105.txt"
+        },
+        {
+          "index": 106,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000106.txt"
+        },
+        {
+          "index": 107,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000107.txt"
+        },
+        {
+          "index": 108,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000108.txt"
+        },
+        {
+          "index": 109,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000109.txt"
+        }
+      ],
+      "camera_timestamps": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/image_02/timestamps.txt",
+      "imu_timestamps": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/timestamps.txt",
+      "camera_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_cam_to_cam.txt",
+      "lidar_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_velo_to_cam.txt",
+      "imu_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_imu_to_velo.txt",
+      "camera_lidar_reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "drive": "2011_09_26_0015",
+      "packets": [
+        {
+          "index": 72,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000072.txt"
+        },
+        {
+          "index": 73,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000073.txt"
+        },
+        {
+          "index": 74,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000074.txt"
+        },
+        {
+          "index": 75,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000075.txt"
+        },
+        {
+          "index": 76,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000076.txt"
+        },
+        {
+          "index": 146,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000146.txt"
+        },
+        {
+          "index": 147,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000147.txt"
+        },
+        {
+          "index": 148,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000148.txt"
+        },
+        {
+          "index": 149,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000149.txt"
+        },
+        {
+          "index": 150,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000150.txt"
+        },
+        {
+          "index": 220,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000220.txt"
+        },
+        {
+          "index": 221,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000221.txt"
+        },
+        {
+          "index": 222,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000222.txt"
+        },
+        {
+          "index": 223,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000223.txt"
+        },
+        {
+          "index": 224,
+          "path": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000224.txt"
+        }
+      ],
+      "camera_timestamps": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/image_02/timestamps.txt",
+      "imu_timestamps": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/timestamps.txt",
+      "camera_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_cam_to_cam.txt",
+      "lidar_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_velo_to_cam.txt",
+      "imu_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_imu_to_velo.txt",
+      "camera_lidar_reference": [
+        [
+          0.00023477369814709992,
+          -0.9999441545437641,
+          -0.0105634778110522,
+          0.0570524478595304
+        ],
+        [
+          0.010449407416592825,
+          0.010565353641379319,
+          -0.9998895741176487,
+          -0.07546671853346001
+        ],
+        [
+          0.9999453885620024,
+          0.00012436537838650679,
+          0.010451302995668946,
+          -0.2693869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "packets": [
+        {
+          "index": 91,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000091.txt"
+        },
+        {
+          "index": 92,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000092.txt"
+        },
+        {
+          "index": 93,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000093.txt"
+        },
+        {
+          "index": 94,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000094.txt"
+        },
+        {
+          "index": 95,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000095.txt"
+        },
+        {
+          "index": 185,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000185.txt"
+        },
+        {
+          "index": 186,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000186.txt"
+        },
+        {
+          "index": 187,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000187.txt"
+        },
+        {
+          "index": 188,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000188.txt"
+        },
+        {
+          "index": 189,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000189.txt"
+        },
+        {
+          "index": 279,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000279.txt"
+        },
+        {
+          "index": 280,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000280.txt"
+        },
+        {
+          "index": 281,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000281.txt"
+        },
+        {
+          "index": 282,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000282.txt"
+        },
+        {
+          "index": 283,
+          "path": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000283.txt"
+        }
+      ],
+      "camera_timestamps": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/image_02/timestamps.txt",
+      "imu_timestamps": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/timestamps.txt",
+      "camera_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_28/calib_cam_to_cam.txt",
+      "lidar_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_28/calib_velo_to_cam.txt",
+      "imu_calibration": "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_28/calib_imu_to_velo.txt",
+      "camera_lidar_reference": [
+        [
+          -0.00159609942076306,
+          -0.9999162467477257,
+          -0.012840436309973332,
+          0.03809494613377218
+        ],
+        [
+          -0.005270645688933059,
+          0.012848695454066989,
+          -0.9999035522454274,
+          -0.061439069752791106
+        ],
+        [
+          0.999984790046273,
+          -0.0015282672486530082,
+          -0.0052907123281999745,
+          -0.32756798283289784
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    }
+  ]
+}

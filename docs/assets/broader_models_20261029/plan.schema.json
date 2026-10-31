@@ -1,0 +1,142 @@
+{
+  "$defs": {
+    "DrivePlan": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "frame_count": {
+          "title": "Frame Count",
+          "type": "integer"
+        },
+        "frames": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Frames",
+          "type": "array"
+        },
+        "archive_size": {
+          "title": "Archive Size",
+          "type": "integer"
+        },
+        "archive_etag": {
+          "title": "Archive Etag",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "frame_count",
+        "frames",
+        "archive_size",
+        "archive_etag"
+      ],
+      "title": "DrivePlan",
+      "type": "object"
+    },
+    "PerturbationPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "rotation_deg": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Rotation Deg",
+          "type": "array"
+        },
+        "translation_m": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "rotation_deg",
+        "translation_m"
+      ],
+      "title": "PerturbationPlan",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "selection_rule": {
+      "title": "Selection Rule",
+      "type": "string"
+    },
+    "timeout_seconds": {
+      "title": "Timeout Seconds",
+      "type": "integer"
+    },
+    "expected_cases": {
+      "title": "Expected Cases",
+      "type": "integer"
+    },
+    "drives": {
+      "items": {
+        "$ref": "#/$defs/DrivePlan"
+      },
+      "title": "Drives",
+      "type": "array"
+    },
+    "perturbations": {
+      "items": {
+        "$ref": "#/$defs/PerturbationPlan"
+      },
+      "title": "Perturbations",
+      "type": "array"
+    },
+    "source_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Source Sha256",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "selection_rule",
+    "timeout_seconds",
+    "expected_cases",
+    "drives",
+    "perturbations",
+    "source_sha256"
+  ],
+  "title": "DevelopmentMatrixPlan",
+  "type": "object"
+}

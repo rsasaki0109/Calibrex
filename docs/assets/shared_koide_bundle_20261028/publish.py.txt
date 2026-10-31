@@ -1,0 +1,81 @@
+"""Archive the spent-data shared-bundle experiment and validate its report."""
+import hashlib
+import json
+import shutil
+from pathlib import Path
+import numpy as np
+from pydantic import BaseModel, ConfigDict
+from scipy.spatial.transform import Rotation
+from tools.koide_kitti_time_adapter import AdaptationReport
+from tools.koide_shared_bundle_pandey import SharedBundleRun
+
+root=Path('/workspace/work/external-comparison-20261028')
+out=Path('/workspace/Calibrex/docs/assets/shared_koide_bundle_20261028')
+class Diagnostic(BaseModel):
+    model_config=ConfigDict(extra='forbid',allow_inf_nan=False)
+    rotation_reference_disagreement_deg: float
+    translation_reference_disagreement_m: float
+    within_scoped_recovery_threshold: bool
+    T_camera_lidar: list[list[float]]
+class Report(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    scope: str
+    input_bundle_shared: bool
+    initial_transform_shared: bool
+    fresh_sensor_payloads_read: int
+    koide_process_exit_code: int
+    native_status: str
+    diagnostics: dict[str,Diagnostic]
+    limitations: list[str]
+    artifact_sha256: dict[str,str]
+    source_sha256: dict[str,str]
+
+for name in ['paired-koide.log','paired-koide-setup-failure.log','paired-native.log',
+             'paired-native.json','paired-native.schema.json','time-adapter-replay.json',
+             'time-adapter-replay.schema.json','seed.json']:
+    shutil.copyfile(root/name,out/name)
+for source,name in [('preprocessed/paired-output/calib.json','koide-output.json'),
+                    ('preprocessed/paired-output/calib-seeded.json','koide-seeded.json'),
+                    ('preprocessed/paired-job.sh','koide-job.sh')]:
+    shutil.copyfile(root/source,out/name)
+shutil.copyfile('/tmp/koide-paired-entrypoint.sh',out/'runtime-entrypoint.sh')
+shutil.copyfile(__file__,out/'publish.py.txt')
+a=AdaptationReport.model_validate_json((root/'time-adapter.json').read_text())
+(out/'time-adapter.json').write_text(a.model_dump_json(indent=2)+'\n')
+(out/'time-adapter.schema.json').write_text(json.dumps(AdaptationReport.model_json_schema(),indent=2)+'\n')
+native=SharedBundleRun.model_validate_json((out/'paired-native.json').read_text())
+assert native.driver_sha256==hashlib.sha256(Path('tools/koide_shared_bundle_pandey.py').read_bytes()).hexdigest()
+seed=json.loads((out/'seed.json').read_text())
+reference=np.array(seed['reference_T_camera_lidar'])
+raw=json.loads((out/'koide-output.json').read_text())['results']['T_lidar_camera']
+assert np.isfinite(raw).all() and abs(np.linalg.norm(raw[3:])-1)<1e-6
+inverse=np.eye(4);inverse[:3,:3]=Rotation.from_quat(raw[3:]).as_matrix();inverse[:3,3]=raw[:3]
+matrices={'initial':np.array(seed['initial_T_camera_lidar']),
+          'koide':np.linalg.inv(inverse),'native_pandey':np.array(native.output_T_camera_lidar)}
+diagnostics={}
+for name, matrix in matrices.items():
+    rotation=float(np.degrees(Rotation.from_matrix(matrix[:3,:3]@reference[:3,:3].T).magnitude()))
+    translation=float(np.linalg.norm(matrix[:3,3]-reference[:3,3]))
+    diagnostics[name]=Diagnostic(rotation_reference_disagreement_deg=rotation,
+        translation_reference_disagreement_m=translation,
+        within_scoped_recovery_threshold=rotation<.5 and translation<.20,
+        T_camera_lidar=matrix.tolist())
+report=Report(scope='spent-data optimizer-only diagnostic; not an end-to-end benchmark',
+    input_bundle_shared=True,initial_transform_shared=True,fresh_sensor_payloads_read=0,
+    koide_process_exit_code=0,native_status=native.result['status'],diagnostics=diagnostics,
+    limitations=['One integrated cloud/image from three spent KITTI 0005 frames; no holdout.',
+        'Koide preprocessing is shared, so native results are a hybrid pipeline.',
+        'Native Pandey is the existing legacy I2I method, not the D2D release candidate.',
+        'Azimuth point times remain modeled; image/cloud reference-time alignment is not verified.',
+        'Reference disagreements are diagnostic; strict threshold flags are not audit verdicts.',
+        'Koide reports Wolfe line-search warnings; native convergence means no improving backtracked step.',
+        'No end-to-end timing comparison: native wall time excludes preprocessing; CPU thread profiles differ.',
+        'Required development coverage, D2D depth input and learned baselines remain pending.'],
+    artifact_sha256={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(out.iterdir())},
+    source_sha256={p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in
+        ['tools/koide_kitti_time_adapter.py','tools/koide_shared_bundle_pandey.py',
+         'src/calibrex/solvers/pandey_mutual_information_solver.py']})
+(out/'comparison.json').write_text(report.model_dump_json(indent=2)+'\n')
+(out/'comparison.schema.json').write_text(json.dumps(Report.model_json_schema(),indent=2)+'\n')
+Report.model_validate_json((out/'comparison.json').read_text())
+print(json.dumps({n:d.model_dump(exclude={'T_camera_lidar'}) for n,d in diagnostics.items()},indent=2))

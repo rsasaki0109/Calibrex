@@ -1,0 +1,79 @@
+import json
+import shutil
+from pathlib import Path
+import jsonschema
+import numpy as np
+root=Path('docs/assets/tapered_disparity_20261029')
+r=json.loads((root/'evaluation.json').read_text())
+old=json.loads(Path('docs/assets/disparity_pose_20261029/evaluation.json').read_text())
+for p in root.glob('*.json'):
+ schema=p.with_suffix('.schema.json')
+ if schema.exists():jsonschema.validate(json.loads(p.read_text()),json.loads(schema.read_text()))
+assert len(r['cases'])==12
+for c,b in zip(r['cases'],old['cases'],strict=True):
+ assert c['case_id']==b['case_id']
+ assert c['input_sha256']==b['input_sha256']
+ np.testing.assert_array_equal(c['initial_T_camera_lidar'],b['initial_T_camera_lidar'])
+ if not c['result']['accepted']:
+  np.testing.assert_array_equal(c['result']['output_T_camera_lidar'],c['initial_T_camera_lidar'])
+assert sum(c['stage_recovered'] for c in r['cases'])==0
+shutil.copyfile('/workspace/work/tapered-disparity-20261029.log',root/'execution.log')
+text='''
+
+## Results
+
+Source and protocol were frozen at `c9f24ea1`. All twelve cases completed with
+identical sensor/metadata hashes and initial matrices to the previous run.
+No post-result tuning or reruns were performed.
+
+**Accepted-stage recovery is 0/12**, versus hard-support fitting **1/12** and
+matched-input D2D **5/12**. Five tapered fits pass the numerical acceptance rules,
+but all five fail the joint reference-accuracy gates. Rejections comprise three
+`lost_support`, two `max_evaluations` and two `at_bound`; each rejected output is
+exactly its initializer. Returned-pipeline recovery is also 0/12.
+
+| Recording / seed | Tapered status | Raw rotation (deg) | Raw translation (m) | Hard-support accepted recovery |
+| --- | --- | ---: | ---: | --- |
+'''
+for c,b in zip(r['cases'],old['cases'],strict=True):
+ a=c['candidate']
+ text+=f"| {c['case_id'][11:].replace('-', ' ')} | {c['result']['status']} | {a['rotation_deg']:.4f} | {a['translation_m']:.4f} | {b['stage_recovered']} |\n"
+text+='''
+The 0009-negative raw candidate meets reference gates, but exhausts the unchanged
+150-evaluation budget and is rejected. It is not counted as a recovery and is
+not rerun with a larger budget. Two other cases reach search bounds. Fewer
+support rejections than the hard mode do not demonstrate improved calibration:
+other failure modes increased and every accepted pose is inaccurate.
+
+### Interpretation and decision
+
+Controlled tests establish that this penalty blend removes finite cost jumps
+at the tested hole/step boundaries. They do **not** establish a correct visibility
+model. The support field penalizes projection into invalid areas; such a penalty
+can favor moving projections toward valid image regions regardless of correct
+geometry. These outcomes do not isolate that effect causally, but they refute
+adoption of this particular approximation under the frozen protocol.
+
+Keep the new mode experimental and the default unchanged. Do not claim that
+smoothness fixes calibration, increase the budget for the one favorable raw
+candidate, relax the gates, or present numerical conditioning as independent
+pose validation. This 0/12 result remains immutable.
+
+The next modeling step should require independently supported correspondences
+and controlled tests where true geometry crosses holes/occlusions—not merely
+continuity and unobstructed-plane recovery. Stop extending this image-support
+penalty approximation through threshold variants. Full-pose acceptance remains
+unvalidated, as five numerically accepted outputs are false accepts on this
+spent-data comparison. No production behavior or SOTA standing changed.
+
+[Complete evaluation](../assets/tapered_disparity_20261029/evaluation.json),
+[schema](../assets/tapered_disparity_20261029/evaluation.schema.json) and
+[execution log](../assets/tapered_disparity_20261029/execution.log) retain all raw
+candidates, fallback matrices, source/input identities and optimizer diagnostics.
+The publisher checks paired input/initializer equality with the hard-support
+experiment and exact rejection fallback. Historical replay requires the original
+frozen checkout because source-hash validation intentionally detects later changes.
+'''
+p=Path('docs/research/stereo_tapered_support.md')
+p.write_text(p.read_text().split('\n\n## Results')[0]+text)
+print('12 paired input identities, fallbacks, zero recoveries and schemas validated')

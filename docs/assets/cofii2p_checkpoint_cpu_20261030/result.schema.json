@@ -1,0 +1,263 @@
+{
+  "$defs": {
+    "CheckpointRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "calibrex.cofii2p_checkpoint_cpu/v0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source_checkout": {
+          "title": "Source Checkout",
+          "type": "string"
+        },
+        "bridge_manifest": {
+          "$ref": "#/$defs/FileRef"
+        },
+        "checkpoint": {
+          "$ref": "#/$defs/FileRef"
+        },
+        "checkpoint_kind": {
+          "enum": [
+            "declared_learned",
+            "synthetic_fixture"
+          ],
+          "title": "Checkpoint Kind",
+          "type": "string"
+        },
+        "declared_checkpoint_source": {
+          "minLength": 1,
+          "title": "Declared Checkpoint Source",
+          "type": "string"
+        },
+        "declared_training_provenance": {
+          "minLength": 1,
+          "title": "Declared Training Provenance",
+          "type": "string"
+        },
+        "declared_terms": {
+          "minLength": 1,
+          "title": "Declared Terms",
+          "type": "string"
+        },
+        "image_policy": {
+          "enum": [
+            "prepared_bgr",
+            "prepared_bgr_to_rgb"
+          ],
+          "title": "Image Policy",
+          "type": "string"
+        },
+        "pixel_layout": {
+          "enum": [
+            "row_major",
+            "official_eval_legacy"
+          ],
+          "title": "Pixel Layout",
+          "type": "string"
+        },
+        "seed": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "threads": {
+          "default": 2,
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Threads",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "schema_version",
+        "source_checkout",
+        "bridge_manifest",
+        "checkpoint",
+        "checkpoint_kind",
+        "declared_checkpoint_source",
+        "declared_training_provenance",
+        "declared_terms",
+        "image_policy",
+        "pixel_layout",
+        "seed"
+      ],
+      "title": "CheckpointRequest",
+      "type": "object"
+    },
+    "FileRef": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FileRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "const": "CPU checkpoint execution and raw pairs; no accuracy or official parity claim",
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "upstream_commit": {
+      "title": "Upstream Commit",
+      "type": "string"
+    },
+    "driver": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "request": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "config": {
+      "$ref": "#/$defs/CheckpointRequest"
+    },
+    "runtime": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Runtime",
+      "type": "object"
+    },
+    "bridge_artifact": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "prepared_manifest": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "prepared_artifact": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "patched_source_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Patched Source Sha256",
+      "type": "object"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "checkpoint_loaded": {
+      "title": "Checkpoint Loaded",
+      "type": "boolean"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Error"
+    },
+    "init_load_seconds": {
+      "title": "Init Load Seconds",
+      "type": "number"
+    },
+    "forward_seconds": {
+      "title": "Forward Seconds",
+      "type": "number"
+    },
+    "peak_rss_kib": {
+      "title": "Peak Rss Kib",
+      "type": "integer"
+    },
+    "loaded_state_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Loaded State Sha256"
+    },
+    "repeat_arrays_exact": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Repeat Arrays Exact"
+    },
+    "pair_count": {
+      "title": "Pair Count",
+      "type": "integer"
+    },
+    "raw_pairs": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FileRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "scope",
+    "source_commit",
+    "upstream_commit",
+    "driver",
+    "request",
+    "config",
+    "runtime",
+    "bridge_artifact",
+    "prepared_manifest",
+    "prepared_artifact",
+    "patched_source_sha256",
+    "status",
+    "checkpoint_loaded",
+    "error",
+    "init_load_seconds",
+    "forward_seconds",
+    "peak_rss_kib",
+    "loaded_state_sha256",
+    "repeat_arrays_exact",
+    "pair_count",
+    "raw_pairs",
+    "warnings"
+  ],
+  "title": "CheckpointResult",
+  "type": "object"
+}

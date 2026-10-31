@@ -1,0 +1,72 @@
+{
+  "scope": "CPU checkpoint execution and raw pairs; no accuracy or official parity claim",
+  "source_commit": "5b90e2e6685febfe6358fa7f5ee1924d130f97fa",
+  "upstream_commit": "ed90edf51cca540ee76152d91133c7e79b63256c",
+  "driver": {
+    "path": "/workspace/Calibrex/tools/cofii2p_checkpoint_cpu.py",
+    "sha256": "0eb0ff6d8f77c5019b6b8fa7a47fa07069480f9c3112e7b74b3ef9707d282f45"
+  },
+  "request": {
+    "path": "/workspace/work/cofii2p-checkpoint-cpu-20261030/fixture/fixture_request.json",
+    "sha256": "d4ef7a738b52f1bd3ac2947cca845f3267613ad6e95ce13eb98aef8109164bf0"
+  },
+  "config": {
+    "schema_version": "calibrex.cofii2p_checkpoint_cpu/v0.1",
+    "source_checkout": "/workspace/work/direct-provider-review-20261030/CoFiI2P",
+    "bridge_manifest": {
+      "path": "/workspace/work/cofii2p-bridge-smoke-20261030/bridge_a/manifest.json",
+      "sha256": "51b3663c39b6768ec2e6cc694fedd77e743fcfa6f178f6c67b3bb7c5505a1a2c"
+    },
+    "checkpoint": {
+      "path": "/workspace/work/cofii2p-checkpoint-cpu-20261030/fixture/SYNTHETIC_RANDOM_STATE.pt",
+      "sha256": "8bdd58ac7ece3ea95c3452c54e6afc6d8278190493d37589a3ad9b1840baa46b"
+    },
+    "checkpoint_kind": "synthetic_fixture",
+    "declared_checkpoint_source": "LOCAL SYNTHETIC RANDOM STATE; NOT OFFICIAL LEARNED WEIGHTS",
+    "declared_training_provenance": "No training; model initialization seed20261030",
+    "declared_terms": "Local test fixture; external model code terms remain unresolved",
+    "image_policy": "prepared_bgr",
+    "pixel_layout": "row_major",
+    "seed": 20261030,
+    "threads": 2
+  },
+  "runtime": {
+    "torch": "2.4.0+cpu",
+    "numpy": "2.5.4"
+  },
+  "bridge_artifact": {
+    "path": "/workspace/work/cofii2p-bridge-smoke-20261030/bridge_a/bridge.npz",
+    "sha256": "b7593246aedbecd38a8af590b955ed1c594060d2443e2c95e415dffd6b9c122d"
+  },
+  "prepared_manifest": {
+    "path": "/workspace/work/cofii2p-bridge-smoke-20261030/prepared/manifest.json",
+    "sha256": "bc2ffedb5d63f19f3d480be5f305eeceef1ceb1ac4c78ecdf87ae90362426393"
+  },
+  "prepared_artifact": {
+    "path": "/workspace/work/cofii2p-bridge-smoke-20261030/prepared/input.npz",
+    "sha256": "f388ba17b3bd8137fa2bfd808230ed881d294a8c41e568b07e9a16ab6388bb8b"
+  },
+  "patched_source_sha256": {
+    "model/network.py": "ce0c2723d3ea6e85900ad825fd63ae97d8d7ab22f521f7f226c508094595ab22",
+    "model/kpconv/kernel_points.py": "65b75ba445f1187ac0b9674f86706a374a1ef4f6d41826163dc81bfceb96d133"
+  },
+  "status": "completed",
+  "checkpoint_loaded": true,
+  "error": null,
+  "init_load_seconds": 5.824522704002447,
+  "forward_seconds": 10.21194149000803,
+  "peak_rss_kib": 2015628,
+  "loaded_state_sha256": "95fff11dc9c9c883962e90b8a9ba118ad5742f58fe4facda109b2b877396c554",
+  "repeat_arrays_exact": true,
+  "pair_count": 4,
+  "raw_pairs": {
+    "path": "/workspace/work/cofii2p-checkpoint-cpu-20261030/run/raw_pairs.npz",
+    "sha256": "92ff65dfd4e86d61f175d02e859b432214a7fb89830492bbcd939bd5205e2702"
+  },
+  "warnings": [
+    "Source/training/terms declarations do not verify checkpoint identity",
+    "Local image policy/SciPy geometry not official preprocessing parity",
+    "Raw pairs have no calibrated uncertainty, acceptance or pose accuracy verdict",
+    "SYNTHETIC FIXTURE: not learned weights or model accuracy evidence"
+  ]
+}

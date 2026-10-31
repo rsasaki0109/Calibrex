@@ -1,0 +1,95 @@
+{
+  "$defs": {
+    "FileRef": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FileRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "const": "synthetic geometry only; no official parity or accuracy claim",
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "smoke_driver": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "bridge_manifests": {
+      "items": {
+        "$ref": "#/$defs/FileRef"
+      },
+      "title": "Bridge Manifests",
+      "type": "array"
+    },
+    "stage_counts": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Stage Counts",
+      "type": "array"
+    },
+    "unique_voxels_per_stage": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Unique Voxels Per Stage",
+      "type": "array"
+    },
+    "checks_passed": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Checks Passed",
+      "type": "array"
+    },
+    "legacy_different_patch_positions": {
+      "title": "Legacy Different Patch Positions",
+      "type": "integer"
+    },
+    "real_frames": {
+      "const": 0,
+      "title": "Real Frames",
+      "type": "integer"
+    },
+    "model_invocations": {
+      "const": 0,
+      "title": "Model Invocations",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "scope",
+    "source_commit",
+    "smoke_driver",
+    "bridge_manifests",
+    "stage_counts",
+    "unique_voxels_per_stage",
+    "checks_passed",
+    "legacy_different_patch_positions",
+    "real_frames",
+    "model_invocations"
+  ],
+  "title": "SmokeResult",
+  "type": "object"
+}

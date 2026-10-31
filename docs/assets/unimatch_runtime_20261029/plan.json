@@ -1,0 +1,13 @@
+{
+  "scope": "runtime smoke only on spent 2011_09_26_0005 central frame 76",
+  "external_repository": "https://github.com/autonomousvision/unimatch",
+  "external_commit": "943a99006950ab6c84ea72a72beb147fdd03c19a",
+  "checkpoint_url": "https://s3.eu-central-1.amazonaws.com/avg-projects/unimatch/pretrained/gmstereo-scale2-regrefine3-sceneflow-2dd12e97.pth",
+  "checkpoint_sha256": "2dd12e97b60bb7b91a0a45845a59260f9fdfe1ae9449dc491353c8842080ea6d",
+  "training_declaration": "SceneFlow per official model zoo; not independently audited",
+  "runtime": "torch 2.4.0+cpu, float32, 4 threads, no resizing, symmetric replicate padding to 32",
+  "timeout_seconds": 300,
+  "metadata": "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_26_0005/frame-76/frontend.json",
+  "success": "strict checkpoint load, original-size finite disparity output; no accuracy verdict",
+  "policy": "preserve failure; no checkpoint/resolution changes to rescue smoke; no fresh data"
+}

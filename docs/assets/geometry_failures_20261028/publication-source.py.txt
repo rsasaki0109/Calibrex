@@ -1,0 +1,47 @@
+"""Retain all selected folds and summarize training-score dominance without refitting."""
+import hashlib
+import json
+import shutil
+from pathlib import Path
+from typing import Any, Literal
+
+import jsonschema
+from calibrex.core.result import StrictModel
+
+class Summary(StrictModel):
+    schema_version: Literal['calibrex.geometry_failure_summary/v0.1'] = 'calibrex.geometry_failure_summary/v0.1'
+    provenance: dict[str, Any]
+    cases: list[dict[str, Any]]
+
+base = Path('/workspace/work/geometry-failures-20261028')
+out = Path('/workspace/Calibrex/docs/assets/geometry_failures_20261028')
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+r = json.loads((base/'report.json').read_text())
+assert len(r['cases']) == 3 and all(len(c['folds']) == 6 for c in r['cases'])
+rows = []
+for case in r['cases']:
+    missed = []
+    held_ambiguous = []
+    for f in case['folds']:
+        original = f['fits']['original']; changed = f['fits']['match_geometry']
+        training = changed['scores']['training']['match_geometry']
+        held = changed['scores']['held']['match_geometry']
+        gain = original['scores']['training']['match_geometry'][1] - training[1]
+        control_gain = max(training[2:]) - training[1]
+        if gain > 1e-9 or control_gain > 1e-9:
+            missed.append(dict(fold=f['fold'],original_fit_training_gain=gain,control_training_gain=control_gain,
+                original_fit_held_gain=original['scores']['held']['match_geometry'][1]-held[1],
+                original_full_rotation_error_deg=original['full_rotation_errors_deg'][1],
+                geometry_full_rotation_error_deg=changed['full_rotation_errors_deg'][1]))
+        if max(held[2:]) > held[1]: held_ambiguous.append(f['fold'])
+    rows.append(dict(drive=case['drive'],axis=case['axis'],missed_training_candidates=missed,
+        folds_control_beats_geometry_baseline=held_ambiguous))
+s=Summary(provenance=dict(report_sha256=sha(base/'report.json'),generator_sha256=sha(Path(__file__)),new_evaluation_started=False,new_accuracy_claim=False),cases=rows)
+(base/'summary.json').write_text(s.model_dump_json(indent=2))
+(base/'summary.schema.json').write_text(json.dumps(s.model_json_schema(),indent=2))
+shutil.copytree(base,out)
+shutil.copyfile(__file__,out/'publication-source.py.txt')
+for schema in out.glob('*.schema.json'):
+    jsonschema.validate(json.loads(schema.with_name(schema.name.replace('.schema.json','.json')).read_text()),json.loads(schema.read_text()))
+(out/'manifest.json').write_text(json.dumps(dict(provenance=r['provenance'],files={str(p.relative_to(out)):sha(p) for p in sorted(out.iterdir()) if p.is_file()}),indent=2)+'\n')
+print(s.model_dump_json(indent=2))

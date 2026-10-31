@@ -1,0 +1,1123 @@
+{
+  "scope": "reference-assisted proxy-motion counterfactual; evaluation only",
+  "source_commit": "5bed804ca34eb2699d9e01ec731c5d926833fecf",
+  "plan_sha256": "c1e09c0f1e3dd907fc10ea33c2d8f6cff0be016c2956beb98827b51e79cdb05e",
+  "cases": [
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_26_0005",
+      "center": "frame-38",
+      "neighbors": [
+        {
+          "index": 37,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 799,
+            "consistent": 53957,
+            "nearer_observed_surface": 2018,
+            "farther_observed_surface": 527,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 39,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 1267,
+            "missing_depth": 1737,
+            "consistent": 51153,
+            "nearer_observed_surface": 357,
+            "farther_observed_surface": 2787,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 57301,
+          "normal_pairs": 45943,
+          "distance_failure_fraction": 0.1942548995654526,
+          "normal_failure_fraction": 0.5729708551901269,
+          "domain_retention": 0.13208778036467578,
+          "cells": 16
+        },
+        {
+          "population": "temporal_both",
+          "selected": 49374,
+          "normal_pairs": 38870,
+          "distance_failure_fraction": 0.20824725564062058,
+          "normal_failure_fraction": 0.5480319012091588,
+          "domain_retention": 0.1138148037159125,
+          "cells": 16
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 7927,
+          "normal_pairs": 7073,
+          "distance_failure_fraction": 0.10710230856566166,
+          "normal_failure_fraction": 0.7100240350629153,
+          "domain_retention": 0.018272976648763282,
+          "cells": 15
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_26_0005",
+      "center": "frame-76",
+      "neighbors": [
+        {
+          "index": 75,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 952,
+            "consistent": 90310,
+            "nearer_observed_surface": 1999,
+            "farther_observed_surface": 253,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 77,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 473,
+            "missing_depth": 3989,
+            "consistent": 86126,
+            "nearer_observed_surface": 429,
+            "farther_observed_surface": 2497,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 93514,
+          "normal_pairs": 85228,
+          "distance_failure_fraction": 0.08188078790341553,
+          "normal_failure_fraction": 0.15791758576993475,
+          "domain_retention": 0.21556441760217607,
+          "cells": 16
+        },
+        {
+          "population": "temporal_both",
+          "selected": 84822,
+          "normal_pairs": 77618,
+          "distance_failure_fraction": 0.07839947183513711,
+          "normal_failure_fraction": 0.14139761395552577,
+          "domain_retention": 0.19552799612733684,
+          "cells": 16
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 8692,
+          "normal_pairs": 7610,
+          "distance_failure_fraction": 0.11585365853658537,
+          "normal_failure_fraction": 0.3264126149802891,
+          "domain_retention": 0.020036421474839215,
+          "cells": 16
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_26_0005",
+      "center": "frame-114",
+      "neighbors": [
+        {
+          "index": 113,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 4032,
+            "consistent": 105424,
+            "nearer_observed_surface": 712,
+            "farther_observed_surface": 560,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 115,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 2713,
+            "missing_depth": 2325,
+            "consistent": 104781,
+            "nearer_observed_surface": 129,
+            "farther_observed_surface": 780,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 110728,
+          "normal_pairs": 73579,
+          "distance_failure_fraction": 0.31376887508128026,
+          "normal_failure_fraction": 0.237214422593403,
+          "domain_retention": 0.2552453839238376,
+          "cells": 16
+        },
+        {
+          "population": "temporal_both",
+          "selected": 99894,
+          "normal_pairs": 63019,
+          "distance_failure_fraction": 0.345956714116964,
+          "normal_failure_fraction": 0.23791237563274567,
+          "domain_retention": 0.2302713169359858,
+          "cells": 16
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 10834,
+          "normal_pairs": 10560,
+          "distance_failure_fraction": 0.01698357024183127,
+          "normal_failure_fraction": 0.23304924242424244,
+          "domain_retention": 0.024974066987851824,
+          "cells": 14
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_28_0002",
+      "center": "frame-93",
+      "neighbors": [
+        {
+          "index": 92,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 908,
+            "consistent": 107658,
+            "nearer_observed_surface": 513,
+            "farther_observed_surface": 1893,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 94,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 815,
+            "consistent": 108198,
+            "nearer_observed_surface": 1060,
+            "farther_observed_surface": 899,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 110972,
+          "normal_pairs": 92126,
+          "distance_failure_fraction": 0.12156219586922827,
+          "normal_failure_fraction": 0.114972971799492,
+          "domain_retention": 0.26334124347413385,
+          "cells": 15
+        },
+        {
+          "population": "temporal_both",
+          "selected": 105309,
+          "normal_pairs": 87366,
+          "distance_failure_fraction": 0.1236741399120683,
+          "normal_failure_fraction": 0.10306068722386283,
+          "domain_retention": 0.24990270526815378,
+          "cells": 15
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 5663,
+          "normal_pairs": 4760,
+          "distance_failure_fraction": 0.0822885396432986,
+          "normal_failure_fraction": 0.33361344537815124,
+          "domain_retention": 0.013438538205980066,
+          "cells": 14
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_28_0002",
+      "center": "frame-187",
+      "neighbors": [
+        {
+          "index": 186,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 210,
+            "consistent": 127243,
+            "nearer_observed_surface": 829,
+            "farther_observed_surface": 869,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 188,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 165,
+            "consistent": 127358,
+            "nearer_observed_surface": 600,
+            "farther_observed_surface": 1028,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 129151,
+          "normal_pairs": 102709,
+          "distance_failure_fraction": 0.11083925018002183,
+          "normal_failure_fraction": 0.08605867061309136,
+          "domain_retention": 0.30648077835785476,
+          "cells": 16
+        },
+        {
+          "population": "temporal_both",
+          "selected": 125953,
+          "normal_pairs": 100492,
+          "distance_failure_fraction": 0.10897715814629266,
+          "normal_failure_fraction": 0.07971778848067508,
+          "domain_retention": 0.2988917892738491,
+          "cells": 16
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 3198,
+          "normal_pairs": 2217,
+          "distance_failure_fraction": 0.1841776110068793,
+          "normal_failure_fraction": 0.37347767253044656,
+          "domain_retention": 0.007588989084005696,
+          "cells": 15
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_28_0002",
+      "center": "frame-281",
+      "neighbors": [
+        {
+          "index": 280,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 127,
+            "consistent": 130803,
+            "nearer_observed_surface": 483,
+            "farther_observed_surface": 678,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 282,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 159,
+            "consistent": 130668,
+            "nearer_observed_surface": 391,
+            "farther_observed_surface": 873,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 132091,
+          "normal_pairs": 101118,
+          "distance_failure_fraction": 0.12177968218879409,
+          "normal_failure_fraction": 0.0673866176150636,
+          "domain_retention": 0.3134575225439013,
+          "cells": 15
+        },
+        {
+          "population": "temporal_both",
+          "selected": 129743,
+          "normal_pairs": 99951,
+          "distance_failure_fraction": 0.1191432293071688,
+          "normal_failure_fraction": 0.06715290492341247,
+          "domain_retention": 0.3078856193640247,
+          "cells": 15
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 2348,
+          "normal_pairs": 1167,
+          "distance_failure_fraction": 0.2674616695059625,
+          "normal_failure_fraction": 0.08740359897172237,
+          "domain_retention": 0.005571903179876602,
+          "cells": 15
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_26_0009",
+      "center": "frame-111",
+      "neighbors": [
+        {
+          "index": 110,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 3485,
+            "consistent": 106691,
+            "nearer_observed_surface": 1055,
+            "farther_observed_surface": 1607,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 112,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 21347,
+            "missing_depth": 6086,
+            "consistent": 82481,
+            "nearer_observed_surface": 1261,
+            "farther_observed_surface": 1663,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 112838,
+          "normal_pairs": 97607,
+          "distance_failure_fraction": 0.08846310640032613,
+          "normal_failure_fraction": 0.2357105535463645,
+          "domain_retention": 0.26010926442451765,
+          "cells": 16
+        },
+        {
+          "population": "temporal_both",
+          "selected": 80464,
+          "normal_pairs": 66958,
+          "distance_failure_fraction": 0.10450636309405448,
+          "normal_failure_fraction": 0.23463962483945158,
+          "domain_retention": 0.18548212351029253,
+          "cells": 16
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 32374,
+          "normal_pairs": 30649,
+          "distance_failure_fraction": 0.048588373386050536,
+          "normal_failure_fraction": 0.2380501810825802,
+          "domain_retention": 0.07462714091422512,
+          "cells": 16
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_26_0009",
+      "center": "frame-223",
+      "neighbors": [
+        {
+          "index": 222,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 1029,
+            "consistent": 124578,
+            "nearer_observed_surface": 765,
+            "farther_observed_surface": 1759,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 224,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 8823,
+            "missing_depth": 5578,
+            "consistent": 104904,
+            "nearer_observed_surface": 7345,
+            "farther_observed_surface": 1481,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 128131,
+          "normal_pairs": 107012,
+          "distance_failure_fraction": 0.12921931460770616,
+          "normal_failure_fraction": 0.14265689829178035,
+          "domain_retention": 0.2953620248495885,
+          "cells": 14
+        },
+        {
+          "population": "temporal_both",
+          "selected": 102008,
+          "normal_pairs": 85559,
+          "distance_failure_fraction": 0.12373539330248608,
+          "normal_failure_fraction": 0.16165453079161748,
+          "domain_retention": 0.2351444180632074,
+          "cells": 14
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 26123,
+          "normal_pairs": 21453,
+          "distance_failure_fraction": 0.1506335413237377,
+          "normal_failure_fraction": 0.06689041159744558,
+          "domain_retention": 0.060217606786381134,
+          "cells": 14
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_26_0009",
+      "center": "frame-334",
+      "neighbors": [
+        {
+          "index": 333,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 360,
+            "consistent": 105899,
+            "nearer_observed_surface": 429,
+            "farther_observed_surface": 358,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 335,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 11489,
+            "missing_depth": 8110,
+            "consistent": 85533,
+            "nearer_observed_surface": 362,
+            "farther_observed_surface": 1552,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 107046,
+          "normal_pairs": 93374,
+          "distance_failure_fraction": 0.07587392336005082,
+          "normal_failure_fraction": 0.18323087797459678,
+          "domain_retention": 0.24675779719231922,
+          "cells": 16
+        },
+        {
+          "population": "temporal_both",
+          "selected": 84727,
+          "normal_pairs": 73061,
+          "distance_failure_fraction": 0.07362470050869263,
+          "normal_failure_fraction": 0.18520140704342947,
+          "domain_retention": 0.19530900624697448,
+          "cells": 16
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 22319,
+          "normal_pairs": 20313,
+          "distance_failure_fraction": 0.08441238406738653,
+          "normal_failure_fraction": 0.17614335647122534,
+          "domain_retention": 0.051448790945344734,
+          "cells": 15
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_26_0011",
+      "center": "frame-58",
+      "neighbors": [
+        {
+          "index": 57,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 947,
+            "consistent": 132795,
+            "nearer_observed_surface": 597,
+            "farther_observed_surface": 1258,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 59,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 19635,
+            "missing_depth": 5597,
+            "consistent": 107209,
+            "nearer_observed_surface": 1481,
+            "farther_observed_surface": 1675,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 135597,
+          "normal_pairs": 113116,
+          "distance_failure_fraction": 0.0901937358496132,
+          "normal_failure_fraction": 0.06534884543300683,
+          "domain_retention": 0.3125723242894355,
+          "cells": 16
+        },
+        {
+          "population": "temporal_both",
+          "selected": 104934,
+          "normal_pairs": 85543,
+          "distance_failure_fraction": 0.09197209674652639,
+          "normal_failure_fraction": 0.0666799153642028,
+          "domain_retention": 0.24188930637836842,
+          "cells": 16
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 30663,
+          "normal_pairs": 27573,
+          "distance_failure_fraction": 0.08410788246420768,
+          "normal_failure_fraction": 0.06121930874406122,
+          "domain_retention": 0.07068301791106706,
+          "cells": 16
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_26_0011",
+      "center": "frame-116",
+      "neighbors": [
+        {
+          "index": 115,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 123,
+            "consistent": 106520,
+            "nearer_observed_surface": 533,
+            "farther_observed_surface": 676,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 117,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 322,
+            "consistent": 106795,
+            "nearer_observed_surface": 173,
+            "farther_observed_surface": 562,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 107852,
+          "normal_pairs": 87420,
+          "distance_failure_fraction": 0.04493194377480251,
+          "normal_failure_fraction": 0.040002287805994054,
+          "domain_retention": 0.24861575344044629,
+          "cells": 13
+        },
+        {
+          "population": "temporal_both",
+          "selected": 105521,
+          "normal_pairs": 85878,
+          "distance_failure_fraction": 0.04333734517299874,
+          "normal_failure_fraction": 0.03643540837001327,
+          "domain_retention": 0.24324243332334433,
+          "cells": 13
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 2331,
+          "normal_pairs": 1542,
+          "distance_failure_fraction": 0.11711711711711711,
+          "normal_failure_fraction": 0.23865110246433205,
+          "domain_retention": 0.0053733201171019575,
+          "cells": 12
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_26_0011",
+      "center": "frame-174",
+      "neighbors": [
+        {
+          "index": 173,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 129,
+            "consistent": 140738,
+            "nearer_observed_surface": 370,
+            "farther_observed_surface": 779,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 175,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 233,
+            "consistent": 141034,
+            "nearer_observed_surface": 187,
+            "farther_observed_surface": 562,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 142016,
+          "normal_pairs": 114861,
+          "distance_failure_fraction": 0.06169727354664263,
+          "normal_failure_fraction": 0.03238697207929585,
+          "domain_retention": 0.32736912473202556,
+          "cells": 13
+        },
+        {
+          "population": "temporal_both",
+          "selected": 140010,
+          "normal_pairs": 113762,
+          "distance_failure_fraction": 0.06059567173773302,
+          "normal_failure_fraction": 0.02985179585450326,
+          "domain_retention": 0.3227449805214264,
+          "cells": 13
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 2006,
+          "normal_pairs": 1099,
+          "distance_failure_fraction": 0.13858424725822532,
+          "normal_failure_fraction": 0.2948134667879891,
+          "domain_retention": 0.00462414421059911,
+          "cells": 12
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_26_0013",
+      "center": "frame-35",
+      "neighbors": [
+        {
+          "index": 34,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 1520,
+            "consistent": 93695,
+            "nearer_observed_surface": 2112,
+            "farther_observed_surface": 7712,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 36,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 16063,
+            "missing_depth": 6478,
+            "consistent": 76135,
+            "nearer_observed_surface": 4694,
+            "farther_observed_surface": 1669,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 105039,
+          "normal_pairs": 91820,
+          "distance_failure_fraction": 0.09253705766429612,
+          "normal_failure_fraction": 0.12184709213678938,
+          "domain_retention": 0.24213134782508472,
+          "cells": 16
+        },
+        {
+          "population": "temporal_both",
+          "selected": 71776,
+          "normal_pairs": 59944,
+          "distance_failure_fraction": 0.11792242532322782,
+          "normal_failure_fraction": 0.10648271720272254,
+          "domain_retention": 0.16545492266199488,
+          "cells": 14
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 33263,
+          "normal_pairs": 31876,
+          "distance_failure_fraction": 0.03775967290983976,
+          "normal_failure_fraction": 0.15074036892960221,
+          "domain_retention": 0.07667642516308983,
+          "cells": 16
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_26_0013",
+      "center": "frame-71",
+      "neighbors": [
+        {
+          "index": 70,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 836,
+            "consistent": 100781,
+            "nearer_observed_surface": 1319,
+            "farther_observed_surface": 251,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 72,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 15460,
+            "missing_depth": 6301,
+            "consistent": 79386,
+            "nearer_observed_surface": 646,
+            "farther_observed_surface": 1394,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 103187,
+          "normal_pairs": 86778,
+          "distance_failure_fraction": 0.11673951176020235,
+          "normal_failure_fraction": 0.06499343151490009,
+          "domain_retention": 0.23786219773633618,
+          "cells": 15
+        },
+        {
+          "population": "temporal_both",
+          "selected": 78214,
+          "normal_pairs": 64003,
+          "distance_failure_fraction": 0.12593653310149078,
+          "normal_failure_fraction": 0.05718481946158774,
+          "domain_retention": 0.18029552108065744,
+          "cells": 14
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 24973,
+          "normal_pairs": 22775,
+          "distance_failure_fraction": 0.08793496976734874,
+          "normal_failure_fraction": 0.08693743139407245,
+          "domain_retention": 0.05756667665567875,
+          "cells": 15
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_26_0013",
+      "center": "frame-107",
+      "neighbors": [
+        {
+          "index": 106,
+          "motion_supported": false,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 0,
+            "consistent": 0,
+            "nearer_observed_surface": 0,
+            "farther_observed_surface": 0,
+            "unsupported_motion": 89702
+          }
+        },
+        {
+          "index": 108,
+          "motion_supported": false,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 0,
+            "consistent": 0,
+            "nearer_observed_surface": 0,
+            "farther_observed_surface": 0,
+            "unsupported_motion": 89702
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 89702,
+          "normal_pairs": 80998,
+          "distance_failure_fraction": 0.041136206550578584,
+          "normal_failure_fraction": 0.18932566236203363,
+          "domain_retention": 0.20677716050805653,
+          "cells": 16
+        },
+        {
+          "population": "temporal_both",
+          "selected": 0,
+          "normal_pairs": 0,
+          "distance_failure_fraction": null,
+          "normal_failure_fraction": null,
+          "domain_retention": 0.0,
+          "cells": 0
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 89702,
+          "normal_pairs": 80998,
+          "distance_failure_fraction": 0.041136206550578584,
+          "normal_failure_fraction": 0.18932566236203363,
+          "domain_retention": 0.20677716050805653,
+          "cells": 16
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_26_0015",
+      "center": "frame-74",
+      "neighbors": [
+        {
+          "index": 73,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 67,
+            "consistent": 101074,
+            "nearer_observed_surface": 300,
+            "farther_observed_surface": 327,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 75,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 12732,
+            "missing_depth": 5388,
+            "consistent": 82243,
+            "nearer_observed_surface": 667,
+            "farther_observed_surface": 738,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 101768,
+          "normal_pairs": 85760,
+          "distance_failure_fraction": 0.11312986400440217,
+          "normal_failure_fraction": 0.07590951492537314,
+          "domain_retention": 0.23459118047071298,
+          "cells": 15
+        },
+        {
+          "population": "temporal_both",
+          "selected": 81795,
+          "normal_pairs": 66819,
+          "distance_failure_fraction": 0.12850418729751206,
+          "normal_failure_fraction": 0.07360181984166181,
+          "domain_retention": 0.1885502869920011,
+          "cells": 14
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 19973,
+          "normal_pairs": 18941,
+          "distance_failure_fraction": 0.05016772643068142,
+          "normal_failure_fraction": 0.08405047251993031,
+          "domain_retention": 0.046040893478711875,
+          "cells": 14
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_26_0015",
+      "center": "frame-148",
+      "neighbors": [
+        {
+          "index": 147,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 106,
+            "consistent": 91722,
+            "nearer_observed_surface": 200,
+            "farther_observed_surface": 106,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 149,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 6092,
+            "missing_depth": 4735,
+            "consistent": 80238,
+            "nearer_observed_surface": 289,
+            "farther_observed_surface": 780,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 92134,
+          "normal_pairs": 82149,
+          "distance_failure_fraction": 0.07180845290555062,
+          "normal_failure_fraction": 0.1505922165820643,
+          "domain_retention": 0.2123833014453332,
+          "cells": 16
+        },
+        {
+          "population": "temporal_both",
+          "selected": 79944,
+          "normal_pairs": 70711,
+          "distance_failure_fraction": 0.07377664365055539,
+          "normal_failure_fraction": 0.14994838143994568,
+          "domain_retention": 0.18428344205988798,
+          "cells": 15
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 12190,
+          "normal_pairs": 11438,
+          "distance_failure_fraction": 0.05890073831009024,
+          "normal_failure_fraction": 0.15457247770589264,
+          "domain_retention": 0.02809985938544524,
+          "cells": 15
+        }
+      ]
+    },
+    {
+      "reference_assisted": true,
+      "drive": "2011_09_26_0015",
+      "center": "frame-222",
+      "neighbors": [
+        {
+          "index": 221,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 0,
+            "missing_depth": 2612,
+            "consistent": 73277,
+            "nearer_observed_surface": 11086,
+            "farther_observed_surface": 608,
+            "unsupported_motion": 0
+          }
+        },
+        {
+          "index": 223,
+          "motion_supported": true,
+          "counts": {
+            "invalid_projection": 0,
+            "out_of_view": 13562,
+            "missing_depth": 1737,
+            "consistent": 70697,
+            "nearer_observed_surface": 783,
+            "farther_observed_surface": 804,
+            "unsupported_motion": 0
+          }
+        }
+      ],
+      "populations": [
+        {
+          "population": "baseline",
+          "selected": 87583,
+          "normal_pairs": 75135,
+          "distance_failure_fraction": 0.08232191178653392,
+          "normal_failure_fraction": 0.08539295933985493,
+          "domain_retention": 0.20189253359765796,
+          "cells": 15
+        },
+        {
+          "population": "temporal_both",
+          "selected": 59019,
+          "normal_pairs": 48256,
+          "distance_failure_fraction": 0.09998475067351192,
+          "normal_failure_fraction": 0.10046419098143236,
+          "domain_retention": 0.1360480394642816,
+          "cells": 15
+        },
+        {
+          "population": "not_temporally_verified",
+          "selected": 28564,
+          "normal_pairs": 26879,
+          "distance_failure_fraction": 0.045826914997899454,
+          "normal_failure_fraction": 0.05833550355295956,
+          "domain_retention": 0.06584449413337637,
+          "cells": 15
+        }
+      ]
+    }
+  ]
+}

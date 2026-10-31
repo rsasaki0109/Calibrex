@@ -1,0 +1,68 @@
+{
+  "$defs": {
+    "PoseCase": {
+      "properties": {
+        "case_id": {
+          "title": "Case Id",
+          "type": "string"
+        },
+        "bundle": {
+          "title": "Bundle",
+          "type": "string"
+        },
+        "d2d_sha256": {
+          "title": "D2D Sha256",
+          "type": "string"
+        },
+        "seed_sha256": {
+          "title": "Seed Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_id",
+        "bundle",
+        "d2d_sha256",
+        "seed_sha256"
+      ],
+      "title": "PoseCase",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "support_mode": {
+      "default": "hard",
+      "enum": [
+        "hard",
+        "tapered"
+      ],
+      "title": "Support Mode",
+      "type": "string"
+    },
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/PoseCase"
+      },
+      "title": "Cases",
+      "type": "array"
+    },
+    "source_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Source Sha256",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "cases",
+    "source_sha256"
+  ],
+  "title": "PosePlan",
+  "type": "object"
+}

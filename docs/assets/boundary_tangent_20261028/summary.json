@@ -1,0 +1,183 @@
+{
+  "schema_version": "calibrex.boundary_tangent_summary/v0.1",
+  "provenance": {
+    "experiment_git_commit": "de09e3e7",
+    "report_sha256": "3f7210a8ad6a7fdc458a72c6dcb70f99cdbb7d544b3661b0141918cfa9914d46",
+    "generator_sha256": "7b8d5ab22f9a257a6b6c51730bfcb66a71c848355887dc2e21181f139264bb9e",
+    "new_evaluation_started": false,
+    "new_accuracy_claim": false
+  },
+  "metrics": {
+    "original": {
+      "total": 42,
+      "detected": 19,
+      "per_drive": {
+        "2011_09_26_0005": 19,
+        "2011_09_28_0002": 0
+      },
+      "worst_detected_fold": [
+        0.35000063460592346,
+        "2011_09_26_0005",
+        "inject_z+1",
+        2,
+        3,
+        -0.35000063460592346
+      ],
+      "pitch_target": {
+        "axis": 1,
+        "control": {
+          "amount": 2.0,
+          "unit": "deg",
+          "held_out_blocks": 6,
+          "detected_blocks": 4,
+          "mean_objective_drop": 0.0057109359300548295,
+          "min_t_statistic": 0.7739712386895016,
+          "detected": false
+        },
+        "fold_active_axis_reference_errors_deg": [
+          0.1499998096384448,
+          0.1499998096384448,
+          0.15000000000000005,
+          0.14999904819217644,
+          -0.10059774994294783,
+          0.14999923855375125
+        ]
+      },
+      "profile_seconds": 177.14606596697558
+    },
+    "boundary_tangent": {
+      "total": 42,
+      "detected": 19,
+      "per_drive": {
+        "2011_09_26_0005": 19,
+        "2011_09_28_0002": 0
+      },
+      "worst_detected_fold": [
+        6.547143977022878,
+        "2011_09_26_0005",
+        "inject_x+3",
+        2,
+        4,
+        6.547143977022878
+      ],
+      "pitch_target": {
+        "axis": 1,
+        "control": {
+          "amount": 2.0,
+          "unit": "deg",
+          "held_out_blocks": 6,
+          "detected_blocks": 4,
+          "mean_objective_drop": 0.013127023883269766,
+          "min_t_statistic": 1.2980372379998473,
+          "detected": false
+        },
+        "fold_active_axis_reference_errors_deg": [
+          0.09999923855611878,
+          0.14999980963844486,
+          0.14999961927688485,
+          0.09999904819513585,
+          0.09999923855611878,
+          0.14999904819217647
+        ]
+      },
+      "profile_seconds": 870.2819063049756,
+      "support_fraction_over_all_prepared_inputs": 0.3537919459092695
+    }
+  },
+  "changed_flags": [
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_x+3",
+      "axis": 2,
+      "original": {
+        "axis": 2,
+        "control": {
+          "amount": 2.0,
+          "unit": "deg",
+          "held_out_blocks": 6,
+          "detected_blocks": 4,
+          "mean_objective_drop": 0.010888048315879048,
+          "min_t_statistic": 2.2205991443628372,
+          "detected": false
+        },
+        "fold_active_axis_reference_errors_deg": [
+          0.1525488662755933,
+          0.05259455264048864,
+          -3.14045742389691,
+          0.0026173958176514737,
+          3.9997079654767527,
+          0.05259435236626384
+        ]
+      },
+      "boundary_tangent": {
+        "axis": 2,
+        "control": {
+          "amount": 2.0,
+          "unit": "deg",
+          "held_out_blocks": 6,
+          "detected_blocks": 5,
+          "mean_objective_drop": 0.019850156535630825,
+          "min_t_statistic": 2.5411242138055328,
+          "detected": true
+        },
+        "fold_active_axis_reference_errors_deg": [
+          0.1525500280567504,
+          -0.14862503631865875,
+          -0.048668644239686795,
+          0.0026173958176514737,
+          6.547143977022878,
+          0.002617395817651126
+        ]
+      }
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_y+3",
+      "axis": 0,
+      "original": {
+        "axis": 0,
+        "control": {
+          "amount": 2.0,
+          "unit": "deg",
+          "held_out_blocks": 6,
+          "detected_blocks": 6,
+          "mean_objective_drop": 0.02294381285603991,
+          "min_t_statistic": 4.0108486114294,
+          "detected": true
+        },
+        "fold_active_axis_reference_errors_deg": [
+          -0.05521173821134384,
+          -0.05259435236626351,
+          -0.04997696651713639,
+          -0.05259435236626351,
+          -0.051285659442171505,
+          -0.10257131887895984
+        ]
+      },
+      "boundary_tangent": {
+        "axis": 0,
+        "control": {
+          "amount": 2.0,
+          "unit": "deg",
+          "held_out_blocks": 6,
+          "detected_blocks": 5,
+          "mean_objective_drop": 0.02254051876941159,
+          "min_t_statistic": 2.0574008406991946,
+          "detected": false
+        },
+        "fold_active_axis_reference_errors_deg": [
+          -0.003926078776176017,
+          -0.052594552640489,
+          -0.051285854733012975,
+          0.0026177446689888344,
+          0.0013086929254836242,
+          -0.051285659442171505
+        ]
+      }
+    }
+  ],
+  "limitations": [
+    "Two spent drives; correlated controls are not independent evaluations.",
+    "Reference disagreement of training folds is not a native calibration verdict."
+  ]
+}

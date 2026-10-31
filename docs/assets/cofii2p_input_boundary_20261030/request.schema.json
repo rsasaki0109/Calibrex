@@ -1,0 +1,64 @@
+{
+  "$defs": {
+    "FileRef": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FileRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.cofii2p_input/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "frame_id": {
+      "title": "Frame Id",
+      "type": "string"
+    },
+    "image": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "cloud": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "initializer": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "camera": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "source_crop_top_rows": {
+      "minimum": 0,
+      "title": "Source Crop Top Rows",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "frame_id",
+    "image",
+    "cloud",
+    "initializer",
+    "camera",
+    "source_crop_top_rows"
+  ],
+  "title": "Request",
+  "type": "object"
+}

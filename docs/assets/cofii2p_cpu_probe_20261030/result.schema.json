@@ -1,0 +1,189 @@
+{
+  "$defs": {
+    "FileRef": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FileRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "const": "random-weight CPU execution only; no checkpoint or accuracy/parity claim",
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "upstream_commit": {
+      "title": "Upstream Commit",
+      "type": "string"
+    },
+    "driver": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "bridge": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "patched_source_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Patched Source Sha256",
+      "type": "object"
+    },
+    "original_source_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Original Source Sha256",
+      "type": "object"
+    },
+    "seed": {
+      "title": "Seed",
+      "type": "integer"
+    },
+    "threads": {
+      "title": "Threads",
+      "type": "integer"
+    },
+    "runtime": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Runtime",
+      "type": "object"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Error"
+    },
+    "progress": {
+      "additionalProperties": true,
+      "title": "Progress",
+      "type": "object"
+    },
+    "init_seconds": {
+      "title": "Init Seconds",
+      "type": "number"
+    },
+    "forward_seconds": {
+      "title": "Forward Seconds",
+      "type": "number"
+    },
+    "peak_rss_kib": {
+      "title": "Peak Rss Kib",
+      "type": "integer"
+    },
+    "random_state_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Random State Sha256"
+    },
+    "output_shapes": {
+      "additionalProperties": {
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
+      "title": "Output Shapes",
+      "type": "object"
+    },
+    "outputs": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FileRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "repeat_arrays_exact": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Repeat Arrays Exact"
+    },
+    "checkpoint_loaded": {
+      "const": false,
+      "title": "Checkpoint Loaded",
+      "type": "boolean"
+    },
+    "real_frames": {
+      "const": 0,
+      "title": "Real Frames",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "scope",
+    "source_commit",
+    "upstream_commit",
+    "driver",
+    "bridge",
+    "patched_source_sha256",
+    "original_source_sha256",
+    "seed",
+    "threads",
+    "runtime",
+    "status",
+    "error",
+    "progress",
+    "init_seconds",
+    "forward_seconds",
+    "peak_rss_kib",
+    "random_state_sha256",
+    "output_shapes",
+    "outputs",
+    "repeat_arrays_exact",
+    "checkpoint_loaded",
+    "real_frames"
+  ],
+  "title": "ProbeResult",
+  "type": "object"
+}

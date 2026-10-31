@@ -1,0 +1,64 @@
+"""Motion compensation must map static world points into the reference LiDAR."""
+
+import numpy as np
+import pytest
+from scipy.spatial.transform import Rotation
+from tools.kitti_aligned_stereo_bundle import align_points
+
+
+def test_rotating_translating_rig_with_lidar_lever_arm():
+    times = np.array([0.0, 0.25, 0.75, 1.0])
+    rotations = Rotation.from_euler("z", (times * 20)[:, None], degrees=True)
+    positions = np.column_stack([times * 3, times * 0, times * 0])
+    extrinsic = np.eye(4)
+    extrinsic[:3, :3] = Rotation.from_euler("y", 5, degrees=True).as_matrix()
+    extrinsic[:3, 3] = [0.3, -0.2, 0.1]
+    world = np.array([[10.0, 3, 2]] * len(times))
+    imu = rotations.inv().apply(world - positions)
+    points = (imu - extrinsic[:3, 3]) @ extrinsic[:3, :3]
+    got = align_points(
+        points,
+        times,
+        0.5,
+        times[[0, -1]],
+        positions[[0, -1]],
+        rotations.as_quat()[[0, -1]],
+        extrinsic,
+    )
+    expected_imu = Rotation.from_euler("z", 10, degrees=True).inv().apply(world - [1.5, 0, 0])
+    expected = (expected_imu - extrinsic[:3, 3]) @ extrinsic[:3, :3]
+    np.testing.assert_allclose(got, expected, atol=1e-12)
+
+
+@pytest.mark.parametrize("query", [-0.01, 1.01])
+def test_extrapolation_is_rejected(query):
+    with pytest.raises(ValueError, match="coverage"):
+        align_points(
+            np.ones((1, 3)),
+            np.array([query]),
+            0.5,
+            np.array([0.0, 1.0]),
+            np.zeros((2, 3)),
+            np.array([[0.0, 0, 0, 1]] * 2),
+            np.eye(4),
+        )
+
+
+def test_sparse_scan_selection_preserves_original_timestamp():
+    from tools.kitti_aligned_stereo_bundle import select_scan
+
+    scans = [(100, b"frame-38"), (300, b"frame-76"), (900, b"frame-114")]
+    assert select_scan(scans, 900) == b"frame-114"
+    for entries, timestamp in [(scans, 200), ([*scans, (900, b"duplicate")], 900)]:
+        with pytest.raises(ValueError, match="exactly one"):
+            select_scan(entries, timestamp)
+
+
+def test_timestamp_gaps_do_not_renumber_frames(tmp_path):
+    from tools.kitti_aligned_stereo_bundle import frame_timestamp
+
+    path = tmp_path / "timestamps.txt"
+    path.write_text("2011-09-26 13:00:00.000000000\n\n2011-09-26 13:00:00.200000000\n")
+    assert frame_timestamp(path, 2) - frame_timestamp(path, 0) == 200_000_000
+    with pytest.raises(ValueError, match="missing"):
+        frame_timestamp(path, 1)

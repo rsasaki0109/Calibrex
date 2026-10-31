@@ -230,3 +230,8 @@ The inventory can be regenerated into a new output directory:
 ```bash
 python -m tools.sota_development_baseline --output NEW_BASELINE_DIRECTORY
 ```
+
+The [follow-up baseline search ablation](camera_lidar_control_seeded_baseline.md)
+completed the same fourteen-input comparison. Its additional detections include
+large reference disagreements, and the targeted pitch miss remains. The option
+is not promoted.

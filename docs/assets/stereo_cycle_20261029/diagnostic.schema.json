@@ -1,0 +1,64 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "default": "post-hoc spent-data diagnostic; reference scoring only; no fitting",
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "source_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Source Sha256",
+      "type": "object"
+    },
+    "input_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Input Sha256",
+      "type": "object"
+    },
+    "disparity_edges_px": {
+      "default": [
+        0,
+        8,
+        16,
+        32,
+        64,
+        128
+      ],
+      "items": {
+        "type": "integer"
+      },
+      "title": "Disparity Edges Px",
+      "type": "array"
+    },
+    "round_trip_threshold_px": {
+      "default": 1.0,
+      "title": "Round Trip Threshold Px",
+      "type": "number"
+    },
+    "frames": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Frames",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source_commit",
+    "source_sha256",
+    "input_sha256",
+    "frames"
+  ],
+  "title": "CycleReport",
+  "type": "object"
+}

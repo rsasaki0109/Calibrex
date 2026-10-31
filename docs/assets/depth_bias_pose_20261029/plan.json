@@ -1,0 +1,65 @@
+{
+  "scope": "camera-depth bias versus extrinsic translation: frozen one-sided pose-only fit, identifiability, separate joint bias fit; three already-used analytic layouts; synthetic development control only",
+  "frozen_estimator": "tools/joint_occlusion_pose.py as frozen at a2e22ce5",
+  "source_sha256": {
+    "tools/evaluate_depth_bias_pose.py": "083b18426fa61395c0d90682a4a66c4a252ac8174e28daaa4265ac4357e23ea7",
+    "tools/depth_bias_pose.py": "6a0005c3559a8fbe08e90f45802dda854654ab6bca778a2a69666b278eef3a9c",
+    "tools/joint_occlusion_pose.py": "c802382c25329293946b408b1b501e10acc11d6ef84ed5e7d37840289865dc17",
+    "tools/joint_metric_pose.py": "665a9d02fed4f45629b4dc987d151258bcea6ba5310738203c17e3ddce5ee64e",
+    "tools/occlusion_geometry.py": "63e69955040061b3bcecb9330ca52e5d2bd9f9a504bf7fc1242f06a4c6ea9533",
+    "tools/known_geometry_joint.py": "8b041f12e956534d9b01c89e8c4618176f5957fd974986341bec4ae15c5a998f",
+    "tools/joint_multistart_control.py": "11f4d20b3f7f68355075f0d101ae4d991405580c9d4e7e25bb8cf4bbaf865fc9",
+    "tools/run_camera_lidar_development_matrix.py": "476ca936614e98e07b0d406d040eea6267818d226a08b7419208130461242fe8",
+    "src/calibrex/solvers/borer_six_dof_solver.py": "930e6a5442488f6c2e7311b7e87f9302e44a9c02e55c3fd9c37255c7ade7b08f",
+    "src/calibrex/solvers/borer_rotation_only_solver.py": "25c97150cb002fa622ff3c244153d8d9cbda4f5309caa433a06d4b31a00350d0",
+    "src/calibrex/solvers/borer_depth_to_depth_solver.py": "bc8d223156ebd1be992b68b7559c1ac720a4fc84391a1c435dcc2ad7ba485b68",
+    "src/calibrex/core/geometry.py": "edc75ef201e05b2b3146996e10a9acd39f9c02521be753e186d4c473a7c11bbb",
+    "docs/research/depth_bias_pose_protocol.md": "83a88e39bd69eae58fd32a63517af977aee277c3fa3c35ca3671ba8fb08912b2",
+    "docs/assets/occlusion_pose_20261029/evaluation.json": "257a53b71f289cee50ee4ca9fe96e96ea12af5c33e8ded82da3b12d2f1b9207b"
+  },
+  "conditions": {
+    "scenes": [
+      "original",
+      "near_foreground",
+      "staggered"
+    ],
+    "populations": [
+      "exact_z_visible",
+      "exact_z_all"
+    ],
+    "biases_m": [
+      0.0,
+      0.25,
+      -0.25
+    ],
+    "starts": [
+      "+1",
+      "-1",
+      "truth_pose",
+      "full_truth (joint only, nonzero bias)"
+    ],
+    "profile_bias_m": [
+      -0.5,
+      -0.25,
+      0.0,
+      0.25,
+      0.5
+    ],
+    "bias_tolerance_m": 0.05,
+    "absorption_band": [
+      0.5,
+      1.5
+    ],
+    "distinguishable_fraction": 0.04,
+    "pose_gate": {
+      "converged": true,
+      "rotation_deg_below": 0.5,
+      "translation_m_below": 0.2
+    },
+    "per_fit_budget": {
+      "max_nfev": 100,
+      "actual_residual_calls": 800
+    },
+    "identifiability_residual_evaluations": 15
+  }
+}

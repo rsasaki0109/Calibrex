@@ -1,0 +1,70 @@
+{
+  "$defs": {
+    "RefinementCase": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "title": "Case Id",
+          "type": "string"
+        },
+        "bundle": {
+          "title": "Bundle",
+          "type": "string"
+        },
+        "d2d_sha256": {
+          "title": "D2D Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_id",
+        "bundle",
+        "d2d_sha256"
+      ],
+      "title": "RefinementCase",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "sampling": {
+      "default": "uniform",
+      "enum": [
+        "uniform",
+        "point_priority"
+      ],
+      "title": "Sampling",
+      "type": "string"
+    },
+    "timeout_seconds": {
+      "title": "Timeout Seconds",
+      "type": "integer"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/RefinementCase"
+      },
+      "title": "Cases",
+      "type": "array"
+    },
+    "source_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Source Sha256",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "timeout_seconds",
+    "cases",
+    "source_sha256"
+  ],
+  "title": "RefinementPlan",
+  "type": "object"
+}

@@ -1,0 +1,164 @@
+{
+  "scope": "read-only official-source readiness review; no inference or data fitting",
+  "runtime": {
+    "torch": "2.4.0+cpu",
+    "cuda_available": false,
+    "open3d_installed": false,
+    "free_disk_bytes": 1359884288
+  },
+  "candidates": [
+    {
+      "name": "CoFiI2P",
+      "repository": "https://github.com/whu-usi3dv/CoFiI2P",
+      "role": "conditional implementation priority; not runnable here",
+      "files": [
+        "README.md",
+        "evaluation/eval_all.py",
+        "data/kitti.py",
+        "model/network.py",
+        "model/kpconv/preprocess_data.py"
+      ],
+      "blockers": [
+        "CPU-only runtime; official evaluation calls CUDA",
+        "Open3D torch-neighbor dependency absent",
+        "official checkpoint not acquired or digest verified",
+        "no root license found in pinned tracked tree; terms unresolved",
+        "KITTI training overlap with intended raw frames not independently established",
+        "official loader calibration prealignment must be replaced with explicit initializer-only boundary"
+      ],
+      "commit": "ed90edf51cca540ee76152d91133c7e79b63256c",
+      "checkout": "/workspace/work/direct-provider-review-20261030/CoFiI2P",
+      "root_license_files": [],
+      "source_evidence": [
+        {
+          "path": "/workspace/work/direct-provider-review-20261030/CoFiI2P/README.md",
+          "relative_path": "README.md",
+          "sha256": "e0f48b16e9e06133c9d826aa7f15ddf4bb07666ec74a42e8a1e34e10a8ea9d95"
+        },
+        {
+          "path": "/workspace/work/direct-provider-review-20261030/CoFiI2P/evaluation/eval_all.py",
+          "relative_path": "evaluation/eval_all.py",
+          "sha256": "e3dbede27e9ade881edb11242d03db5a55359ecc682e430e023048b5b8f3d901"
+        },
+        {
+          "path": "/workspace/work/direct-provider-review-20261030/CoFiI2P/data/kitti.py",
+          "relative_path": "data/kitti.py",
+          "sha256": "4f55906ba4cfac7b50d3a6e1639d4e5f6ea89cad5adb379124a2cde226087b71"
+        },
+        {
+          "path": "/workspace/work/direct-provider-review-20261030/CoFiI2P/model/network.py",
+          "relative_path": "model/network.py",
+          "sha256": "1cf3528a8b8293bf62d86b4b7b667359e50f941ca3d4175b90476a42d3b58936"
+        },
+        {
+          "path": "/workspace/work/direct-provider-review-20261030/CoFiI2P/model/kpconv/preprocess_data.py",
+          "relative_path": "model/kpconv/preprocess_data.py",
+          "sha256": "6622057b9fff09751746af7b4c6d047110d03c2409cc35efc815b96ec90baf42"
+        }
+      ],
+      "inference_executed": false,
+      "checkpoint_sha256": null
+    },
+    {
+      "name": "CorrI2P",
+      "repository": "https://github.com/rsy6318/CorrI2P",
+      "role": "secondary dense-correspondence reference",
+      "files": [
+        "README.md",
+        "eval_all.py",
+        "options.py",
+        "kitti_pc_img_dataloader.py"
+      ],
+      "blockers": [
+        "CPU-only runtime; official evaluation calls CUDA",
+        "checkpoint expected at local training-log path; usable weight artifact not established",
+        "no root license found in pinned tracked tree; terms unresolved",
+        "training overlap not independently established"
+      ],
+      "commit": "4f4a7550543ed4fb0e77dff9b0aecad0e42ad227",
+      "checkout": "/workspace/work/direct-provider-review-20261030/CorrI2P",
+      "root_license_files": [],
+      "source_evidence": [
+        {
+          "path": "/workspace/work/direct-provider-review-20261030/CorrI2P/README.md",
+          "relative_path": "README.md",
+          "sha256": "55edc6ee8a8f15a09928825df4b8d99edeed1577b8d7dcde2fc506d64ce4076c"
+        },
+        {
+          "path": "/workspace/work/direct-provider-review-20261030/CorrI2P/eval_all.py",
+          "relative_path": "eval_all.py",
+          "sha256": "184535fe17a3871d5e9ecad9781fe601b1fbb8d4b8e083bc0a15c2e03ff115a9"
+        },
+        {
+          "path": "/workspace/work/direct-provider-review-20261030/CorrI2P/options.py",
+          "relative_path": "options.py",
+          "sha256": "16b87edba704be5a6b63eee04a3239f4f197ddd281137251b8a3050be5ef0220"
+        },
+        {
+          "path": "/workspace/work/direct-provider-review-20261030/CorrI2P/kitti_pc_img_dataloader.py",
+          "relative_path": "kitti_pc_img_dataloader.py",
+          "sha256": "a8ecd947774e357e1cc1af9a4dae1237a82def9b452e58d9804734e0f954b5a0"
+        }
+      ],
+      "inference_executed": false,
+      "checkpoint_sha256": null
+    },
+    {
+      "name": "DeepI2P",
+      "repository": "https://github.com/lijx10/DeepI2P",
+      "role": "classification-based comparator; not selected",
+      "files": [
+        "README.md",
+        "LICENSE",
+        "models/index_max_ext/setup.py",
+        "kitti/options.py",
+        "data/kitti_pc_img_pose_loader.py"
+      ],
+      "blockers": [
+        "CUDAExtension for index_max; current torch CPU-only",
+        "official README links Oxford weights; KITTI weight artifact not established",
+        "training overlap and suitable checkpoint terms not independently established",
+        "additional Ceres/frustum runtime for intended coarse-registration path"
+      ],
+      "commit": "cd21389db9ddcccfd2cea306e54342562681b20f",
+      "checkout": "/workspace/work/direct-provider-review-20261030/DeepI2P",
+      "root_license_files": [
+        "LICENSE"
+      ],
+      "source_evidence": [
+        {
+          "path": "/workspace/work/direct-provider-review-20261030/DeepI2P/README.md",
+          "relative_path": "README.md",
+          "sha256": "8f02847f365e26c5bbfb6ce5c8ae5aa8c7b447301629fcda6423148155368b9b"
+        },
+        {
+          "path": "/workspace/work/direct-provider-review-20261030/DeepI2P/LICENSE",
+          "relative_path": "LICENSE",
+          "sha256": "63c957fd82c5303c4a5f6b14b4022322d2e333932c3b645ea0cc929822fef54f"
+        },
+        {
+          "path": "/workspace/work/direct-provider-review-20261030/DeepI2P/models/index_max_ext/setup.py",
+          "relative_path": "models/index_max_ext/setup.py",
+          "sha256": "8cc9d837f7eb71a6631d3909b400f23349d733afe93c6519beabb2050dd1aeff"
+        },
+        {
+          "path": "/workspace/work/direct-provider-review-20261030/DeepI2P/kitti/options.py",
+          "relative_path": "kitti/options.py",
+          "sha256": "846b2323f8ca0d61ec14815acc01d9fb83cf1ccef977c425e5811f1035c1bf00"
+        },
+        {
+          "path": "/workspace/work/direct-provider-review-20261030/DeepI2P/data/kitti_pc_img_pose_loader.py",
+          "relative_path": "data/kitti_pc_img_pose_loader.py",
+          "sha256": "7e72ed20866484613efaf713620c80ff5f2bffdebc8345a7bfb6ab8d748cdfe9"
+        }
+      ],
+      "inference_executed": false,
+      "checkpoint_sha256": null
+    }
+  ],
+  "attempted_unresolved_urls": [
+    "https://github.com/qinzheng93/2D3D-MATR"
+  ],
+  "release_ready": false,
+  "report_source_commit": "711408cffbe857b819f6d38d8871a9c2b3778893"
+}

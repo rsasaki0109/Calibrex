@@ -1,0 +1,552 @@
+{
+  "scope": "36 adjacent image-pair audit",
+  "source_sha256": {
+    "tools/audit_short_temporal_support.py": "73975f28853ad229b9ca0054d688d662a0ceeed261c18981b7e47f9ef00cd45f",
+    "tools/audit_temporal_surface_inputs.py": "48a8286b82f8f8b1367fa67988198b982a593398add96f8d2486414a5f3de89b",
+    "tools/known_geometry_joint.py": "8b041f12e956534d9b01c89e8c4618176f5957fd974986341bec4ae15c5a998f",
+    "src/calibrex/data/kitti.py": "d36065eec311fe7bdeb57696abd21405fae8e8cca5f84352b5394b7ae79e71eb",
+    "docs/research/temporal_neighbors_protocol.md": "48e0ae48bcd70eb67f8d67dd2e2014dd7212fcca153a56ae49c0c3b5aa59ed5c",
+    "docs/assets/temporal_neighbors_20261030/acquisition.json": "9ac9a600d547e7130d10731481c0392309fd9fff0f80b83f01e415318ef818b2",
+    "tools/kitti_aligned_stereo_bundle.py": "e8005852be198adfaeffe48a658aead68c2568ac33d74a79e820112feacdecad",
+    "docs/research/temporal_neighbors_photometric_note.md": "d3b1850c643914df2b5daf958f7d14e9334f1f3db594b1fed490175f6521a330"
+  },
+  "input_sha256": {
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000037.png": "1cbf85cdc980fb45da7c15b02eeb765a5027370aaf02a56036a249137cafee5a",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000039.png": "d71419c08c581f6ac7c09d038e9ce94bc4ceb2e2ea5d013514997357c62efadb",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000075.png": "18473f43df4c638aeeed513909d40d255cf820664ba7f6e915afa8ad1a47c785",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000077.png": "9806d9e344b227f33861b4dd2a80419ffec954f15e82782aceab2275bfdec681",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000113.png": "a43ed8362bd552cc282fb42e67e857bcdde5329938d756d61032213bc54e8d54",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000115.png": "e5aeb0c1dacadb92e1e65e393fa5dd5fa09c6abfba857097b4ecf0f51ae1e6eb",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_03/data/0000000037.png": "90fc325132b20f5ed0045ce3c3d87f6e64eeaebb34bf33c8c0230a3de66b2c53",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_03/data/0000000039.png": "4b3033ea31cde0714a7c100062f9a28e7b1b4f819a7267a51e353e11a8a38355",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_03/data/0000000075.png": "815fcd546f69d2719ff262392d18e1cb45b0d492b4f5fb701520f446cc454832",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_03/data/0000000077.png": "0cb27ad66c7913748d42abbc3f7c9cfed6ff7f0511128efbaa2a1bb1110c2865",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_03/data/0000000113.png": "fa9954ff577c8b9ac83ba185cd9de7c3f429b0cd1a8a46e90929c37eadee6e5a",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_03/data/0000000115.png": "f1bb9352ac02a416fb6940f9eb89261a34b3c88e49865f2fffba62c36cdfc165",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000110.png": "d41b3761872063c3eef968e492ffee1476bc5ab7fc3dfb294e43e14b6e5aad28",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000112.png": "4b724dc856884b6d61c5f95587c655fed556bca541aa53962e0724341a0f5fd2",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000222.png": "f60b86d54fbe9a43110d938bb45f750300a0fda90c666fca19dd977fcbc3499f",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000224.png": "dbe01f060ac345c8f21b3eba6040767275c5f280ce5000848cbc310648fc1c7b",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000333.png": "439518f4c84f15508915bb93c098010164c272d6e5c3f1c5c5eea94b4c16a71c",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000335.png": "cdfd9fa68ddb6f78d2a9fb2073bc0fe56c62ec55e68fbe1c6c5bc76423f9b2bc",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_03/data/0000000110.png": "5ed5e5155686a8823a6da1b09f335d11c5683e8521955259f0528c46acc3529b",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_03/data/0000000112.png": "96f7ddf19a48f263e8bffce6fad55f64fb09f10cdbc1ae8ac3031a471570dab5",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_03/data/0000000222.png": "bcfa2ea5bd305163b4dba1c001b77d7e726e6d1d1ec6eb4f8d850870472f3b8b",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_03/data/0000000224.png": "ac919c0e530bf92a51313cd276587c850ffc8c996abb6cdc7bf6262af306db9b",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_03/data/0000000333.png": "de96bc576451fb1f9b1f43c96c205676b20047de53d16d529e24eb6eb6fabc8b",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_03/data/0000000335.png": "b4c0875a5759e03a1ee519365bce47e5f3750efd807ac508c5b47dd1a70134cf",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000057.png": "171279695a7e2d7f49e5bfd0cbe3b1e83bcd91b5a9360fec133a9e228090708e",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000059.png": "ef97dfea2a8e77f33c5ee09673655c6db3e0cf0cc5d0a376d3634d939c4af641",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000115.png": "59685dc15de29ca13d26f3b3b78f48209c9680d6fb2902f992486d0162b439ba",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000117.png": "55f8f22b2fac1f82613399a26014176d7e3544a68a4748a35ca444cad174c67b",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000173.png": "561669037e22a13dbac661258ba3f203a9f5af9167945633e9c4416f07e0edf7",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000175.png": "16f56d256912b819989f626842d762cd51d523c795b1a1b5602eea2d96659af1",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_03/data/0000000057.png": "f1e839ebf9405c5249f948419c6f20076ecbc2b1288986b3bcff4407bf5f5a5f",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_03/data/0000000059.png": "609d4fec131a9a88c064840a4b79347ff8360ccec6fa710e5baa00db09a43bc6",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_03/data/0000000115.png": "c12f034c42b3990d029e0c09bffc03bd513638617a44099b60edbdea085325ff",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_03/data/0000000117.png": "2ad28256c9487eb0838d99309b18149f24869f9ed449748c75e50380e5664bf5",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_03/data/0000000173.png": "a876d4b7a09f782e3478656fee3eaf57f34350480d44f9fe5a31bcf28f2ca536",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_03/data/0000000175.png": "7a178bb8d05c28c2e9f9775e7f2aee98fb51310b8df5fd67f4d9776c910df0b1",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000034.png": "50febe5f17245e78737e98c3e9704b00cf2f6a0107859c442be07ca8a1966ddb",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000036.png": "fc9551db2fa8822ad7b39a4c644bd2dabc79d8e357c180329e0a845ca364fc3f",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000070.png": "b8920596ef32362d73317c922899a241242477f2ad299bbc4d528e2211c753a9",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000072.png": "c66de6c71b162c9680322437b709935dc77e3a2a48f6065476cc8c6b16c1b240",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000106.png": "7b428c440691da93549d3d4d36b877e84a3e487ddaface7f46930a054734fe1b",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000108.png": "089813c2090bb78ad690f445c2b0ecf8397ddcf3c5e54f291423ff977cff96da",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_03/data/0000000034.png": "40ea1ee76121d9411c445eeae8872b4050aa290b61f78351d6d77bf5a56efc08",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_03/data/0000000036.png": "f159e42efdb19f59d65d609d6f8ffdc54523f11e90ac71af7e206443b44ec763",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_03/data/0000000070.png": "667f236fee0a004f18b54a75439f41bfe1da6dab092d48c9ac0af42c03a897af",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_03/data/0000000072.png": "bcbe362710189d99d71551498b43ad11b39f80f2e9b55e28e6e874b69728f337",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_03/data/0000000106.png": "8a07a1b14508e191707fb5ff1ebd67a2dc920cfbb01aa59804f479ec94db6384",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_03/data/0000000108.png": "b0d76a35a56ccf1f94754a08c532830b037ddb44a80952194b91d55ae1064e7f",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000073.png": "ee49f1b2eca482b364349038352a9b645a9c95b8205b5d4dbf304c71a5bfdc9a",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000075.png": "c7de29ae8c55e974b4e01e6481da0fa201de6b301d758f621da1c72fa38444ae",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000147.png": "b43508b5531b58b800a6a628646681091cfbbcf5ead5e969bc61edc945bdb14d",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000149.png": "3eedcd74afe5c1a648ca11c6e9e64607222a17fb66d4b27954cec3e686cc5aab",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000221.png": "0bb32a50145f34644ee14d2e1e6d49ec2b63dcf91d2005f9a73cc8ae6201cbcd",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000223.png": "39501ba430ca10dbda957454edd258350514769da413e03ced21112588bd0026",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_03/data/0000000073.png": "f5f027012fbf98a4b5a83d8b9d17147bf43a09b780d3b1f35260e1a8a5162e3f",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_03/data/0000000075.png": "d01daa7def461bfcfd99a3c11da9611ba2af18b1ef0fd9dbca4e7d64a9637e68",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_03/data/0000000147.png": "e61d8390e1f27d54118ebcef7bcdfcc8b6c8264fbfbb739889e2beedec444be5",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_03/data/0000000149.png": "e20207f73659fb7fa656b84d850b271be366718ce7cbdb8edeb9354f5dc1b6a8",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_03/data/0000000221.png": "08e216260bbd114d5f996a729e8566d4eae453767acb9dfa295ebb8e84cf8e4f",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_03/data/0000000223.png": "45d90892f4004257f530902dd2fb325e24850ba7d233893e33d2da1147c1667e",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000092.png": "2c791d21745521661dad39d838e2ae68ddd5a7569d08ec333b5b15ac1e2846c1",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000094.png": "bf2b157c5a0b90149d5e72691832c5f214c2ec60e5e571f7d9ce54120aec7324",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000186.png": "8f439b699849eb291bf6560c0b6b9581ec2cca2db9f5d8000e8d7e326a75b7fe",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000188.png": "e7fc9ed7fca4a340bfa4e37159bb28abf1424b8874335ec614ed365f2152213f",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000280.png": "ebc4dba4991e2118fcb0896c9f128df0018e9957a86588e16c9115bbf4834e99",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000282.png": "7886a44a4a10d378d29ac5eb90c30fa5f1a8f6e00bd82860d027b549ef458e23",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_03/data/0000000092.png": "382218553ef1e76fd33647aed34f3ed2508f05dc5bb0f198983b2fbf50d9a3ce",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_03/data/0000000094.png": "7d924de06259c952ecfb977ea80ea9b7f32b0bb31aadbaf0dcbcf683af586b53",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_03/data/0000000186.png": "07a8863a9bd98cba1c726f6bb16393409c522a5662779d67028341a4026c8e57",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_03/data/0000000188.png": "8954605fccafa76d293477980a96065dd537d3ab69195682bb15f3a1dc2cc34d",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_03/data/0000000280.png": "2f4379aaaf9e732e41a28c66b88482ca341f1d4968d9fc02f26af57d9b5d1f9a",
+    "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_03/data/0000000282.png": "3157d22f590d387d7b917790684f9440b75a8daaa841bed82acea601aa02e54d",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/timestamps.txt": "8eaabc126357728a515716198399297454a77cca2f038cd2b20b1b05b85da8cf",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000038.png": "93c9f753a71fb23c8a0ad6368b930f967da23546d8f9b5a7bdb3322cce92e2ae",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-38.png": "02db09894a04bbbb59551d82efaf4e5ba82f818331a36c1b9c26f7633814dba3",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000076.png": "50b584d4d516df740c260d6d7b612e47127cd415c521dc0db950c73595556f11",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-76.png": "018970244dfd962718d571f554dc8eaf6471d9f7f0f7dc34b2976293920a7432",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000114.png": "eb5143adb7f3b38619c67eff96a22efce9dc88bc93e475e46b6b4851716ac627",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-114.png": "a0fc6c934a341e0b627507e2ff775d542d2b4571544441236c7d7931b652d1fa",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/image_02/timestamps.txt": "b1f15319a46e75837a886a93969a37cf87f4bc1ba735616332f142343567b1fd",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000111.png": "55051f9685bf1ecf23e93868e244f7df14bff583471b35df52b73bc9f0f8bac8",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-111.png": "979b6fed2e2c7ebbcfaa45e1e6c67067ae0e953142c8e681011498b78a9e631c",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000223.png": "eb829ae74dbc375d8aff0735f41d1d03ea52acbf4a9393e2805b69ac9ef34816",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-223.png": "b035e6ce4c200c141edebe0f29bea8d642c3af4e01ad789b3ff44e33a2d3ae53",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000334.png": "f1c17c4055419cca8d6cb9da5ff104a0e41491fcfcf389fdd10b16fe939c37fa",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-334.png": "a419e74cf92b056820f8b74bfc6bdb2cd2323a908e1d0f9249b0dff88471400b",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/image_02/timestamps.txt": "8e78c976b0599693654c8ca173463970b8d818257d97d0b8e1e3e10b0f8f3420",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000058.png": "d39c188e2c69f53d4ff2c7958b21e561e7ab3a464c6e6a7bbb207f66ff0c4c6d",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-58.png": "d821dd5432a969d51f27f8627737e94b161a049f85cb7b010c759e17b139ba77",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000116.png": "9f97cda7f84695b48edfcf4413c04382138a860ed127d9c398f5612d7c4556cd",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-116.png": "1de4660e2a49b06bf541d23cb8fd7ff351ec7b7c3d97c57ec3bc8689d16a23db",
+    "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000174.png": "3ebe0e9ea2cfe924914ec199189979b0e82420de4097d026f6c189cfc9d96737",
+    "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-174.png": "e74136b28b08d5278c862fe9a32db2c055309f9aafd5b2ffc2864fd30a78b244",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/image_02/timestamps.txt": "3cf3055b0843202e61c684161bfd57b555c0f0db8b360aa8be573d10083973f5",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000035.png": "be4c629712533d51df93559a19245a739febf109a5cdaf3c80e225abc371e902",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-35.png": "c6488c4c2984e798d7e1af439a64b5d45836fab187c3e8ade2ebbe78ddecddd0",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000071.png": "6adc4d77805161beba0c0b5c89af43fc8c5411d09466540b2a44dacc5ad77023",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-71.png": "c12eba4ada283a7a6f1f2dcd3ef6e71520207b5cea97450607388bb834668463",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000107.png": "094c2ff2cd251e74eb633b15fb7d65bcbcbaad481dba70af75b5097bf5e7f93c",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-107.png": "434796b71fa8a1cb8ab329dceb9e4ed729ac1c48cc8974f50230cc79cef38af5",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/image_02/timestamps.txt": "6c6bd8f7ee97e494e8287e8b8296bb691728bf9b315e009e43cef0bb1b064bbe",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000074.png": "76a5e20f47b84deafd83948d6e871a57cb9d3cb8ca5cdcb611c57ae56677f2d1",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-74.png": "c7ab7641547ed5485051f325931cdf1b01f48b2e5fc462d9cb6ddbbf15aa691d",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000148.png": "56f4e5f295b8ff1cc35032ac5ee4ba1ba0ebae23d5c1abd3f6e4fa984f6ded87",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-148.png": "2be3911181bb2085bfa211544c78cea3b11e6e961e57b7a658e436af007c38ed",
+    "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000222.png": "6ec29938d6282751f933a9bd17530df540140e564013258e1a92598163239924",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-222.png": "a9ba4f49e81530bc400b473a6920bc9a5f5c8d40fa33edef93a6676ee6d63985",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/image_02/timestamps.txt": "62d30c4f96380e119b2d89a4b4f91fdb403f77df7dd40138fab66b5950b7ebb2",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000093.png": "88dbb9203664eafd9b526da814ba0442afd4de8fdb443c3a65753d460d0527ac",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-93.png": "f12b389051e7eeafef4ee8ac4a13cbe1b2cfb5ffb296bb4e30b833b084cac888",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000187.png": "207e6e6060e61b4173c82d8fd572a5c9292742841842f56d19e923445fe9cda6",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-187.png": "8b7f6508ec321b009ef0fa7158d179cbf0dec0eb3e7d6a8cdbd4944a1ca13be9",
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000281.png": "2beb70489fdd94f29fe7c45cec5ec7fc3b56e62f0d2f8871c17f243065619f59",
+    "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-281.png": "95738028083a232b8f50fa388fdb0b6de8de12c5ba3dbe4648b2e5568127ba42"
+  },
+  "drives": [
+    {
+      "drive": "2011_09_26_0005",
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "frames": [
+        {
+          "frame": "frame-38",
+          "index": 38,
+          "image": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-38.png",
+          "oxts": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000038.txt",
+          "center_raw": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000038.png",
+          "neighbors": [
+            {
+              "index": 37,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000037.png"
+            },
+            {
+              "index": 39,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000039.png"
+            }
+          ]
+        },
+        {
+          "frame": "frame-76",
+          "index": 76,
+          "image": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-76.png",
+          "oxts": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000076.txt",
+          "center_raw": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000076.png",
+          "neighbors": [
+            {
+              "index": 75,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000075.png"
+            },
+            {
+              "index": 77,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000077.png"
+            }
+          ]
+        },
+        {
+          "frame": "frame-114",
+          "index": 114,
+          "image": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_26_0005-positive/frame-114.png",
+          "oxts": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/data/0000000114.txt",
+          "center_raw": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000114.png",
+          "neighbors": [
+            {
+              "index": 113,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000113.png"
+            },
+            {
+              "index": 115,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000115.png"
+            }
+          ]
+        }
+      ],
+      "camera_timestamps": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/timestamps.txt",
+      "imu_timestamps": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/oxts/timestamps.txt",
+      "available_calibration": [
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_cam_to_cam.txt",
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_imu_to_velo.txt",
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_velo_to_cam.txt"
+      ],
+      "direct_motion_artifacts": []
+    },
+    {
+      "drive": "2011_09_26_0009",
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "frames": [
+        {
+          "frame": "frame-111",
+          "index": 111,
+          "image": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-111.png",
+          "oxts": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000111.txt",
+          "center_raw": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000111.png",
+          "neighbors": [
+            {
+              "index": 110,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000110.png"
+            },
+            {
+              "index": 112,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000112.png"
+            }
+          ]
+        },
+        {
+          "frame": "frame-223",
+          "index": 223,
+          "image": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-223.png",
+          "oxts": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000223.txt",
+          "center_raw": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000223.png",
+          "neighbors": [
+            {
+              "index": 222,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000222.png"
+            },
+            {
+              "index": 224,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000224.png"
+            }
+          ]
+        },
+        {
+          "frame": "frame-334",
+          "index": 334,
+          "image": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0009-positive/frame-334.png",
+          "oxts": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/data/0000000334.txt",
+          "center_raw": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000334.png",
+          "neighbors": [
+            {
+              "index": 333,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000333.png"
+            },
+            {
+              "index": 335,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0009_sync/image_02/data/0000000335.png"
+            }
+          ]
+        }
+      ],
+      "camera_timestamps": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/image_02/timestamps.txt",
+      "imu_timestamps": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0009_sync/oxts/timestamps.txt",
+      "available_calibration": [
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_cam_to_cam.txt",
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_imu_to_velo.txt",
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_velo_to_cam.txt"
+      ],
+      "direct_motion_artifacts": []
+    },
+    {
+      "drive": "2011_09_26_0011",
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "frames": [
+        {
+          "frame": "frame-58",
+          "index": 58,
+          "image": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-58.png",
+          "oxts": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000058.txt",
+          "center_raw": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000058.png",
+          "neighbors": [
+            {
+              "index": 57,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000057.png"
+            },
+            {
+              "index": 59,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000059.png"
+            }
+          ]
+        },
+        {
+          "frame": "frame-116",
+          "index": 116,
+          "image": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-116.png",
+          "oxts": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000116.txt",
+          "center_raw": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000116.png",
+          "neighbors": [
+            {
+              "index": 115,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000115.png"
+            },
+            {
+              "index": 117,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000117.png"
+            }
+          ]
+        },
+        {
+          "frame": "frame-174",
+          "index": 174,
+          "image": "/workspace/work/external-comparison-20261028/preprocessed/expanded-joint-20261029/2011_09_26_0011-positive/frame-174.png",
+          "oxts": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/data/0000000174.txt",
+          "center_raw": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000174.png",
+          "neighbors": [
+            {
+              "index": 173,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000173.png"
+            },
+            {
+              "index": 175,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0011_sync/image_02/data/0000000175.png"
+            }
+          ]
+        }
+      ],
+      "camera_timestamps": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/image_02/timestamps.txt",
+      "imu_timestamps": "/workspace/work/expanded-joint-20261029/prepared-v2/raw/2011_09_26/2011_09_26_drive_0011_sync/oxts/timestamps.txt",
+      "available_calibration": [
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_cam_to_cam.txt",
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_imu_to_velo.txt",
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_velo_to_cam.txt"
+      ],
+      "direct_motion_artifacts": []
+    },
+    {
+      "drive": "2011_09_26_0013",
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "frames": [
+        {
+          "frame": "frame-35",
+          "index": 35,
+          "image": "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-35.png",
+          "oxts": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000035.txt",
+          "center_raw": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000035.png",
+          "neighbors": [
+            {
+              "index": 34,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000034.png"
+            },
+            {
+              "index": 36,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000036.png"
+            }
+          ]
+        },
+        {
+          "frame": "frame-71",
+          "index": 71,
+          "image": "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-71.png",
+          "oxts": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000071.txt",
+          "center_raw": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000071.png",
+          "neighbors": [
+            {
+              "index": 70,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000070.png"
+            },
+            {
+              "index": 72,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000072.png"
+            }
+          ]
+        },
+        {
+          "frame": "frame-107",
+          "index": 107,
+          "image": "/workspace/work/broader-models-results-20261029/2011_09_26_0013-positive/frame-107.png",
+          "oxts": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/data/0000000107.txt",
+          "center_raw": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000107.png",
+          "neighbors": [
+            {
+              "index": 106,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000106.png"
+            },
+            {
+              "index": 108,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0013_sync/image_02/data/0000000108.png"
+            }
+          ]
+        }
+      ],
+      "camera_timestamps": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/image_02/timestamps.txt",
+      "imu_timestamps": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0013_sync/oxts/timestamps.txt",
+      "available_calibration": [
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_cam_to_cam.txt",
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_imu_to_velo.txt",
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_velo_to_cam.txt"
+      ],
+      "direct_motion_artifacts": []
+    },
+    {
+      "drive": "2011_09_26_0015",
+      "intrinsics": [
+        721.5377,
+        721.5377,
+        609.5593,
+        172.854
+      ],
+      "frames": [
+        {
+          "frame": "frame-74",
+          "index": 74,
+          "image": "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-74.png",
+          "oxts": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000074.txt",
+          "center_raw": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000074.png",
+          "neighbors": [
+            {
+              "index": 73,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000073.png"
+            },
+            {
+              "index": 75,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000075.png"
+            }
+          ]
+        },
+        {
+          "frame": "frame-148",
+          "index": 148,
+          "image": "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-148.png",
+          "oxts": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000148.txt",
+          "center_raw": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000148.png",
+          "neighbors": [
+            {
+              "index": 147,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000147.png"
+            },
+            {
+              "index": 149,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000149.png"
+            }
+          ]
+        },
+        {
+          "frame": "frame-222",
+          "index": 222,
+          "image": "/workspace/work/broader-models-results-20261029/2011_09_26_0015-positive/frame-222.png",
+          "oxts": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/data/0000000222.txt",
+          "center_raw": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000222.png",
+          "neighbors": [
+            {
+              "index": 221,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000221.png"
+            },
+            {
+              "index": 223,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_26/2011_09_26_drive_0015_sync/image_02/data/0000000223.png"
+            }
+          ]
+        }
+      ],
+      "camera_timestamps": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/image_02/timestamps.txt",
+      "imu_timestamps": "/workspace/work/broader-models-inputs-20261029/raw/2011_09_26/2011_09_26_drive_0015_sync/oxts/timestamps.txt",
+      "available_calibration": [
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_cam_to_cam.txt",
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_imu_to_velo.txt",
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_velo_to_cam.txt"
+      ],
+      "direct_motion_artifacts": []
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "intrinsics": [
+        707.0493,
+        707.0493,
+        604.0814,
+        180.5066
+      ],
+      "frames": [
+        {
+          "frame": "frame-93",
+          "index": 93,
+          "image": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-93.png",
+          "oxts": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000093.txt",
+          "center_raw": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000093.png",
+          "neighbors": [
+            {
+              "index": 92,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000092.png"
+            },
+            {
+              "index": 94,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000094.png"
+            }
+          ]
+        },
+        {
+          "frame": "frame-187",
+          "index": 187,
+          "image": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-187.png",
+          "oxts": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000187.txt",
+          "center_raw": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000187.png",
+          "neighbors": [
+            {
+              "index": 186,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000186.png"
+            },
+            {
+              "index": 188,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000188.png"
+            }
+          ]
+        },
+        {
+          "frame": "frame-281",
+          "index": 281,
+          "image": "/workspace/work/external-comparison-20261028/preprocessed/joint-20261028/2011_09_28_0002-positive/frame-281.png",
+          "oxts": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/data/0000000281.txt",
+          "center_raw": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000281.png",
+          "neighbors": [
+            {
+              "index": 280,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000280.png"
+            },
+            {
+              "index": 282,
+              "path": "/workspace/work/temporal-neighbors-20261030/2011_09_28/2011_09_28_drive_0002_sync/image_02/data/0000000282.png"
+            }
+          ]
+        }
+      ],
+      "camera_timestamps": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/image_02/timestamps.txt",
+      "imu_timestamps": "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_28/2011_09_28_drive_0002_sync/oxts/timestamps.txt",
+      "available_calibration": [
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_28/calib_cam_to_cam.txt",
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_28/calib_imu_to_velo.txt",
+        "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_28/calib_velo_to_cam.txt"
+      ],
+      "direct_motion_artifacts": []
+    }
+  ],
+  "equalized_workspace": "/workspace/work/temporal-neighbors-equalized-20261030"
+}

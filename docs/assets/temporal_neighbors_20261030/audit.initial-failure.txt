@@ -1,0 +1,27 @@
+Traceback (most recent call last):
+  File "/workspace/Calibrex/tools/audit_short_temporal_support.py", line 74, in <module>
+    run(a.plan, a.output)
+  File "/workspace/Calibrex/tools/audit_short_temporal_support.py", line 38, in run
+    np.testing.assert_array_equal(raw, old)
+  File "/workspace/work/p0-venv/lib/python3.12/site-packages/numpy/testing/_private/utils.py", line 1128, in assert_array_equal
+    assert_array_compare(operator.__eq__, actual, desired, err_msg=err_msg,
+  File "/workspace/work/p0-venv/lib/python3.12/site-packages/numpy/testing/_private/utils.py", line 988, in assert_array_compare
+    raise AssertionError(msg)
+AssertionError: 
+Arrays are not equal
+
+Mismatched elements: 431585 / 465750 (92.7%)
+First 5 mismatches are at indices:
+ [0, 0]: 63 (ACTUAL), 114 (DESIRED)
+ [0, 1]: 51 (ACTUAL), 91 (DESIRED)
+ [0, 2]: 40 (ACTUAL), 62 (DESIRED)
+ [0, 3]: 37 (ACTUAL), 53 (DESIRED)
+ [0, 4]: 43 (ACTUAL), 71 (DESIRED)
+Max absolute difference among violations: 72
+Max relative difference among violations: 12.
+ ACTUAL: array([[63, 51, 40, ..., 70, 76, 81],
+       [62, 53, 38, ..., 86, 86, 89],
+       [59, 56, 41, ..., 93, 91, 92],...
+ DESIRED: array([[114,  91,  62, ..., 125, 135, 145],
+       [113,  96,  56, ..., 153, 153, 157],
+       [108, 102,  65, ..., 162, 160, 161],...

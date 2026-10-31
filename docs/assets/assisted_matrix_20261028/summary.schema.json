@@ -1,0 +1,148 @@
+{
+  "$defs": {
+    "MethodSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "scheduled": {
+          "title": "Scheduled",
+          "type": "integer"
+        },
+        "recovered": {
+          "title": "Recovered",
+          "type": "integer"
+        },
+        "failures": {
+          "title": "Failures",
+          "type": "integer"
+        },
+        "valid_outputs": {
+          "title": "Valid Outputs",
+          "type": "integer"
+        },
+        "completed": {
+          "title": "Completed",
+          "type": "integer"
+        },
+        "median_rotation_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Median Rotation Deg"
+        },
+        "p95_rotation_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "P95 Rotation Deg"
+        },
+        "median_translation_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Median Translation M"
+        },
+        "p95_translation_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "P95 Translation M"
+        },
+        "rotation_improved": {
+          "title": "Rotation Improved",
+          "type": "integer"
+        },
+        "translation_improved": {
+          "title": "Translation Improved",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "scheduled",
+        "recovered",
+        "failures",
+        "valid_outputs",
+        "completed",
+        "median_rotation_deg",
+        "p95_rotation_deg",
+        "median_translation_m",
+        "p95_translation_m",
+        "rotation_improved",
+        "translation_improved"
+      ],
+      "title": "MethodSummary",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "total": {
+      "additionalProperties": {
+        "$ref": "#/$defs/MethodSummary"
+      },
+      "title": "Total",
+      "type": "object"
+    },
+    "per_drive": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "$ref": "#/$defs/MethodSummary"
+        },
+        "type": "object"
+      },
+      "title": "Per Drive",
+      "type": "object"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "artifact_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Artifact Sha256",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "plan_sha256",
+    "total",
+    "per_drive",
+    "warnings",
+    "artifact_sha256"
+  ],
+  "title": "Summary",
+  "type": "object"
+}

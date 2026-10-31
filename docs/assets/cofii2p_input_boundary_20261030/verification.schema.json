@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scope",
+    "frozen_commit",
+    "plan_sha256",
+    "checks_passed",
+    "unit_tests_passed",
+    "model_invocations",
+    "real_frames",
+    "artifact_sha256",
+    "limitations"
+  ],
+  "properties": {
+    "scope": {
+      "type": "string"
+    },
+    "frozen_commit": {
+      "type": "string"
+    },
+    "plan_sha256": {
+      "type": "string"
+    },
+    "checks_passed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unit_tests_passed": {
+      "type": "integer"
+    },
+    "model_invocations": {
+      "type": "integer"
+    },
+    "real_frames": {
+      "type": "integer"
+    },
+    "artifact_sha256": {
+      "type": "string"
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

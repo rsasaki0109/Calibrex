@@ -1,0 +1,34 @@
+original exact_z_visible 0.0 0 0.0 1 pattern False
+original exact_z_visible 0.0 0 0.0 -1 pattern False
+original exact_z_visible 0.0 0 0.0 0 pattern True
+original exact_z_visible 0.0 0 0.25 1 pattern False
+original exact_z_visible 0.0 0 0.25 -1 pattern False
+original exact_z_visible 0.0 0 0.25 0 pattern True
+original exact_z_visible 0.0 0 -0.25 1 pattern False
+original exact_z_visible 0.0 0 -0.25 -1 pattern False
+original exact_z_visible 0.0 0 -0.25 0 pattern True
+Traceback (most recent call last):
+  File "/workspace/Calibrex/tools/evaluate_disparity_pattern.py", line 117, in <module>
+    run(args.plan, args.output)
+  File "/workspace/Calibrex/tools/evaluate_disparity_pattern.py", line 66, in run
+    result = solve(batch, initial)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Calibrex/tools/joint_disparity_pattern.py", line 65, in solve
+    fit = search(objective)
+          ^^^^^^^^^^^^^^^^^
+  File "/workspace/Calibrex/tools/joint_disparity_pattern.py", line 40, in search
+    value = objective(candidate)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Calibrex/tools/joint_disparity_pattern.py", line 62, in objective
+    return soft_cost(residuals(batch, pose, float(delta[6]))[1])
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Calibrex/tools/joint_disparity_bias.py", line 34, in residuals
+    sampled_residual, supported = depth_residual(replace(o, depth_map=disparity), pose)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Calibrex/tools/joint_metric_pose.py", line 36, in depth_residual
+    samples = np.stack([depth[y, x], depth[y, x + 1], depth[y + 1, x], depth[y + 1, x + 1]], axis=1)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/p0-venv/lib/python3.12/site-packages/numpy/_core/shape_base.py", line 368, in _stack_dispatcher
+    def _stack_dispatcher(arrays, axis=None, out=None, *,
+    
+KeyboardInterrupt

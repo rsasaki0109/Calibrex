@@ -1,0 +1,102 @@
+{
+  "$defs": {
+    "FileRef": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FileRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "frame_id": {
+      "title": "Frame Id",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "driver_sha256": {
+      "title": "Driver Sha256",
+      "type": "string"
+    },
+    "input_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Input Sha256",
+      "type": "object"
+    },
+    "artifact": {
+      "$ref": "#/$defs/FileRef"
+    },
+    "array_shapes": {
+      "additionalProperties": {
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
+      "title": "Array Shapes",
+      "type": "object"
+    },
+    "source_to_input_pixel": {
+      "items": {
+        "items": {
+          "type": "number"
+        },
+        "type": "array"
+      },
+      "title": "Source To Input Pixel",
+      "type": "array"
+    },
+    "initial_camera_lidar": {
+      "items": {
+        "items": {
+          "type": "number"
+        },
+        "type": "array"
+      },
+      "title": "Initial Camera Lidar",
+      "type": "array"
+    },
+    "preprocessing": {
+      "additionalProperties": true,
+      "title": "Preprocessing",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "frame_id",
+    "source_commit",
+    "driver_sha256",
+    "input_sha256",
+    "artifact",
+    "array_shapes",
+    "source_to_input_pixel",
+    "initial_camera_lidar",
+    "preprocessing"
+  ],
+  "title": "Prepared",
+  "type": "object"
+}

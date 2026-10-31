@@ -1,0 +1,221 @@
+{
+  "$defs": {
+    "CaseChecks": {
+      "properties": {
+        "case_id": {
+          "title": "Case Id",
+          "type": "string"
+        },
+        "frames": {
+          "items": {
+            "$ref": "#/$defs/SurfaceCheck"
+          },
+          "title": "Frames",
+          "type": "array"
+        }
+      },
+      "required": [
+        "case_id",
+        "frames"
+      ],
+      "title": "CaseChecks",
+      "type": "object"
+    },
+    "Control": {
+      "properties": {
+        "case_id": {
+          "title": "Case Id",
+          "type": "string"
+        },
+        "mode": {
+          "title": "Mode",
+          "type": "string"
+        },
+        "initial_T_camera_lidar": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Initial T Camera Lidar",
+          "type": "array"
+        },
+        "reference_T_camera_lidar": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Reference T Camera Lidar",
+          "type": "array"
+        },
+        "candidate_translation_difference_m": {
+          "title": "Candidate Translation Difference M",
+          "type": "number"
+        },
+        "candidate_displacement_m": {
+          "title": "Candidate Displacement M",
+          "type": "number"
+        },
+        "input_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Input Sha256",
+          "type": "object"
+        },
+        "result": {
+          "$ref": "#/$defs/StereoTranslationResult"
+        }
+      },
+      "required": [
+        "case_id",
+        "mode",
+        "initial_T_camera_lidar",
+        "reference_T_camera_lidar",
+        "candidate_translation_difference_m",
+        "candidate_displacement_m",
+        "input_sha256",
+        "result"
+      ],
+      "title": "Control",
+      "type": "object"
+    },
+    "StereoTranslationResult": {
+      "properties": {
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "accepted": {
+          "title": "Accepted",
+          "type": "boolean"
+        },
+        "output_T_camera_lidar": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Output T Camera Lidar",
+          "type": "array"
+        },
+        "candidate_T_camera_lidar": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Candidate T Camera Lidar",
+          "type": "array"
+        },
+        "trace": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Trace",
+          "type": "array"
+        },
+        "options": {
+          "additionalProperties": true,
+          "title": "Options",
+          "type": "object"
+        }
+      },
+      "required": [
+        "status",
+        "accepted",
+        "output_T_camera_lidar",
+        "candidate_T_camera_lidar",
+        "trace",
+        "options"
+      ],
+      "title": "StereoTranslationResult",
+      "type": "object"
+    },
+    "SurfaceCheck": {
+      "properties": {
+        "frame_id": {
+          "title": "Frame Id",
+          "type": "string"
+        },
+        "selected_count": {
+          "title": "Selected Count",
+          "type": "integer"
+        },
+        "signed_z_median_m": {
+          "title": "Signed Z Median M",
+          "type": "number"
+        },
+        "absolute_z_p90_m": {
+          "title": "Absolute Z P90 M",
+          "type": "number"
+        },
+        "absolute_plane_median_m": {
+          "title": "Absolute Plane Median M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "frame_id",
+        "selected_count",
+        "signed_z_median_m",
+        "absolute_z_p90_m",
+        "absolute_plane_median_m"
+      ],
+      "title": "SurfaceCheck",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "default": "post-hoc reference-assisted controls; not a calibration evaluation",
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "source_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Source Sha256",
+      "type": "object"
+    },
+    "archive_plan_sha256": {
+      "title": "Archive Plan Sha256",
+      "type": "string"
+    },
+    "controls": {
+      "items": {
+        "$ref": "#/$defs/Control"
+      },
+      "title": "Controls",
+      "type": "array"
+    },
+    "surface_checks_at_reference": {
+      "items": {
+        "$ref": "#/$defs/CaseChecks"
+      },
+      "title": "Surface Checks At Reference",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source_commit",
+    "source_sha256",
+    "archive_plan_sha256",
+    "controls",
+    "surface_checks_at_reference"
+  ],
+  "title": "Report",
+  "type": "object"
+}

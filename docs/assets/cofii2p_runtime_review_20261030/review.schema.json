@@ -1,0 +1,317 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "observed_at_utc",
+    "source_commit",
+    "decision",
+    "runtime",
+    "network_policy",
+    "network_probes",
+    "source_files",
+    "web_snapshots",
+    "findings",
+    "requirements",
+    "model_invocations",
+    "checkpoint_bytes_downloaded",
+    "new_real_frames"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "observed_at_utc": {
+      "type": "string"
+    },
+    "source_commit": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string"
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "python",
+        "torch",
+        "torch_cuda_build",
+        "cuda_available",
+        "cuda_device_count",
+        "open3d_installed"
+      ],
+      "properties": {
+        "python": {
+          "type": "string"
+        },
+        "torch": {
+          "type": "string"
+        },
+        "torch_cuda_build": {
+          "type": "null"
+        },
+        "cuda_available": {
+          "type": "boolean"
+        },
+        "cuda_device_count": {
+          "type": "integer"
+        },
+        "open3d_installed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "network_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "state",
+        "observations_current",
+        "github_allowed",
+        "onedrive_allowed",
+        "baidu_allowed",
+        "redirects_followed"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "observations_current": {
+          "type": "boolean"
+        },
+        "github_allowed": {
+          "type": "boolean"
+        },
+        "onedrive_allowed": {
+          "type": "boolean"
+        },
+        "baidu_allowed": {
+          "type": "boolean"
+        },
+        "redirects_followed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "network_probes": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "url",
+              "method",
+              "redirects_followed",
+              "status_code",
+              "location",
+              "truncated",
+              "body_path",
+              "body_sha256",
+              "bytes_read",
+              "proxy_error"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "method": {
+                "type": "string"
+              },
+              "redirects_followed": {
+                "type": "boolean"
+              },
+              "status_code": {
+                "type": "integer"
+              },
+              "location": {
+                "type": "null"
+              },
+              "truncated": {
+                "type": "boolean"
+              },
+              "body_path": {
+                "type": "string"
+              },
+              "body_sha256": {
+                "type": "string"
+              },
+              "bytes_read": {
+                "type": "integer"
+              },
+              "proxy_error": {
+                "type": "null"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "url",
+              "method",
+              "redirects_followed",
+              "error_type",
+              "error"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "method": {
+                "type": "string"
+              },
+              "redirects_followed": {
+                "type": "boolean"
+              },
+              "error_type": {
+                "type": "string"
+              },
+              "error": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "url",
+              "status_code",
+              "body_sha256",
+              "body_path"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "status_code": {
+                "type": "integer"
+              },
+              "body_sha256": {
+                "type": "string"
+              },
+              "body_path": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "source_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "repository",
+          "commit",
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "repository": {
+            "type": "string"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "web_snapshots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256",
+          "bytes"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "bytes": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "status",
+          "statement",
+          "sources"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "model_invocations": {
+      "type": "integer"
+    },
+    "checkpoint_bytes_downloaded": {
+      "type": "integer"
+    },
+    "new_real_frames": {
+      "type": "integer"
+    }
+  }
+}

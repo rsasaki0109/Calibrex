@@ -1,0 +1,871 @@
+{
+  "schema_version": "calibrex.contour_coherence_screen/v0.1",
+  "provenance": {
+    "git_commit": "40ae85d4",
+    "generator_sha256": "f5dc6888362c7a137c39f888c696ef4e22a456fcd08c06c67a7806d81395f619",
+    "diagnostic_source_sha256": "322e7b8a98004b0f8f3477203e1450b1d89e394c1b68648ab7ea6268d846039d",
+    "snapshot_sha256": "159663f8abb726d35efe87fef480e4c63c7dc31b15a006d11781022a44680401",
+    "arrays_sha256": "b1a8971efa5c172abed169c51e4d79356b6c72304ffb55832e0fcbec10e465d5",
+    "receipt_sha256": "3f5178b543a28959c088a0cc82ac93e0ddcaa58d915bf8013e5caeaf224d3cf2",
+    "settings": {
+      "neighbors": 4,
+      "radius_m": 0.75,
+      "mutual_neighbors": true,
+      "image_connectivity": 8,
+      "maximum_match_distance_px": 6.0
+    },
+    "new_evaluation_started": false,
+    "new_accuracy_claim": false,
+    "decision_rule": "do not integrate if a saved wrong control still beats the reference in at least five of six folds; passing is not adoption evidence"
+  },
+  "support": [
+    {
+      "points": 567,
+      "links": 748,
+      "linked_points": 521,
+      "ridge_components": 601
+    },
+    {
+      "points": 320,
+      "links": 410,
+      "linked_points": 296,
+      "ridge_components": 613
+    },
+    {
+      "points": 526,
+      "links": 647,
+      "linked_points": 467,
+      "ridge_components": 811
+    },
+    {
+      "points": 592,
+      "links": 702,
+      "linked_points": 512,
+      "ridge_components": 657
+    },
+    {
+      "points": 757,
+      "links": 987,
+      "linked_points": 688,
+      "ridge_components": 620
+    },
+    {
+      "points": 687,
+      "links": 927,
+      "linked_points": 627,
+      "ridge_components": 615
+    },
+    {
+      "points": 689,
+      "links": 989,
+      "linked_points": 653,
+      "ridge_components": 580
+    },
+    {
+      "points": 708,
+      "links": 1015,
+      "linked_points": 674,
+      "ridge_components": 482
+    },
+    {
+      "points": 814,
+      "links": 1161,
+      "linked_points": 779,
+      "ridge_components": 460
+    },
+    {
+      "points": 880,
+      "links": 1306,
+      "linked_points": 847,
+      "ridge_components": 447
+    },
+    {
+      "points": 861,
+      "links": 1233,
+      "linked_points": 823,
+      "ridge_components": 461
+    }
+  ],
+  "folds": [
+    {
+      "fold": 0,
+      "poses": [
+        [
+          0.0,
+          -3.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -3.65,
+          -2.9499999999999997,
+          -1.25,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -3.7499999999999996,
+          -4.949999999999999,
+          -0.7499999999999998,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -3.55,
+          -0.9499999999999997,
+          -1.0999999999999999,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "rotation_error_norms_deg": [
+        0.0,
+        3.8579916246533643,
+        4.292337232667927,
+        4.244036304822086
+      ],
+      "original_scores": [
+        0.4435068665309681,
+        0.3329323678837789,
+        0.32568111363961944,
+        0.325539601217136
+      ],
+      "coherent_scores": [
+        0.31096233046647465,
+        0.24096605373281346,
+        0.20354382621634923,
+        0.23017601830647788
+      ],
+      "frames": [
+        {
+          "prepared_index": 0,
+          "time_s": 1317212816.2291121,
+          "original_scores": [
+            0.4913943030073193,
+            0.3099743517194069,
+            0.3281987292729558,
+            0.26628550163502374
+          ],
+          "coherent_scores": [
+            0.35066839244892123,
+            0.24026438732340216,
+            0.21898828648314597,
+            0.18851559745940313
+          ],
+          "match_support_by_pose": [
+            {
+              "matched_points": 443,
+              "matched_components": 72,
+              "same_contour_links": 380
+            },
+            {
+              "matched_points": 288,
+              "matched_components": 48,
+              "same_contour_links": 240
+            },
+            {
+              "matched_points": 328,
+              "matched_components": 52,
+              "same_contour_links": 254
+            },
+            {
+              "matched_points": 259,
+              "matched_components": 42,
+              "same_contour_links": 210
+            }
+          ]
+        },
+        {
+          "prepared_index": 1,
+          "time_s": 1317212817.2654545,
+          "original_scores": [
+            0.36386548926725154,
+            0.3711137398909483,
+            0.3214940785587462,
+            0.4240848240663755
+          ],
+          "coherent_scores": [
+            0.24492735982104893,
+            0.2421329919390965,
+            0.17785821476479713,
+            0.29946127426887625
+          ],
+          "match_support_by_pose": [
+            {
+              "matched_points": 204,
+              "matched_components": 51,
+              "same_contour_links": 166
+            },
+            {
+              "matched_points": 200,
+              "matched_components": 44,
+              "same_contour_links": 148
+            },
+            {
+              "matched_points": 170,
+              "matched_components": 41,
+              "same_contour_links": 113
+            },
+            {
+              "matched_points": 233,
+              "matched_components": 47,
+              "same_contour_links": 195
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fold": 1,
+      "poses": [
+        [
+          0.0,
+          -3.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -1.5999999999999999,
+          -3.0,
+          -2.250000000000001,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -4.300000000000001,
+          -5.0,
+          -2.1500000000000004,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -3.8999999999999995,
+          -1.0,
+          -0.4500000000000009,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "rotation_error_norms_deg": [
+        0.0,
+        2.760572156646859,
+        5.206459423152528,
+        4.405562231233996
+      ],
+      "original_scores": [
+        0.3855146778471699,
+        0.4562956961586379,
+        0.4462416798130016,
+        0.4290858772525263
+      ],
+      "coherent_scores": [
+        0.2794854160299205,
+        0.3322752956056442,
+        0.30657993221096214,
+        0.298388109711634
+      ],
+      "frames": [
+        {
+          "prepared_index": 2,
+          "time_s": 1317212818.30197,
+          "original_scores": [
+            0.34726462866405927,
+            0.4801628388327287,
+            0.46654891581419833,
+            0.44293929284562084
+          ],
+          "coherent_scores": [
+            0.23408749067761936,
+            0.34506850515186865,
+            0.3257433103672273,
+            0.3053583407489175
+          ],
+          "match_support_by_pose": [
+            {
+              "matched_points": 273,
+              "matched_components": 51,
+              "same_contour_links": 191
+            },
+            {
+              "matched_points": 366,
+              "matched_components": 59,
+              "same_contour_links": 283
+            },
+            {
+              "matched_points": 360,
+              "matched_components": 58,
+              "same_contour_links": 277
+            },
+            {
+              "matched_points": 382,
+              "matched_components": 64,
+              "same_contour_links": 288
+            }
+          ]
+        },
+        {
+          "prepared_index": 3,
+          "time_s": 1317212819.3386328,
+          "original_scores": [
+            0.41811124863882165,
+            0.43595619274921565,
+            0.4289359175974574,
+            0.41728004035216837
+          ],
+          "coherent_scores": [
+            0.31817338425856834,
+            0.32137296294119183,
+            0.2902489620287405,
+            0.29244810089351986
+          ],
+          "match_support_by_pose": [
+            {
+              "matched_points": 360,
+              "matched_components": 70,
+              "same_contour_links": 294
+            },
+            {
+              "matched_points": 376,
+              "matched_components": 71,
+              "same_contour_links": 308
+            },
+            {
+              "matched_points": 416,
+              "matched_components": 75,
+              "same_contour_links": 314
+            },
+            {
+              "matched_points": 408,
+              "matched_components": 71,
+              "same_contour_links": 324
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fold": 2,
+      "poses": [
+        [
+          0.0,
+          -3.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -0.4,
+          -2.9499999999999997,
+          -0.5,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -3.9,
+          -4.949999999999999,
+          -0.4,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -4.0,
+          -0.9499999999999997,
+          -0.5,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "rotation_error_norms_deg": [
+        0.0,
+        0.642188709309259,
+        4.378240366908667,
+        4.522033524552141
+      ],
+      "original_scores": [
+        0.4832832101731714,
+        0.5034786499390681,
+        0.5534084571709389,
+        0.5472249749943632
+      ],
+      "coherent_scores": [
+        0.3528640881966395,
+        0.3561724827235012,
+        0.37370043908962974,
+        0.36359228983371833
+      ],
+      "frames": [
+        {
+          "prepared_index": 4,
+          "time_s": 1317212820.3753638,
+          "original_scores": [
+            0.4874225286797194,
+            0.4998628974266214,
+            0.5162645687031859,
+            0.5326324327422656
+          ],
+          "coherent_scores": [
+            0.3582764092791917,
+            0.34899271237246143,
+            0.3607180072972875,
+            0.3512923218509992
+          ],
+          "match_support_by_pose": [
+            {
+              "matched_points": 543,
+              "matched_components": 89,
+              "same_contour_links": 504
+            },
+            {
+              "matched_points": 555,
+              "matched_components": 99,
+              "same_contour_links": 500
+            },
+            {
+              "matched_points": 611,
+              "matched_components": 102,
+              "same_contour_links": 554
+            },
+            {
+              "matched_points": 672,
+              "matched_components": 115,
+              "same_contour_links": 595
+            }
+          ]
+        },
+        {
+          "prepared_index": 5,
+          "time_s": 1317212821.4118707,
+          "original_scores": [
+            0.4789687965445305,
+            0.5072473504855022,
+            0.5921235496124813,
+            0.5624347886555674
+          ],
+          "coherent_scores": [
+            0.34722282338355376,
+            0.36365596074144946,
+            0.3872320338604061,
+            0.3764125522543423
+          ],
+          "match_support_by_pose": [
+            {
+              "matched_points": 510,
+              "matched_components": 82,
+              "same_contour_links": 469
+            },
+            {
+              "matched_points": 525,
+              "matched_components": 89,
+              "same_contour_links": 470
+            },
+            {
+              "matched_points": 608,
+              "matched_components": 96,
+              "same_contour_links": 519
+            },
+            {
+              "matched_points": 575,
+              "matched_components": 88,
+              "same_contour_links": 504
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fold": 3,
+      "poses": [
+        [
+          0.0,
+          -3.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -0.45,
+          -2.9499999999999997,
+          -0.45,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -4.15,
+          -4.949999999999999,
+          -2.6,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -3.9499999999999997,
+          -0.9499999999999997,
+          -0.5,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "rotation_error_norms_deg": [
+        0.0,
+        0.6382847958252723,
+        5.270628135045736,
+        4.477876508497245
+      ],
+      "original_scores": [
+        0.4506634892307387,
+        0.4813924385165252,
+        0.5746697484998746,
+        0.5532133654393123
+      ],
+      "coherent_scores": [
+        0.3283250232505488,
+        0.3329004853705768,
+        0.320582593939496,
+        0.34388620967050204
+      ],
+      "frames": [
+        {
+          "prepared_index": 6,
+          "time_s": 1317212822.4488773,
+          "original_scores": [
+            0.4506634892307387,
+            0.4813924385165252,
+            0.5746697484998746,
+            0.5532133654393123
+          ],
+          "coherent_scores": [
+            0.3283250232505488,
+            0.3329004853705768,
+            0.320582593939496,
+            0.34388620967050204
+          ],
+          "match_support_by_pose": [
+            {
+              "matched_points": 513,
+              "matched_components": 89,
+              "same_contour_links": 500
+            },
+            {
+              "matched_points": 542,
+              "matched_components": 95,
+              "same_contour_links": 506
+            },
+            {
+              "matched_points": 592,
+              "matched_components": 114,
+              "same_contour_links": 433
+            },
+            {
+              "matched_points": 597,
+              "matched_components": 106,
+              "same_contour_links": 497
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fold": 4,
+      "poses": [
+        [
+          0.0,
+          -3.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -1.6,
+          -2.9499999999999997,
+          -0.1,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -4.1499999999999995,
+          -4.949999999999999,
+          -2.6,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -4.05,
+          -0.9499999999999997,
+          -0.45,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "rotation_error_norms_deg": [
+        0.0,
+        1.6037184587756568,
+        5.270628135045734,
+        4.561107988183837
+      ],
+      "original_scores": [
+        0.4213726225566224,
+        0.41918712992435747,
+        0.3927516569348008,
+        0.515227626652686
+      ],
+      "coherent_scores": [
+        0.34049211292036546,
+        0.3123683810786733,
+        0.2976945816613654,
+        0.3735961035238711
+      ],
+      "frames": [
+        {
+          "prepared_index": 7,
+          "time_s": 1317212823.4862018,
+          "original_scores": [
+            0.47384665371391066,
+            0.4597954826092577,
+            0.42923774987970076,
+            0.5564241424696068
+          ],
+          "coherent_scores": [
+            0.3967731412552745,
+            0.34448867703029445,
+            0.3153929757076386,
+            0.39589923979797936
+          ],
+          "match_support_by_pose": [
+            {
+              "matched_points": 494,
+              "matched_components": 65,
+              "same_contour_links": 552
+            },
+            {
+              "matched_points": 528,
+              "matched_components": 75,
+              "same_contour_links": 524
+            },
+            {
+              "matched_points": 500,
+              "matched_components": 82,
+              "same_contour_links": 464
+            },
+            {
+              "matched_points": 583,
+              "matched_components": 92,
+              "same_contour_links": 556
+            }
+          ]
+        },
+        {
+          "prepared_index": 8,
+          "time_s": 1317212824.5227194,
+          "original_scores": [
+            0.37569213396156576,
+            0.38383613152047413,
+            0.36098923053283793,
+            0.4793646115683275
+          ],
+          "coherent_scores": [
+            0.29149749946548165,
+            0.2844065344179927,
+            0.28228750754201204,
+            0.35418043943758165
+          ],
+          "match_support_by_pose": [
+            {
+              "matched_points": 485,
+              "matched_components": 63,
+              "same_contour_links": 508
+            },
+            {
+              "matched_points": 528,
+              "matched_components": 70,
+              "same_contour_links": 535
+            },
+            {
+              "matched_points": 503,
+              "matched_components": 62,
+              "same_contour_links": 519
+            },
+            {
+              "matched_points": 615,
+              "matched_components": 76,
+              "same_contour_links": 622
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fold": 5,
+      "poses": [
+        [
+          0.0,
+          -3.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -4.0,
+          -3.05,
+          -2.5,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -4.0,
+          -5.05,
+          -1.65,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -3.8,
+          -1.0499999999999998,
+          -2.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "rotation_error_norms_deg": [
+        0.0,
+        4.716716717687453,
+        4.787559165222284,
+        4.715748805878428
+      ],
+      "original_scores": [
+        0.37428447073534404,
+        0.41349238458257065,
+        0.3630837655363421,
+        0.43838767933272915
+      ],
+      "coherent_scores": [
+        0.2902871396568058,
+        0.29569905634165483,
+        0.24208921725443336,
+        0.30143738583074875
+      ],
+      "frames": [
+        {
+          "prepared_index": 9,
+          "time_s": 1317212825.5593317,
+          "original_scores": [
+            0.3886942970800028,
+            0.41792805325190663,
+            0.3611308058412433,
+            0.4394841043111551
+          ],
+          "coherent_scores": [
+            0.30122131566611465,
+            0.3181102615533952,
+            0.24890023513688753,
+            0.30959202622780235
+          ],
+          "match_support_by_pose": [
+            {
+              "matched_points": 510,
+              "matched_components": 57,
+              "same_contour_links": 541
+            },
+            {
+              "matched_points": 603,
+              "matched_components": 69,
+              "same_contour_links": 635
+            },
+            {
+              "matched_points": 550,
+              "matched_components": 76,
+              "same_contour_links": 514
+            },
+            {
+              "matched_points": 625,
+              "matched_components": 85,
+              "same_contour_links": 615
+            }
+          ]
+        },
+        {
+          "prepared_index": 10,
+          "time_s": 1317212826.5961351,
+          "original_scores": [
+            0.35947499341127065,
+            0.4089336943524151,
+            0.3650908898158178,
+            0.43726084543014265
+          ],
+          "coherent_scores": [
+            0.27904970849044697,
+            0.27266628499174556,
+            0.23508929841631,
+            0.29305657962548165
+          ],
+          "match_support_by_pose": [
+            {
+              "matched_points": 491,
+              "matched_components": 76,
+              "same_contour_links": 498
+            },
+            {
+              "matched_points": 613,
+              "matched_components": 113,
+              "same_contour_links": 571
+            },
+            {
+              "matched_points": 550,
+              "matched_components": 96,
+              "same_contour_links": 462
+            },
+            {
+              "matched_points": 613,
+              "matched_components": 113,
+              "same_contour_links": 539
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "original_scores": {
+      "folds_control_beats_reference": 5,
+      "folds_control_beats_baseline": 4,
+      "frames_control_beats_reference": 10
+    },
+    "coherent_scores": {
+      "folds_control_beats_reference": 5,
+      "folds_control_beats_baseline": 4,
+      "frames_control_beats_reference": 8
+    },
+    "decision": "reject_integration"
+  },
+  "limitations": [
+    "Post hoc fixed-pose falsification screen; no optimization or new accuracy claim.",
+    "Image connected components are not semantic boundary identities.",
+    "Three-dimensional neighbors can belong to different physical boundaries.",
+    "Labels use rounded pixels; reward retains the existing bilinear distance field.",
+    "Unknown labels penalize linked points; isolated points retain the old score."
+  ]
+}

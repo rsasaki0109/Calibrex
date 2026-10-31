@@ -1,0 +1,174 @@
+{
+  "scheduled": 8,
+  "completed": 8,
+  "accepted": 0,
+  "stage_recovered": 0,
+  "returned_pipeline_recovered": 4,
+  "baseline_recovered": 4,
+  "raw_candidate_translation_improved": 5,
+  "raw_candidate_translation_worsened": 3,
+  "cases": [
+    {
+      "case_id": "2011_09_26_0005-positive",
+      "status": "max_iterations",
+      "accepted": false,
+      "baseline_translation_m": 0.2773338466541724,
+      "returned_translation_m": 0.2773338466541724,
+      "raw_candidate_translation_m": 0.15558189715933274,
+      "last_step_m": 0.0010960751529707235,
+      "last_condition_number": 3.792255967953233,
+      "last_support_counts": [
+        2000,
+        2000,
+        2000
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0005-negative",
+      "status": "max_iterations",
+      "accepted": false,
+      "baseline_translation_m": 0.1288470508005519,
+      "returned_translation_m": 0.1288470508005519,
+      "raw_candidate_translation_m": 0.16470512290826114,
+      "last_step_m": 0.0020654001788522123,
+      "last_condition_number": 3.894738510314034,
+      "last_support_counts": [
+        2000,
+        2000,
+        2000
+      ]
+    },
+    {
+      "case_id": "2011_09_28_0002-positive",
+      "status": "max_iterations",
+      "accepted": false,
+      "baseline_translation_m": 0.10643366478704008,
+      "returned_translation_m": 0.10643366478704008,
+      "raw_candidate_translation_m": 0.12818270862436762,
+      "last_step_m": 0.003835438043237949,
+      "last_condition_number": 5.360552543957584,
+      "last_support_counts": [
+        2000,
+        2000,
+        2000
+      ]
+    },
+    {
+      "case_id": "2011_09_28_0002-negative",
+      "status": "max_iterations",
+      "accepted": false,
+      "baseline_translation_m": 0.18211002855416833,
+      "returned_translation_m": 0.18211002855416833,
+      "raw_candidate_translation_m": 0.08856967000224746,
+      "last_step_m": 0.0225064928652741,
+      "last_condition_number": 5.169487163662029,
+      "last_support_counts": [
+        2000,
+        2000,
+        2000
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0009-positive",
+      "status": "max_iterations",
+      "accepted": false,
+      "baseline_translation_m": 0.2569350598886808,
+      "returned_translation_m": 0.2569350598886808,
+      "raw_candidate_translation_m": 0.1382540086905905,
+      "last_step_m": 0.001367097227057896,
+      "last_condition_number": 4.014656954226814,
+      "last_support_counts": [
+        2000,
+        2000,
+        2000
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0009-negative",
+      "status": "max_iterations",
+      "accepted": false,
+      "baseline_translation_m": 0.29154759474226505,
+      "returned_translation_m": 0.29154759474226505,
+      "raw_candidate_translation_m": 0.17466953435584273,
+      "last_step_m": 0.0013896172889094754,
+      "last_condition_number": 4.447359884908366,
+      "last_support_counts": [
+        2000,
+        2000,
+        2000
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0011-positive",
+      "status": "max_iterations",
+      "accepted": false,
+      "baseline_translation_m": 0.13578475614000268,
+      "returned_translation_m": 0.13578475614000268,
+      "raw_candidate_translation_m": 0.33973093445272723,
+      "last_step_m": 0.006844482719939284,
+      "last_condition_number": 6.331442146122675,
+      "last_support_counts": [
+        2000,
+        2000,
+        2000
+      ]
+    },
+    {
+      "case_id": "2011_09_26_0011-negative",
+      "status": "max_iterations",
+      "accepted": false,
+      "baseline_translation_m": 0.2750710135583173,
+      "returned_translation_m": 0.2750710135583173,
+      "raw_candidate_translation_m": 0.14776228333698047,
+      "last_step_m": 0.011753635368958052,
+      "last_condition_number": 6.217693147637796,
+      "last_support_counts": [
+        2000,
+        2000,
+        2000
+      ]
+    }
+  ],
+  "limitations": [
+    "All eight candidates hit the predeclared outer-iteration limit; none is an accepted improvement.",
+    "Reference errors of rejected candidates are post-fit diagnostics, not recovery claims.",
+    "Rotation remains fixed; two baselines already fail the rotation threshold.",
+    "Reassociation and sampling change between outer iterations; inner costs are not a common fixed objective across iterations.",
+    "Synthetic rank/recovery tests do not validate noisy stereo geometry or uncertainty on real recordings.",
+    "Four spent drives with unequal stereo information; no held-out evaluation, learned baseline or independent-family claim."
+  ],
+  "artifact_sha256": {
+    "plan.json": "d540d42392841943bc5b8d8669bd5afdf1c7468828128b5460c2478f7660ae3a",
+    "evaluation.json": "08034b9a97189599ad73e36b2fad1388c5794efde70339bfb69f939d25a847bd",
+    "evaluation.schema.json": "b5d5802f97de54628329ec13aeafb105d69e8f56be2a10b55dbab64427c1d767",
+    "publish.py.txt": "74aa42278c8f5daee367162fea2bf4fcd076429d3ffc52bb93f6e7eb79035f64",
+    "execution.log": "a76ed703a5a8ee334d962b19514d7414511701a83dab55ddf32c20a34cc97485",
+    "plan.schema.json": "aca4a255995fca59dbf50b6f9f617bf5e35ae9868018e00b911226303be3b69a",
+    "options.json": "72e695f9ab19a605507307a97a93104c64eb19f1aca1eecdeb5ad0e289d78ff3",
+    "options.schema.json": "4f4e539cd2146c2effdbf96aa64643a3bffe5e982d948d217e3285d90bb17f9a",
+    "2011_09_26_0011-negative/refinement.schema.json": "dd7e8cb89cbeb3cba9df12bb0ba51c3d77f734c4478ef5fc0e42013fba3a482b",
+    "2011_09_26_0011-negative/execution.log": "5fa244f1d5e379b0c1252696c193450f40cc1c53167bfd4bb285ee2a5763dc92",
+    "2011_09_26_0011-negative/refinement.json": "68e36ec7cabe57455d0112dcc92917b2fb2f13102781c84a67ac7dcf8e24848e",
+    "2011_09_28_0002-positive/refinement.schema.json": "dd7e8cb89cbeb3cba9df12bb0ba51c3d77f734c4478ef5fc0e42013fba3a482b",
+    "2011_09_28_0002-positive/execution.log": "dddd9bbc7943d3059909a0247f80fc6b9a592cd56893d502733d30abe8ca2cbf",
+    "2011_09_28_0002-positive/refinement.json": "f0868a03b4e3e52c624ab548a2144d18ecc6ef5760e803b00a40faa75e808c3f",
+    "2011_09_26_0005-negative/refinement.schema.json": "dd7e8cb89cbeb3cba9df12bb0ba51c3d77f734c4478ef5fc0e42013fba3a482b",
+    "2011_09_26_0005-negative/execution.log": "6d02a34d0bfaee838a67c05aba05dacde4d19078bf9783ea0b1895cd1f0a7e9c",
+    "2011_09_26_0005-negative/refinement.json": "431328797487d5780c3593ec86e1edfcafdc3e500af658a4eba485b284ced1ac",
+    "2011_09_26_0009-positive/refinement.schema.json": "dd7e8cb89cbeb3cba9df12bb0ba51c3d77f734c4478ef5fc0e42013fba3a482b",
+    "2011_09_26_0009-positive/execution.log": "02ca9b674ebf6a50b97f693eb9a5245b59ed12e7b7af137c12192e9240a54c6d",
+    "2011_09_26_0009-positive/refinement.json": "8e0c0c83d89d313a845a2c10801fe06a0a8eb4ecfd1af3f62df0b76f3a528ca2",
+    "2011_09_26_0011-positive/refinement.schema.json": "dd7e8cb89cbeb3cba9df12bb0ba51c3d77f734c4478ef5fc0e42013fba3a482b",
+    "2011_09_26_0011-positive/execution.log": "3711f883cafeed33671aa47481c7e39db39899f8993d91e4ef4d3d9711ae2757",
+    "2011_09_26_0011-positive/refinement.json": "a86f4023b72ce5cf2f098ec3c303ad4521585ca2ffc9c41902ff6a42759abf3e",
+    "2011_09_26_0009-negative/refinement.schema.json": "dd7e8cb89cbeb3cba9df12bb0ba51c3d77f734c4478ef5fc0e42013fba3a482b",
+    "2011_09_26_0009-negative/execution.log": "5617cf2f61dcb5288a67755e6a191af0c26da82b9ebde3dbadb0e8ec63c0f5d8",
+    "2011_09_26_0009-negative/refinement.json": "d11678e61b34a3b082a1f7c9f036ab991a7c5733e23a109e5b203559dc61db2b",
+    "2011_09_26_0005-positive/refinement.schema.json": "dd7e8cb89cbeb3cba9df12bb0ba51c3d77f734c4478ef5fc0e42013fba3a482b",
+    "2011_09_26_0005-positive/execution.log": "c14322e16e355ae679a85bc3a60bc566dd1d301cdef12da3afb5b1fbb73e5979",
+    "2011_09_26_0005-positive/refinement.json": "0dee1a5e7c2a196615a9b6323d68d659c9731991198af84681c93dde22190c19",
+    "2011_09_28_0002-negative/refinement.schema.json": "dd7e8cb89cbeb3cba9df12bb0ba51c3d77f734c4478ef5fc0e42013fba3a482b",
+    "2011_09_28_0002-negative/execution.log": "030dc1a75d961db1147d8a934593fa407446e0c3210c7573c3d7c8f580a14652",
+    "2011_09_28_0002-negative/refinement.json": "4f0aa30bc7ade8948e6adbd75d85eead5a2d514003b8d4b62a98b8b0ce2ab768"
+  }
+}

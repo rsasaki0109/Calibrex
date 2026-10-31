@@ -1,0 +1,73 @@
+{
+  "scope": "broader spent-data six-DoF comparison: existing D2D versus image/intensity Pandey",
+  "selection_rule": "fixed drives 0013 (prior camera audit) and 0015 (prior motion development); floor((N-1)*q/4), q=1,2,3; metadata only",
+  "timeout_seconds": 180,
+  "expected_cases": 4,
+  "drives": [
+    {
+      "id": "2011_09_26_0013",
+      "frame_count": 144,
+      "frames": [
+        35,
+        71,
+        107
+      ],
+      "archive_size": 630044598,
+      "archive_etag": "fc44314e968e786e4dc9bf119a6e69d0-76"
+    },
+    {
+      "id": "2011_09_26_0015",
+      "frame_count": 297,
+      "frames": [
+        74,
+        148,
+        222
+      ],
+      "archive_size": 1206523127,
+      "archive_etag": "067f2c621181126d540bfaefd8e4c9af-144"
+    }
+  ],
+  "perturbations": [
+    {
+      "id": "positive",
+      "rotation_deg": [
+        1.0,
+        -1.0,
+        0.5
+      ],
+      "translation_m": [
+        0.1,
+        -0.05,
+        0.05
+      ]
+    },
+    {
+      "id": "negative",
+      "rotation_deg": [
+        -1.0,
+        1.0,
+        -0.5
+      ],
+      "translation_m": [
+        -0.1,
+        0.05,
+        -0.05
+      ]
+    }
+  ],
+  "source_sha256": {
+    "tools/run_broader_camera_lidar_comparison.py": "bdbbd350c484543f0d1dc9d8aeeb35ad08160eefc3299eb693d4e8546999a307",
+    "tools/prepare_sparse_joint_inputs.py": "0d4e23b0f3e93daa664dff3b6c6a20e7d579b6cf8e0c056bd539e8feb2d5db1a",
+    "tools/kitti_drive_fetch.py": "28df02ab39c031ab7fafb393b66bba93fc14c3aeaedf7520d7df6511ce29691e",
+    "tools/kitti_aligned_stereo_bundle.py": "e8005852be198adfaeffe48a658aead68c2568ac33d74a79e820112feacdecad",
+    "tools/run_joint_stereo_d2d.py": "3d5891a5a9c289fa5506ab8526eeb4d5f90c78e9ce2df9132b55350bb443904e",
+    "tools/koide_shared_bundle_pandey.py": "0c379e189365015dcef20d39019f3f6d6a960866d04b21ab265037fcf06bbf72",
+    "tools/run_camera_lidar_development_matrix.py": "476ca936614e98e07b0d406d040eea6267818d226a08b7419208130461242fe8",
+    "src/calibrex/solvers/pandey_mutual_information_solver.py": "20a9a50e5545c8620d68b37f30c7b863f03ce6a73dcd2726fc77a94a08dd0039",
+    "src/calibrex/solvers/borer_six_dof_solver.py": "930e6a5442488f6c2e7311b7e87f9302e44a9c02e55c3fd9c37255c7ade7b08f",
+    "src/calibrex/solvers/borer_depth_to_depth_solver.py": "bc8d223156ebd1be992b68b7559c1ac720a4fc84391a1c435dcc2ad7ba485b68",
+    "src/calibrex/solvers/borer_rotation_only_solver.py": "25c97150cb002fa622ff3c244153d8d9cbda4f5309caa433a06d4b31a00350d0",
+    "src/calibrex/data/kitti_raw_to_rosbag2.py": "56d369e7dfcc8f7a0344f9bd5dfe8e0b195dda647d6b41a6002a473172bf73ad",
+    "src/calibrex/data/kitti.py": "d36065eec311fe7bdeb57696abd21405fae8e8cca5f84352b5394b7ae79e71eb"
+  }
+}

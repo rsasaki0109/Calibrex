@@ -1,0 +1,122 @@
+{
+  "scope": "spent-data runtime smoke only; no calibration accuracy claim",
+  "external_commit": "943a99006950ab6c84ea72a72beb147fdd03c19a",
+  "checkpoint_sha256": "2dd12e97b60bb7b91a0a45845a59260f9fdfe1ae9449dc491353c8842080ea6d",
+  "adapter_sha256": "8d6fcea8ce1f255dd3d1dbcfe0d77f3ffacd0a57a33f1bdbb72515bd4c6cccc5",
+  "metadata_sha256": "5d915e80a96044f6d6161ed291ddccd00b07b3c2698c0c999b6fc0990d81b8f9",
+  "input_sha256": {
+    "/workspace/work/camera-lidar-recovery-20261027/raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000076.png": "50b584d4d516df740c260d6d7b612e47127cd415c521dc0db950c73595556f11",
+    "/workspace/work/external-comparison-20261028/preprocessed/matrix-20261028/2011_09_26_0005/0000000076.png": "17b75b0607887fd5d82c0e7d8ee80432e72a4175e9ec577f9a2e7fae50d045d6",
+    "/workspace/work/camera-lidar-recovery-20261027/calibration/2011_09_26/calib_cam_to_cam.txt": "edc1eae281cb95e41798a98dcc545521449527145477ff852dbf3a4ec48c643c"
+  },
+  "python": "3.12.14",
+  "torch": "2.4.0+cpu",
+  "numpy": "2.5.4",
+  "opencv": "4.14.0",
+  "device": "cpu",
+  "cuda_available": false,
+  "threads": 4,
+  "input_shape": [
+    375,
+    1242
+  ],
+  "padded_shape": [
+    384,
+    1248
+  ],
+  "padding_lrtb": [
+    3,
+    3,
+    4,
+    5
+  ],
+  "resize": false,
+  "color": "RGB [0,255]",
+  "forward_seconds_cold": 17.23774064099416,
+  "parameter_count": 7354416,
+  "disparity_sha256": "87c759b85bde7a6cb9d87d7be191e85d72076bc1ab15ee4005603098e9dd3d1b",
+  "disparity_quantiles": [
+    4.420116424560547,
+    22.12147045135498,
+    51.96779289245605,
+    65.55054473876953
+  ],
+  "finite_pixels": 465750,
+  "positive_pixels": 465750,
+  "rectification": {
+    "r1": [
+      [
+        0.999986647241228,
+        -0.005167633843204619,
+        2.9995173325633837e-05
+      ],
+      [
+        0.005167633843204619,
+        0.9999866476910863,
+        7.750255384161975e-08
+      ],
+      [
+        -2.9995173325633837e-05,
+        7.750255384161975e-08,
+        0.9999999995501417
+      ]
+    ],
+    "r2": [
+      [
+        0.999986647241228,
+        -0.005167633843204619,
+        2.9995173325633837e-05
+      ],
+      [
+        0.005167633843204619,
+        0.9999866476910863,
+        7.750255384161975e-08
+      ],
+      [
+        -2.9995173325633837e-05,
+        7.750255384161975e-08,
+        0.9999999995501417
+      ]
+    ],
+    "p1": [
+      [
+        735.1712019197105,
+        0.0,
+        609.5948791503906,
+        0.0
+      ],
+      [
+        0.0,
+        735.1712019197105,
+        172.7975082397461,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    ],
+    "p2": [
+      [
+        735.1712019197105,
+        0.0,
+        609.5948791503906,
+        -391.6396984259907
+      ],
+      [
+        0.0,
+        735.1712019197105,
+        172.7975082397461,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    ]
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "schema_version": "calibrex.geometry_failure_summary/v0.1",
+  "provenance": {
+    "report_sha256": "2bd5ac7613a303a794d47df34f22cd89e46b4f8866f893cf22e15deebde1bafd",
+    "generator_sha256": "f84fba7c36685498dc1ac30d44749e8769ea21b50a37ccc883b0d0a032ad476a",
+    "new_evaluation_started": false,
+    "new_accuracy_claim": false
+  },
+  "cases": [
+    {
+      "drive": "2011_09_26_0005",
+      "axis": 0,
+      "missed_training_candidates": [
+        {
+          "fold": 1,
+          "original_fit_training_gain": 0.09249894353146043,
+          "control_training_gain": 0.015816015237108183,
+          "original_fit_held_gain": 0.08740868820378245,
+          "original_full_rotation_error_deg": 0.12246282895958807,
+          "geometry_full_rotation_error_deg": 2.0024978690107096
+        }
+      ],
+      "folds_control_beats_geometry_baseline": [
+        1
+      ]
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "axis": 2,
+      "missed_training_candidates": [
+        {
+          "fold": 5,
+          "original_fit_training_gain": 0.09149185361296214,
+          "control_training_gain": 0.054144100859322475,
+          "original_fit_held_gain": 0.07683862836515087,
+          "original_full_rotation_error_deg": 0.14998476976907577,
+          "geometry_full_rotation_error_deg": 2.1011898671206253
+        }
+      ],
+      "folds_control_beats_geometry_baseline": [
+        5
+      ]
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "axis": 1,
+      "missed_training_candidates": [],
+      "folds_control_beats_geometry_baseline": [
+        1,
+        3,
+        4
+      ]
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "driver_sha256": {
+      "title": "Driver Sha256",
+      "type": "string"
+    },
+    "drives": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Drives",
+      "type": "array"
+    }
+  },
+  "required": [
+    "scope",
+    "plan_sha256",
+    "driver_sha256",
+    "drives"
+  ],
+  "title": "PreparationReport",
+  "type": "object"
+}

@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/workspace/Calibrex/tools/evaluate_block_bias.py", line 126, in <module>
+    run(args.plan, args.output)
+  File "/workspace/Calibrex/tools/evaluate_block_bias.py", line 103, in run
+    output.write_text(report.model_dump_json(indent=2) + "\n")
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/p0-venv/lib/python3.12/site-packages/pydantic/main.py", line 587, in model_dump_json
+    return self.__pydantic_serializer__.to_json(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pydantic_core._pydantic_core.PydanticSerializationError: Unable to serialize unknown type: <class 'numpy.bool'>

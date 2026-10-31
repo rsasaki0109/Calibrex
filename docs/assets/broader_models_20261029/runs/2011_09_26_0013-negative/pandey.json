@@ -1,0 +1,391 @@
+{
+  "scope": "spent-data shared-bundle optimizer comparison; no held-out evaluation",
+  "source_commit": "fa09ba7ef43479f4f6c85c2eda75114c0cd1b053",
+  "driver_sha256": "0c379e189365015dcef20d39019f3f6d6a960866d04b21ab265037fcf06bbf72",
+  "input_sha256": {
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/calib-seeded.json": "144bea355036be17bbaefea39cf9bdd5e57922fa4745df8e1389127c1493bcd6",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/seed.json": "ee0ab853cb5c78903cc79567e366c211606b7e695d155413f18eac457b274df3",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-35.png": "c6488c4c2984e798d7e1af439a64b5d45836fab187c3e8ade2ebbe78ddecddd0",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-35.ply": "3508fb626fb1a77dd6dc6e9a249f4c72b67b1b6367474f803403633e6f0a3265",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-71.png": "c12eba4ada283a7a6f1f2dcd3ef6e71520207b5cea97450607388bb834668463",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-71.ply": "935072cf7ed4641cddf03adc3f2d7ec1dbfd5b56f2e7407f3ae0ac13dd20e13e",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-107.png": "434796b71fa8a1cb8ab329dceb9e4ed729ac1c48cc8974f50230cc79cef38af5",
+    "/workspace/work/broader-models-results-20261029/2011_09_26_0013-negative/frame-107.ply": "41976c58d9e3eb84837aedb9e93c8fbeb203bcf8333f1b1be87cad3a07dbb005"
+  },
+  "options": {
+    "min_train_observations": 1,
+    "holdout_ratio": 0,
+    "split_seed": 0,
+    "histogram_bins": 32,
+    "min_projected_points": 64,
+    "max_iterations": 40,
+    "convergence_tolerance": 0.00001,
+    "gradient_steps": [
+      0.005,
+      0.005,
+      0.005,
+      0.0017453292519943296,
+      0.0017453292519943296,
+      0.0017453292519943296
+    ],
+    "curvature_steps": [
+      0.01,
+      0.01,
+      0.01,
+      0.004363323129985824,
+      0.004363323129985824,
+      0.004363323129985824
+    ],
+    "initial_step_size": 0.02,
+    "min_step_size": 0.00001,
+    "max_step_size": 0.1,
+    "max_backtracks": 8,
+    "known_bad_translation_m": 0.05,
+    "known_bad_rotation_deg": 5.0,
+    "rank_tolerance": 1e-6,
+    "histogram_smoothing_backend": "vectorized",
+    "coarse_search_translation_steps_m": [],
+    "coarse_search_rotation_steps_deg": [],
+    "coarse_search_sweeps_per_level": 1
+  },
+  "initial_T_camera_lidar": [
+    [
+      0.01792314133802323,
+      -0.9996626332428014,
+      -0.018797211048478302,
+      -0.04294755214046961
+    ],
+    [
+      0.027743918731786447,
+      0.019290240930632935,
+      -0.9994289063656052,
+      -0.02546671853346001
+    ],
+    [
+      0.9994543818096165,
+      0.017391396535771937,
+      0.02808029922551054,
+      -0.3193869124058732
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "output_T_camera_lidar": [
+    [
+      0.018337949847816976,
+      -0.9997826016438365,
+      -0.00992315704102481,
+      -0.04755855336102271
+    ],
+    [
+      0.02872297302989696,
+      0.010447512762371047,
+      -0.9995328110159287,
+      -0.022790241921427725
+    ],
+    [
+      0.9994191865357114,
+      0.018044359987596847,
+      0.028908314667846935,
+      -0.31851388184077045
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "elapsed_seconds": 4.905563936001272,
+  "result": {
+    "status": "converged",
+    "reason": "no improving step remained after monotonic backtracking",
+    "transform_camera_lidar": {
+      "translation_m": [
+        -0.04755855336102271,
+        -0.022790241921427725,
+        -0.31851388184077045
+      ],
+      "rotation_quat_xyzw": [
+        0.49471762714138234,
+        -0.49071408382241977,
+        0.5000307120711834,
+        0.514221201740563
+      ]
+    },
+    "train_frame_ids": [
+      "frame-107",
+      "frame-35",
+      "frame-71"
+    ],
+    "holdout_frame_ids": [],
+    "train_evaluation": {
+      "raw_mutual_information": 0.018901120785,
+      "normalized_mutual_information": 0.005496092544,
+      "projected_point_count": 49733,
+      "observation_count": 3
+    },
+    "holdout_evaluation": {
+      "raw_mutual_information": 0.0,
+      "normalized_mutual_information": 0.0,
+      "projected_point_count": 0,
+      "observation_count": 0
+    },
+    "iterations": [
+      {
+        "iteration": 1,
+        "raw_mutual_information": 0.017409087108,
+        "gradient_norm": 0.13793739023077456,
+        "step_size": 0.000625,
+        "parameter_delta_norm": 0.0006250000000000195,
+        "backtrack_count": 5
+      },
+      {
+        "iteration": 2,
+        "raw_mutual_information": 0.017523732821,
+        "gradient_norm": 0.08858817193510914,
+        "step_size": 0.007321657657815493,
+        "parameter_delta_norm": 0.007321657657815565,
+        "backtrack_count": 0
+      },
+      {
+        "iteration": 3,
+        "raw_mutual_information": 0.017778821462,
+        "gradient_norm": 0.31422856839986846,
+        "step_size": 0.013731205223645598,
+        "parameter_delta_norm": 0.01373120522364553,
+        "backtrack_count": 1
+      },
+      {
+        "iteration": 4,
+        "raw_mutual_information": 0.017999806244,
+        "gradient_norm": 0.08927409356612845,
+        "step_size": 0.0042695208538804175,
+        "parameter_delta_norm": 0.0042695208538803976,
+        "backtrack_count": 3
+      },
+      {
+        "iteration": 5,
+        "raw_mutual_information": 0.01856665973,
+        "gradient_norm": 0.38032620256889665,
+        "step_size": 0.002571451318082578,
+        "parameter_delta_norm": 0.002571451318082507,
+        "backtrack_count": 3
+      },
+      {
+        "iteration": 6,
+        "raw_mutual_information": 0.018567371997,
+        "gradient_norm": 0.2938061646933973,
+        "step_size": 0.0020978769797380717,
+        "parameter_delta_norm": 0.0020978769797381732,
+        "backtrack_count": 1
+      },
+      {
+        "iteration": 7,
+        "raw_mutual_information": 0.018654376845,
+        "gradient_norm": 0.4315400234239389,
+        "step_size": 0.0015649735406006004,
+        "parameter_delta_norm": 0.0015649735406004844,
+        "backtrack_count": 1
+      },
+      {
+        "iteration": 8,
+        "raw_mutual_information": 0.018901120785,
+        "gradient_norm": 0.15071497610788553,
+        "step_size": 0.0015216518364408944,
+        "parameter_delta_norm": 0.0015216518364409024,
+        "backtrack_count": 1
+      }
+    ],
+    "known_bad_probes": [
+      {
+        "dof": "x",
+        "amount": -0.05,
+        "unit": "m",
+        "normalized_mutual_information": 0.005398888436,
+        "score_drop": 0.00009720410799999961,
+        "detectable": true
+      },
+      {
+        "dof": "x",
+        "amount": 0.05,
+        "unit": "m",
+        "normalized_mutual_information": 0.005311040339,
+        "score_drop": 0.0001850522049999994,
+        "detectable": true
+      },
+      {
+        "dof": "y",
+        "amount": -0.05,
+        "unit": "m",
+        "normalized_mutual_information": 0.005314190457,
+        "score_drop": 0.0001819020869999995,
+        "detectable": true
+      },
+      {
+        "dof": "y",
+        "amount": 0.05,
+        "unit": "m",
+        "normalized_mutual_information": 0.005178126085,
+        "score_drop": 0.0003179664589999997,
+        "detectable": true
+      },
+      {
+        "dof": "z",
+        "amount": -0.05,
+        "unit": "m",
+        "normalized_mutual_information": 0.005356975909,
+        "score_drop": 0.00013911663499999952,
+        "detectable": true
+      },
+      {
+        "dof": "z",
+        "amount": 0.05,
+        "unit": "m",
+        "normalized_mutual_information": 0.005371410844,
+        "score_drop": 0.00012468169999999956,
+        "detectable": true
+      },
+      {
+        "dof": "roll",
+        "amount": -5.0,
+        "unit": "deg",
+        "normalized_mutual_information": 0.003700495265,
+        "score_drop": 0.0017955972789999997,
+        "detectable": true
+      },
+      {
+        "dof": "roll",
+        "amount": 5.0,
+        "unit": "deg",
+        "normalized_mutual_information": 0.005008370644,
+        "score_drop": 0.00048772189999999986,
+        "detectable": true
+      },
+      {
+        "dof": "pitch",
+        "amount": -5.0,
+        "unit": "deg",
+        "normalized_mutual_information": 0.005399891287,
+        "score_drop": 0.00009620125700000003,
+        "detectable": true
+      },
+      {
+        "dof": "pitch",
+        "amount": 5.0,
+        "unit": "deg",
+        "normalized_mutual_information": 0.00327556673,
+        "score_drop": 0.002220525814,
+        "detectable": true
+      },
+      {
+        "dof": "yaw",
+        "amount": -5.0,
+        "unit": "deg",
+        "normalized_mutual_information": 0.003593188152,
+        "score_drop": 0.0019029043919999997,
+        "detectable": true
+      },
+      {
+        "dof": "yaw",
+        "amount": 5.0,
+        "unit": "deg",
+        "normalized_mutual_information": 0.005249169593,
+        "score_drop": 0.00024692295099999935,
+        "detectable": true
+      }
+    ],
+    "curvature": {
+      "parameter_dimension": 6,
+      "objective_at_center": -0.018901120785,
+      "finite_difference_steps": [
+        0.01,
+        0.01,
+        0.01,
+        0.004363323129985824,
+        0.004363323129985824,
+        0.004363323129985824
+      ],
+      "hessian": [
+        [
+          6.036273809999979,
+          -0.5956783149999988,
+          -0.7231932749999972,
+          -0.1973462082334473,
+          0.9535259826180877,
+          -0.888165862245585
+        ],
+        [
+          -0.5956783149999988,
+          -0.2158679700000124,
+          0.10807288250000088,
+          4.9747336326820495,
+          -0.2730502737265482,
+          4.153247429799889
+        ],
+        [
+          -0.7231932749999972,
+          0.10807288250000088,
+          3.4771703199999724,
+          -0.6344714664781282,
+          -1.9500761510247335,
+          -0.5825657243973524
+        ],
+        [
+          -0.1973462082334473,
+          4.9747336326820495,
+          -0.6344714664781282,
+          87.60954071072614,
+          8.131734691123107,
+          26.73805165083134
+        ],
+        [
+          0.9535259826180877,
+          -0.2730502737265482,
+          -1.9500761510247335,
+          8.131734691123107,
+          160.69247192190878,
+          8.06749975664795
+        ],
+        [
+          -0.888165862245585,
+          4.153247429799889,
+          -0.5825657243973524,
+          26.73805165083134,
+          8.06749975664795,
+          88.81627710898388
+        ]
+      ],
+      "eigenvalues": [
+        -0.6351885816031234,
+        3.262203050148208,
+        6.252816999111449,
+        61.47870133445008,
+        112.6164615488817,
+        163.4408715506305
+      ],
+      "rank": 6,
+      "positive_eigenvalue_count": 5,
+      "negative_eigenvalue_count": 1,
+      "near_zero_eigenvalue_count": 0,
+      "positive_condition_number": 50.10137904910765,
+      "evaluation_count": 73,
+      "rank_tolerance": 1e-6,
+      "diagnostic_kind": "central_difference_objective_hessian_not_covariance"
+    },
+    "coarse_search": null,
+    "method": "pandey_mutual_information_bb_ascent/v0.1",
+    "paper_doi": "10.1609/aaai.v26i1.8379",
+    "paper_url": "https://robots.engin.umich.edu/publications/gpandey-2012a.pdf",
+    "frame_convention": "p_camera = R_camera_lidar p_lidar + t_camera_lidar",
+    "objective": "raw mutual information; equations 1--8",
+    "optimizer": "optional deterministic coarse-to-fine coordinate search followed by numerical gradient and Barzilai--Borwein ascent; equations 9--11",
+    "kde_specialization": "finite 2D histogram convolved with covariance-derived Gaussian kernel",
+    "numerical_safeguards": "step clipping and monotonic backtracking",
+    "curvature_claim": "central-difference objective Hessian; not covariance or CRLB"
+  }
+}

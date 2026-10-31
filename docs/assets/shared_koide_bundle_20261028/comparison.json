@@ -1,0 +1,135 @@
+{
+  "scope": "spent-data optimizer-only diagnostic; not an end-to-end benchmark",
+  "input_bundle_shared": true,
+  "initial_transform_shared": true,
+  "fresh_sensor_payloads_read": 0,
+  "koide_process_exit_code": 0,
+  "native_status": "converged",
+  "diagnostics": {
+    "initial": {
+      "rotation_reference_disagreement_deg": 1.502893399187307,
+      "translation_reference_disagreement_m": 0.12247448713915891,
+      "within_scoped_recovery_threshold": false,
+      "T_camera_lidar": [
+        [
+          -0.017155467132486488,
+          -0.9998513431491697,
+          -0.001713456542265028,
+          0.1570524478595304
+        ],
+        [
+          -0.007153617595801984,
+          0.0018364056973287737,
+          -0.9999727149163535,
+          -0.12546671853346003
+        ],
+        [
+          0.9998272556012965,
+          -0.017142741539027197,
+          -0.0071840598855728525,
+          -0.2193869124058732
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    "koide": {
+      "rotation_reference_disagreement_deg": 0.6452103847140835,
+      "translation_reference_disagreement_m": 0.18013801214932582,
+      "within_scoped_recovery_threshold": false,
+      "T_camera_lidar": [
+        [
+          -0.004061319785126356,
+          -0.9999736147000535,
+          -0.006022921659143359,
+          0.17426501890934804
+        ],
+        [
+          0.01980627395416564,
+          0.005941351008581125,
+          -0.9997861830712831,
+          -0.15429683900355043
+        ],
+        [
+          0.9997955877046344,
+          -0.00417974304258884,
+          0.019781621633284924,
+          -0.15759814411641962
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    "native_pandey": {
+      "rotation_reference_disagreement_deg": 1.2808246833830732,
+      "translation_reference_disagreement_m": 0.12190397573803351,
+      "within_scoped_recovery_threshold": false,
+      "T_camera_lidar": [
+        [
+          -0.0027372893719850855,
+          -0.9995623502422373,
+          -0.029455308946077674,
+          0.15789362563228052
+        ],
+        [
+          -0.0010957287376945346,
+          0.029458399651271616,
+          -0.9995654065985472,
+          -0.12289913417417814
+        ],
+        [
+          0.9999956533032668,
+          -0.002703824735596272,
+          -0.0011758853565589367,
+          -0.21997231827994895
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    }
+  },
+  "limitations": [
+    "One integrated cloud/image from three spent KITTI 0005 frames; no holdout.",
+    "Koide preprocessing is shared, so native results are a hybrid pipeline.",
+    "Native Pandey is the existing legacy I2I method, not the D2D release candidate.",
+    "Azimuth point times remain modeled; image/cloud reference-time alignment is not verified.",
+    "Reference disagreements are diagnostic; strict threshold flags are not audit verdicts.",
+    "Koide reports Wolfe line-search warnings; native convergence means no improving backtracked step.",
+    "No end-to-end timing comparison: native wall time excludes preprocessing; CPU thread profiles differ.",
+    "Required development coverage, D2D depth input and learned baselines remain pending."
+  ],
+  "artifact_sha256": {
+    "koide-job.sh": "395b646b84434cb7fa14c783e41559ff35410795fc95987d5e23e21ea1105003",
+    "koide-output.json": "7cf47ec6045a4509eeb607aa98c0a8af979f5d3d49745ec6792d76e89bf75b57",
+    "koide-seeded.json": "279790a2df43efccd67fc7bec901dba20a61e6bda015d20bbb4aa3c3b2953344",
+    "paired-koide-setup-failure.log": "29f50e74c5be1008e2cf46a9fddbc0e761283b06fe6703711d504bb1fbe991d4",
+    "paired-koide.log": "21c58b025b568149f0547fda1c0aae6aebc1f05e37168a0928b6205079c5c77e",
+    "paired-native.json": "56c90f80f0366bcf4c34777ac000cac6df57bd3e95b7564bb57a6c33b2e3b0ea",
+    "paired-native.log": "ac7e6ae2dcc83bc3510356ef7e0169124b2005a8867b656f5c0f0c3766d944d2",
+    "paired-native.schema.json": "6446f896516fb33673af93394dd6f3180a54fba6bc9612ba6450ac6d292d1ed0",
+    "publish.py.txt": "7b583644901721d1a00f14bd3ecef144560046fce25151fde38d81f64078fb98",
+    "runtime-entrypoint.sh": "325468b48c11025fba86d5190135e18330da1384a4930bee0d05c7e78a71e49e",
+    "seed.json": "d3c7c0d2f275e60d8db8133d5b30d3938a090f68188f2cba68e8854d848e8a76",
+    "time-adapter-replay.json": "4941db2d4c2ff24c6fedc8543984441fd5e81e65fe4b19351ca4cbae2fb8b962",
+    "time-adapter-replay.schema.json": "720845c25e5b62c727c2234bd9d6fdab8156963ab2ccc5ff31d3210245169e83",
+    "time-adapter.json": "800bf725a79cd9d30de74b53c73aa61f72d0a6e33ef806a37f0260759a24200d",
+    "time-adapter.schema.json": "720845c25e5b62c727c2234bd9d6fdab8156963ab2ccc5ff31d3210245169e83"
+  },
+  "source_sha256": {
+    "tools/koide_kitti_time_adapter.py": "b41363f5486f4baf169e9b0c6ea5911d813b59276a9e8559b5f416532386726e",
+    "tools/koide_shared_bundle_pandey.py": "0c379e189365015dcef20d39019f3f6d6a960866d04b21ab265037fcf06bbf72",
+    "src/calibrex/solvers/pandey_mutual_information_solver.py": "20a9a50e5545c8620d68b37f30c7b863f03ce6a73dcd2726fc77a94a08dd0039"
+  }
+}

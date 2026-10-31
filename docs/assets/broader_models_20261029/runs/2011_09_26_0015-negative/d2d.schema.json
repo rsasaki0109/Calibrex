@@ -1,0 +1,79 @@
+{
+  "additionalProperties": false,
+  "description": "Provenance and raw output; no independent accuracy claim.",
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "driver_sha256": {
+      "title": "Driver Sha256",
+      "type": "string"
+    },
+    "input_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Input Sha256",
+      "type": "object"
+    },
+    "options": {
+      "additionalProperties": true,
+      "title": "Options",
+      "type": "object"
+    },
+    "initial_T_camera_lidar": {
+      "items": {
+        "items": {
+          "type": "number"
+        },
+        "type": "array"
+      },
+      "title": "Initial T Camera Lidar",
+      "type": "array"
+    },
+    "output_T_camera_lidar": {
+      "anyOf": [
+        {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Output T Camera Lidar"
+    },
+    "elapsed_seconds": {
+      "title": "Elapsed Seconds",
+      "type": "number"
+    },
+    "result": {
+      "additionalProperties": true,
+      "title": "Result",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "source_commit",
+    "driver_sha256",
+    "input_sha256",
+    "options",
+    "initial_T_camera_lidar",
+    "output_T_camera_lidar",
+    "elapsed_seconds",
+    "result"
+  ],
+  "title": "SharedBundleRun",
+  "type": "object"
+}

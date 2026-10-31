@@ -1,0 +1,878 @@
+{
+  "schema_version": "calibrex.contour_coherence_screen/v0.1",
+  "provenance": {
+    "git_commit": "4846dcae",
+    "generator_sha256": "db6b2cbaa899220495af24d33fe34dfb885889630971b646c71d5d6d79ee6ad2",
+    "diagnostic_source_sha256": "322e7b8a98004b0f8f3477203e1450b1d89e394c1b68648ab7ea6268d846039d",
+    "snapshot_sha256": "159663f8abb726d35efe87fef480e4c63c7dc31b15a006d11781022a44680401",
+    "arrays_sha256": "b1a8971efa5c172abed169c51e4d79356b6c72304ffb55832e0fcbec10e465d5",
+    "receipt_sha256": "3f5178b543a28959c088a0cc82ac93e0ddcaa58d915bf8013e5caeaf224d3cf2",
+    "settings": {
+      "neighbors": 4,
+      "radius_m": 0.75,
+      "mutual_neighbors": true,
+      "image_connectivity": 8,
+      "maximum_match_distance_px": 6.0
+    },
+    "geometry": true,
+    "geometry_settings": {
+      "pixel_tolerance": 1.0,
+      "relative_tolerance": 0.25,
+      "same_component_required": true
+    },
+    "geometry_source_sha256": "bcc8473df4dc52013d3eb7afed62d1f2740b865e35c9ec4d673a95b252469990",
+    "new_evaluation_started": false,
+    "new_accuracy_claim": false,
+    "decision_rule": "do not integrate if a saved wrong control still beats the reference in at least five of six folds; passing is not adoption evidence"
+  },
+  "support": [
+    {
+      "points": 567,
+      "links": 748,
+      "linked_points": 521,
+      "ridge_components": 601
+    },
+    {
+      "points": 320,
+      "links": 410,
+      "linked_points": 296,
+      "ridge_components": 613
+    },
+    {
+      "points": 526,
+      "links": 647,
+      "linked_points": 467,
+      "ridge_components": 811
+    },
+    {
+      "points": 592,
+      "links": 702,
+      "linked_points": 512,
+      "ridge_components": 657
+    },
+    {
+      "points": 757,
+      "links": 987,
+      "linked_points": 688,
+      "ridge_components": 620
+    },
+    {
+      "points": 687,
+      "links": 927,
+      "linked_points": 627,
+      "ridge_components": 615
+    },
+    {
+      "points": 689,
+      "links": 989,
+      "linked_points": 653,
+      "ridge_components": 580
+    },
+    {
+      "points": 708,
+      "links": 1015,
+      "linked_points": 674,
+      "ridge_components": 482
+    },
+    {
+      "points": 814,
+      "links": 1161,
+      "linked_points": 779,
+      "ridge_components": 460
+    },
+    {
+      "points": 880,
+      "links": 1306,
+      "linked_points": 847,
+      "ridge_components": 447
+    },
+    {
+      "points": 861,
+      "links": 1233,
+      "linked_points": 823,
+      "ridge_components": 461
+    }
+  ],
+  "folds": [
+    {
+      "fold": 0,
+      "poses": [
+        [
+          0.0,
+          -3.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -3.65,
+          -2.9499999999999997,
+          -1.25,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -3.7499999999999996,
+          -4.949999999999999,
+          -0.7499999999999998,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -3.55,
+          -0.9499999999999997,
+          -1.0999999999999999,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "rotation_error_norms_deg": [
+        0.0,
+        3.8579916246533643,
+        4.292337232667927,
+        4.244036304822086
+      ],
+      "original_scores": [
+        0.4435068665309681,
+        0.3329323678837789,
+        0.32568111363961944,
+        0.325539601217136
+      ],
+      "coherent_scores": [
+        0.2271540463585915,
+        0.17047043541772786,
+        0.13765190713746228,
+        0.1493793891447413
+      ],
+      "frames": [
+        {
+          "prepared_index": 0,
+          "time_s": 1317212816.2291121,
+          "original_scores": [
+            0.4913943030073193,
+            0.3099743517194069,
+            0.3281987292729558,
+            0.26628550163502374
+          ],
+          "coherent_scores": [
+            0.2553836177127146,
+            0.1702116973493622,
+            0.14936966749525787,
+            0.12347989725692347
+          ],
+          "match_support_by_pose": [
+            {
+              "component_only_score": 0.35066839244892123,
+              "matched_points": 443,
+              "mean_factor_linked_points": 0.3133473870945827
+            },
+            {
+              "component_only_score": 0.24026438732340216,
+              "matched_points": 288,
+              "mean_factor_linked_points": 0.20802636717947262
+            },
+            {
+              "component_only_score": 0.21898828648314597,
+              "matched_points": 328,
+              "mean_factor_linked_points": 0.2053785374822235
+            },
+            {
+              "component_only_score": 0.18851559745940313,
+              "matched_points": 259,
+              "mean_factor_linked_points": 0.15423798425479415
+            }
+          ]
+        },
+        {
+          "prepared_index": 1,
+          "time_s": 1317212817.2654545,
+          "original_scores": [
+            0.36386548926725154,
+            0.3711137398909483,
+            0.3214940785587462,
+            0.4240848240663755
+          ],
+          "coherent_scores": [
+            0.1802055749507097,
+            0.1709007415195249,
+            0.11816415331288903,
+            0.19245271601607844
+          ],
+          "match_support_by_pose": [
+            {
+              "component_only_score": 0.24492735982104893,
+              "matched_points": 204,
+              "mean_factor_linked_points": 0.24990222706702783
+            },
+            {
+              "component_only_score": 0.2421329919390965,
+              "matched_points": 200,
+              "mean_factor_linked_points": 0.21378568139531323
+            },
+            {
+              "component_only_score": 0.17785821476479713,
+              "matched_points": 170,
+              "mean_factor_linked_points": 0.15429470738577492
+            },
+            {
+              "component_only_score": 0.29946127426887625,
+              "matched_points": 233,
+              "mean_factor_linked_points": 0.25016753651151385
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fold": 1,
+      "poses": [
+        [
+          0.0,
+          -3.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -1.5999999999999999,
+          -3.0,
+          -2.250000000000001,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -4.300000000000001,
+          -5.0,
+          -2.1500000000000004,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -3.8999999999999995,
+          -1.0,
+          -0.4500000000000009,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "rotation_error_norms_deg": [
+        0.0,
+        2.760572156646859,
+        5.206459423152528,
+        4.405562231233996
+      ],
+      "original_scores": [
+        0.3855146778471699,
+        0.4562956961586379,
+        0.4462416798130016,
+        0.4290858772525263
+      ],
+      "coherent_scores": [
+        0.20978624430999432,
+        0.2401209370767377,
+        0.2150492415088342,
+        0.19964891854752315
+      ],
+      "frames": [
+        {
+          "prepared_index": 2,
+          "time_s": 1317212818.30197,
+          "original_scores": [
+            0.34726462866405927,
+            0.4801628388327287,
+            0.46654891581419833,
+            0.44293929284562084
+          ],
+          "coherent_scores": [
+            0.17295212621155714,
+            0.2585038596595494,
+            0.23641508250798057,
+            0.20244667469613808
+          ],
+          "match_support_by_pose": [
+            {
+              "component_only_score": 0.23408749067761936,
+              "matched_points": 273,
+              "mean_factor_linked_points": 0.19417175369139103
+            },
+            {
+              "component_only_score": 0.34506850515186865,
+              "matched_points": 366,
+              "mean_factor_linked_points": 0.2998658158308856
+            },
+            {
+              "component_only_score": 0.3257433103672273,
+              "matched_points": 360,
+              "mean_factor_linked_points": 0.2714575263701491
+            },
+            {
+              "component_only_score": 0.3053583407489175,
+              "matched_points": 382,
+              "mean_factor_linked_points": 0.2706560591953963
+            }
+          ]
+        },
+        {
+          "prepared_index": 3,
+          "time_s": 1317212819.3386328,
+          "original_scores": [
+            0.41811124863882165,
+            0.43595619274921565,
+            0.4289359175974574,
+            0.41728004035216837
+          ],
+          "coherent_scores": [
+            0.24117616311495943,
+            0.22445506866283094,
+            0.1968413394662045,
+            0.19726467961701807
+          ],
+          "match_support_by_pose": [
+            {
+              "component_only_score": 0.31817338425856834,
+              "matched_points": 360,
+              "mean_factor_linked_points": 0.2911785021508422
+            },
+            {
+              "component_only_score": 0.32137296294119183,
+              "matched_points": 376,
+              "mean_factor_linked_points": 0.26991326394393883
+            },
+            {
+              "component_only_score": 0.2902489620287405,
+              "matched_points": 416,
+              "mean_factor_linked_points": 0.27153343332975055
+            },
+            {
+              "component_only_score": 0.29244810089351986,
+              "matched_points": 408,
+              "mean_factor_linked_points": 0.2726238155343405
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fold": 2,
+      "poses": [
+        [
+          0.0,
+          -3.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -0.4,
+          -2.9499999999999997,
+          -0.5,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -3.9,
+          -4.949999999999999,
+          -0.4,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -4.0,
+          -0.9499999999999997,
+          -0.5,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "rotation_error_norms_deg": [
+        0.0,
+        0.642188709309259,
+        4.378240366908667,
+        4.522033524552141
+      ],
+      "original_scores": [
+        0.4832832101731714,
+        0.5034786499390681,
+        0.5534084571709389,
+        0.5472249749943632
+      ],
+      "coherent_scores": [
+        0.25936063051168035,
+        0.25539380013077656,
+        0.24705657331035932,
+        0.23859597096848656
+      ],
+      "frames": [
+        {
+          "prepared_index": 4,
+          "time_s": 1317212820.3753638,
+          "original_scores": [
+            0.4874225286797194,
+            0.4998628974266214,
+            0.5162645687031859,
+            0.5326324327422656
+          ],
+          "coherent_scores": [
+            0.27213974415525943,
+            0.25680256607021223,
+            0.23694246463160024,
+            0.22692945123817307
+          ],
+          "match_support_by_pose": [
+            {
+              "component_only_score": 0.3582764092791917,
+              "matched_points": 543,
+              "mean_factor_linked_points": 0.3510893228555878
+            },
+            {
+              "component_only_score": 0.34899271237246143,
+              "matched_points": 555,
+              "mean_factor_linked_points": 0.3384717082877305
+            },
+            {
+              "component_only_score": 0.3607180072972875,
+              "matched_points": 611,
+              "mean_factor_linked_points": 0.33990036473743074
+            },
+            {
+              "component_only_score": 0.3512923218509992,
+              "matched_points": 672,
+              "mean_factor_linked_points": 0.3398445067235024
+            }
+          ]
+        },
+        {
+          "prepared_index": 5,
+          "time_s": 1317212821.4118707,
+          "original_scores": [
+            0.4789687965445305,
+            0.5072473504855022,
+            0.5921235496124813,
+            0.5624347886555674
+          ],
+          "coherent_scores": [
+            0.24604095434310524,
+            0.25392544272869416,
+            0.2575985135491125,
+            0.250755989977328
+          ],
+          "match_support_by_pose": [
+            {
+              "component_only_score": 0.34722282338355376,
+              "matched_points": 510,
+              "mean_factor_linked_points": 0.3182994243303925
+            },
+            {
+              "component_only_score": 0.36365596074144946,
+              "matched_points": 525,
+              "mean_factor_linked_points": 0.31347091332402777
+            },
+            {
+              "component_only_score": 0.3872320338604061,
+              "matched_points": 608,
+              "mean_factor_linked_points": 0.3212611027601383
+            },
+            {
+              "component_only_score": 0.3764125522543423,
+              "matched_points": 575,
+              "mean_factor_linked_points": 0.32085022002960056
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fold": 3,
+      "poses": [
+        [
+          0.0,
+          -3.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -0.45,
+          -2.9499999999999997,
+          -0.45,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -4.15,
+          -4.949999999999999,
+          -2.6,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -3.9499999999999997,
+          -0.9499999999999997,
+          -0.5,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "rotation_error_norms_deg": [
+        0.0,
+        0.6382847958252723,
+        5.270628135045736,
+        4.477876508497245
+      ],
+      "original_scores": [
+        0.4506634892307387,
+        0.4813924385165252,
+        0.5746697484998746,
+        0.5532133654393123
+      ],
+      "coherent_scores": [
+        0.22389044597983648,
+        0.21726552422815482,
+        0.20636309714279558,
+        0.2141310636744468
+      ],
+      "frames": [
+        {
+          "prepared_index": 6,
+          "time_s": 1317212822.4488773,
+          "original_scores": [
+            0.4506634892307387,
+            0.4813924385165252,
+            0.5746697484998746,
+            0.5532133654393123
+          ],
+          "coherent_scores": [
+            0.22389044597983648,
+            0.21726552422815482,
+            0.20636309714279558,
+            0.21413106367444681
+          ],
+          "match_support_by_pose": [
+            {
+              "component_only_score": 0.3283250232505488,
+              "matched_points": 513,
+              "mean_factor_linked_points": 0.30090485062429256
+            },
+            {
+              "component_only_score": 0.3329004853705768,
+              "matched_points": 542,
+              "mean_factor_linked_points": 0.2998741596990425
+            },
+            {
+              "component_only_score": 0.320582593939496,
+              "matched_points": 592,
+              "mean_factor_linked_points": 0.2570664823354655
+            },
+            {
+              "component_only_score": 0.34388620967050204,
+              "matched_points": 597,
+              "mean_factor_linked_points": 0.2864392288827878
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fold": 4,
+      "poses": [
+        [
+          0.0,
+          -3.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -1.6,
+          -2.9499999999999997,
+          -0.1,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -4.1499999999999995,
+          -4.949999999999999,
+          -2.6,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -4.05,
+          -0.9499999999999997,
+          -0.45,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "rotation_error_norms_deg": [
+        0.0,
+        1.6037184587756568,
+        5.270628135045734,
+        4.561107988183837
+      ],
+      "original_scores": [
+        0.4213726225566224,
+        0.41918712992435747,
+        0.3927516569348008,
+        0.515227626652686
+      ],
+      "coherent_scores": [
+        0.25281772552547,
+        0.2080227211824758,
+        0.19468069183237383,
+        0.25036940033552935
+      ],
+      "frames": [
+        {
+          "prepared_index": 7,
+          "time_s": 1317212823.4862018,
+          "original_scores": [
+            0.47384665371391066,
+            0.4597954826092577,
+            0.42923774987970076,
+            0.5564241424696068
+          ],
+          "coherent_scores": [
+            0.2960162495339622,
+            0.22912583486885157,
+            0.2121334181212111,
+            0.2777696597015151
+          ],
+          "match_support_by_pose": [
+            {
+              "component_only_score": 0.3967731412552745,
+              "matched_points": 494,
+              "mean_factor_linked_points": 0.3467455113663142
+            },
+            {
+              "component_only_score": 0.34448867703029445,
+              "matched_points": 528,
+              "mean_factor_linked_points": 0.30529724102602945
+            },
+            {
+              "component_only_score": 0.3153929757076386,
+              "matched_points": 500,
+              "mean_factor_linked_points": 0.27572222952648046
+            },
+            {
+              "component_only_score": 0.39589923979797936,
+              "matched_points": 583,
+              "mean_factor_linked_points": 0.3434353673035642
+            }
+          ]
+        },
+        {
+          "prepared_index": 8,
+          "time_s": 1317212824.5227194,
+          "original_scores": [
+            0.37569213396156576,
+            0.38383613152047413,
+            0.36098923053283793,
+            0.4793646115683275
+          ],
+          "coherent_scores": [
+            0.2152118919393624,
+            0.18965171893984029,
+            0.17948748013113894,
+            0.22651651143286958
+          ],
+          "match_support_by_pose": [
+            {
+              "component_only_score": 0.29149749946548165,
+              "matched_points": 485,
+              "mean_factor_linked_points": 0.29440588662922895
+            },
+            {
+              "component_only_score": 0.2844065344179927,
+              "matched_points": 528,
+              "mean_factor_linked_points": 0.27408020264849364
+            },
+            {
+              "component_only_score": 0.28228750754201204,
+              "matched_points": 503,
+              "mean_factor_linked_points": 0.2576086105085604
+            },
+            {
+              "component_only_score": 0.35418043943758165,
+              "matched_points": 615,
+              "mean_factor_linked_points": 0.310117479013181
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fold": 5,
+      "poses": [
+        [
+          0.0,
+          -3.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -4.0,
+          -3.05,
+          -2.5,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -4.0,
+          -5.05,
+          -1.65,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          -3.8,
+          -1.0499999999999998,
+          -2.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "rotation_error_norms_deg": [
+        0.0,
+        4.716716717687453,
+        4.787559165222284,
+        4.715748805878428
+      ],
+      "original_scores": [
+        0.37428447073534404,
+        0.41349238458257065,
+        0.3630837655363421,
+        0.43838767933272915
+      ],
+      "coherent_scores": [
+        0.2164076768748344,
+        0.19176921774498973,
+        0.15111680086043303,
+        0.19327718840361127
+      ],
+      "frames": [
+        {
+          "prepared_index": 9,
+          "time_s": 1317212825.5593317,
+          "original_scores": [
+            0.3886942970800028,
+            0.41792805325190663,
+            0.3611308058412433,
+            0.4394841043111551
+          ],
+          "coherent_scores": [
+            0.22380213350038747,
+            0.2093011163054781,
+            0.1578723189086376,
+            0.19650880071056198
+          ],
+          "match_support_by_pose": [
+            {
+              "component_only_score": 0.30122131566611465,
+              "matched_points": 510,
+              "mean_factor_linked_points": 0.2893624243640591
+            },
+            {
+              "component_only_score": 0.3181102615533952,
+              "matched_points": 603,
+              "mean_factor_linked_points": 0.2932386580900102
+            },
+            {
+              "component_only_score": 0.24890023513688753,
+              "matched_points": 550,
+              "mean_factor_linked_points": 0.22452492008478991
+            },
+            {
+              "component_only_score": 0.30959202622780235,
+              "matched_points": 625,
+              "mean_factor_linked_points": 0.2660698438045304
+            }
+          ]
+        },
+        {
+          "prepared_index": 10,
+          "time_s": 1317212826.5961351,
+          "original_scores": [
+            0.35947499341127065,
+            0.4089336943524151,
+            0.3650908898158178,
+            0.43726084543014265
+          ],
+          "coherent_scores": [
+            0.20880813784495822,
+            0.1737510787355806,
+            0.14417392112306976,
+            0.18995594857494932
+          ],
+          "match_support_by_pose": [
+            {
+              "component_only_score": 0.27904970849044697,
+              "matched_points": 491,
+              "mean_factor_linked_points": 0.27671110093232987
+            },
+            {
+              "component_only_score": 0.27266628499174556,
+              "matched_points": 613,
+              "mean_factor_linked_points": 0.25789510917832975
+            },
+            {
+              "component_only_score": 0.23508929841631,
+              "matched_points": 550,
+              "mean_factor_linked_points": 0.21177662248938595
+            },
+            {
+              "component_only_score": 0.29305657962548165,
+              "matched_points": 613,
+              "mean_factor_linked_points": 0.25897313291644586
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "original_scores": {
+      "folds_control_beats_reference": 5,
+      "folds_control_beats_baseline": 4,
+      "frames_control_beats_reference": 10
+    },
+    "coherent_scores": {
+      "folds_control_beats_reference": 1,
+      "folds_control_beats_baseline": 2,
+      "frames_control_beats_reference": 4
+    },
+    "decision": "requires_full_paired_development_experiment"
+  },
+  "limitations": [
+    "Post hoc fixed-pose falsification screen; no optimization or new accuracy claim.",
+    "Image connected components are not semantic boundary identities.",
+    "Three-dimensional neighbors can belong to different physical boundaries.",
+    "Labels use rounded pixels; reward retains the existing bilinear distance field.",
+    "Unknown labels penalize linked points; isolated points retain the old score."
+  ]
+}
