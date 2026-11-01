@@ -134,6 +134,42 @@ sweep with one ego pose. So the converter was changed to follow it (commit
 with the corrected converter, and the gates come from that run. These first
 receipts stay as history.
 
+## Second development batch (av2-api conventions, 2026-11-01)
+
+All 30 development logs ran again from commit `76901adc`, with no failed attempt
+([receipts and gates](../assets/camera_lidar_v4/av2_dev_r2_20261101/gates.json)).
+The rule committed above gives:
+
+| Requirement | Development (default rule) | Gate by the rule |
+| --- | --- | --- |
+| Vendor calibration flagged | 7 of 28 scored (first batch: 12) | ≤ 0.45 |
+| Worst judged baseline axis | 3.00° (first batch: 4.5°) | ≤ 4.5° |
+| Worst judged turned-run axis | 7.12° | ≤ 10.75° |
+| Judged baseline axes | 0.75 (first batch: 0.51) | ≥ 0.5 |
+| Scored logs | 28 of 30 | ≥ 93 of 150 |
+| 3° turns missed / judged right | 5 of 63 / 0 | ≤ 0.2 / none |
+| 1° turns missed | 6 of 63 | ≤ 0.25 |
+
+The opt-in warning misses 1 of 61 3° turns and 2 of 61 1° turns by the run
+verdict. It warns on 8 of 28 baselines.
+
+Most logs now judge every axis within ±0.5° of the vendor calibration. The
+exceptions are of two kinds:
+
+- **Camera-x rotation (vertical tilt).** It reads −3.00° (0fb7276f), −1.75°
+  (05fa5048), −1.50° (214e388e), and about −0.6° on two more, with reported
+  stds of 0.04–0.09°.
+- **Yaw.** It reads +0.6° to +0.8° on three logs, with a std of 0.03°.
+
+The calibrations differ between logs, but two logs with the same calibration
+read −1.45° and +0.10°. So the exceptions belong to the log, as on KITTI-360,
+not to the calibration. Every one of the large tilt readings has the same sign,
+which a scene effect alone would not explain. The cause is open.
+
+**No v4 claim is frozen.** Gates of 4.5° and a 45 % vendor-flag allowance would
+be honest, but they would not support a meaningful check claim. The 150
+evaluation logs stay unread.
+
 ## Next steps (not yet decided)
 
 1. **Converters.** ~~Argoverse 2~~ done above. Boreas camera, LiDAR and

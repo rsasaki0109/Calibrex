@@ -1,0 +1,274 @@
+schema_version: slac.camera_lidar_edge/v0.1
+method: edge_alignment/v0.1
+solver_status: converged
+policy_status: pass
+policy_reasons:
+- all three rotation DoFs are observed with detected held-out controls
+- 'x: translation is not estimated (parallax resolves it too weakly; see limitations)'
+- 'y: translation is not estimated (parallax resolves it too weakly; see limitations)'
+- 'z: translation is not estimated (parallax resolves it too weakly; see limitations)'
+- '10 frame(s) dropped: t=315966072.0s: repeats the last kept view (image change 0.047
+  < 0.05; a spinning LiDAR at a standing rig adds no view)'
+calibrated_dofs:
+- roll
+- pitch
+- yaw
+transform:
+  parent_frame: ring_front_center_optical
+  child_frame: velo_link
+  translation_m:
+  - -0.012469059981364938
+  - -0.21286840647392458
+  - -0.29668967000816204
+  rotation_quat_xyzw:
+  - 0.5014322815863368
+  - -0.4944180969213474
+  - 0.5019010500068847
+  - 0.5022068781107845
+start_transform:
+  parent_frame: ring_front_center_optical
+  child_frame: velo_link
+  translation_m:
+  - -0.012469059981364938
+  - -0.21286840647392458
+  - -0.29668967000816204
+  rotation_quat_xyzw:
+  - 0.497749359121639
+  - -0.4981257577065973
+  - 0.49860152375004707
+  - 0.5054827648074238
+dofs:
+- name: roll
+  unit: deg
+  value: 69.41372032989696
+  delta_from_start: 0.0
+  std_jackknife: 0.025
+  std_reported: 0.025
+  status: estimated
+  at_search_bound: false
+  reference_value: 68.80578228315184
+  error_to_reference: 2.5444644948773174e-14
+  known_bad_control:
+    amount: 2.0
+    unit: deg
+    held_out_blocks: 6
+    detected_blocks: 6
+    mean_objective_drop: 0.0133624778317084
+    min_t_statistic: 3.8054479002957913
+    detected: true
+- name: pitch
+  unit: deg
+  value: -68.44274045772454
+  delta_from_start: 0.05
+  std_jackknife: 0.05270462766947299
+  std_reported: 0.05270462766947299
+  status: estimated
+  at_search_bound: false
+  reference_value: -68.85781328753933
+  error_to_reference: 0.049999999999997824
+  known_bad_control:
+    amount: 2.0
+    unit: deg
+    held_out_blocks: 6
+    detected_blocks: 6
+    mean_objective_drop: 0.018688646069226447
+    min_t_statistic: 10.842230735780511
+    detected: true
+- name: yaw
+  unit: deg
+  value: 69.4786123626565
+  delta_from_start: 0.8
+  std_jackknife: 0.025
+  std_reported: 0.025
+  status: estimated
+  at_search_bound: false
+  reference_value: 68.9235802326964
+  error_to_reference: 0.8000000000000128
+  known_bad_control:
+    amount: 2.0
+    unit: deg
+    held_out_blocks: 6
+    detected_blocks: 5
+    mean_objective_drop: 0.004642794476344439
+    min_t_statistic: 3.414757965973771
+    detected: true
+- name: x
+  unit: m
+  value: -0.012469059981364938
+  delta_from_start: 0.0
+  std_jackknife: 0.0005
+  std_reported: 0.0005
+  status: unobservable
+  at_search_bound: false
+  reference_value: -0.012469059981364938
+  error_to_reference: 0.0
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    held_out_blocks: 6
+    detected_blocks: 3
+    mean_objective_drop: 0.00013784740408915677
+    min_t_statistic: 0.08190074299882501
+    detected: false
+- name: y
+  unit: m
+  value: -0.21286840647392458
+  delta_from_start: 0.0
+  std_jackknife: 0.0005
+  std_reported: 0.0005
+  status: unobservable
+  at_search_bound: false
+  reference_value: -0.21286840647392458
+  error_to_reference: 0.0
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    held_out_blocks: 6
+    detected_blocks: 2
+    mean_objective_drop: -0.00019622740595986546
+    min_t_statistic: -0.5828612214221285
+    detected: false
+- name: z
+  unit: m
+  value: -0.29668967000816204
+  delta_from_start: 0.0
+  std_jackknife: 0.0005
+  std_reported: 0.0005
+  status: unobservable
+  at_search_bound: false
+  reference_value: -0.29668967000816204
+  error_to_reference: 0.0
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    held_out_blocks: 6
+    detected_blocks: 0
+    mean_objective_drop: -0.00028075501757063764
+    min_t_statistic: -0.7771643992593343
+    detected: false
+objective:
+  start: 0.022904527903965355
+  estimate: 0.02494251684265033
+  gain: 0.0020379889386849745
+samples:
+  frames: 38
+  edge_points: 25554
+  blocks: 6
+  median_abs_time_gap_s: 0.010122746229171753
+  max_abs_time_gap_s: 0.03999227285385132
+  first_frame_time_s: 315966060.559935
+  last_frame_time_s: 315966076.159762
+  median_rings: 40
+motion_compensation:
+  source_topic: /av2/odometry
+  kind: twist
+  per_point_time: false
+  frames_moved: 48
+  frames_without_motion: 0
+  median_rotation_deg: 0.02520353326904741
+  max_rotation_deg: 0.2525115748076097
+  median_translation_m: 0.02119498996932733
+  max_translation_m: 0.15564497047784523
+jackknife_fits: 6
+camera:
+  fx: 1763.2036466539041
+  fy: 1763.2036466539041
+  cx: 772.5824845960927
+  cy: 1013.6269134048965
+  distortion_model: none
+  distortion:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+options:
+  spacing_s: 1.0
+  max_frames: 48
+  max_seconds: null
+  short_recording_spacing_s: 0.25
+  short_recording_min_view_change: 0.05
+  max_gap_s: 0.06
+  min_frames: 8
+  blocks: 6
+  min_jump_m: 0.3
+  jump_exponent: 0.5
+  max_edge_points_per_frame: 4000
+  min_edge_points_per_frame: 150
+  image_max_width: 960
+  spill_gamma: 0.98
+  spill_radius_px: 40
+  edge_background_sigma_px: 20.0
+  repeated_view_change: 0.05
+  image_margin_px: 80.0
+  rotation_bound_deg: 12.0
+  translation_bound_m: 0.2
+  rotation_levels_deg:
+  - 1.0
+  - 0.5
+  - 0.25
+  - 0.1
+  - 0.05
+  translation_levels_m:
+  - 0.02
+  - 0.01
+  - 0.005
+  - 0.0025
+  - 0.001
+  jackknife_first_level: 1
+  max_moves_per_level: 12
+  rotation_control_deg: 2.0
+  translation_control_m: 0.05
+  min_control_t: 2.5
+  observable_rotation_std_deg: 0.5
+  observable_translation_std_m: 0.03
+  min_ring_fraction: 0.5
+  min_gain: 2.0e-05
+  estimate_translation: false
+  start_scan_deg: 8.0
+  start_scan_step_deg: 0.5
+  start_scan_min_observed: 2
+  unstructured_lidar: true
+  start_scan_min_control_t: null
+  preparation_workers: 1
+reference: deployed candidate calibration (T_camera_lidar)
+limitations:
+- The camera frame is assumed to be the optical frame (x right, y down, z forward)
+  and the intrinsics are taken as correct; an intrinsics error reads as an extrinsic
+  error.
+- LiDAR points were moved to the image time with the rig motion from /av2/odometry
+  (constant velocity between each point's and the image's time; the cloud has no per-point
+  time, so a scan is moved as a whole and the rolling sweep is not compensated).
+- 'Image edges and LiDAR depth discontinuities constrain rotation well and translation
+  weakly (translation is a parallax effect that scales with 1/depth): on the Hilti
+  2022 and KITTI recordings the translation estimate differed from the reference by
+  up to 11 cm with a reported std of 1-2 cm. Translation is therefore not estimated
+  by default; its held-out control is still recorded.'
+- The jackknife standard deviation does not include systematic effects (lens model,
+  timing, scene composition); the verdict floors cover those.
+- Edge alignment needs structured scenes with depth discontinuities and image edges;
+  textureless or very distant scenes yield an inconclusive result.
+- 'the cloud has no per-point time: image and scan are paired at the header stamp;
+  the recording is shorter than 48 scans 1 s apart, so up to 48 scans at least 0.25
+  s apart were spread over it (median view change 0.067)'
+provenance:
+  generator: calibrex.evaluation.camera_lidar_edge
+  generator_version: 0.5.1
+  git_commit: 76901adc
+  command:
+  - calibrex
+  - check
+  - /home/user/av2-v4-work-r2/11ba4e81-c26f-3cd1-827d-b6913bcef64e/attempt_1/bag
+  - camera-lidar
+  - /camera/image_raw
+  - /velodyne_points
+  dataset_family: calibrex-check
+  sequence_ids:
+  - bag
+  image_topic: /camera/image_raw
+  lidar_topic: /velodyne_points
+  input_sha256: c7d1f4d0030ff22641e0cf21372042bf559d18af5bc73970d22c7f156ade7501
+  input_digest_scope: bag digest (metadata.yaml in full; storage files by name, size
+    and first 64 MiB)
+  dataset_license: user-provided
+  created_at: '2026-11-01T11:44:53.639561+00:00'
