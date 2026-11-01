@@ -172,11 +172,11 @@ evaluation logs stay unread.
 
 ## Next steps (not yet decided)
 
-1. **Converters.** ~~Argoverse 2~~ done above. Boreas camera, LiDAR and
-   Applanix are still to do. Both are development work, validated first on
-   development data only.
-2. **Split rules.** Argoverse 2: ~~fix from metadata~~ done below. For Boreas,
-   the two INS-LiDAR sequences would be development data.
-3. **Pre-registration.** Develop on the development split, derive gates by the
-   committed v2 rule, and freeze a v4 pre-registration that discloses the
-   exposure policy above.
+1. **Tilt bias.** Find the cause of the negative camera-x readings on
+   development logs (0fb7276f: −3.0°) before any freeze. This should happen
+   only on development data.
+2. **Boreas.** A camera, LiDAR and Applanix converter, and a split with the
+   two INS-LiDAR sequences as development data. Boreas is the second dataset
+   family the research plan's final gate needs.
+3. **Pre-registration.** Freeze a v4 pre-registration only when its derived
+   gates support a meaningful claim, with the exposure policy above disclosed.
