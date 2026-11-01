@@ -152,15 +152,21 @@ def test_acquire_rejects_a_corrupt_member_and_missing_members(
         batch.acquire(work, SEGMENT, tmp_path / "raw3", get=served["get"], cap_bytes=10)
 
 
-def test_only_spent_sequences_and_their_fixed_segments_are_accepted() -> None:
-    fixed = batch.segments()
-    assert len(fixed) == 22 and {s["sequence"] for s in fixed.values()} == {"0000", "0002"}
-    for candidate in ("0003", "0004", "0009"):
-        with pytest.raises(ValueError, match="spent development sequence"):
-            batch.archive_names(candidate)
-    assert set(replay.spent_kitti360_segments()) == set(fixed)
+def test_only_the_fixed_development_segments_are_accepted() -> None:
+    spent, exposed, every = (batch.segments(w) for w in ("spent", "exposed", "all"))
+    assert len(spent) == 22 and {s["sequence"] for s in spent.values()} == {"0000", "0002"}
+    assert len(exposed) == 42 and {s["sequence"] for s in exposed.values()} == set(batch.EXPOSED)
+    assert every == spent | exposed
+    for other in ("0003", "0001", "0008"):
+        with pytest.raises(ValueError, match="spent or exposed development sequence"):
+            batch.archive_names(other)
+    assert batch.archive_names("0004")[-1] == "0004-velodyne"
+    assert set(replay.spent_kitti360_segments()) == set(every)
+    replay._require_spent("0004-s00")
     with pytest.raises(ValueError, match="not a spent"):
-        replay._require_spent("0004-s00")
+        replay._require_spent("0003-s00")
+    with pytest.raises(ValueError, match="unknown segment group"):
+        batch.segments("evaluation")
 
 
 def test_inventory_requires_every_metadata_range_to_match_its_binding(tmp_path: Path) -> None:
@@ -177,15 +183,9 @@ def test_inventory_requires_every_metadata_range_to_match_its_binding(tmp_path: 
         }
 
     written = batch.inventory(tmp_path / "ok", read=faithful)
-    assert set(written) == {
-        "calibration",
-        "oxts",
-        "perspective-timestamps",
-        "velodyne-timestamps",
-        "0000-camera00",
-        "0000-velodyne",
-        "0002-camera00",
-        "0002-velodyne",
+    shared = {"calibration", "oxts", "perspective-timestamps", "velodyne-timestamps"}
+    assert set(written) == shared | {
+        f"{sequence}-{kind}" for sequence in batch.SEQUENCES for kind in ("camera00", "velodyne")
     }
 
     def tampered(url: str) -> dict:

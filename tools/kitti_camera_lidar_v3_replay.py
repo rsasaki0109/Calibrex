@@ -83,13 +83,14 @@ def spent_drives() -> tuple[str, ...]:
 
 
 def spent_kitti360_segments() -> dict[str, dict[str, Any]]:
-    """The fixed KITTI-360 development segments by ID; spent sequences only."""
+    """Every fixed KITTI-360 segment by ID, all development data.
+
+    The list's "evaluation" segments (0004-0007, 0009, 0010) count as spent: the owner
+    cannot rule out earlier reads of them outside git (2026-11-01).
+    """
 
     fixed = json.loads(KITTI360_SEGMENTS.read_text())
-    segments = {item["id"]: item for item in fixed["development"]}
-    if any(item["sequence"] in fixed["rule"]["candidates"] for item in segments.values()):
-        raise ValueError("a KITTI-360 development segment names an evaluation candidate")
-    return segments
+    return {item["id"]: item for item in [*fixed["development"], *fixed["evaluation"]]}
 
 
 def _require_spent(drive: str) -> None:

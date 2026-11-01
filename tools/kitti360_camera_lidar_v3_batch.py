@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Sequential KITTI-360 development batch for the v3 camera-LiDAR check (spent data only).
+"""Sequential KITTI-360 development batch for the v3 camera-LiDAR check (development only).
 
-Runs the fixed development segments of spent sequences 0000 and 0002
-(``docs/assets/kitti_camera_lidar_v3/kitti360_prep/segments.json``). It never names an
-evaluation candidate: archives and segments of candidate sequences are refused before
-any request. For each segment the batch:
+Runs the fixed segments of ``docs/assets/kitti_camera_lidar_v3/kitti360_prep/segments.json``:
+the development segments of spent 0000 and 0002, and the segments the list calls
+"evaluation" (0004-0007, 0009, 0010). The owner cannot rule out earlier reads of those
+outside git (2026-11-01), so they are development data too. Spent 0003 has no segments
+and any other sequence is refused before a request. For each segment the batch:
 
 1. re-reads each archive's central directory and requires every metadata range to match
    the committed SHA-256 bindings (``inventory``);
@@ -55,7 +56,10 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = "calibrex.kitti360_camera_lidar_v3_batch/v0.1"
 BINDINGS = ROOT / "docs/assets/kitti360_sota_readiness/metadata-range-bindings.json"
 SEGMENTS = ROOT / "docs/assets/kitti_camera_lidar_v3/kitti360_prep/segments.json"
-SEQUENCES = ("0000", "0002")
+SPENT = ("0000", "0002")
+EXPOSED = ("0004", "0005", "0006", "0007", "0009", "0010")
+"""Former candidates the owner cannot confirm unread (2026-11-01): development only."""
+SEQUENCES = SPENT + EXPOSED
 SHARED_ARCHIVES = ("calibration", "oxts", "perspective-timestamps", "velodyne-timestamps")
 AGREEMENT = {"start_agreement_deg": 0.5}
 REQUEST_BYTES = 64 * 1024**2
@@ -116,21 +120,23 @@ def _commit() -> str:
     ).stdout.strip()
 
 
-def segments() -> dict[str, dict[str, Any]]:
-    """The fixed development segments of the spent sequences this batch may read."""
+def segments(which: str = "all") -> dict[str, dict[str, Any]]:
+    """Fixed segments, all development data: ``spent`` (0000/0002), ``exposed`` or ``all``."""
 
     fixed = json.loads(SEGMENTS.read_text())
-    candidates = set(fixed["rule"]["candidates"])
-    result = {item["id"]: item for item in fixed["development"]}
-    sequences = {item["sequence"] for item in result.values()}
-    if sequences & candidates or not sequences <= set(SEQUENCES):
-        raise ValueError("development segments must come from spent sequences 0000/0002")
+    lists = {"spent": ["development"], "exposed": ["evaluation"]}
+    chosen = lists.get(which, ["development", "evaluation"])
+    if which not in ("all", *lists):
+        raise ValueError(f"unknown segment group: {which}")
+    result = {item["id"]: item for key in chosen for item in fixed[key]}
+    if not {item["sequence"] for item in result.values()} <= set(SEQUENCES):
+        raise ValueError("segments must come from the spent or exposed KITTI-360 sequences")
     return result
 
 
 def archive_names(sequence: str) -> tuple[str, ...]:
     if sequence not in SEQUENCES:
-        raise ValueError(f"not a spent development sequence: {sequence}")
+        raise ValueError(f"not a spent or exposed development sequence: {sequence}")
     return (*SHARED_ARCHIVES, f"{sequence}-camera00", f"{sequence}-velodyne")
 
 
@@ -554,14 +560,14 @@ def _provenance() -> dict[str, Any]:
     }
 
 
-def aggregate(dest: Path, output: Path) -> dict[str, Any]:
+def aggregate(dest: Path, output: Path, which: str = "all") -> dict[str, Any]:
     """Pool each segment's latest published scores under the default and agreement rules."""
 
     summarize = _tool("kitti_camera_lidar_v3_development").summarize_scores
     scorer = _tool("score_kitti_camera_lidar_v2")
     scores: dict[str, dict[str, Any]] = {"current": {}, "proposed": {}}
     statuses: dict[str, str] = {}
-    for segment_id in segments():
+    for segment_id in segments(which):
         attempt, report = _latest(dest, segment_id)
         statuses[segment_id] = "missing" if report is None else report["status"]
         comparison = dest / segment_id / f"attempt_{attempt}" / "comparison" / "comparison.json"
@@ -575,13 +581,14 @@ def aggregate(dest: Path, output: Path) -> dict[str, Any]:
     complete = all(status == "PASS_DEVELOPMENT" for status in statuses.values())
     result = {
         "schema_version": SCHEMA,
-        "analysis": "development; spent KITTI-360 segments only",
+        "analysis": f"development; KITTI-360 segments ({which})",
         "status": "complete" if complete else "incomplete",
         "audit_thresholds": None,
         "segment_status": statuses,
         "metrics": {rule: summarize(values) for rule, values in scores.items()},
         "rules": {"current": "default", "proposed": AGREEMENT},
-        "attempts": {segment_id: _latest(dest, segment_id)[0] for segment_id in segments()},
+        "segments": which,
+        "attempts": {segment_id: _latest(dest, segment_id)[0] for segment_id in segments(which)},
         "provenance": _provenance(),
     }
     output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
@@ -603,6 +610,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     a = sub.add_parser("aggregate")
     a.add_argument("dest", type=Path)
     a.add_argument("output", type=Path)
+    a.add_argument("--segments", choices=("all", "spent", "exposed"), default="all")
     args = parser.parse_args(argv)
     if args.command == "inventory":
         print("inventoried", inventory(args.work))
@@ -612,7 +620,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "publish":
         print(publish(args.work, args.dest), "files published")
         return 0
-    print(aggregate(args.dest, args.output)["status"])
+    print(aggregate(args.dest, args.output, args.segments)["status"])
     return 0
 
 

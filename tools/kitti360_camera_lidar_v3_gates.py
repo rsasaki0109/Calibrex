@@ -148,7 +148,7 @@ def secondary(scores: dict[str, Any]) -> dict[str, Any]:
 def scores_from(published: Path) -> dict[str, dict[str, Any]]:
     batch = _tool("kitti360_camera_lidar_v3_batch")
     scores: dict[str, dict[str, Any]] = {"current": {}, "proposed": {}}
-    for segment in batch.segments():
+    for segment in batch.segments("spent"):
         attempt, report = batch._latest(published, segment)
         if report is None or report["status"] != "PASS_DEVELOPMENT":
             for rule in scores:
