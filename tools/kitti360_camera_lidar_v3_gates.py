@@ -92,7 +92,7 @@ def _trials(scores: dict[str, Any], angle: int) -> list[dict[str, Any]]:
     ]
 
 
-def primary(scores: dict[str, Any]) -> dict[str, Any]:
+def primary(scores: dict[str, Any], evaluation_units: int = EVALUATION_SEGMENTS) -> dict[str, Any]:
     """Default rule: v2's requirements with gates from these development values."""
 
     metrics = _tool("kitti_camera_lidar_v3_development").summarize_scores(scores)
@@ -110,7 +110,7 @@ def primary(scores: dict[str, Any]) -> dict[str, Any]:
             },
             "scored-segments-coverage": {
                 "development": f"{metrics['scored_drives']} of {metrics['drives']}",
-                "threshold_segments": math.floor(round(scored_rate / 1.5 * EVALUATION_SEGMENTS, 9)),
+                "threshold_segments": math.floor(round(scored_rate / 1.5 * evaluation_units, 9)),
             },
             "turn-3deg-flagged": allowance(three["counted"] - three["flagged"], three["counted"]),
             "turn-1deg-flagged": {

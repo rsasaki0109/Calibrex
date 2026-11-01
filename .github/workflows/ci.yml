@@ -250,7 +250,10 @@ jobs:
       - name: Require Argoverse 2 adapter
         run: python -c "import pyarrow.feather"
       - name: Test Argoverse 2 conversion
-        run: python -m pytest tests/unit/test_av2_to_rosbag2.py
+        run: >-
+          python -m pytest
+          tests/unit/test_av2_to_rosbag2.py
+          tests/unit/test_av2_camera_lidar_v4_batch.py
 
   opencv-adapter:
     runs-on: ubuntu-latest
