@@ -92,26 +92,8 @@ def spent_kitti360_segments() -> dict[str, dict[str, Any]]:
     return segments
 
 
-_AUTHORIZED: dict[str, dict[str, Any]] = {}
-
-
-def authorize_evaluation(segments: dict[str, dict[str, Any]]) -> None:
-    """Admit pre-registered KITTI-360 evaluation segments.
-
-    Only ``kitti360_camera_lidar_v3_batch.evaluate`` calls this, after
-    ``verify_preregistration`` has checked the frozen pre-registration and code.
-    """
-
-    _AUTHORIZED.clear()
-    _AUTHORIZED.update(segments)
-
-
-def _kitti360_segments() -> dict[str, dict[str, Any]]:
-    return spent_kitti360_segments() | _AUTHORIZED
-
-
 def _require_spent(drive: str) -> None:
-    if drive not in spent_drives() and drive not in _kitti360_segments():
+    if drive not in spent_drives() and drive not in spent_kitti360_segments():
         raise ValueError(f"not a spent KITTI raw drive or KITTI-360 development segment: {drive}")
 
 
@@ -140,7 +122,7 @@ def _kitti360_reference(conversion: dict[str, Any], segment: dict[str, Any]) -> 
 
 
 def _reference(conversion: dict[str, Any], drive: str) -> np.ndarray:
-    segments = _kitti360_segments()
+    segments = spent_kitti360_segments()
     if drive in segments:
         return _kitti360_reference(conversion, segments[drive])
     date, number = drive[:10], drive[11:]
@@ -701,7 +683,7 @@ def compare_drives(
             },
             "capture_manifests_sha256": manifests,
             "reference": "the KITTI-360 published calibration, not ground truth"
-            if set(order) <= set(_kitti360_segments())
+            if set(order) <= set(spent_kitti360_segments())
             else "each KITTI day's published calibration, not ground truth",
         },
     }
