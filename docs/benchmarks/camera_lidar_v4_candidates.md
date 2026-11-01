@@ -166,6 +166,39 @@ read −1.45° and +0.10°. So the exceptions belong to the log, as on KITTI-360
 not to the calibration. Every one of the large tilt readings has the same sign,
 which a scene effect alone would not explain. The cause is open.
 
+### Tilt investigation on 0fb7276f (post hoc, development data)
+
+The default check on this log reads camera-x −3.0°. The diagnostics below
+changed nothing in the check:
+
+- **The objective genuinely prefers the tilt.** Along camera-x, the pooled edge
+  objective of the saved inputs peaks at −2.5° (score 0.019) and drops to 0.003
+  at the vendor calibration. Two clean logs (02678d04, 070bbf42) peak sharply
+  at 0°, and 05fa5048 peaks near −1.5°. So the axis is not merely weakly
+  constrained.
+- **The ego hood is not the cause.** The `up_lidar`'s edge points fall in a band
+  around the horizon (image rows about 800–1100 of 2048), far above the hood at
+  the bottom of the image.
+- **The forward cameras share it.** The same log was converted for five ring
+  cameras, each checked against its own vendor calibration:
+
+| Camera | Verdict | Camera-x reading |
+| --- | --- | ---: |
+| front centre | fail | −3.0° |
+| front left | inconclusive (no axis judged) | −3.0° |
+| front right | inconclusive (no axis judged) | −3.0° |
+| side left | pass | +0.35° |
+| side right | pass | +0.15° |
+
+A pitch error of the LiDAR extrinsic would show in the side cameras too, about
+its camera-z axis, and it does not. A front-centre calibration error would not
+appear in the front-left and front-right cameras, and it does. What remains is
+something the forward views share. That is either their common scene (palm
+fronds against the sky, whose LiDAR and image silhouettes may disagree
+vertically) or a timing or motion effect along the direction of travel, which
+displaces points radially from the focus of expansion. These two are not yet
+separated.
+
 **No v4 claim is frozen.** Gates of 4.5° and a 45 % vendor-flag allowance would
 be honest, but they would not support a meaningful check claim. The 150
 evaluation logs stay unread.
