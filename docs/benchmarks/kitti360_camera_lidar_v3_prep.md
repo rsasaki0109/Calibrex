@@ -123,6 +123,42 @@ If the development batch already fails a gate that the rule derives from the
 batch itself, for example a flagged vendor baseline, the pre-registration
 records that. It is not tuned away.
 
+## Development results, 2026-11-01
+
+The [batch](../assets/kitti_camera_lidar_v3/kitti360_dev_20261031/summary.json) ran all
+22 spent segments once from commit `57d3796a`, with no failed attempt. Each segment
+read about 1.36 GB of exact member ranges. All eight spent archives' central
+directories matched their committed SHA-256 bindings. Applying the rule above gives
+these [gates](../assets/kitti_camera_lidar_v3/kitti360_dev_20261031/gates.json):
+
+| Requirement | Development (default rule) | Gate |
+| --- | --- | --- |
+| Vendor calibration flagged | **1 of 22 (0002-s04)** | none allowed |
+| Worst judged baseline axis | 0.60° | ≤ 1.0° |
+| Worst judged turned-run axis | 0.65° | ≤ 1.0° |
+| Judged baseline axes | 59 of 66 (0.89) | ≥ 0.5 |
+| Scored segments | 22 of 22 | ≥ 28 of 42 |
+| 3° turns missed | 4 of 59 | ≤ 0.15 |
+| 3° turns judged right | 0 | none allowed |
+| 1° turns missed | 0 of 59 | ≤ 0.25 |
+
+| Requirement | Development (warning, 0.5°) | Gate |
+| --- | --- | --- |
+| Baselines warned | 1 of 22 | ≤ 0.2 |
+| Worst judged baseline / turned axis | 0.60° / 0.65° | ≤ 1.0° / ≤ 1.0° |
+| 3° turns missed by the run verdict | 2 of 59 | ≤ 0.15 |
+| 1° turns missed by the run verdict | 0 of 59 | ≤ 0.1 |
+
+**The default rule already fails its own vendor gate on development data.** On
+0002-s04 the check judges yaw −0.60° from the KITTI-360 calibration, with a
+reported std of 0.042°, so the 0.5° floor sets the tolerance and the axis warns.
+Neighbouring segments read yaw −0.50° (0002-s03, judged pass) and +0.65°
+(0002-s05, not judged). Every other judged yaw lies within ±0.25°. Roll reads
++0.25° to +0.40° wherever it is judged. A yaw that swings by more than a degree
+between adjacent minutes, with a std of hundredths of a degree, points to an
+overconfident estimate on those segments rather than a calibration offset. This
+is a reading of development data. As stated above, the gate is not changed for it.
+
 ## Not yet decided
 
 The following are decided only after development runs on the 22 spent

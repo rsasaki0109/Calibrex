@@ -34,6 +34,7 @@ def test_rounding_keeps_exact_steps() -> None:
     assert gates.round_up(0.75, 0.25) == 0.75
     assert gates.round_up(0.7500001, 0.25) == 1.0
     assert gates.round_down(0.5, 0.25) == 0.5
+    assert gates.round_up(0.1485, 0.05) == 0.15
     with pytest.raises(ValueError):
         gates.error_gate(None)
 

@@ -1,0 +1,146 @@
+{
+  "schema_version": "calibrex.kitti360_camera_lidar_v3_gates/v0.1",
+  "analysis": "gate derivation from spent KITTI-360 development segments; no verdict",
+  "primary": {
+    "metrics": {
+      "drives": 22,
+      "scored_drives": 22,
+      "failed_drives": [],
+      "inconclusive_drives": [],
+      "flagged_baselines": [
+        "0002-s04"
+      ],
+      "max_baseline_judged_error_deg": 0.5999999999999953,
+      "max_turned_judged_error_deg": 0.6500000634603017,
+      "judged_axes": 59,
+      "scored_axes": 66,
+      "all_axes": 66,
+      "judged_fraction_scored": 0.8939393939393939,
+      "judged_fraction_all": 0.8939393939393939,
+      "trials": {
+        "3deg": {
+          "counted": 59,
+          "flagged": 55,
+          "flagged_fraction": 0.9322033898305084,
+          "judged_right": 0
+        },
+        "1deg": {
+          "counted": 59,
+          "flagged": 59,
+          "flagged_fraction": 1.0,
+          "judged_right": 0
+        }
+      }
+    },
+    "gates": {
+      "judged-axis-accuracy": {
+        "development_worst_deg": 0.5999999999999953,
+        "times_1_5": 0.899999999999993,
+        "threshold_deg": 1.0
+      },
+      "turned-judged-axis-accuracy": {
+        "development_worst_deg": 0.6500000634603017,
+        "times_1_5": 0.9750000951904525,
+        "threshold_deg": 1.0
+      },
+      "judged-axis-coverage": {
+        "development": 0.8939393939393939,
+        "threshold": 0.5
+      },
+      "scored-segments-coverage": {
+        "development": "22 of 22",
+        "threshold_segments": 28
+      },
+      "turn-3deg-flagged": {
+        "development": "4 of 59",
+        "upper_bound_95": 0.14846360146715348,
+        "allowance": 0.15
+      },
+      "turn-1deg-flagged": {
+        "development": "0 of 59",
+        "allowance": 0.25
+      },
+      "turn-3deg-never-judged-right": {
+        "development": 0,
+        "allowed": 0
+      },
+      "vendor-calibration-not-flagged": {
+        "development": [
+          "0002-s04"
+        ],
+        "allowed": 0
+      },
+      "no-failed-segments": {
+        "development": [],
+        "allowed": 0
+      }
+    }
+  },
+  "secondary": {
+    "metrics": {
+      "drives": 22,
+      "scored_drives": 22,
+      "failed_drives": [],
+      "inconclusive_drives": [],
+      "flagged_baselines": [
+        "0002-s04"
+      ],
+      "max_baseline_judged_error_deg": 0.5999999999999953,
+      "max_turned_judged_error_deg": 0.6500000634603017,
+      "judged_axes": 59,
+      "scored_axes": 66,
+      "all_axes": 66,
+      "judged_fraction_scored": 0.8939393939393939,
+      "judged_fraction_all": 0.8939393939393939,
+      "trials": {
+        "3deg": {
+          "counted": 59,
+          "flagged": 48,
+          "flagged_fraction": 0.8135593220338984,
+          "judged_right": 0
+        },
+        "1deg": {
+          "counted": 59,
+          "flagged": 56,
+          "flagged_fraction": 0.9491525423728814,
+          "judged_right": 0
+        }
+      }
+    },
+    "gates": {
+      "baseline-warned": {
+        "development": "1 of 22",
+        "upper_bound_95": 0.19812213163688158,
+        "allowance": 0.2
+      },
+      "judged-axis-accuracy": {
+        "development_worst_deg": 0.5999999999999953,
+        "times_1_5": 0.899999999999993,
+        "threshold_deg": 1.0
+      },
+      "turned-judged-axis-accuracy": {
+        "development_worst_deg": 0.6500000634603017,
+        "times_1_5": 0.9750000951904525,
+        "threshold_deg": 1.0
+      },
+      "turn-3deg-run-flagged": {
+        "development": "2 of 59",
+        "upper_bound_95": 0.102889162709954,
+        "allowance": 0.15
+      },
+      "turn-1deg-run-flagged": {
+        "development": "0 of 59",
+        "upper_bound_95": 0.05084745762711865,
+        "allowance": 0.1
+      }
+    }
+  },
+  "provenance": {
+    "generator": "tools/kitti360_camera_lidar_v3_gates.py",
+    "generator_sha256": "6ed468fc0cb291ef8909c6b48e8c4700e5b00a938b8b02a157bf83aebe799dc8",
+    "rule_document_sha256": "6ac926c86fb7230af38f4eb784e94c969efa3dcff0b4ce698b62c664caec8dc9",
+    "git_commit": "0128747e4e613918a005401175594fa5995fcc4c",
+    "created_at": "2026-11-01T00:11:00.393163+00:00",
+    "published_manifest_sha256": "62f32c4f2c2c08d4b2be44502412358850da6833b6ab56581383e9fac17b68f9"
+  }
+}

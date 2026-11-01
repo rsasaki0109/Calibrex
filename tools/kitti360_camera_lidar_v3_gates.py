@@ -44,11 +44,11 @@ def _tool(name: str) -> ModuleType:
 
 
 def round_up(value: float, step: float) -> float:
-    return math.ceil(round(value / step, 9)) * step
+    return round(math.ceil(round(value / step, 9)) * step, 10)
 
 
 def round_down(value: float, step: float) -> float:
-    return math.floor(round(value / step, 9)) * step
+    return round(math.floor(round(value / step, 9)) * step, 10)
 
 
 def upper_bound(misses: int, trials: int) -> float:

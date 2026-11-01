@@ -1,0 +1,128 @@
+{
+  "schema_version": "calibrex.kitti360_camera_lidar_v3_batch/v0.1",
+  "analysis": "development; spent KITTI-360 segments only",
+  "status": "complete",
+  "audit_thresholds": null,
+  "segment_status": {
+    "0000-s00": "PASS_DEVELOPMENT",
+    "0000-s01": "PASS_DEVELOPMENT",
+    "0000-s02": "PASS_DEVELOPMENT",
+    "0000-s03": "PASS_DEVELOPMENT",
+    "0000-s04": "PASS_DEVELOPMENT",
+    "0000-s05": "PASS_DEVELOPMENT",
+    "0000-s06": "PASS_DEVELOPMENT",
+    "0000-s07": "PASS_DEVELOPMENT",
+    "0000-s08": "PASS_DEVELOPMENT",
+    "0000-s09": "PASS_DEVELOPMENT",
+    "0002-s00": "PASS_DEVELOPMENT",
+    "0002-s01": "PASS_DEVELOPMENT",
+    "0002-s02": "PASS_DEVELOPMENT",
+    "0002-s03": "PASS_DEVELOPMENT",
+    "0002-s04": "PASS_DEVELOPMENT",
+    "0002-s05": "PASS_DEVELOPMENT",
+    "0002-s06": "PASS_DEVELOPMENT",
+    "0002-s07": "PASS_DEVELOPMENT",
+    "0002-s08": "PASS_DEVELOPMENT",
+    "0002-s09": "PASS_DEVELOPMENT",
+    "0002-s10": "PASS_DEVELOPMENT",
+    "0002-s11": "PASS_DEVELOPMENT"
+  },
+  "metrics": {
+    "current": {
+      "drives": 22,
+      "scored_drives": 22,
+      "failed_drives": [],
+      "inconclusive_drives": [],
+      "flagged_baselines": [
+        "0002-s04"
+      ],
+      "max_baseline_judged_error_deg": 0.5999999999999953,
+      "max_turned_judged_error_deg": 0.6500000634603017,
+      "judged_axes": 59,
+      "scored_axes": 66,
+      "all_axes": 66,
+      "judged_fraction_scored": 0.8939393939393939,
+      "judged_fraction_all": 0.8939393939393939,
+      "trials": {
+        "3deg": {
+          "counted": 59,
+          "flagged": 55,
+          "flagged_fraction": 0.9322033898305084,
+          "judged_right": 0
+        },
+        "1deg": {
+          "counted": 59,
+          "flagged": 59,
+          "flagged_fraction": 1.0,
+          "judged_right": 0
+        }
+      }
+    },
+    "proposed": {
+      "drives": 22,
+      "scored_drives": 22,
+      "failed_drives": [],
+      "inconclusive_drives": [],
+      "flagged_baselines": [
+        "0002-s04"
+      ],
+      "max_baseline_judged_error_deg": 0.5999999999999953,
+      "max_turned_judged_error_deg": 0.6500000634603017,
+      "judged_axes": 59,
+      "scored_axes": 66,
+      "all_axes": 66,
+      "judged_fraction_scored": 0.8939393939393939,
+      "judged_fraction_all": 0.8939393939393939,
+      "trials": {
+        "3deg": {
+          "counted": 59,
+          "flagged": 48,
+          "flagged_fraction": 0.8135593220338984,
+          "judged_right": 0
+        },
+        "1deg": {
+          "counted": 59,
+          "flagged": 56,
+          "flagged_fraction": 0.9491525423728814,
+          "judged_right": 0
+        }
+      }
+    }
+  },
+  "rules": {
+    "current": "default",
+    "proposed": {
+      "start_agreement_deg": 0.5
+    }
+  },
+  "attempts": {
+    "0000-s00": 1,
+    "0000-s01": 1,
+    "0000-s02": 1,
+    "0000-s03": 1,
+    "0000-s04": 1,
+    "0000-s05": 1,
+    "0000-s06": 1,
+    "0000-s07": 1,
+    "0000-s08": 1,
+    "0000-s09": 1,
+    "0002-s00": 1,
+    "0002-s01": 1,
+    "0002-s02": 1,
+    "0002-s03": 1,
+    "0002-s04": 1,
+    "0002-s05": 1,
+    "0002-s06": 1,
+    "0002-s07": 1,
+    "0002-s08": 1,
+    "0002-s09": 1,
+    "0002-s10": 1,
+    "0002-s11": 1
+  },
+  "provenance": {
+    "generator": "tools/kitti360_camera_lidar_v3_batch.py",
+    "generator_sha256": "97ca8d0c914a6bac7aa7e4f4aa23fbacf22f0f710122d87d3d8e269a93cad0f3",
+    "git_commit": "0128747e4e613918a005401175594fa5995fcc4c",
+    "created_at": "2026-11-01T00:10:00.720177+00:00"
+  }
+}
