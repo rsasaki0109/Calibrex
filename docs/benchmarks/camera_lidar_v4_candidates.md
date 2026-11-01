@@ -227,6 +227,32 @@ coarser spacing than KITTI's 64 beams. Beam spacing alone does not yet account
 for 3°. A test would localise vertical depth edges between beams, or weight
 them by beam spacing, on development logs.
 
+**Follow-up: the vendor calibration is right, and the check finds a false
+optimum.** Two further diagnostics settle the question:
+
+- **The mechanism above does not apply.** Its edges come from range jumps
+  along each beam, which are object sides, not tops. Keeping only edges with a
+  neighbouring beam's edge at a similar azimuth and range kept 90 % of them and
+  left every optimum unchanged (0fb7276f −2.50°).
+- **The annotated cuboids align at the vendor tilt.** The log's 3D annotations
+  were projected with the vendor calibration and with −2.5° tilt. At the
+  vendor tilt, the vehicle, pedestrian and bollard boxes sit on their objects
+  (the sedan's box spans roof to wheels). At −2.5° every box drops onto the
+  road. The annotations come from the same LiDAR, so this is not an
+  independent reference. It does show that the LiDAR-to-camera alignment
+  under the vendor calibration is visibly right.
+
+So on this scene the edge objective has a **false optimum**. The `up_lidar`'s
+edges crowd a band around the horizon, mostly foliage and distant structure.
+Moved down about 78 px, they land on the strong ground-level edges below
+(kerb lines, car bottoms, building bases). Every start reaches it, so the
+opt-in cross-start warning does not catch it on 0fb7276f or 214e388e. It
+withholds the tilt only on 05fa5048. The split above does catch it: edges
+above the optical axis agree with the vendor calibration, and edges below it
+do not. An internal agreement test between those two halves is a candidate
+for development. It would ask for the same answer from disjoint parts of the
+image, much as the cross-start rule asks it from disjoint starts.
+
 **No v4 claim is frozen.** Gates of 4.5° and a 45 % vendor-flag allowance would
 be honest, but they would not support a meaningful check claim. The 150
 evaluation logs stay unread.
