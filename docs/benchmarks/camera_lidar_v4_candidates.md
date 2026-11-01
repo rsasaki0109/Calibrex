@@ -253,6 +253,35 @@ do not. An internal agreement test between those two halves is a candidate
 for development. It would ask for the same answer from disjoint parts of the
 image, much as the cross-start rule asks it from disjoint starts.
 
+### Half-image agreement screen (protocol, committed before it ran)
+
+This is a one-shot development screen. It is not a claim, and per-log forensics
+stop here.
+
+**Rule.** `tools/av2_half_image_agreement_screen.py` re-estimates every saved
+run twice, from the LiDAR points projecting above the principal point and from
+those at or below it, with the unchanged estimator. An axis the full run judges
+is withheld (unchecked, with no forced warning) when the two halves' raw
+estimates differ by more than 0.5°. A real calibration error moves both halves
+alike. The raw estimates are compared because neither half of 0fb7276f alone
+passes the evidence rules for tilt. Its halves read +2.95° and −0.75°, while
+02678d04's read 0.0° and −0.1°. Those are the only two baselines inspected
+before fixing the rule.
+
+**Data.** Every development log whose seven saved runs are all still on disk
+(23 of 30), scored with the frozen v2 scorer. These logs motivated the rule, so
+the result is development evidence only.
+
+**Carried forward**, as an opt-in check option, only if all of these hold
+against the default rule on the same runs:
+
+- fewer judged baseline axes beyond 0.5° of the vendor calibration;
+- no more baseline fail verdicts;
+- the flagged fraction of counted 3° trials drops by at most 0.05, and the same
+  for 1° trials;
+- no more judged turned-run axes beyond 1.0°;
+- at least 0.5 of scored baseline axes judged.
+
 **No v4 claim is frozen.** Gates of 4.5° and a 45 % vendor-flag allowance would
 be honest, but they would not support a meaningful check claim. The 150
 evaluation logs stay unread.
