@@ -1091,6 +1091,49 @@ def _build_parser() -> argparse.ArgumentParser:
     convert_360.add_argument("--json", action="store_true")
     convert_360.set_defaults(func=_cmd_convert_kitti360)
 
+    convert_av2 = convert_subcommands.add_parser(
+        "av2",
+        help="write one Argoverse 2 sensor log's camera, one LiDAR and poses as rosbag2 "
+        "(needs calibrex[av2])",
+    )
+    convert_av2.add_argument("log_dir", type=Path, help="one log directory, e.g. val/<log id>")
+    convert_av2.add_argument(
+        "--camera",
+        choices=(
+            "ring_front_center",
+            "ring_front_left",
+            "ring_front_right",
+            "ring_rear_left",
+            "ring_rear_right",
+            "ring_side_left",
+            "ring_side_right",
+            "stereo_front_left",
+            "stereo_front_right",
+        ),
+        default="ring_front_center",
+    )
+    convert_av2.add_argument(
+        "--lidar",
+        choices=("up_lidar", "down_lidar"),
+        default="up_lidar",
+        help="which of the two merged LiDARs to write, in its own sensor frame",
+    )
+    convert_av2.add_argument(
+        "--point-time",
+        choices=("sweep", "offset_ns"),
+        default="sweep",
+        help="sweep (default): a snapshot at the sweep timestamp, as av2-api moves sweeps; "
+        "offset_ns: keep each point's offset as a time field (development comparison)",
+    )
+    convert_av2.add_argument(
+        "--start-s", type=float, default=0.0, help="window start after the first sweep"
+    )
+    convert_av2.add_argument("--max-seconds", type=_positive_float, default=None)
+    convert_av2.add_argument("--output", type=Path, required=True)
+    convert_av2.add_argument("--overwrite", action="store_true")
+    convert_av2.add_argument("--json", action="store_true")
+    convert_av2.set_defaults(func=_cmd_convert_av2)
+
     kitti = subcommands.add_parser("kitti", help="KITTI raw utilities")
     kitti_subcommands = kitti.add_subparsers(dest="kitti_command", required=True)
     kitti_import = kitti_subcommands.add_parser(
@@ -5348,6 +5391,33 @@ def _cmd_convert_kitti360(args: argparse.Namespace) -> int:
         max_frames=args.max_frames,
         overwrite=args.overwrite,
         motion_source=args.motion_source,
+        command=["calibrex", *args.invoked_argv],
+    )
+    payload = {
+        "bag": str(result.bag),
+        "provenance": str(result.provenance_path),
+        "message_counts": result.message_counts,
+    }
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(f"wrote {result.bag} ({result.message_counts})")
+        print(f"provenance: {result.provenance_path}")
+    return 0
+
+
+def _cmd_convert_av2(args: argparse.Namespace) -> int:
+    from calibrex.data.av2_to_rosbag2 import convert_av2_to_rosbag2
+
+    result = convert_av2_to_rosbag2(
+        args.log_dir,
+        args.output,
+        camera=args.camera,
+        lidar=args.lidar,
+        point_time=args.point_time,
+        start_s=args.start_s,
+        max_seconds=args.max_seconds,
+        overwrite=args.overwrite,
         command=["calibrex", *args.invoked_argv],
     )
     payload = {

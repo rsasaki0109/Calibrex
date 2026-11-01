@@ -1,0 +1,75 @@
+# Camera-LiDAR v4: unread-data candidates (metadata survey)
+
+**Status, 2026-11-01: metadata only. No pre-registration exists and no candidate
+sensor payload has been read.** KITTI raw and KITTI-360 are spent for
+camera-LiDAR ([v3 KITTI-360 page](kitti360_camera_lidar_v3_prep.md)). A v4 check
+claim needs recordings from other dataset families. The research plan's final
+gate asks for two families and an independent rig anyway. This page records
+which candidates exist, what of them this repository has read, and the exposure
+policy the owner chose.
+
+## Exposure policy (owner's decision, 2026-11-01)
+
+The owner cannot say whether work outside git ever opened these candidates'
+camera images or point clouds. They chose to **use them with that disclosed**,
+not to treat them as spent. A pre-registration on them must state two things:
+that the repository's history shows them unread (or what it read), and that the
+owner could not confirm exposure outside git. The resulting claim is weaker than
+one with confirmed exposure, and must say so. KITTI-360's candidates stay
+spent, because the owner's answer there included "opened".
+
+## Candidates
+
+| Family | Access from the cloud | Read by this repository | Role |
+| --- | --- | --- | --- |
+| **Argoverse 2 sensor** | anonymous S3 listing, `s3://argoverse/datasets/av2/sensor/` | nothing; the name appears in no commit | primary candidate |
+| **Boreas** | anonymous S3 listing, `boreas.s3.us-west-2` | INS-LiDAR read LiDAR, Applanix and calibration of `2020-11-26-13-58` and `2020-12-01-13-26`, and listed `2020-12-04-14-00`'s calibration. No camera image of any sequence was read | second family |
+| A2D2 | anonymous S3 | one public camera-LiDAR pair (2 frames) in the research plan's smoke | **excluded**: its LiDAR is distributed already mapped into each camera's view, so the extrinsic has no independent reference |
+| nuScenes, Waymo, PandaSet | registration or authenticated download | nuScenes mini for radar | not reachable from this environment without credentials |
+
+### Argoverse 2 sensor dataset
+
+There are 700 train, 150 validation and 150 test logs. One validation log
+(`02678d04-…`, its listing only) has 157 LiDAR sweeps over about 15.6 s, which
+are 10 Hz feather files, 151 MB in all. It also has 319 `ring_front_center`
+JPEGs at 20 Hz (96 MB), seven ring and two stereo cameras, per-log
+`calibration/` and `city_SE3_egovehicle.feather` poses. The LiDAR points are in
+the ego-vehicle frame. The camera's ego extrinsic is therefore the
+camera-LiDAR calibration a check would judge, and the per-log calibration is
+its reference. Logs are about 15 s long, so the check's short-recording frame
+spread applies. Reading feather files needs `pyarrow`, an optional adapter
+dependency in the same way OpenCV is.
+
+### Boreas
+
+The bucket has 126 top-level prefixes, including calibration-only and object
+releases. Sequences run from 2020 to 2025. One sequence (`2020-12-04-14-00`)
+lists 24,510 camera images (73.9 GB) and 11,923 LiDAR scans (59.6 GB) over
+about 20 minutes. Its `calib/` folder holds `P_camera.txt`,
+`T_camera_lidar.txt` and `T_applanix_lidar.txt`. An INS-LiDAR adapter for
+Boreas LiDAR and Applanix already exists. A camera path does not.
+
+## Argoverse 2 converter (development, 2026-11-01)
+
+`calibrex convert av2`
+([tutorial](../tutorials/calibrex_check.md#converting-an-argoverse-2-sensor-log))
+writes one log's camera, one LiDAR in its own sensor frame and the poses. One
+validation log is now development data: `02678d04-cc9f-3148-9f95-1ba66347dff9`,
+about 247 MB fetched (front centre camera, both LiDARs, calibration and poses).
+On it the check passes the vendor calibration with all three rotation axes
+judged. With the LiDAR left in the ego frame it judged none, which is why the
+converter moves points back into the sensor frame.
+
+## Next steps (not yet decided)
+
+1. **Converters.** ~~Argoverse 2~~ done above. Boreas camera, LiDAR and
+   Applanix are still to do. Both are development work, validated first on
+   development data only.
+2. **Split rules.** Fix the development and evaluation split rules from
+   metadata before reading any payload. For Argoverse 2 a natural rule is
+   validation logs for development and test logs for evaluation, leaving train
+   as a reserve. For Boreas, the two INS-LiDAR sequences would be development
+   data.
+3. **Pre-registration.** Develop on the development split, derive gates by the
+   committed v2 rule, and freeze a v4 pre-registration that discloses the
+   exposure policy above.

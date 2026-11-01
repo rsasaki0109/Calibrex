@@ -238,6 +238,20 @@ jobs:
           tests/unit/test_rosbag2.py
           tests/unit/test_rosbag2_writer.py
 
+  av2-adapter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Argoverse 2 adapter
+        run: python -m pip install -e ".[dev,av2]"
+      - name: Require Argoverse 2 adapter
+        run: python -c "import pyarrow.feather"
+      - name: Test Argoverse 2 conversion
+        run: python -m pytest tests/unit/test_av2_to_rosbag2.py
+
   opencv-adapter:
     runs-on: ubuntu-latest
     steps:
