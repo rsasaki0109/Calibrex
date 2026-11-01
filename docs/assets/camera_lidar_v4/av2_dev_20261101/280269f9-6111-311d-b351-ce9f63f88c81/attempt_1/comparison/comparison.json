@@ -1,0 +1,323 @@
+{
+  "analysis": "post hoc development",
+  "status": "incomplete",
+  "drives": [
+    "280269f9-6111-311d-b351-ce9f63f88c81"
+  ],
+  "errors": {},
+  "metrics": {
+    "current": {
+      "drives": 1,
+      "scored_drives": 1,
+      "failed_drives": [],
+      "inconclusive_drives": [],
+      "flagged_baselines": [
+        "280269f9-6111-311d-b351-ce9f63f88c81"
+      ],
+      "max_baseline_judged_error_deg": 0.8500000000000035,
+      "max_turned_judged_error_deg": 1.0001358716147832,
+      "judged_axes": 2,
+      "scored_axes": 3,
+      "all_axes": 3,
+      "judged_fraction_scored": 0.6666666666666666,
+      "judged_fraction_all": 0.6666666666666666,
+      "trials": {
+        "3deg": {
+          "counted": 2,
+          "flagged": 2,
+          "flagged_fraction": 1.0,
+          "judged_right": 0
+        },
+        "1deg": {
+          "counted": 2,
+          "flagged": 2,
+          "flagged_fraction": 1.0,
+          "judged_right": 0
+        }
+      }
+    },
+    "proposed": {
+      "drives": 1,
+      "scored_drives": 1,
+      "failed_drives": [],
+      "inconclusive_drives": [],
+      "flagged_baselines": [
+        "280269f9-6111-311d-b351-ce9f63f88c81"
+      ],
+      "max_baseline_judged_error_deg": 0.8500000000000035,
+      "max_turned_judged_error_deg": 1.0001358716147832,
+      "judged_axes": 2,
+      "scored_axes": 3,
+      "all_axes": 3,
+      "judged_fraction_scored": 0.6666666666666666,
+      "judged_fraction_all": 0.6666666666666666,
+      "trials": {
+        "3deg": {
+          "counted": 2,
+          "flagged": 1,
+          "flagged_fraction": 0.5,
+          "judged_right": 0
+        },
+        "1deg": {
+          "counted": 2,
+          "flagged": 2,
+          "flagged_fraction": 1.0,
+          "judged_right": 0
+        }
+      }
+    }
+  },
+  "scores": {
+    "current": {
+      "280269f9-6111-311d-b351-ce9f63f88c81": {
+        "state": "scored",
+        "reason": "",
+        "verdict": "warn",
+        "axes": {
+          "roll": {
+            "judged": true,
+            "status": "warn",
+            "error_deg": -0.8500000000000035
+          },
+          "pitch": {
+            "judged": true,
+            "status": "pass",
+            "error_deg": -0.30000000000000093
+          },
+          "yaw": {
+            "judged": false,
+            "status": null,
+            "error_deg": 0.9000000000000078
+          }
+        },
+        "trials": {
+          "x:3": {
+            "counted": true,
+            "flagged": true,
+            "judged_right": false,
+            "outcome": "flagged",
+            "verdict": "fail",
+            "turned_axis_status": "fail",
+            "reading_deg": 3.499999999999984,
+            "other_axes_flagged": [],
+            "judged_errors_deg": {
+              "roll": -0.500004758857346,
+              "pitch": -0.249876268748067
+            }
+          },
+          "y:3": {
+            "counted": true,
+            "flagged": true,
+            "judged_right": false,
+            "outcome": "flagged",
+            "verdict": "fail",
+            "turned_axis_status": "fail",
+            "reading_deg": 3.250000000000013,
+            "other_axes_flagged": [
+              "roll"
+            ],
+            "judged_errors_deg": {
+              "roll": -0.7653471527349366,
+              "pitch": -0.2500702420442405
+            }
+          },
+          "z:3": {
+            "counted": false,
+            "flagged": false,
+            "judged_right": false,
+            "outcome": "unjudged",
+            "verdict": "warn",
+            "turned_axis_status": null,
+            "reading_deg": null,
+            "other_axes_flagged": [
+              "roll"
+            ],
+            "judged_errors_deg": {
+              "roll": -0.8588346824580453,
+              "pitch": -0.3276159341938561
+            }
+          },
+          "x:1": {
+            "counted": true,
+            "flagged": true,
+            "judged_right": false,
+            "outcome": "flagged",
+            "verdict": "fail",
+            "turned_axis_status": "fail",
+            "reading_deg": 1.9999999999999964,
+            "other_axes_flagged": [],
+            "judged_errors_deg": {
+              "roll": -1.0001358716147832,
+              "pitch": -0.2299106938572525
+            }
+          },
+          "y:1": {
+            "counted": true,
+            "flagged": true,
+            "judged_right": false,
+            "outcome": "flagged",
+            "verdict": "fail",
+            "turned_axis_status": "fail",
+            "reading_deg": 1.2500000000000053,
+            "other_axes_flagged": [],
+            "judged_errors_deg": {
+              "roll": -0.49997144259917586,
+              "pitch": -0.2500063460774579
+            }
+          },
+          "z:1": {
+            "counted": false,
+            "flagged": false,
+            "judged_right": false,
+            "outcome": "unjudged",
+            "verdict": "warn",
+            "turned_axis_status": null,
+            "reading_deg": null,
+            "other_axes_flagged": [
+              "roll"
+            ],
+            "judged_errors_deg": {
+              "roll": -0.8525942522093726,
+              "pitch": -0.2925739924435685
+            }
+          }
+        },
+        "fetch": {}
+      }
+    },
+    "proposed": {
+      "280269f9-6111-311d-b351-ce9f63f88c81": {
+        "state": "scored",
+        "reason": "",
+        "verdict": "warn",
+        "axes": {
+          "roll": {
+            "judged": true,
+            "status": "warn",
+            "error_deg": -0.8500000000000035
+          },
+          "pitch": {
+            "judged": true,
+            "status": "pass",
+            "error_deg": -0.30000000000000093
+          },
+          "yaw": {
+            "judged": false,
+            "status": null,
+            "error_deg": 0.9000000000000078
+          }
+        },
+        "trials": {
+          "x:3": {
+            "counted": true,
+            "flagged": false,
+            "judged_right": false,
+            "outcome": "unjudged",
+            "verdict": "warn",
+            "turned_axis_status": null,
+            "reading_deg": null,
+            "other_axes_flagged": [],
+            "judged_errors_deg": {}
+          },
+          "y:3": {
+            "counted": true,
+            "flagged": true,
+            "judged_right": false,
+            "outcome": "flagged",
+            "verdict": "fail",
+            "turned_axis_status": "fail",
+            "reading_deg": 3.250000000000013,
+            "other_axes_flagged": [
+              "roll"
+            ],
+            "judged_errors_deg": {
+              "roll": -0.7653471527349366,
+              "pitch": -0.2500702420442405
+            }
+          },
+          "z:3": {
+            "counted": false,
+            "flagged": false,
+            "judged_right": false,
+            "outcome": "unjudged",
+            "verdict": "warn",
+            "turned_axis_status": null,
+            "reading_deg": null,
+            "other_axes_flagged": [
+              "roll"
+            ],
+            "judged_errors_deg": {
+              "roll": -0.8588346824580453,
+              "pitch": -0.3276159341938561
+            }
+          },
+          "x:1": {
+            "counted": true,
+            "flagged": true,
+            "judged_right": false,
+            "outcome": "flagged",
+            "verdict": "fail",
+            "turned_axis_status": "fail",
+            "reading_deg": 1.9999999999999964,
+            "other_axes_flagged": [],
+            "judged_errors_deg": {
+              "roll": -1.0001358716147832
+            }
+          },
+          "y:1": {
+            "counted": true,
+            "flagged": true,
+            "judged_right": false,
+            "outcome": "flagged",
+            "verdict": "fail",
+            "turned_axis_status": "fail",
+            "reading_deg": 1.2500000000000053,
+            "other_axes_flagged": [],
+            "judged_errors_deg": {
+              "roll": -0.49997144259917586,
+              "pitch": -0.2500063460774579
+            }
+          },
+          "z:1": {
+            "counted": false,
+            "flagged": false,
+            "judged_right": false,
+            "outcome": "unjudged",
+            "verdict": "warn",
+            "turned_axis_status": null,
+            "reading_deg": null,
+            "other_axes_flagged": [
+              "roll"
+            ],
+            "judged_errors_deg": {
+              "roll": -0.8525942522093726,
+              "pitch": -0.2925739924435685
+            }
+          }
+        },
+        "fetch": {}
+      }
+    }
+  },
+  "proposed_margin": null,
+  "proposed_options": {
+    "start_agreement_deg": 0.5
+  },
+  "coverage_change_percentage_points": 0.0,
+  "audit_thresholds": null,
+  "provenance": {
+    "generator": "tools/kitti_camera_lidar_v3_replay.py",
+    "generator_version": "1",
+    "git_commit": "b1f3a20b63ed0be29e0ceddb563e489af1f0bba6",
+    "generator_sha256": "5a178903bee0768570bed7812c1eec0886eb7ee65182519bbf0136d7ebf90211",
+    "estimator_sha256": "1ec1c8d4d96f368b3f6498a5849ea5bedc217ed43428c49c1dae7b8b5d78e3d0",
+    "scoring_helpers_sha256": {
+      "score_kitti_camera_lidar_v2": "8e0bf8b1dca37ac33b1b7818ec28c22353ca5b79fcd7f49591c7d65a7674ce7d",
+      "kitti_camera_lidar_v3_development": "06b3e6035ce17c41c0427ed0ad02f57d65e49d1806e01d0a3155fed95c411dfd"
+    },
+    "capture_manifests_sha256": {
+      "280269f9-6111-311d-b351-ce9f63f88c81": "2ad66460263e2ea61930fe4f892fafb628c88b233cc90bb3ed7a9ed77e5ac08b"
+    },
+    "reference": "each Argoverse 2 log's published calibration, not ground truth"
+  }
+}

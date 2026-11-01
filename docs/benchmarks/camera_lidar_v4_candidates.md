@@ -114,6 +114,26 @@ allowance, and its judged-axis errors the 1.5× rule. If the development batch
 already fails a gate derived from itself, the pre-registration records that.
 It is not tuned away.
 
+## First development batch (converter superseded, 2026-11-01)
+
+The first batch ran all 30 development logs from commit `b1f3a20b`, with no
+failed attempt ([receipts](../assets/camera_lidar_v4/av2_dev_20261101/gates.json)).
+Its converter applied the distributed `k1..k3` and each point's `offset_ns`.
+The default rule flagged the vendor calibration on **12 of 28** scored logs.
+Judged baseline axes reached 4.5° from it, and turned-run axes 8.75°. The
+gates the rule derives from those numbers (6.75°, a 0.6 vendor-flag
+allowance) would make any claim empty.
+
+Probes on four development logs changed one choice at a time. Zeroing the
+distortion turned 19f53e16 from −4.5° to a pass, and 15ec0778's judged axis
+from fail to pass. A sweep snapshot instead of per-point offsets also
+turned 19f53e16 to a pass. 0fb7276f (about 2 m/s) kept a 2.75–2.9° roll
+error either way. `av2-api` itself projects with `K` alone, and moves a whole
+sweep with one ego pose. So the converter was changed to follow it (commit
+`0364679d`), not to fit those four logs. The batch is re-run on all 30 logs
+with the corrected converter, and the gates come from that run. These first
+receipts stay as history.
+
 ## Next steps (not yet decided)
 
 1. **Converters.** ~~Argoverse 2~~ done above. Boreas camera, LiDAR and

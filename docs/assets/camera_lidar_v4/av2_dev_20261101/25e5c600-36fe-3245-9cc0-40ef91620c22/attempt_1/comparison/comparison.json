@@ -1,0 +1,113 @@
+{
+  "analysis": "post hoc development",
+  "status": "incomplete",
+  "drives": [
+    "25e5c600-36fe-3245-9cc0-40ef91620c22"
+  ],
+  "errors": {},
+  "metrics": {
+    "current": {
+      "drives": 1,
+      "scored_drives": 0,
+      "failed_drives": [],
+      "inconclusive_drives": [
+        "25e5c600-36fe-3245-9cc0-40ef91620c22"
+      ],
+      "flagged_baselines": [],
+      "max_baseline_judged_error_deg": null,
+      "max_turned_judged_error_deg": null,
+      "judged_axes": 0,
+      "scored_axes": 0,
+      "all_axes": 3,
+      "judged_fraction_scored": null,
+      "judged_fraction_all": 0.0,
+      "trials": {
+        "3deg": {
+          "counted": 0,
+          "flagged": 0,
+          "flagged_fraction": null,
+          "judged_right": 0
+        },
+        "1deg": {
+          "counted": 0,
+          "flagged": 0,
+          "flagged_fraction": null,
+          "judged_right": 0
+        }
+      }
+    },
+    "proposed": {
+      "drives": 1,
+      "scored_drives": 0,
+      "failed_drives": [],
+      "inconclusive_drives": [
+        "25e5c600-36fe-3245-9cc0-40ef91620c22"
+      ],
+      "flagged_baselines": [],
+      "max_baseline_judged_error_deg": null,
+      "max_turned_judged_error_deg": null,
+      "judged_axes": 0,
+      "scored_axes": 0,
+      "all_axes": 3,
+      "judged_fraction_scored": null,
+      "judged_fraction_all": 0.0,
+      "trials": {
+        "3deg": {
+          "counted": 0,
+          "flagged": 0,
+          "flagged_fraction": null,
+          "judged_right": 0
+        },
+        "1deg": {
+          "counted": 0,
+          "flagged": 0,
+          "flagged_fraction": null,
+          "judged_right": 0
+        }
+      }
+    }
+  },
+  "scores": {
+    "current": {
+      "25e5c600-36fe-3245-9cc0-40ef91620c22": {
+        "state": "inconclusive",
+        "reason": "the baseline estimator refused: too few usable frames",
+        "verdict": "inconclusive",
+        "axes": {},
+        "trials": {},
+        "fetch": {}
+      }
+    },
+    "proposed": {
+      "25e5c600-36fe-3245-9cc0-40ef91620c22": {
+        "state": "inconclusive",
+        "reason": "the baseline estimator refused: too few usable frames",
+        "verdict": "inconclusive",
+        "axes": {},
+        "trials": {},
+        "fetch": {}
+      }
+    }
+  },
+  "proposed_margin": null,
+  "proposed_options": {
+    "start_agreement_deg": 0.5
+  },
+  "coverage_change_percentage_points": null,
+  "audit_thresholds": null,
+  "provenance": {
+    "generator": "tools/kitti_camera_lidar_v3_replay.py",
+    "generator_version": "1",
+    "git_commit": "b1f3a20b63ed0be29e0ceddb563e489af1f0bba6",
+    "generator_sha256": "5a178903bee0768570bed7812c1eec0886eb7ee65182519bbf0136d7ebf90211",
+    "estimator_sha256": "1ec1c8d4d96f368b3f6498a5849ea5bedc217ed43428c49c1dae7b8b5d78e3d0",
+    "scoring_helpers_sha256": {
+      "score_kitti_camera_lidar_v2": "8e0bf8b1dca37ac33b1b7818ec28c22353ca5b79fcd7f49591c7d65a7674ce7d",
+      "kitti_camera_lidar_v3_development": "06b3e6035ce17c41c0427ed0ad02f57d65e49d1806e01d0a3155fed95c411dfd"
+    },
+    "capture_manifests_sha256": {
+      "25e5c600-36fe-3245-9cc0-40ef91620c22": "8f2ffd44adaae2e0387014f009eed240b899455f1e7115bd1ae623ed38acd0b8"
+    },
+    "reference": "each Argoverse 2 log's published calibration, not ground truth"
+  }
+}

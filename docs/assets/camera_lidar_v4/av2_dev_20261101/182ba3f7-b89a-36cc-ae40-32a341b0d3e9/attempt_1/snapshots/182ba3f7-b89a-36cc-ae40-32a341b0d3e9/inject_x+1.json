@@ -1,0 +1,594 @@
+{
+  "bag": {
+    "input_digest_scope": "metadata.yaml in full; each storage file by name, size and first 64 MiB",
+    "input_sha256": "71991f4454660fac3d1bc0f5803d5b0327f74c4d68ac8fb334aa42faecf3601d",
+    "path": "/home/user/av2-v4-work/182ba3f7-b89a-36cc-ae40-32a341b0d3e9/attempt_1/bag",
+    "storage_identifier": "sqlite3",
+    "topic_count": 5
+  },
+  "candidate_sources": [
+    {
+      "frame_count": 3,
+      "kind": "bag_tf_static",
+      "notes": [
+        "read 1 tf_static message(s) from 1 topic(s)"
+      ],
+      "path": "/home/user/av2-v4-work/182ba3f7-b89a-36cc-ae40-32a341b0d3e9/attempt_1/bag",
+      "sha256": "ba5d1e7ebe2846e262988ee5b0dae424bd324a5028015addf47c0f68999761b4"
+    },
+    {
+      "frame_count": 1,
+      "kind": "frames_yaml",
+      "notes": [
+        "1 frame(s) read"
+      ],
+      "path": "/home/user/av2-v4-work/182ba3f7-b89a-36cc-ae40-32a341b0d3e9/attempt_1/snapshots/182ba3f7-b89a-36cc-ae40-32a341b0d3e9/inject_x+1_frames.yaml",
+      "sha256": "dcd7431e55ba4445239c792b874fad308603bc2825f13655f0063b18590f00d2"
+    }
+  ],
+  "closures": {
+    "assumptions": [
+      "edges are this run's per-pair estimates, not the candidate; derived pairs are excluded",
+      "loops are a fundamental cycle basis of a spanning forest that takes the best-observed estimates first; loops that share a member are correlated",
+      "the std of a closure axis is propagated to first order assuming independent members; members that share an input (the LiDAR odometry of the vehicle pairs) make it optimistic",
+      "an axis is judged only if every member observes everything entering it; translation needs every member to estimate it"
+    ],
+    "edges": [
+      {
+        "child_frame": "velo_link",
+        "pair": "camera-lidar",
+        "parent_frame": "ring_front_center_optical",
+        "role": "independent"
+      }
+    ],
+    "loops": []
+  },
+  "evidence_dir": "inject_x+1_evidence",
+  "frame_tree": {
+    "edges": [
+      {
+        "source": "bag_tf_static",
+        "transform": {
+          "child_frame": "imu_link",
+          "parent_frame": "base_link",
+          "rotation_quat_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "translation_m": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      {
+        "source": "frames_yaml",
+        "transform": {
+          "child_frame": "ring_front_center_optical",
+          "parent_frame": "imu_link",
+          "rotation_quat_xyzw": [
+            0.5055129239678173,
+            -0.5036978918054666,
+            0.49413484242252914,
+            -0.49656406937705283
+          ],
+          "translation_m": [
+            1.6682780238435164,
+            0.0010989847655130149,
+            1.4209828712473518
+          ]
+        }
+      },
+      {
+        "source": "bag_tf_static",
+        "transform": {
+          "child_frame": "velo_link",
+          "parent_frame": "imu_link",
+          "rotation_quat_xyzw": [
+            0.0,
+            0.0,
+            -0.00344824262029222,
+            0.999994054793743
+          ],
+          "translation_m": [
+            1.35018,
+            0.0,
+            1.64042
+          ]
+        }
+      }
+    ],
+    "frames": [
+      "base_link",
+      "imu_link",
+      "ring_front_center_optical",
+      "velo_link"
+    ],
+    "overrides": [
+      "/home/user/av2-v4-work/182ba3f7-b89a-36cc-ae40-32a341b0d3e9/attempt_1/snapshots/182ba3f7-b89a-36cc-ae40-32a341b0d3e9/inject_x+1_frames.yaml overrides bag tf_static for frame 'ring_front_center_optical' (parent 'imu_link' -> 'imu_link')"
+    ],
+    "roots": [
+      "base_link"
+    ]
+  },
+  "options": {
+    "acceleration_unit": "mps2",
+    "camera_lidar_motion": "auto",
+    "detection_probe_deg": 1.0,
+    "focal_scale_floor": 0.005,
+    "gnss_lidar_deskew": "auto",
+    "imu_lidar_deskew": "auto",
+    "imu_lidar_translation": true,
+    "lidar_lidar_deskew": "auto",
+    "pairs": [
+      "camera-lidar"
+    ],
+    "rigid_scan_rotation_floor_deg": 1.5,
+    "rotation_floor_deg": 0.5,
+    "sigma_k": 3.0,
+    "topic_kinds": {},
+    "translation_floor_m": 0.02
+  },
+  "overall_verdict": "fail",
+  "pairs": [
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "imu-lidar",
+      "reason": "no topic for: imu",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "velo_link"
+      ],
+      "notes": [],
+      "pair": "lidar-lidar",
+      "reason": "needs two distinct lidar sensors, found one",
+      "reason_code": "missing_topic",
+      "sensors": [
+        "velo_link"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/velodyne_points"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "camera-imu",
+      "reason": "no topic for: imu",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "camera-focal",
+      "reason": "no topic for: imu",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [
+        {
+          "candidate_error": 1.999999999999994,
+          "detectable_error": 2.499999999999994,
+          "detection_probe": 1.0,
+          "detects_perturbation": false,
+          "estimate_std": 0.052704627669473036,
+          "name": "roll",
+          "ratio": 3.999999999999988,
+          "status": "fail",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        },
+        {
+          "candidate_error": 0.2999999999999928,
+          "detectable_error": 0.7999999999999927,
+          "detection_probe": 1.0,
+          "detects_perturbation": true,
+          "estimate_std": 0.05270462766947298,
+          "name": "pitch",
+          "ratio": 0.5999999999999855,
+          "status": "pass",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        }
+      ],
+      "candidate_transform": {
+        "child_frame": "velo_link",
+        "parent_frame": "ring_front_center_optical",
+        "rotation_quat_xyzw": [
+          -0.5072467911274938,
+          0.5019517660080743,
+          -0.4924196313012405,
+          -0.49826501402505335
+        ],
+        "translation_m": [
+          -0.00039263803727174196,
+          -0.21351137073876658,
+          -0.32210705427931274
+        ]
+      },
+      "compared_transform": {
+        "child_frame": "velo_link",
+        "parent_frame": "ring_front_center_optical",
+        "rotation_quat_xyzw": [
+          0.5072467911274937,
+          -0.5019517660080743,
+          0.4924196313012405,
+          0.4982650140250534
+        ],
+        "translation_m": [
+          -0.00039263803727174196,
+          -0.21351137073876658,
+          -0.32210705427931274
+        ]
+      },
+      "coverage": "partial",
+      "estimator": "edge_alignment/v0.1 (camera-lidar)",
+      "estimator_policy_reasons": [
+        "only roll, pitch of the rotation DoFs are observed",
+        "yaw: its known-bad control was not detected on held-out frames",
+        "x: translation is not estimated (parallax resolves it too weakly; see limitations)",
+        "y: translation is not estimated (parallax resolves it too weakly; see limitations)",
+        "z: translation is not estimated (parallax resolves it too weakly; see limitations)",
+        "the estimate comes from the search started at the profile maxima (+0.0, +1.5, +0.0 deg): it observes 2 rotation DoF(s) against 1 from the candidate"
+      ],
+      "estimator_policy_status": "warn",
+      "evidence": [
+        {
+          "path": "inject_x+1_evidence/camera-lidar_ring_front_center_optical_velo_link.yaml",
+          "policy_status": "warn",
+          "role": "edge_alignment",
+          "schema_version": "slac.camera_lidar_edge/v0.1",
+          "sha256": "d10f962e880d7cd2c936b64c9bb2e56b2ccc1c2c1c0118acfe75cb5fd42bd76a"
+        }
+      ],
+      "evidence_artifact": "inject_x+1_evidence/camera-lidar_ring_front_center_optical_velo_link.yaml",
+      "frames": [
+        "ring_front_center_optical",
+        "velo_link"
+      ],
+      "notes": [
+        "intrinsics: CameraInfo /camera/camera_info",
+        "48 frame(s), 47894 LiDAR edge points; the camera frame must be the optical frame (z forward)",
+        "LiDAR points moved to the image time with /av2/odometry (rotation and translation; median 0.00 deg, 0.001 m)",
+        "edge-alignment objective -0.0005 at the candidate, 0.0198 at the estimate"
+      ],
+      "pair": "camera-lidar",
+      "runtime_s": 18.766185231000236,
+      "sensors": [
+        "ring_front_center_optical",
+        "velo_link"
+      ],
+      "status": "fail",
+      "topics": [
+        "/camera/image_raw",
+        "/velodyne_points"
+      ],
+      "unchecked_axes": [
+        {
+          "name": "yaw",
+          "reason": "the estimator's known-bad control on this axis (2 deg) was not detected on held-out frames (t = 0.6), so the estimate is not trusted as a yardstick",
+          "reason_code": "control_not_detected",
+          "std": 0.20069324297987162,
+          "unit": "deg"
+        },
+        {
+          "name": "x",
+          "reason": "translation is not estimated: the edge objective sees it only through parallax, and on the recordings evaluated its estimate differed from the reference by up to 11 cm",
+          "reason_code": "unobservable",
+          "std": 0.0005,
+          "unit": "m"
+        },
+        {
+          "name": "y",
+          "reason": "translation is not estimated: the edge objective sees it only through parallax, and on the recordings evaluated its estimate differed from the reference by up to 11 cm",
+          "reason_code": "unobservable",
+          "std": 0.0005,
+          "unit": "m"
+        },
+        {
+          "name": "z",
+          "reason": "translation is not estimated: the edge objective sees it only through parallax, and on the recordings evaluated its estimate differed from the reference by up to 11 cm",
+          "reason_code": "unobservable",
+          "std": 0.0005,
+          "unit": "m"
+        }
+      ],
+      "verdict": "fail"
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "ring_front_center_optical"
+      ],
+      "notes": [],
+      "pair": "camera-camera",
+      "reason": "needs two distinct camera sensors, found one",
+      "reason_code": "missing_topic",
+      "sensors": [
+        "ring_front_center_optical"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/camera/image_raw"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "gnss-lidar",
+      "reason": "no topic for: gnss",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "gnss-imu",
+      "reason": "no topic for: gnss, imu",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "lidar-vehicle",
+      "reason": "vehicle pairs assume ground-vehicle motion and are opt-in: pass --vehicle-frame <frame> to check them on a ground vehicle",
+      "reason_code": "no_vehicle_frame",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "imu-vehicle",
+      "reason": "no topic for: imu",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "ins-lidar",
+      "reason": "no topic for: ins (odometry/twist topics of unknown kind: /av2/odometry; classify them with --topic-kind TOPIC=wheel|ins)",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "lidar-wheel_odometry",
+      "reason": "no topic for: wheel (odometry/twist topics of unknown kind: /av2/odometry; classify them with --topic-kind TOPIC=wheel|ins)",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    }
+  ],
+  "plan_only": false,
+  "provenance": {
+    "command": [
+      "calibrex",
+      "check",
+      "/home/user/av2-v4-work/182ba3f7-b89a-36cc-ae40-32a341b0d3e9/attempt_1/bag",
+      "--pairs",
+      "camera-lidar",
+      "--no-cache",
+      "--fail-on",
+      "never",
+      "--output",
+      "/home/user/av2-v4-work/182ba3f7-b89a-36cc-ae40-32a341b0d3e9/attempt_1/snapshots/182ba3f7-b89a-36cc-ae40-32a341b0d3e9/inject_x+1.json",
+      "--evidence-dir",
+      "/home/user/av2-v4-work/182ba3f7-b89a-36cc-ae40-32a341b0d3e9/attempt_1/snapshots/182ba3f7-b89a-36cc-ae40-32a341b0d3e9/inject_x+1_evidence",
+      "--tf",
+      "/home/user/av2-v4-work/182ba3f7-b89a-36cc-ae40-32a341b0d3e9/attempt_1/snapshots/182ba3f7-b89a-36cc-ae40-32a341b0d3e9/inject_x+1_frames.yaml"
+    ],
+    "created_at": "2026-11-01T09:40:12.416339+00:00",
+    "generator": "calibrex check",
+    "generator_version": "0.5.1",
+    "git_commit": "b1f3a20b",
+    "input_digest_scope": "metadata.yaml in full; each storage file by name, size and first 64 MiB",
+    "input_sha256": "71991f4454660fac3d1bc0f5803d5b0327f74c4d68ac8fb334aa42faecf3601d",
+    "notes": [
+      "full run: each wired pair's native estimator was run and the candidate judged against it (tolerance = max(sigma_k * std, floor); pass within 1x, fail beyond 2x)",
+      "1 bag topic(s) without a sensor role are not listed"
+    ]
+  },
+  "rotation_attribution": {
+    "alpha": 0.01,
+    "assumptions": [
+      "first order: each pair reads R_parent_child w (rotation) and R_parent_child u (translation) for a child frame turned by w and moved by u, -w and t_parent_child x w - u for a parent frame",
+      "the pairs' errors are independent; pairs that share an input make the tests optimistic",
+      "a bias shared by every pair through one frame (one estimator type) reads as that frame turned or moved",
+      "an axis std is used at least at the verdicts' rotation or translation floor over sigma_k",
+      "a direction of a frame's turn and shift that the pairs constrain worse than the floors (std above them) is not fitted; an own axis mostly along such directions is undetermined",
+      "informational: no verdict changes"
+    ],
+    "groups": [
+      {
+        "candidates": [
+          "ring_front_center_optical",
+          "velo_link"
+        ],
+        "frames": [
+          "ring_front_center_optical",
+          "velo_link"
+        ],
+        "hypotheses": [
+          {
+            "chi2": 0.0,
+            "dof": 0,
+            "frame": "ring_front_center_optical",
+            "p_value": 1.0,
+            "pairs": [
+              "camera-lidar:ring_front_center_optical>velo_link"
+            ],
+            "rotation_deg": [
+              -1.9999999999999845,
+              -0.2999999999999878,
+              null
+            ],
+            "std_deg": [
+              0.16666666666666666,
+              0.16666666666666666,
+              null
+            ]
+          },
+          {
+            "chi2": 2.5847520597632215e-29,
+            "dof": 0,
+            "frame": "velo_link",
+            "p_value": 1.0,
+            "pairs": [
+              "camera-lidar:ring_front_center_optical>velo_link"
+            ],
+            "rotation_deg": [
+              null,
+              -1.9997414286595707,
+              -0.301255443283095
+            ],
+            "std_deg": [
+              null,
+              0.16665631570159573,
+              0.16663811327069986
+            ]
+          }
+        ],
+        "null_chi2": 147.23999999999748,
+        "null_p_value": 1.0647318418971889e-32,
+        "observations": 2,
+        "pairs": [
+          "camera-lidar:ring_front_center_optical>velo_link"
+        ],
+        "status": "ambiguous",
+        "summary": "ring_front_center_optical, velo_link each explain the pair errors alone; these pairs cannot tell which candidate is off",
+        "translation_observations": 0
+      }
+    ],
+    "sigma_floor_deg": 0.16666666666666666,
+    "sigma_floor_m": 0.006666666666666667
+  },
+  "schema_version": "slac.calibration_check/v0.1",
+  "summary": {
+    "pair_count": 12,
+    "partial_pairs": 1,
+    "runnable_count": 1,
+    "skipped_by_reason": {
+      "missing_topic": 10,
+      "no_vehicle_frame": 1
+    },
+    "status_counts": {
+      "fail": 1,
+      "skipped": 11
+    }
+  },
+  "topics": [
+    {
+      "frame_source": "header",
+      "header_frame_id": "imu_link",
+      "mapped_frame": "imu_link",
+      "message_count": 2692,
+      "message_type": "nav_msgs/msg/Odometry",
+      "notes": [],
+      "odometry_kind": "unknown",
+      "role": "odometry",
+      "topic": "/av2/odometry"
+    },
+    {
+      "frame_source": "header",
+      "header_frame_id": "ring_front_center_optical",
+      "mapped_frame": "ring_front_center_optical",
+      "message_count": 317,
+      "message_type": "sensor_msgs/msg/Image",
+      "notes": [],
+      "role": "camera",
+      "topic": "/camera/image_raw"
+    },
+    {
+      "message_count": 1,
+      "message_type": "tf2_msgs/msg/TFMessage",
+      "notes": [],
+      "role": "tf_static",
+      "topic": "/tf_static"
+    },
+    {
+      "frame_source": "header",
+      "header_frame_id": "velo_link",
+      "mapped_frame": "velo_link",
+      "message_count": 156,
+      "message_type": "sensor_msgs/msg/PointCloud2",
+      "notes": [],
+      "role": "lidar",
+      "topic": "/velodyne_points"
+    }
+  ]
+}
