@@ -133,7 +133,7 @@ def test_round_trip_keeps_one_lidar_in_its_sensor_frame_and_the_tf_chain(
 ) -> None:
     log = _log(tmp_path)
     bag = tmp_path / "bag"
-    result = av2.convert_av2_to_rosbag2(log, bag, lidar=lidar)
+    result = av2.convert_av2_to_rosbag2(log, bag, lidar=lidar, point_time="offset_ns")
     listing = {c.topic: count for c, count in list_rosbag2_connections(bag)}
     assert listing[IMAGE_TOPIC] == listing[CAMERA_INFO_TOPIC] == 8
     assert listing[LIDAR_TOPIC] == 4 and listing[av2.ODOMETRY_TOPIC] > 0
@@ -165,13 +165,20 @@ def test_round_trip_keeps_one_lidar_in_its_sensor_frame_and_the_tf_chain(
     np.testing.assert_allclose(points[:, 3], times, atol=1e-7)
 
 
-def test_camera_info_carries_av2_radial_distortion_and_mono_images(tmp_path: Path) -> None:
+def test_images_are_undistorted_pinhole_and_sweeps_are_snapshots_by_default(
+    tmp_path: Path,
+) -> None:
     bag = tmp_path / "bag"
-    av2.convert_av2_to_rosbag2(_log(tmp_path), bag)
+    result = av2.convert_av2_to_rosbag2(_log(tmp_path), bag)
+    assert result.provenance["camera"]["source_k1_k2_k3"] == [-0.2, 0.05, 0.01]
+    assert result.provenance["velodyne_time"]["mode"] == "sweep"
+    (_c, stamp, payload), *_ = list(iter_topic_messages(bag, LIDAR_TOPIC, limit=1))
+    cloud = ros_cdr.decode_ros2_pointcloud2(LIDAR_TOPIC, stamp, payload)
+    assert [field.name for field in cloud.fields] == ["x", "y", "z", "intensity"]
     (_c, stamp, payload), *_ = list(iter_topic_messages(bag, CAMERA_INFO_TOPIC, limit=1))
     info = ros_cdr.decode_ros2_camera_info(CAMERA_INFO_TOPIC, stamp, payload)
     assert info.distortion_model == "plumb_bob"
-    np.testing.assert_allclose(info.d, [-0.2, 0.05, 0.0, 0.0, 0.01])
+    np.testing.assert_allclose(info.d, [0.0] * 5)
     assert (info.width, info.height) == (6, 8)
     (_c, stamp, payload), *_ = list(iter_topic_messages(bag, IMAGE_TOPIC, limit=1))
     image = ros_cdr.decode_ros2_image(IMAGE_TOPIC, stamp, payload, include_data=True)
@@ -201,6 +208,7 @@ def test_odometry_twist_is_the_body_velocity_and_the_window_selects(tmp_path: Pa
     [
         ({"camera": "fisheye"}, "camera must be"),
         ({"lidar": "both"}, "lidar must be"),
+        ({"point_time": "azimuth"}, "point_time must be"),
         ({"start_s": -1.0}, "start_s"),
         ({"max_seconds": 0.0}, "max_seconds"),
         ({"start_s": 50.0}, "no sweep or no image"),

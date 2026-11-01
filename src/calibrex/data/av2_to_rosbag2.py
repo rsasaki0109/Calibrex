@@ -7,13 +7,18 @@ the sweep timestamp, ring and stereo camera JPEGs with radial distortion ``k1, k
 a per-log ``calibration/`` and the ``city_SE3_egovehicle`` poses.
 
 The bag holds one camera (``/camera/image_raw`` mono8 and ``/camera/camera_info``
-with plumb_bob ``D = [k1, k2, 0, 0, k3]``), one LiDAR's points moved back into that
-sensor's frame (``/velodyne_points`` stamped at the sweep timestamp, with a ``time``
-field of ``offset_ns`` in seconds; points are not motion compensated), the poses
-(``/av2/odometry`` with a finite-difference body twist) and a static TF from the
-per-log calibration. The sensor frame matters: ``calibrex check`` recovers beams from
-each point's elevation, which a merged ego-frame cloud (origin about 1.6 m below the
-sensors) does not preserve.
+without distortion), one LiDAR's points moved back into that sensor's frame
+(``/velodyne_points`` stamped at the sweep timestamp, a snapshot without per-point
+times by default), the poses (``/av2/odometry`` with a finite-difference body twist) and
+a static TF from the per-log calibration. The sensor frame matters: ``calibrex check``
+recovers beams from each point's elevation, which a merged ego-frame cloud (origin
+about 1.6 m below the sensors) does not preserve.
+
+Images and sweeps follow the official ``av2-api`` conventions: its ``PinholeCamera``
+projects with ``K`` alone, so the images are treated as undistorted, and its
+motion-compensated projection moves a whole sweep with the single ego pose at the sweep
+timestamp. ``point_time="offset_ns"`` instead keeps each point's ``offset_ns`` as a
+``time`` field (development comparison only).
 
 Reading feather files needs ``pyarrow`` (``pip install calibrex[av2]``); JPEG decoding
 needs Pillow.
@@ -40,6 +45,7 @@ from calibrex.core.provenance import git_commit
 from calibrex.data.kitti_raw_to_rosbag2 import (
     BASE_FRAME,
     CAMERA_INFO_TOPIC,
+    CLOUD_FIELDS,
     CONVERSION_FILENAME,
     CONVERSION_SCHEMA,
     IMAGE_TOPIC,
@@ -78,6 +84,7 @@ CAMERAS = (
     "stereo_front_right",
 )
 LIDARS = {"up_lidar": range(0, 32), "down_lidar": range(32, 64)}
+POINT_TIMES = ("sweep", "offset_ns")
 """Each LiDAR's ``laser_number`` values in a merged Argoverse 2 sweep."""
 TWIST_HALF_WINDOW_S = 0.05
 """Poses about this far before and after a pose give its finite-difference twist."""
@@ -173,6 +180,7 @@ def convert_av2_to_rosbag2(
     *,
     camera: str = "ring_front_center",
     lidar: str = "up_lidar",
+    point_time: str = "sweep",
     start_s: float = 0.0,
     max_seconds: float | None = None,
     command: list[str] | None = None,
@@ -191,6 +199,8 @@ def convert_av2_to_rosbag2(
         raise DatasetError(f"camera must be one of {', '.join(CAMERAS)}")
     if lidar not in LIDARS:
         raise DatasetError(f"lidar must be one of {', '.join(LIDARS)}")
+    if point_time not in POINT_TIMES:
+        raise DatasetError(f"point_time must be one of {', '.join(POINT_TIMES)}")
     if not math.isfinite(start_s) or start_s < 0.0:
         raise DatasetError("start_s must be finite and nonnegative")
     if max_seconds is not None and (not math.isfinite(max_seconds) or max_seconds <= 0.0):
@@ -203,7 +213,9 @@ def convert_av2_to_rosbag2(
         if not (out / "metadata.yaml").is_file():
             raise DatasetError("overwrite requires an existing rosbag2 metadata.yaml")
     try:
-        return _convert(root, out, camera, lidar, start_s, max_seconds, list(command or []))
+        return _convert(
+            root, out, camera, lidar, point_time, start_s, max_seconds, list(command or [])
+        )
     except (OSError, ValueError, KeyError) as exc:
         raise DatasetError(f"Argoverse 2 conversion failed: {exc}") from exc
 
@@ -213,6 +225,7 @@ def _convert(
     output: Path,
     camera: str,
     lidar: str,
+    point_time: str,
     start_s: float,
     max_seconds: float | None,
     command: list[str],
@@ -232,8 +245,8 @@ def _convert(
     fx, fy = float(intrinsic["fx_px"]), float(intrinsic["fy_px"])
     cx, cy = float(intrinsic["cx_px"]), float(intrinsic["cy_px"])
     width, height = int(intrinsic["width_px"]), int(intrinsic["height_px"])
-    distortion = (float(intrinsic["k1"]), float(intrinsic["k2"]), 0.0, 0.0, float(intrinsic["k3"]))
-    values = (fx, fy, cx, cy, *distortion)
+    source_distortion = [float(intrinsic[key]) for key in ("k1", "k2", "k3")]
+    values = (fx, fy, cx, cy, *source_distortion)
     if not all(math.isfinite(v) for v in values) or fx <= 0 or fy <= 0 or width < 1 or height < 1:
         raise DatasetError(f"{camera}: invalid intrinsics")
     k = (fx, 0.0, cx, 0.0, fy, cy, 0.0, 0.0, 1.0)
@@ -314,20 +327,23 @@ def _convert(
             "frame": frame,
             "rectified": False,
             "k": list(k),
-            "distortion_model": "plumb_bob",
-            "d": list(distortion),
+            "distortion_model": "none",
+            "d": [],
+            "source_k1_k2_k3": source_distortion,
             "image_size_px": [width, height],
             "t_camera_velodyne": (np.linalg.inv(ego_camera) @ ego_lidar).tolist(),
             "t_pose_velodyne": ego_lidar.tolist(),
             "convention": "imu_link = base_link = egovehicle; both TF edges are "
-            "egovehicle_SE3_sensor of calibration/; D = [k1, k2, 0, 0, k3] of "
-            "intrinsics.feather",
+            "egovehicle_SE3_sensor of calibration/; images treated as undistorted "
+            "(av2-api PinholeCamera projects with K alone); source k1..k3 recorded only",
         },
         "frames": {"base_link": "Argoverse 2 egovehicle frame", "world": WORLD_FRAME},
         "velodyne_time": {
-            "mode": "offset_ns",
+            "mode": point_time,
             "header": "sweep timestamp",
-            "model": "time = offset_ns * 1e-9 after the header; points are not motion compensated",
+            "model": "a snapshot at the header; av2-api moves a sweep with one ego pose"
+            if point_time == "sweep"
+            else "time = offset_ns * 1e-9 after the header (development comparison)",
         },
         "motion": {
             "mode": "city_SE3_egovehicle",
@@ -382,7 +398,7 @@ def _convert(
                         height=height,
                         k=k,
                         distortion_model="plumb_bob",
-                        d=distortion,
+                        d=(0.0,) * 5,
                     ),
                 )
                 writer.write(
@@ -407,13 +423,15 @@ def _convert(
                 ego = np.column_stack(
                     [np.asarray(table[name], dtype=np.float64)[mine] for name in ("x", "y", "z")]
                 )
-                points = np.column_stack(
-                    (
-                        ego @ lidar_ego[:3, :3].T + lidar_ego[:3, 3],
-                        np.asarray(table["intensity"], dtype=np.float64)[mine],
-                        np.asarray(table["offset_ns"], dtype=np.float64)[mine] * 1e-9,
-                    )
-                )
+                columns = [
+                    ego @ lidar_ego[:3, :3].T + lidar_ego[:3, 3],
+                    np.asarray(table["intensity"], dtype=np.float64)[mine],
+                ]
+                fields, step = CLOUD_FIELDS, 16
+                if point_time == "offset_ns":
+                    columns.append(np.asarray(table["offset_ns"], dtype=np.float64)[mine] * 1e-9)
+                    fields, step = TIMED_CLOUD_FIELDS, 20
+                points = np.column_stack(columns)
                 if not np.isfinite(points).all():
                     raise DatasetError(f"{path}: non-finite LiDAR values")
                 writer.write(
@@ -422,8 +440,8 @@ def _convert(
                     encode_pointcloud2(
                         frame_id=LIDAR_FRAME,
                         timestamp_ns=stamp,
-                        fields=TIMED_CLOUD_FIELDS,
-                        point_step=20,
+                        fields=fields,
+                        point_step=step,
                         data=np.asarray(points, dtype="<f4").tobytes(),
                     ),
                 )

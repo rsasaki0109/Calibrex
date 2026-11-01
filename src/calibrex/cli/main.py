@@ -1119,6 +1119,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="which of the two merged LiDARs to write, in its own sensor frame",
     )
     convert_av2.add_argument(
+        "--point-time",
+        choices=("sweep", "offset_ns"),
+        default="sweep",
+        help="sweep (default): a snapshot at the sweep timestamp, as av2-api moves sweeps; "
+        "offset_ns: keep each point's offset as a time field (development comparison)",
+    )
+    convert_av2.add_argument(
         "--start-s", type=float, default=0.0, help="window start after the first sweep"
     )
     convert_av2.add_argument("--max-seconds", type=_positive_float, default=None)
@@ -5407,6 +5414,7 @@ def _cmd_convert_av2(args: argparse.Namespace) -> int:
         args.output,
         camera=args.camera,
         lidar=args.lidar,
+        point_time=args.point_time,
         start_s=args.start_s,
         max_seconds=args.max_seconds,
         overwrite=args.overwrite,
