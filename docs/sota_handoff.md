@@ -148,6 +148,7 @@ The camera-imu v3 audit did exactly this with the camera-camera runs.
 | Boreas | `ins-lidar` development | boreas-2020-11-26-13-58 (INS prefix/calibration inspected and first-600-scan development acquisition; see the [audit plan](research/ins_lidar_sota_plan.md)) |
 | Boreas | `ins-lidar` evaluation v1 | boreas-2020-12-01-13-26 (first 600 scans, full gps_post_process.csv and calibration; only the fixed +/-1 s reference window enters fitting) |
 | KITTI-360 | camera-LiDAR research | 2013_05_28_drive_0000, 0002 and 0003 (the [research plan](research/camera_lidar_sota_plan.md) records the materialized 0003 development capture; it was omitted from the original handoff) |
+| KITTI-360 | `camera-lidar` development | 0000 and 0002 (22 segments), and 0004–0007, 0009, 0010 (41 of 42 segments; the owner could not rule out earlier reads, so these were never unread) |
 | Hilti 2022 | `camera-imu` | exp01-07, exp11, exp14-16, exp18, exp21, exp23 (parts 0-2); exp09 and exp10 never run (size) |
 | Hilti 2022 | `camera-camera` | exp05, exp06, exp09, exp10, exp11, exp14, exp15, exp16, exp18, exp23 parts 0-2 (first 5 GB of each), plus development on exp01 and exp21 |
 | MID360 | `imu-lidar` | RTK-SLAM stadtgarten_seq1, stadtgarten_seq2, construction_seq1, construction_seq2 (every RTK-SLAM recording) and the Zenodo vehicle recording of the rotation audit |
@@ -529,6 +530,10 @@ no evaluation has started. This is converter readiness, not accuracy evidence.
   jackknife cannot see a shared bias. Sync and deskew were checked and are fine. No
   threshold was changed. Next: find unread recordings outside KITTI-360 for a v3 claim, and
   give any claim a vendor-flag allowance set before evaluation.
+- Unread-data candidates for a v4 claim ([survey](benchmarks/camera_lidar_v4_candidates.md)),
+  2026-11-01: Argoverse 2 (primary) and Boreas (second family). Both can be listed
+  anonymously. The owner cannot confirm exposure outside git and chose to use them with
+  that disclosed.
 - Multi-window check ([protocol and result](benchmarks/kitti360_camera_lidar_multiwindow.md)),
   2026-11-01: median of disjoint 60 s windows, tolerance from their spread. On the 42
   former candidate segments all six criteria held, but 0009-s07 could not run (official
