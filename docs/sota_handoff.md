@@ -523,8 +523,11 @@ no evaluation has started. This is converter readiness, not accuracy evidence.
   development segments ([exposure audit and segments](benchmarks/kitti360_camera_lidar_v3_prep.md)).
 - ~~Run the check on the 22 spent 0000/0002 segments and derive gates~~ done 2026-11-01:
   the default rule flags the vendor calibration on 0002-s04 (yaw −0.60°, std 0.042°)
-  against a gate allowing none. Next: find the cause of the overconfident yaw on spent
-  data without changing thresholds, then settle which unread data a v3 claim can use.
+  against a gate allowing none. Cause (post hoc, spent data): a yaw bias of about 0.6°
+  that lasts the whole minute on hedge-lined, turning residential streets; the block
+  jackknife cannot see a shared bias. Sync and deskew were checked and are fine. No
+  threshold was changed. Next: decide which unread data a v3 claim can use, and give
+  any claim a vendor-flag allowance set before evaluation.
 
 ### 2. ins-lidar follow-up
 

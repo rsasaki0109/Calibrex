@@ -169,6 +169,34 @@ between adjacent minutes, with a std of hundredths of a degree, points to an
 overconfident estimate on those segments rather than a calibration offset. This
 is a reading of development data. As stated above, the gate is not changed for it.
 
+## Cause of the 0002-s04 flag (post hoc, spent data only)
+
+The investigation changed no code, option or threshold:
+
+- **Sync and deskew are not the cause.** Spent OXTS packets give 6.2–6.6 m/s by
+  finite differences in 0002-s04, matching the logged speed (median 7.0 m/s, yaw
+  rate up to 38°/s). In-view points lie within ±13.5 ms of the image time, and
+  image and scan stamps are 0.5 ms apart. The small `median_translation_m`
+  (3.7 mm) is speed × that 0.5 ms reference-time gap, not the per-point
+  correction, which uses each point's own time.
+- **The bias persists through the minute.** Re-estimated from the saved snapshot,
+  each 24-frame half of 0002-s04 reads yaw −0.55° (std 0.042°, judged) and −0.75°
+  (std 1.1°, not judged). 0002-s05 reads +0.35° and +0.60°. 0002-s03 reads −0.10°
+  and −0.60°. A block jackknife measures the spread between blocks of one minute,
+  so it cannot see a bias that every block shares. The reported std is a
+  precision, not an accuracy.
+- **The scenes differ.** 0002-s03 to s05 are hedge- and tree-lined residential
+  streets with intersections and turns. Most other segments have building facades
+  and parked cars.
+
+So the default rule's accuracy on these scenes is about 0.6° in yaw. With the
+0.5° floor that gives the one vendor flag in 22. Removing it would need a larger
+floor, which is a threshold change and is not made. The opt-in warning also warns
+on 0002-s04. A bias shared by the whole recording cannot be found from inside it,
+including by agreement between halves, so any claim on this rig must allow for it.
+No v3 claim is frozen. The candidates' exposure (above) blocks the KITTI-360
+evaluation anyway.
+
 ## Not yet decided
 
 The following are decided only after development runs on the 22 spent
