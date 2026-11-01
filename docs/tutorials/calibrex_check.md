@@ -655,6 +655,42 @@ playback remain unverified. This command is not evidence for a camera-LiDAR
 SOTA claim. No unread KITTI-360 sequence has been converted or used to choose
 thresholds; the access investigation is [PR #235](https://github.com/rsasaki0109/Calibrex/pull/235).
 
+### Converting an Argoverse 2 sensor log
+
+The `av2` converter reads one log directory of the Argoverse 2 sensor dataset:
+`calibration/`, `city_SE3_egovehicle.feather`, `sensors/lidar/*.feather` and
+`sensors/cameras/CAMERA/*.jpg`. Feather files need `pyarrow`, and JPEG decoding
+needs Pillow. Install both with `pip install 'calibrex[av2]'`.
+
+```bash
+calibrex convert av2 av2/sensor/val/LOG_ID --camera ring_front_center \
+  --lidar up_lidar --output av2_bag
+```
+
+| Topic | Content |
+| --- | --- |
+| `/camera/image_raw`, `/camera/camera_info` | `mono8` images and the per-log intrinsics in `CAMERA_optical`. The images are not undistorted, and CameraInfo carries plumb_bob `D = [k1, k2, 0, 0, k3]`. |
+| `/velodyne_points` | One LiDAR's points (`laser_number` 0–31 for `up_lidar`, 32–63 for the upside-down `down_lidar`), moved from the distributed ego frame back into that sensor's frame. Each point has a float32 `time` of `offset_ns` after the sweep timestamp. The points are not motion compensated. |
+| `/av2/odometry` | `city_SE3_egovehicle` in `av2_city`, child `imu_link`. The body twist is a finite difference over the poses about 0.05 s either side. |
+| `/tf_static` | `base_link -> imu_link` identity (the egovehicle frame), and `imu_link -> velo_link` and `imu_link -> CAMERA_optical` from `egovehicle_SE3_sensor.feather`. |
+
+The sensor frame matters. `calibrex check` recovers LiDAR beams from each
+point's elevation, which a merged ego-frame cloud does not preserve: the ego
+origin is about 1.6 m below the sensors, and two LiDARs are mixed. On one
+validation log, the ego-frame cloud gave 113 apparent beams, and no rotation
+axis passed its held-out control. The `up_lidar` cloud in its own frame passed
+all three. `--start-s` and `--max-seconds` select a time window, in seconds
+from the first sweep. The sidecar records every consumed file's SHA-256, the
+log ID and split, the LiDAR and lasers, both transforms and the time model.
+
+**Development status.** Synthetic logs cover both LiDARs, the TF chain,
+distortion, the twist, windows and errors. One validation log
+(`02678d04-cc9f-3148-9f95-1ba66347dff9`) was converted, and `calibrex check
+--pairs camera-lidar` passed the vendor calibration with all three rotation
+axes judged (±0.1°). That log is development data. Argoverse 2 is the
+[v4 candidate](../benchmarks/camera_lidar_v4_candidates.md), and this run is
+not evidence for a claim.
+
 ### Phase C1 results on KITTI raw (development drives only)
 
 Drives 0005, 0009, 0014, 0015, 0022 of 2011_09_26, converted to bags; candidate

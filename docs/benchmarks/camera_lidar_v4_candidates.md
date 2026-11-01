@@ -49,11 +49,21 @@ about 20 minutes. Its `calib/` folder holds `P_camera.txt`,
 `T_camera_lidar.txt` and `T_applanix_lidar.txt`. An INS-LiDAR adapter for
 Boreas LiDAR and Applanix already exists. A camera path does not.
 
+## Argoverse 2 converter (development, 2026-11-01)
+
+`calibrex convert av2`
+([tutorial](../tutorials/calibrex_check.md#converting-an-argoverse-2-sensor-log))
+writes one log's camera, one LiDAR in its own sensor frame and the poses. One
+validation log is now development data: `02678d04-cc9f-3148-9f95-1ba66347dff9`,
+about 247 MB fetched (front centre camera, both LiDARs, calibration and poses).
+On it the check passes the vendor calibration with all three rotation axes
+judged. With the LiDAR left in the ego frame it judged none, which is why the
+converter moves points back into the sensor frame.
+
 ## Next steps (not yet decided)
 
-1. **Converters.** Write converters to rosbag2 for an Argoverse 2 log (front
-   centre camera, ego-frame LiDAR, poses as odometry) and for Boreas camera,
-   LiDAR and Applanix. Both are development work, validated first on
+1. **Converters.** ~~Argoverse 2~~ done above. Boreas camera, LiDAR and
+   Applanix are still to do. Both are development work, validated first on
    development data only.
 2. **Split rules.** Fix the development and evaluation split rules from
    metadata before reading any payload. For Argoverse 2 a natural rule is

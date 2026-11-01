@@ -37,6 +37,12 @@ dependencies = [
 images = [
   "pillow>=10",
 ]
+# Argoverse 2 conversion: feather tables and JPEG frames.
+av2 = [
+  "numpy>=1.21",
+  "pillow>=10",
+  "pyarrow>=14",
+]
 # Lint and type-check tools are pinned exactly: a new ruff or mypy release can
 # add rules and turn CI red without any code change.  The strict mypy gate runs
 # from tools/typecheck-requirements.txt (see that file for why).
