@@ -199,6 +199,34 @@ vertically) or a timing or motion effect along the direction of travel, which
 displaces points radially from the focus of expansion. These two are not yet
 separated.
 
+Splitting the saved inputs (0fb7276f and 05fa5048, against two clean logs)
+separates them:
+
+| Subset of edge points | 0fb7276f | 05fa5048 | 02678d04 | 070bbf42 |
+| --- | ---: | ---: | ---: | ---: |
+| all | −2.50° | −1.50° | 0.00° | 0.00° |
+| frames at under 0.5 m/s | −2.75° (2 frames) | – | −0.5° (1 frame) | – |
+| above image row 950 (above the optical axis) | +0.25° | +1.50° | 0.00° | +0.25° |
+| at or below row 950 | −2.50° | −1.50° | 0.00° | 0.00° |
+| depth 40–200 m | −2.75° | −2.75° | −0.25° | 0.00° |
+
+- **Not motion.** Stationary frames carry the same tilt, and a clean log at
+  11 m/s carries none.
+- **Not a vertical translation error.** Points beyond 40 m carry it as well,
+  and a translation error would fade with range.
+- **It comes from edges below the optical axis.** Edges above it agree with the
+  vendor calibration.
+
+One mechanism fits, though it is not yet tested: near-side edge
+quantization by sparse beams. At an object's top silhouette, the near-side
+edge point is the last beam that hits the object, which lies below the true
+silhouette by up to one beam spacing. At its bottom the bias reverses. A scene
+whose below-axis edges are mostly tops (planters, car bodies, kerbs) would
+bias tilt one way. Below the horizon the `up_lidar` is a 32-beam VLP-32C with
+coarser spacing than KITTI's 64 beams. Beam spacing alone does not yet account
+for 3°. A test would localise vertical depth edges between beams, or weight
+them by beam spacing, on development logs.
+
 **No v4 claim is frozen.** Gates of 4.5° and a 45 % vendor-flag allowance would
 be honest, but they would not support a meaningful check claim. The 150
 evaluation logs stay unread.
