@@ -514,8 +514,9 @@ no evaluation has started. This is converter readiness, not accuracy evidence.
   `tools/kitti_camera_lidar_v3_replay.py`~~ done 2026-10-31 (see the last entry);
   a selected new rule still needs confirmation via the real driver.
 - ~~Complete exposure auditing~~ done in git history 2026-10-31. On 2026-11-01 the owner
-  answered that work outside git opened candidate sensor data or may have, so KITTI-360
-  0004–0010 are **not** unread until a narrower confirmed statement exists. The independent-platform
+  answered that work outside git opened candidate sensor data or may have, and does not
+  know which sequences. **All of KITTI-360 0004–0010 are treated as possibly exposed**:
+  development use only. A v3 camera-LiDAR claim needs unread recordings from elsewhere. The independent-platform
   requirement remains: KITTI-360 sequences alone do not add dataset families or rigs, so a
   KITTI-360 v3 claim is scoped to that rig.
 - ~~KITTI-360 has few, long sequences: pre-register several disjoint 60 s segments per
@@ -526,8 +527,8 @@ no evaluation has started. This is converter readiness, not accuracy evidence.
   against a gate allowing none. Cause (post hoc, spent data): a yaw bias of about 0.6°
   that lasts the whole minute on hedge-lined, turning residential streets; the block
   jackknife cannot see a shared bias. Sync and deskew were checked and are fine. No
-  threshold was changed. Next: decide which unread data a v3 claim can use, and give
-  any claim a vendor-flag allowance set before evaluation.
+  threshold was changed. Next: find unread recordings outside KITTI-360 for a v3 claim, and
+  give any claim a vendor-flag allowance set before evaluation.
 
 ### 2. ins-lidar follow-up
 

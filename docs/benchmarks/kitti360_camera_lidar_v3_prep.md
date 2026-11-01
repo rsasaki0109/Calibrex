@@ -1,9 +1,10 @@
 # KITTI-360 camera-LiDAR v3: exposure audit and segment rule
 
-**Status, 2026-11-01: development only. There is no pre-registration and no
-evaluation. This work has read no candidate sensor payload, but the owner cannot
-rule out earlier reads outside git (see the exposure audit), so the candidates are
-not usable as unread data.** This page
+**Status, 2026-11-01: development only, with no KITTI-360 evaluation possible.
+This work has read no candidate sensor payload, but the owner cannot rule out
+earlier reads of any of the six candidates outside git (see the exposure audit).
+All KITTI-360 sequences are therefore treated as not unread. No pre-registration
+exists, and none is planned on KITTI-360.** This page
 fixes two inputs of a future v3 check pre-registration: which KITTI-360
 sequences are unread, and which 60 s segments of them would be evaluated.
 Gates, the run recipe and verdict rules come later, from development runs on
@@ -55,8 +56,11 @@ outside git had opened or processed images, point clouds, OXTS records or
 timestamps of 0004–0007, 0009 or 0010, the owner answered that it had, or that
 they do not know. The candidates therefore **cannot be pre-registered as unread**.
 The evaluation mode's guard stays locked, because it requires a recorded
-confirmation. Any KITTI-360 v3 evaluation needs a narrower, confirmed exposure
-statement first, or other unread recordings.
+confirmation. Asked which sequences had been opened, the owner answered that
+they do not know (2026-11-01). **All six candidates are therefore treated as
+possibly exposed.** KITTI-360 has no unread camera-LiDAR evaluation data in this
+repository. Its 42 "evaluation" segments may serve development only, and a v3
+claim needs recordings from elsewhere.
 
 ## Segment rule
 
