@@ -60,16 +60,31 @@ On it the check passes the vendor calibration with all three rotation axes
 judged. With the LiDAR left in the ego frame it judged none, which is why the
 converter moves points back into the sensor frame.
 
+## Argoverse 2 split (metadata only, 2026-11-01)
+
+`tools/av2_camera_lidar_v4_split.py` fixed the split from anonymous bucket
+listings alone ([split](../assets/camera_lidar_v4/av2_split.json)):
+
+| Role | Logs | Rule | Members pinned |
+| --- | ---: | --- | ---: |
+| Development | 30 | the first 30 validation logs by log ID | 7.7 GB |
+| Evaluation | 150 | every test log | 37.7 GB |
+| Reserve, never read | 120 validation, 700 train | everything else | – |
+
+The members a `calibrex convert av2` run reads are the two calibration tables,
+the poses, every LiDAR sweep and every `ring_front_center` image. They are
+pinned per log by the SHA-256 of their sorted key, size and ETag lines. All 180
+chosen logs have every member, with 155–197 sweeps and 319–399 images each.
+The one log already read for the converter (`02678d04-…`) is the first
+development log. No other payload has been read.
+
 ## Next steps (not yet decided)
 
 1. **Converters.** ~~Argoverse 2~~ done above. Boreas camera, LiDAR and
    Applanix are still to do. Both are development work, validated first on
    development data only.
-2. **Split rules.** Fix the development and evaluation split rules from
-   metadata before reading any payload. For Argoverse 2 a natural rule is
-   validation logs for development and test logs for evaluation, leaving train
-   as a reserve. For Boreas, the two INS-LiDAR sequences would be development
-   data.
+2. **Split rules.** Argoverse 2: ~~fix from metadata~~ done below. For Boreas,
+   the two INS-LiDAR sequences would be development data.
 3. **Pre-registration.** Develop on the development split, derive gates by the
    committed v2 rule, and freeze a v4 pre-registration that discloses the
    exposure policy above.
