@@ -1,0 +1,451 @@
+{
+  "schema_version": "calibrex.camera_lidar_development_input/v1",
+  "drive": "0004-s01",
+  "run": "inject_x+3",
+  "arrays_sha256": "558c26c45a635254a6027f88fa77b2e0c421331752246f9542ded1c1c510808f",
+  "conversion_sha256": "ecb184caa60be3a0a44561e82c75e60c5595d9883c5a8c09058eeb2cadf329f5",
+  "camera": {
+    "fx": 552.554261,
+    "fy": 552.554261,
+    "cx": 682.049453,
+    "cy": 238.769549,
+    "distortion_model": "none",
+    "distortion": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "options": {
+    "spacing_s": 1.0,
+    "max_frames": 48,
+    "max_seconds": null,
+    "short_recording_spacing_s": 0.25,
+    "short_recording_min_view_change": 0.05,
+    "max_gap_s": 0.06,
+    "min_frames": 8,
+    "blocks": 6,
+    "min_jump_m": 0.3,
+    "jump_exponent": 0.5,
+    "max_edge_points_per_frame": 4000,
+    "min_edge_points_per_frame": 150,
+    "image_max_width": 960,
+    "spill_gamma": 0.98,
+    "spill_radius_px": 40,
+    "edge_background_sigma_px": 20.0,
+    "repeated_view_change": 0.05,
+    "image_margin_px": 80.0,
+    "rotation_bound_deg": 12.0,
+    "translation_bound_m": 0.2,
+    "rotation_levels_deg": [
+      1.0,
+      0.5,
+      0.25,
+      0.1,
+      0.05
+    ],
+    "translation_levels_m": [
+      0.02,
+      0.01,
+      0.005,
+      0.0025,
+      0.001
+    ],
+    "jackknife_first_level": 1,
+    "max_moves_per_level": 12,
+    "rotation_control_deg": 2.0,
+    "translation_control_m": 0.05,
+    "min_control_t": 2.5,
+    "observable_rotation_std_deg": 0.5,
+    "observable_translation_std_m": 0.03,
+    "min_ring_fraction": 0.5,
+    "min_gain": 2e-05,
+    "estimate_translation": false,
+    "start_scan_deg": 8.0,
+    "start_scan_step_deg": 0.5,
+    "start_scan_min_observed": 2,
+    "unstructured_lidar": true,
+    "start_scan_min_control_t": null,
+    "preparation_workers": 1
+  },
+  "frames": [
+    {
+      "time_s": 1369735384.591606,
+      "image_time_s": 1369735384.594386,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735385.6365747,
+      "image_time_s": 1369735385.6403763,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735386.6812992,
+      "image_time_s": 1369735386.6855004,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735387.7266777,
+      "image_time_s": 1369735387.7307718,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735388.7723854,
+      "image_time_s": 1369735388.7764647,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735389.8186128,
+      "image_time_s": 1369735389.8214414,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735390.8635855,
+      "image_time_s": 1369735390.8656957,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735391.90952,
+      "image_time_s": 1369735391.9104562,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735392.9554148,
+      "image_time_s": 1369735392.955756,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735394.0001655,
+      "image_time_s": 1369735394.0007691,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735395.0462155,
+      "image_time_s": 1369735395.0459437,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735396.0924733,
+      "image_time_s": 1369735396.0915341,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735397.137121,
+      "image_time_s": 1369735397.136793,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735398.1823003,
+      "image_time_s": 1369735398.1820123,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735399.2274487,
+      "image_time_s": 1369735399.2273223,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735400.2723432,
+      "image_time_s": 1369735400.2724068,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735401.317209,
+      "image_time_s": 1369735401.3173015,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735402.362587,
+      "image_time_s": 1369735402.3627858,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735403.407891,
+      "image_time_s": 1369735403.408007,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735404.4529777,
+      "image_time_s": 1369735404.4530494,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735405.496129,
+      "image_time_s": 1369735405.4963882,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735406.5399327,
+      "image_time_s": 1369735406.5400536,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735407.5845027,
+      "image_time_s": 1369735407.5846288,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735408.6291845,
+      "image_time_s": 1369735408.629339,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735409.6746383,
+      "image_time_s": 1369735409.674788,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735410.7226055,
+      "image_time_s": 1369735410.721693,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735411.7684445,
+      "image_time_s": 1369735411.7684553,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735412.8138742,
+      "image_time_s": 1369735412.8141456,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735413.8599868,
+      "image_time_s": 1369735413.8598032,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735414.9053538,
+      "image_time_s": 1369735414.9053547,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735415.9508693,
+      "image_time_s": 1369735415.9509363,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735416.9958916,
+      "image_time_s": 1369735416.9960399,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735418.0418155,
+      "image_time_s": 1369735418.0414133,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735419.0864778,
+      "image_time_s": 1369735419.0863128,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735420.131292,
+      "image_time_s": 1369735420.1314037,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735421.1767073,
+      "image_time_s": 1369735421.1768098,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735422.222302,
+      "image_time_s": 1369735422.2219944,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735423.2673886,
+      "image_time_s": 1369735423.2673128,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735424.3127952,
+      "image_time_s": 1369735424.3125737,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735425.3578255,
+      "image_time_s": 1369735425.3580592,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735426.4025614,
+      "image_time_s": 1369735426.4035459,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735427.4490674,
+      "image_time_s": 1369735427.448982,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735428.494074,
+      "image_time_s": 1369735428.4940882,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735429.5400157,
+      "image_time_s": 1369735429.5394664,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735430.5857387,
+      "image_time_s": 1369735430.5857384,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735431.6348758,
+      "image_time_s": 1369735431.6347373,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735432.6807942,
+      "image_time_s": 1369735432.6808705,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 1369735433.7227542,
+      "image_time_s": 1369735433.7229674,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "cam0_optical",
+      "has_point_times": true
+    }
+  ],
+  "input_provenance": {
+    "generator": "calibrex.evaluation.camera_lidar_edge",
+    "generator_version": "0.5.1",
+    "git_commit": "41ee8249",
+    "command": [
+      "calibrex",
+      "check",
+      "/home/user/kitti360-v3-work/0004-s01/attempt_1/bag",
+      "camera-lidar",
+      "/camera/image_raw",
+      "/velodyne_points"
+    ],
+    "dataset_family": "calibrex-check",
+    "sequence_ids": [
+      "bag"
+    ],
+    "image_topic": "/camera/image_raw",
+    "lidar_topic": "/velodyne_points",
+    "input_sha256": "860f666b2ac41e9a0c64433b0e11617f91566b6b197d871fd41873668e64bd29",
+    "input_digest_scope": "bag digest (metadata.yaml in full; storage files by name, size and first 64 MiB)",
+    "dataset_license": "user-provided",
+    "created_at": "2026-11-01T01:01:10.179525+00:00"
+  },
+  "parent_frame": "cam0_optical",
+  "child_frame": "velo_link",
+  "reference_label": "deployed candidate calibration (T_camera_lidar)",
+  "start_note": "image and scan are paired at the time the camera's visible points were measured (per-point time field 'time')",
+  "motion_compensation": {
+    "source_topic": "/kitti360/odometry",
+    "kind": "twist",
+    "per_point_time": true,
+    "frames_moved": 48,
+    "frames_without_motion": 0,
+    "median_rotation_deg": 0.0018053597062528811,
+    "max_rotation_deg": 0.028033295532052447,
+    "median_translation_m": 0.0020949462860043594,
+    "max_translation_m": 0.048767272904057246
+  },
+  "generator_sha256": "cf42b8cb5dc3c60c8e7fd7792114f0f7b355829b63dc49b10003b148274797ea",
+  "estimator_sha256": "1ec1c8d4d96f368b3f6498a5849ea5bedc217ed43428c49c1dae7b8b5d78e3d0"
+}

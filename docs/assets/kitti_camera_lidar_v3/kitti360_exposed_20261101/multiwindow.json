@@ -1,0 +1,648 @@
+{
+  "schema_version": "calibrex.kitti360_camera_lidar_multiwindow/v0.1",
+  "analysis": "development; KITTI-360 is not unread data, no claim",
+  "segments": "exposed",
+  "windows_scored": 41,
+  "windows_expected": 42,
+  "single_window": {
+    "recordings": 41,
+    "vendor_flagged": [],
+    "max_baseline_judged_error_deg": 0.40000000000000946,
+    "max_turned_judged_error_deg": 4.745479766037943,
+    "judged_axes": 104,
+    "judged_fraction": 0.8455284552845529,
+    "detection": {
+      "3deg": {
+        "counted": 104,
+        "missed": 5,
+        "missed_fraction": 0.04807692307692308,
+        "judged_right": 0
+      },
+      "1deg": {
+        "counted": 104,
+        "missed": 4,
+        "missed_fraction": 0.038461538461538464,
+        "judged_right": 2
+      }
+    }
+  },
+  "sequence_level": {
+    "recordings": 6,
+    "vendor_flagged": [],
+    "max_baseline_judged_error_deg": 0.399999999999999,
+    "max_turned_judged_error_deg": 0.651382769823129,
+    "judged_axes": 15,
+    "judged_fraction": 0.8333333333333334,
+    "detection": {
+      "3deg": {
+        "counted": 15,
+        "missed": 1,
+        "missed_fraction": 0.06666666666666667,
+        "judged_right": 0
+      },
+      "1deg": {
+        "counted": 15,
+        "missed": 0,
+        "missed_fraction": 0.0,
+        "judged_right": 0
+      }
+    }
+  },
+  "triple_level": {
+    "recordings": 12,
+    "vendor_flagged": [],
+    "max_baseline_judged_error_deg": 0.4000000000000016,
+    "max_turned_judged_error_deg": 0.651382769823129,
+    "judged_axes": 33,
+    "judged_fraction": 0.9166666666666666,
+    "detection": {
+      "3deg": {
+        "counted": 33,
+        "missed": 1,
+        "missed_fraction": 0.030303030303030304,
+        "judged_right": 0
+      },
+      "1deg": {
+        "counted": 33,
+        "missed": 0,
+        "missed_fraction": 0.0,
+        "judged_right": 0
+      }
+    }
+  },
+  "criteria": {
+    "no_vendor_flag": true,
+    "baseline_error": true,
+    "turned_error": true,
+    "turn_3deg": true,
+    "turn_1deg": true,
+    "coverage": true
+  },
+  "recordings": {
+    "sequences": {
+      "0004": {
+        "windows": 10,
+        "verdict": "pass",
+        "axes": {
+          "roll": {
+            "candidate_error_deg": -0.399999999999999,
+            "windows_judged": 7,
+            "between_window_sd_deg": 3.785838309511291e-15,
+            "within_window_std_deg": 0.04166666666666666,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.399999999999999
+          },
+          "pitch": {
+            "candidate_error_deg": 0.1499999999999921,
+            "windows_judged": 9,
+            "between_window_sd_deg": 1.7077422809208542e-14,
+            "within_window_std_deg": 0.025,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.1499999999999921
+          },
+          "yaw": {
+            "candidate_error_deg": -1.8917962721969796e-14,
+            "windows_judged": 9,
+            "between_window_sd_deg": 0.07412999999996893,
+            "within_window_std_deg": 0.08333333333333334,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 1.8917962721969796e-14
+          }
+        }
+      },
+      "0005": {
+        "windows": 6,
+        "verdict": "pass",
+        "axes": {
+          "roll": {
+            "candidate_error_deg": -0.35000000000000603,
+            "windows_judged": 5,
+            "between_window_sd_deg": 0.07412999999998961,
+            "within_window_std_deg": 0.04166666666666666,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.35000000000000603
+          },
+          "pitch": {
+            "candidate_error_deg": 0.09999999999999118,
+            "windows_judged": 6,
+            "between_window_sd_deg": 9.238268483535704e-15,
+            "within_window_std_deg": 0.03333333333333334,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.09999999999999118
+          },
+          "yaw": {
+            "candidate_error_deg": 0.04999999999999259,
+            "windows_judged": 6,
+            "between_window_sd_deg": 0.11119500000001,
+            "within_window_std_deg": 0.05430316355348387,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.04999999999999259
+          }
+        }
+      },
+      "0006": {
+        "windows": 8,
+        "verdict": "pass",
+        "axes": {
+          "roll": {
+            "candidate_error_deg": -0.3500000000000118,
+            "windows_judged": 7,
+            "between_window_sd_deg": 0.07412999999997891,
+            "within_window_std_deg": 0.04166666666666666,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.3500000000000118
+          },
+          "pitch": {
+            "candidate_error_deg": 0.12500000000000114,
+            "windows_judged": 8,
+            "between_window_sd_deg": 0.03706500000001712,
+            "within_window_std_deg": 0.04166666666666667,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.12500000000000114
+          },
+          "yaw": {
+            "candidate_error_deg": 0.04999999999999622,
+            "windows_judged": 7,
+            "between_window_sd_deg": 0.07413000000000586,
+            "within_window_std_deg": 0.04166666666666667,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.04999999999999622
+          }
+        }
+      },
+      "0007": {
+        "windows": 3,
+        "verdict": "pass",
+        "axes": {
+          "roll": null,
+          "pitch": {
+            "candidate_error_deg": -1.779228197562089e-15,
+            "windows_judged": 3,
+            "between_window_sd_deg": 0.2223900000000188,
+            "within_window_std_deg": 0.05590169943749474,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 1.779228197562089e-15
+          },
+          "yaw": null
+        }
+      },
+      "0009": {
+        "windows": 11,
+        "verdict": "pass",
+        "axes": {
+          "roll": {
+            "candidate_error_deg": -0.37499999999999667,
+            "windows_judged": 8,
+            "between_window_sd_deg": 0.037065000000001305,
+            "within_window_std_deg": 0.025,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.37499999999999667
+          },
+          "pitch": {
+            "candidate_error_deg": 0.15000000000000246,
+            "windows_judged": 11,
+            "between_window_sd_deg": 3.209732479803051e-15,
+            "within_window_std_deg": 0.04166666666666667,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.15000000000000246
+          },
+          "yaw": {
+            "candidate_error_deg": -0.049999999999989456,
+            "windows_judged": 11,
+            "between_window_sd_deg": 0.07412999999997474,
+            "within_window_std_deg": 0.04166666666666667,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.049999999999989456
+          }
+        }
+      },
+      "0010": {
+        "windows": 3,
+        "verdict": "pass",
+        "axes": {
+          "roll": null,
+          "pitch": {
+            "candidate_error_deg": 0.15000000000000147,
+            "windows_judged": 3,
+            "between_window_sd_deg": 9.917250354263274e-15,
+            "within_window_std_deg": 0.025,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.15000000000000147
+          },
+          "yaw": {
+            "candidate_error_deg": 0.02499999999999029,
+            "windows_judged": 2,
+            "between_window_sd_deg": 0.11119500000000662,
+            "within_window_std_deg": 0.05416666666666667,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.02499999999999029
+          }
+        }
+      }
+    },
+    "triples": {
+      "0004-s00+0004-s01+0004-s02": {
+        "windows": 3,
+        "verdict": "pass",
+        "axes": {
+          "roll": {
+            "candidate_error_deg": -0.37499999999999695,
+            "windows_judged": 2,
+            "between_window_sd_deg": 0.037065000000003075,
+            "within_window_std_deg": 0.033333333333333326,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.37499999999999695
+          },
+          "pitch": {
+            "candidate_error_deg": 0.12499999999999584,
+            "windows_judged": 2,
+            "between_window_sd_deg": 0.03706500000001154,
+            "within_window_std_deg": 0.03333333333333334,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.12499999999999584
+          },
+          "yaw": {
+            "candidate_error_deg": -0.07500000000000831,
+            "windows_judged": 2,
+            "between_window_sd_deg": 0.03706499999999259,
+            "within_window_std_deg": 0.08008143523872038,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.07500000000000831
+          }
+        }
+      },
+      "0004-s03+0004-s04+0004-s05": {
+        "windows": 3,
+        "verdict": "pass",
+        "axes": {
+          "roll": {
+            "candidate_error_deg": -0.349999999999997,
+            "windows_judged": 2,
+            "between_window_sd_deg": 2.3455737352406914e-15,
+            "within_window_std_deg": 0.04166666666666666,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.349999999999997
+          },
+          "pitch": {
+            "candidate_error_deg": 0.10000000000000492,
+            "windows_judged": 3,
+            "between_window_sd_deg": 8.024331199507627e-15,
+            "within_window_std_deg": 0.025,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.10000000000000492
+          },
+          "yaw": {
+            "candidate_error_deg": -0.04999999999999796,
+            "windows_judged": 3,
+            "between_window_sd_deg": 0.07412999999998736,
+            "within_window_std_deg": 0.052704627669472995,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.04999999999999796
+          }
+        }
+      },
+      "0004-s06+0004-s07+0004-s08": {
+        "windows": 3,
+        "verdict": "pass",
+        "axes": {
+          "roll": {
+            "candidate_error_deg": -0.4000000000000016,
+            "windows_judged": 2,
+            "between_window_sd_deg": 0.0,
+            "within_window_std_deg": 0.025,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.4000000000000016
+          },
+          "pitch": {
+            "candidate_error_deg": 0.1499999999999921,
+            "windows_judged": 3,
+            "between_window_sd_deg": 0.0,
+            "within_window_std_deg": 0.052704627669472995,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.1499999999999921
+          },
+          "yaw": {
+            "candidate_error_deg": -1.8917962721969796e-14,
+            "windows_judged": 3,
+            "between_window_sd_deg": 0.0,
+            "within_window_std_deg": 0.08333333333333336,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 1.8917962721969796e-14
+          }
+        }
+      },
+      "0005-s00+0005-s01+0005-s02": {
+        "windows": 3,
+        "verdict": "pass",
+        "axes": {
+          "roll": {
+            "candidate_error_deg": -0.3750000000000037,
+            "windows_judged": 2,
+            "between_window_sd_deg": 0.03706500000000851,
+            "within_window_std_deg": 0.033333333333333326,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.3750000000000037
+          },
+          "pitch": {
+            "candidate_error_deg": 0.10000000000000052,
+            "windows_judged": 3,
+            "between_window_sd_deg": 4.217917681792471e-15,
+            "within_window_std_deg": 0.04166666666666667,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.10000000000000052
+          },
+          "yaw": {
+            "candidate_error_deg": 0.09999999999998584,
+            "windows_judged": 3,
+            "between_window_sd_deg": 2.125419007459328e-14,
+            "within_window_std_deg": 0.052704627669472995,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.09999999999998584
+          }
+        }
+      },
+      "0005-s03+0005-s04+0005-s05": {
+        "windows": 3,
+        "verdict": "pass",
+        "axes": {
+          "roll": {
+            "candidate_error_deg": -0.35000000000000603,
+            "windows_judged": 3,
+            "between_window_sd_deg": 0.07412999999998961,
+            "within_window_std_deg": 0.04166666666666666,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.35000000000000603
+          },
+          "pitch": {
+            "candidate_error_deg": 0.09999999999998896,
+            "windows_judged": 3,
+            "between_window_sd_deg": 1.3373885332512714e-15,
+            "within_window_std_deg": 0.025,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.09999999999998896
+          },
+          "yaw": {
+            "candidate_error_deg": -0.05000000000001331,
+            "windows_judged": 3,
+            "between_window_sd_deg": 0.2223900000000008,
+            "within_window_std_deg": 0.1003466214899358,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.05000000000001331
+          }
+        }
+      },
+      "0006-s00+0006-s01+0006-s02": {
+        "windows": 3,
+        "verdict": "pass",
+        "axes": {
+          "roll": {
+            "candidate_error_deg": -0.3500000000000118,
+            "windows_judged": 3,
+            "between_window_sd_deg": 2.049290737105025e-14,
+            "within_window_std_deg": 0.025,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.3500000000000118
+          },
+          "pitch": {
+            "candidate_error_deg": 0.10000000000000336,
+            "windows_judged": 3,
+            "between_window_sd_deg": 2.269445464886388e-14,
+            "within_window_std_deg": 0.04166666666666668,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.10000000000000336
+          },
+          "yaw": {
+            "candidate_error_deg": 0.04999999999999622,
+            "windows_judged": 3,
+            "between_window_sd_deg": 0.07413000000000586,
+            "within_window_std_deg": 0.04166666666666667,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.04999999999999622
+          }
+        }
+      },
+      "0006-s03+0006-s04+0006-s05": {
+        "windows": 3,
+        "verdict": "pass",
+        "axes": {
+          "roll": {
+            "candidate_error_deg": -0.3999999999999976,
+            "windows_judged": 3,
+            "between_window_sd_deg": 2.0575208203865712e-15,
+            "within_window_std_deg": 0.05590169943749473,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.3999999999999976
+          },
+          "pitch": {
+            "candidate_error_deg": 0.2000000000000032,
+            "windows_judged": 3,
+            "between_window_sd_deg": 2.6747770665025428e-15,
+            "within_window_std_deg": 0.025,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.2000000000000032
+          },
+          "yaw": {
+            "candidate_error_deg": 0.09999999999999587,
+            "windows_judged": 3,
+            "between_window_sd_deg": 6.069686420140385e-15,
+            "within_window_std_deg": 0.10034662148993581,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.09999999999999587
+          }
+        }
+      },
+      "0007-s00+0007-s01+0007-s02": {
+        "windows": 3,
+        "verdict": "pass",
+        "axes": {
+          "roll": null,
+          "pitch": {
+            "candidate_error_deg": -1.779228197562089e-15,
+            "windows_judged": 3,
+            "between_window_sd_deg": 0.2223900000000188,
+            "within_window_std_deg": 0.05590169943749474,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 1.779228197562089e-15
+          },
+          "yaw": null
+        }
+      },
+      "0009-s00+0009-s01+0009-s02": {
+        "windows": 3,
+        "verdict": "pass",
+        "axes": {
+          "roll": {
+            "candidate_error_deg": -0.34999999999999376,
+            "windows_judged": 2,
+            "between_window_sd_deg": 1.646016656309257e-15,
+            "within_window_std_deg": 0.03885231383473649,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.34999999999999376
+          },
+          "pitch": {
+            "candidate_error_deg": 0.15000000000000363,
+            "windows_judged": 3,
+            "between_window_sd_deg": 0.07412999999999698,
+            "within_window_std_deg": 0.05270462766947298,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.15000000000000363
+          },
+          "yaw": {
+            "candidate_error_deg": -0.10000000000000332,
+            "windows_judged": 3,
+            "between_window_sd_deg": 0.37065000000000675,
+            "within_window_std_deg": 0.10034662148993581,
+            "tolerance_deg": 0.804599339066794,
+            "status": "pass",
+            "error_to_reference_deg": 0.10000000000000332
+          }
+        }
+      },
+      "0009-s03+0009-s04+0009-s05": {
+        "windows": 3,
+        "verdict": "pass",
+        "axes": {
+          "roll": {
+            "candidate_error_deg": -0.39999999999999664,
+            "windows_judged": 3,
+            "between_window_sd_deg": 7.324774120576194e-15,
+            "within_window_std_deg": 0.025,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.39999999999999664
+          },
+          "pitch": {
+            "candidate_error_deg": 0.1499999999999921,
+            "windows_judged": 3,
+            "between_window_sd_deg": 1.6254414481053912e-14,
+            "within_window_std_deg": 0.025,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.1499999999999921
+          },
+          "yaw": {
+            "candidate_error_deg": -6.4905418905357056e-15,
+            "windows_judged": 3,
+            "between_window_sd_deg": 1.5045061775945027e-14,
+            "within_window_std_deg": 0.04166666666666667,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 6.4905418905357056e-15
+          }
+        }
+      },
+      "0009-s06+0009-s08+0009-s09": {
+        "windows": 3,
+        "verdict": "pass",
+        "axes": {
+          "roll": {
+            "candidate_error_deg": -0.37499999999999667,
+            "windows_judged": 2,
+            "between_window_sd_deg": 0.03706499999999114,
+            "within_window_std_deg": 0.025,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.37499999999999667
+          },
+          "pitch": {
+            "candidate_error_deg": 0.15000000000000246,
+            "windows_judged": 3,
+            "between_window_sd_deg": 9.053091609700913e-16,
+            "within_window_std_deg": 0.04166666666666667,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.15000000000000246
+          },
+          "yaw": {
+            "candidate_error_deg": -0.049999999999989456,
+            "windows_judged": 3,
+            "between_window_sd_deg": 1.8394236134255946e-14,
+            "within_window_std_deg": 0.04166666666666667,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": 0.049999999999989456
+          }
+        }
+      },
+      "0010-s00+0010-s01+0010-s02": {
+        "windows": 3,
+        "verdict": "pass",
+        "axes": {
+          "roll": null,
+          "pitch": {
+            "candidate_error_deg": 0.15000000000000147,
+            "windows_judged": 3,
+            "between_window_sd_deg": 9.917250354263274e-15,
+            "within_window_std_deg": 0.025,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.15000000000000147
+          },
+          "yaw": {
+            "candidate_error_deg": 0.02499999999999029,
+            "windows_judged": 2,
+            "between_window_sd_deg": 0.11119500000000662,
+            "within_window_std_deg": 0.05416666666666667,
+            "tolerance_deg": 0.5,
+            "status": "pass",
+            "error_to_reference_deg": -0.02499999999999029
+          }
+        }
+      }
+    }
+  },
+  "criteria_text": {
+    "no_vendor_flag": "no sequence- or triple-level recording flags the vendor calibration",
+    "baseline_error": "every judged triple-level baseline axis within 1.0 deg",
+    "turned_error": "every judged triple-level turned-run axis within 1.0 deg",
+    "turn_3deg": "at most 0.15 of counted triple-level 3 deg turns missed, none judged right",
+    "turn_1deg": "at most 0.25 of counted triple-level 1 deg turns missed",
+    "coverage": "at least 0.5 of triple-level baseline axes judged"
+  },
+  "provenance": {
+    "generator": "tools/kitti360_camera_lidar_multiwindow.py",
+    "generator_sha256": "376aaf3604dfb2babf6c981bc3790b17eb8396ff7cd73605376417929a04ed1e",
+    "git_commit": "41ee8249300c677a445f200bbf7423ff26366133",
+    "created_at": "2026-11-01T04:00:29.641627+00:00"
+  },
+  "carried_forward": false
+}

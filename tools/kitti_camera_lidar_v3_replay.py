@@ -44,6 +44,7 @@ from calibrex.data.ros2_camera_lidar import CameraLidarFrame
 from calibrex.evaluation import camera_lidar_edge as edge
 
 ROOT = Path(__file__).resolve().parents[1]
+KITTI360_SEGMENTS = ROOT / "docs/assets/kitti_camera_lidar_v3/kitti360_prep/segments.json"
 RUNS = {
     "baseline": None,
     **{f"inject_{axis}+{angle}": f"{axis}:{angle}" for angle in (3, 1) for axis in "xyz"},
@@ -81,12 +82,50 @@ def spent_drives() -> tuple[str, ...]:
     return tuple(result)
 
 
+def spent_kitti360_segments() -> dict[str, dict[str, Any]]:
+    """Every fixed KITTI-360 segment by ID, all development data.
+
+    The list's "evaluation" segments (0004-0007, 0009, 0010) count as spent: the owner
+    cannot rule out earlier reads of them outside git (2026-11-01).
+    """
+
+    fixed = json.loads(KITTI360_SEGMENTS.read_text())
+    return {item["id"]: item for item in [*fixed["development"], *fixed["evaluation"]]}
+
+
 def _require_spent(drive: str) -> None:
-    if drive not in spent_drives():
-        raise ValueError(f"not a spent KITTI raw development drive: {drive}")
+    if drive not in spent_drives() and drive not in spent_kitti360_segments():
+        raise ValueError(f"not a spent KITTI raw drive or KITTI-360 development segment: {drive}")
+
+
+def _kitti360_reference(conversion: dict[str, Any], segment: dict[str, Any]) -> np.ndarray:
+    source = conversion.get("source", {})
+    selection = conversion.get("selection", {})
+    camera = conversion.get("camera", {})
+    if (
+        source.get("dataset_family") != "kitti_360"
+        or source.get("sequence") != f"2013_05_28_drive_{segment['sequence']}_sync"
+        or selection.get("start_frame") != segment["start_frame"]
+        or selection.get("stop_frame_exclusive") != segment["start_frame"] + segment["frames"]
+        or camera.get("directory") != "image_00"
+        or not isinstance(conversion.get("velodyne_time"), dict)
+        or conversion["velodyne_time"].get("mode") != "azimuth"
+        or not isinstance(conversion.get("motion"), dict)
+        or conversion["motion"].get("mode") != "oxts"
+    ):
+        raise ValueError(
+            "bag conversion must match this spent segment, image_00, azimuth time and OXTS motion"
+        )
+    reference = np.asarray(camera["t_camera_velodyne"], dtype=np.float64)
+    if "t_pose_velodyne" not in camera:
+        raise ValueError("KITTI-360 conversion must record t_pose_velodyne; regenerate the bag")
+    return _serialized_chain(reference, np.asarray(camera["t_pose_velodyne"], dtype=np.float64))
 
 
 def _reference(conversion: dict[str, Any], drive: str) -> np.ndarray:
+    segments = spent_kitti360_segments()
+    if drive in segments:
+        return _kitti360_reference(conversion, segments[drive])
     date, number = drive[:10], drive[11:]
     sources = conversion.get("source", {})
     source_drives = [item["drive"] for item in sources.get("drives", [])]
@@ -98,22 +137,36 @@ def _reference(conversion: dict[str, Any], drive: str) -> np.ndarray:
     ):
         raise ValueError("bag conversion must match this spent drive, image_02 and azimuth time")
     reference = np.asarray(conversion["camera"]["t_cam_velo"], dtype=np.float64)
+    vendor_values = conversion["camera"].get("t_imu_velo")
+    if vendor_values is None:
+        _homogeneous(reference)
+        if not np.allclose(reference[:3, :3].T @ reference[:3, :3], np.eye(3), rtol=0, atol=1e-10):
+            raise ValueError("rounded calibration needs t_imu_velo provenance; regenerate the bag")
+        return reference  # legacy exact-rigid snapshots remain readable
+    return _serialized_chain(reference, np.asarray(vendor_values, dtype=np.float64))
+
+
+def _homogeneous(reference: np.ndarray) -> None:
     if reference.shape != (4, 4) or not np.isfinite(reference).all():
         raise ValueError("conversion must record a finite 4x4 reference transform")
     if not np.allclose(reference[3], [0, 0, 0, 1], rtol=0, atol=1e-12):
         raise ValueError("conversion reference must have a homogeneous last row")
-    vendor_values = conversion["camera"].get("t_imu_velo")
-    if vendor_values is None:
-        if not np.allclose(reference[:3, :3].T @ reference[:3, :3], np.eye(3), rtol=0, atol=1e-10):
-            raise ValueError("rounded calibration needs t_imu_velo provenance; regenerate the bag")
-        return reference  # legacy exact-rigid snapshots remain readable
-    vendor = np.asarray(vendor_values, dtype=np.float64)
+
+
+def _serialized_chain(reference: np.ndarray, vendor: np.ndarray) -> np.ndarray:
+    """``T_cam_lidar`` as the check reads it: both body-frame TF edges quaternion-serialized.
+
+    ``reference`` is the recorded camera-from-LiDAR transform and ``vendor`` the recorded
+    body-from-LiDAR edge (KITTI raw ``t_imu_velo``, KITTI-360 ``t_pose_velodyne``).
+    """
+
+    _homogeneous(reference)
     if (
         vendor.shape != (4, 4)
         or not np.isfinite(vendor).all()
         or not np.allclose(vendor[3], [0, 0, 0, 1], rtol=0, atol=1e-12)
     ):
-        raise ValueError("conversion must record a finite homogeneous t_imu_velo")
+        raise ValueError("conversion must record a finite homogeneous body-from-LiDAR edge")
     for matrix in (reference, vendor):
         rotation = matrix[:3, :3]
         if not np.allclose(rotation.T @ rotation, np.eye(3), rtol=0, atol=1e-5) or not math.isclose(
@@ -379,7 +432,9 @@ def capture_drive(bag: Path, drive: str, output: Path) -> int:
             if injection is not None:
                 axis, amount = injection.split(":")
                 target = output / f"{run}_frames.yaml"
-                _tool("kitti_camera_lidar_sota_run").turned_frames(bag, axis, float(amount), target)
+                runner = _tool("kitti_camera_lidar_sota_run")
+                camera_frame = conversion["camera"].get("frame", runner.CAMERA_FRAME)
+                runner.turned_frames(bag, axis, float(amount), target, camera_frame)
                 command += ["--tf", str(target)]
             with (
                 (output / f"{run}.log").open("w", encoding="utf-8") as log,
@@ -628,7 +683,9 @@ def compare_drives(
                 for name in ("score_kitti_camera_lidar_v2", "kitti_camera_lidar_v3_development")
             },
             "capture_manifests_sha256": manifests,
-            "reference": "each KITTI day's published calibration, not ground truth",
+            "reference": "the KITTI-360 published calibration, not ground truth"
+            if set(order) <= set(spent_kitti360_segments())
+            else "each KITTI day's published calibration, not ground truth",
         },
     }
     _write(output / "comparison.json", report)

@@ -513,10 +513,28 @@ no evaluation has started. This is converter readiness, not accuracy evidence.
 - ~~Capture and compare all 55 spent KITTI raw drives using the existing
   `tools/kitti_camera_lidar_v3_replay.py`~~ done 2026-10-31 (see the last entry);
   a selected new rule still needs confirmation via the real driver.
-- Complete exposure auditing and independent-platform research requirements;
-  KITTI-360 sequences alone do not add dataset families or rigs.
-- KITTI-360 has few, long sequences: pre-register several disjoint 60 s segments per
-  sequence, chosen by a rule from metadata.
+- ~~Complete exposure auditing~~ done in git history 2026-10-31. On 2026-11-01 the owner
+  answered that work outside git opened candidate sensor data or may have, and does not
+  know which sequences. **All of KITTI-360 0004–0010 are treated as possibly exposed**:
+  development use only. A v3 camera-LiDAR claim needs unread recordings from elsewhere. The independent-platform
+  requirement remains: KITTI-360 sequences alone do not add dataset families or rigs, so a
+  KITTI-360 v3 claim is scoped to that rig.
+- ~~KITTI-360 has few, long sequences: pre-register several disjoint 60 s segments per
+  sequence, chosen by a rule from metadata~~ fixed 2026-10-31: 42 evaluation and 22
+  development segments ([exposure audit and segments](benchmarks/kitti360_camera_lidar_v3_prep.md)).
+- ~~Run the check on the 22 spent 0000/0002 segments and derive gates~~ done 2026-11-01:
+  the default rule flags the vendor calibration on 0002-s04 (yaw −0.60°, std 0.042°)
+  against a gate allowing none. Cause (post hoc, spent data): a yaw bias of about 0.6°
+  that lasts the whole minute on hedge-lined, turning residential streets; the block
+  jackknife cannot see a shared bias. Sync and deskew were checked and are fine. No
+  threshold was changed. Next: find unread recordings outside KITTI-360 for a v3 claim, and
+  give any claim a vendor-flag allowance set before evaluation.
+- Multi-window check ([protocol and result](benchmarks/kitti360_camera_lidar_multiwindow.md)),
+  2026-11-01: median of disjoint 60 s windows, tolerance from their spread. On the 42
+  former candidate segments all six criteria held, but 0009-s07 could not run (official
+  OXTS archive lacks frame 8849), so it is **not carried forward**. Post hoc: it removes
+  single-window errors up to 4.75° and the 1° judged-right cases. Single windows flagged
+  no vendor calibration there either. All KITTI-360 data are now spent.
 
 ### 2. ins-lidar follow-up
 

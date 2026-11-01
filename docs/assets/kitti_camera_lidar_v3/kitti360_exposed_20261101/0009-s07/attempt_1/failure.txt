@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/home/user/kitti360-batch-src/tools/kitti360_camera_lidar_v3_batch.py", line 427, in run_segment
+    acquired = acquire(work, segment, out / "raw", get=get)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kitti360-batch-src/tools/kitti360_camera_lidar_v3_batch.py", line 337, in acquire
+    raise ValueError(f"{name}: {len(missing)} segment members absent, e.g. {missing[0]}")
+ValueError: oxts: 1 segment members absent, e.g. data_poses/2013_05_28_drive_0009_sync/oxts/data/0000008849.txt

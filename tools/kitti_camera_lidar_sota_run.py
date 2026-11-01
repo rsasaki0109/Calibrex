@@ -60,13 +60,15 @@ def calibrex() -> str:
     return str(Path(sys.executable).with_name("calibrex"))
 
 
-def turned_frames(bag: Path, axis: str, degrees: float, target: Path) -> None:
+def turned_frames(
+    bag: Path, axis: str, degrees: float, target: Path, camera_frame: str = CAMERA_FRAME
+) -> None:
     """Write a ``slac.check_frames`` file with the camera turned by ``degrees`` about ``axis``."""
 
     from calibrex.check.tf_sources import load_bag_tf_static
 
     source = load_bag_tf_static(bag)
-    edge = next(item for item in source.edges if item.child == CAMERA_FRAME)  # type: ignore[union-attr]
+    edge = next(item for item in source.edges if item.child == camera_frame)  # type: ignore[union-attr]
     turn = Rotation.from_rotvec(np.radians(-degrees) * np.eye(3)[AXES[axis]])
     rotation = Rotation.from_quat(edge.transform.rotation_quat_xyzw) * turn
     payload = {

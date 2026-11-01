@@ -212,6 +212,17 @@ def test_split_layout_roundtrip_and_camera_frame_chain(tmp_path: Path, camera: s
     tf_connection = next(c for c, _n in list_rosbag2_connections(bag) if c.topic == TF_STATIC_TOPIC)
     assert "durability: 1" in tf_connection.offered_qos_profiles
     assert result.provenance["selection"]["image_without_scan_ids"] == [2]
+    recorded = result.provenance["camera"]
+    assert recorded["frame"] == f"cam{number}_optical"
+    np.testing.assert_allclose(recorded["t_pose_velodyne"], CAM0 @ np.linalg.inv(VELO_CAM0))
+    pose_camera = np.eye(4)
+    pose_camera[:3, :3] = Rotation.from_quat(transform.rotation_quat_xyzw).as_matrix()
+    pose_camera[:3, 3] = transform.translation_m
+    np.testing.assert_allclose(
+        np.asarray(recorded["t_pose_velodyne"]) @ np.linalg.inv(recorded["t_camera_velodyne"]),
+        pose_camera,
+        atol=1e-12,
+    )
     metadata = yaml.safe_load((bag / "metadata.yaml").read_text())
     assert isinstance(
         metadata["rosbag2_bagfile_information"]["custom_data"]["source_sequence"], str
