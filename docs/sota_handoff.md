@@ -529,6 +529,12 @@ no evaluation has started. This is converter readiness, not accuracy evidence.
   jackknife cannot see a shared bias. Sync and deskew were checked and are fine. No
   threshold was changed. Next: find unread recordings outside KITTI-360 for a v3 claim, and
   give any claim a vendor-flag allowance set before evaluation.
+- Multi-window check ([protocol and result](benchmarks/kitti360_camera_lidar_multiwindow.md)),
+  2026-11-01: median of disjoint 60 s windows, tolerance from their spread. On the 42
+  former candidate segments all six criteria held, but 0009-s07 could not run (official
+  OXTS archive lacks frame 8849), so it is **not carried forward**. Post hoc: it removes
+  single-window errors up to 4.75° and the 1° judged-right cases. Single windows flagged
+  no vendor calibration there either. All KITTI-360 data are now spent.
 
 ### 2. ins-lidar follow-up
 
