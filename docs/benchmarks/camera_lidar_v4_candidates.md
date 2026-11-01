@@ -78,6 +78,42 @@ chosen logs have every member, with 155–197 sweeps and 319–399 images each.
 The one log already read for the converter (`02678d04-…`) is the first
 development log. No other payload has been read.
 
+## Gate rule, fixed before the Argoverse 2 development results
+
+This rule was committed before any development check ran on Argoverse 2. The
+one log read so far was read only to build the converter. The gates follow from
+the rule once the 30 development logs have run. Development values come from
+those logs, scored by the frozen v2 scorer under the default rule. KITTI raw and
+KITTI-360 are reported beside them and set no gate. The rules are v2's,
+unchanged, except one:
+
+- **Judged-axis error, baseline and turned runs.** 1.5 times the worst
+  development value, rounded up to the next 0.25°.
+- **Judged-axis coverage.** The development rate divided by 1.5, rounded down
+  to the next 0.25.
+- **Scored logs.** The development rate divided by 1.5, rounded down to a whole
+  number of the 150 logs.
+- **3° turns missed.** The one-sided 95 % exact binomial upper bound of the
+  development miss rate (the rule of three when none is missed), rounded up to
+  the next 0.05.
+- **1° turns missed.** 0.25.
+- **3° turns judged right, failed logs.** None allowed.
+- **Vendor calibration flagged (the change).** The binomial allowance above,
+  from the development rate, where v2 allowed none. On KITTI-360's spent
+  development data the default rule flagged the vendor calibration on 1 of 22
+  segments. The cause was a scene-dependent bias lasting the whole minute,
+  which no single recording can reveal
+  ([cause](kitti360_camera_lidar_v3_prep.md#cause-of-the-0002-s04-flag-post-hoc-spent-data-only)).
+  "None allowed" would test the reference's luck on 150 logs, not the check.
+  The claim must therefore state its vendor-flag rate.
+
+The secondary claim measures the opt-in warning
+(`--camera-lidar-start-agreement-deg 0.5`, replayed on the same inputs). Its
+baseline warning rate and its run-level 3° and 1° miss rates get the binomial
+allowance, and its judged-axis errors the 1.5× rule. If the development batch
+already fails a gate derived from itself, the pre-registration records that.
+It is not tuned away.
+
 ## Next steps (not yet decided)
 
 1. **Converters.** ~~Argoverse 2~~ done above. Boreas camera, LiDAR and
