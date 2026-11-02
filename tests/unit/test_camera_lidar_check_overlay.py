@@ -94,3 +94,84 @@ def test_without_pillow_the_overlay_is_a_png(monkeypatch: pytest.MonkeyPatch) ->
     image = encode_overlay("overlay_estimate", np.zeros((3, 4, 3), dtype=np.uint8))
     assert (image.role, image.media_type, image.suffix) == ("overlay_estimate", "image/png", ".png")
     assert image.data.startswith(b"\x89PNG")
+
+
+# ---------------------------------------------------------------- neighbouring scans
+
+
+def _room(seed: int, count: int = 6000) -> np.ndarray:
+    """Points on the floor, ceiling and walls of a 10 x 8 x 3 m room around the sensor."""
+
+    rng = np.random.default_rng(seed)
+    faces = []
+    per = count // 6
+    for axis, value in ((0, -5.0), (0, 5.0), (1, -4.0), (1, 4.0), (2, -1.5), (2, 1.5)):
+        face = np.column_stack(
+            [rng.uniform(-5, 5, per), rng.uniform(-4, 4, per), rng.uniform(-1.5, 1.5, per)]
+        )
+        face[:, axis] = value
+        faces.append(face)
+    return np.concatenate(faces)
+
+
+def _moved(points: np.ndarray, rotvec_deg: tuple[float, float, float], shift: tuple) -> tuple:
+    from scipy.spatial.transform import Rotation
+
+    transform = np.eye(4)
+    transform[:3, :3] = Rotation.from_rotvec(rotvec_deg, degrees=True).as_matrix()
+    transform[:3, 3] = shift
+    # the neighbour sees the same room from a pose T: its points are inv(T) applied
+    inverse = np.linalg.inv(transform)
+    return points @ inverse[:3, :3].T + inverse[:3, 3], transform
+
+
+def test_a_neighbour_is_registered_back_onto_the_drawn_scan() -> None:
+    from calibrex.visualization.camera_lidar_check_overlay import register_neighbours
+
+    reference = _room(1)
+    truth = _room(2)  # other samples of the same surfaces
+    neighbour, _transform = _moved(truth, (0.3, -0.5, 1.0), (0.05, -0.03, 0.02))
+    combined, used = register_neighbours(reference, [neighbour])
+    assert used == 1 and len(combined) == len(reference) + len(neighbour)
+    registered = combined[len(reference) :]
+    assert np.abs(registered - truth).max() < 0.02
+
+
+def test_a_neighbour_that_does_not_register_is_left_out() -> None:
+    from calibrex.visualization.camera_lidar_check_overlay import register_neighbours
+
+    reference = _room(1)
+    noise = np.random.default_rng(3).uniform(-6, 6, (6000, 3))
+    combined, used = register_neighbours(reference, [noise])
+    assert used == 0 and len(combined) == len(reference)
+    assert register_neighbours(reference, [])[1] == 0
+
+
+def test_neighbour_scans_are_the_nearest_within_the_window(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    from calibrex.data.ros_cdr_writer import POINT_FIELD_FLOAT32, encode_pointcloud2
+    from calibrex.data.rosbag2_writer import Rosbag2Writer
+    from calibrex.visualization.camera_lidar_check_overlay import neighbour_scans
+
+    fields = tuple((name, 4 * i, POINT_FIELD_FLOAT32, 1) for i, name in enumerate("xyz"))
+    bag = tmp_path / "bag"
+    with Rosbag2Writer(bag) as writer:
+        writer.add_topic("/points", "sensor_msgs/msg/PointCloud2")
+        for index in range(12):  # 10 Hz; each scan's x holds its index
+            stamp = 10**9 + index * 100_000_000
+            xyz = np.full((5, 3), float(index), dtype="<f4")
+            writer.write(
+                "/points",
+                stamp,
+                encode_pointcloud2(
+                    frame_id="lidar",
+                    timestamp_ns=stamp,
+                    fields=fields,
+                    point_step=12,
+                    data=xyz.tobytes(),
+                ),
+            )
+    # the drawn scan is 5 (its reference time lies 30 ms into the sweep)
+    found = neighbour_scans(bag, "/points", 1.53, half_window_s=0.25, max_scans=4)
+    assert [int(scan[0, 0]) for scan in found] == [4, 6, 3, 7]
+    assert neighbour_scans(bag, "/points", 1.53, half_window_s=0.05) == []
+    assert neighbour_scans(bag, "/points", 0.5) == []  # before the first scan

@@ -2555,7 +2555,12 @@ def _camera_lidar_overlays(
     from calibrex.data.ros2_camera_lidar import load_camera_lidar_frames
     from calibrex.evaluation.camera_lidar_edge import visible_time_rule
     from calibrex.evaluation.camera_lidar_motion import move_frames_to_image_time
-    from calibrex.visualization.camera_lidar_check_overlay import encode_overlay, overlay_rgb
+    from calibrex.visualization.camera_lidar_check_overlay import (
+        encode_overlay,
+        neighbour_scans,
+        overlay_rgb,
+        register_neighbours,
+    )
 
     image_topic, lidar_topic = topics
     frames = load_camera_lidar_frames(
@@ -2571,6 +2576,22 @@ def _camera_lidar_overlays(
     )
     if not frames:
         return (), "overlay not drawn: no image within the pairing gap of a scan"
+    drawn = frames[0]
+    points, used = register_neighbours(
+        drawn.points, neighbour_scans(ctx.bag, lidar_topic, drawn.time_s)
+    )
+    if used:
+        # Registered neighbours sit in the drawn scan's frame; they are moved with it.
+        offsets = drawn.point_time_offsets_s
+        frames = [
+            replace(
+                drawn,
+                points=points.astype(np.float32),
+                point_time_offsets_s=None
+                if offsets is None
+                else np.concatenate([offsets, np.zeros(len(points) - len(offsets))]),
+            )
+        ]
     moving = motion()
     if moving is not None:
         frames, _summary = move_frames_to_image_time(frames, moving)
@@ -2589,9 +2610,10 @@ def _camera_lidar_overlays(
                 "overlay_estimate", overlay_rgb(frame.image, frame.points, camera, estimate)
             )
         )
+    scans = f" with {used} neighbouring scan(s) registered to it" if used else ""
     return tuple(images), (
-        f"overlay: the scan at {frame.time_s:.2f} s ({len(frame.points)} points) drawn on its "
-        "image under the candidate" + (" and the estimate" if len(images) > 1 else "")
+        f"overlay: the scan at {frame.time_s:.2f} s{scans} ({len(frame.points)} points) drawn "
+        "on its image under the candidate" + (" and the estimate" if len(images) > 1 else "")
     )
 
 

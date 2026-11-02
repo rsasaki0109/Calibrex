@@ -1259,8 +1259,14 @@ tree, and the provenance (bag digest and its scope, candidate sources, command, 
 **Camera-LiDAR overlays.** With `--html`, every `camera-lidar` pair that ran also writes two
 images to the evidence directory. Each draws the first synchronized scan on its image,
 coloured by depth (red near, blue far): one under the deployed candidate and one under the
-estimate it was compared with. The scan is paired and moved to the image time exactly as
-the estimator does it. The images are JPEG with Pillow, or PNG from the standard library
+estimate it was compared with. The scans recorded within 0.25 s of it (at most four) are
+added to it, so that a non-repetitive LiDAR's sparse rosette fills in. Each is registered
+onto the drawn scan with the check's point-to-plane scan registration, from the identity.
+A neighbour is left out unless that registration converged with an RMS residual of at most
+0.1 m and enough correspondences. The pair's notes say how many were added. Registration
+needs no motion model, so the result holds for a handheld rig too. The combined points are
+then paired and moved to the image time exactly as the estimator does it. The images are
+JPEG with Pillow, or PNG from the standard library
 without it, at most 960 px on the longer side. They are listed as evidence with their
 SHA-256 (`schema_version` `image/jpeg` or `image/png`, roles `overlay_candidate` and
 `overlay_estimate`). The report embeds each one only while its file still matches that
@@ -1951,9 +1957,10 @@ rate](#camera-imu-tracking-rate). With the earlier fixed stride of 4 it could no
 `hku2`: tracked images were 0.4 s apart, longer than any interval it compares with the gyro.
 
 - **`camera-lidar` passes on both.** It read the JPEG topic through the camchain's raw
-  topic, and the CustomMsg scans with their `offset_time`. Its overlay shows the Avia's
-  rosette, which a single 0.1 s scan leaves sparse. Near points land on the plants and
-  stones in front and far ones on the building.
+  topic, and the CustomMsg scans with their `offset_time`. A single 0.1 s scan of the
+  Avia's rosette is sparse. The overlay adds the two following scans, registered to it (the
+  drawn scan is the recording's first, so it has no earlier neighbours). With them, near
+  points cover the bushes in front, and far ones the building and the trees.
 - **Both IMU pairs find the IMU rolled about 1 deg about its forward axis.** `imu-lidar`
   measures it against the LiDAR and `camera-imu` against the camera, which `camera-lidar`
   finds aligned with the LiDAR. These are two independent yardsticks, and they agree on both
