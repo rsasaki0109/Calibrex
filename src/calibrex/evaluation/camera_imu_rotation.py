@@ -25,6 +25,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from calibrex import __version__
+from calibrex.core.exceptions import DatasetError
 from calibrex.core.imu_lidar_rotation import (
     ImuLidarRotationArtifact,
     ImuLidarRotationProvenance,
@@ -32,7 +33,8 @@ from calibrex.core.imu_lidar_rotation import (
 )
 from calibrex.core.provenance import git_commit
 from calibrex.data.livox_ros2 import ImuSamples, bag_input_digest
-from calibrex.data.ros2_camera_imu import iter_gray_images, load_ros2_imu
+from calibrex.data.ros2_camera_imu import image_header, iter_gray_images, load_ros2_imu
+from calibrex.data.rosbag2 import iter_messages, require_cdr_connection
 from calibrex.evaluation.imu_lidar_rotation import (
     ImuLidarRunOptions,
     evaluate_imu_lidar_rotation,
@@ -76,6 +78,44 @@ def default_camera_evaluation_options() -> ImuLidarRunOptions:
         min_window_rotation_deg=CAMERA_MIN_WINDOW_ROTATION_DEG,
         solver=RotationOptions(observable_rotation_std_deg=CAMERA_OBSERVABLE_ROTATION_STD_DEG),
     )
+
+
+TRACKING_RATE_HZ = 10.0
+"""Images are tracked at about this rate: every 4th frame of the 40 Hz Hilti cameras."""
+RATE_PROBE_FRAMES = 41
+
+
+def camera_frame_interval_s(bag: str | Path, image_topic: str) -> float | None:
+    """Median interval between the first image header stamps of a topic.
+
+    ``None`` when the topic cannot be read here; the tracking that follows reports why.
+    """
+
+    stamps: list[int] = []
+    try:
+        for connection, timestamp_ns, payload in iter_messages(bag, topics={image_topic}):
+            require_cdr_connection(connection)
+            stamps.append(
+                image_header(connection.message_type, image_topic, timestamp_ns, payload)[0]
+            )
+            if len(stamps) >= RATE_PROBE_FRAMES:
+                break
+    except (DatasetError, OSError, ValueError):
+        return None
+    steps = np.diff(np.asarray(sorted(stamps), dtype=np.float64)) * 1.0e-9
+    steps = steps[steps > 0.0]
+    return float(np.median(steps)) if len(steps) else None
+
+
+def tracking_stride(frame_interval_s: float | None) -> int:
+    """Every how many images to track so they are about ``1 / TRACKING_RATE_HZ`` apart.
+
+    A 40 Hz camera keeps its stride of 4; a 10 Hz camera is tracked image by image.
+    """
+
+    if frame_interval_s is None or frame_interval_s <= 0.0:
+        return CameraImuRunOptions.frame_stride
+    return max(1, round(1.0 / (frame_interval_s * TRACKING_RATE_HZ)))
 
 
 @dataclass(frozen=True)
