@@ -307,9 +307,11 @@ evaluation logs stay unread.
 
 ## Next steps (not yet decided)
 
-1. **Tilt bias.** Find the cause of the negative camera-x readings on
-   development logs (0fb7276f: −3.0°) before any freeze. This should happen
-   only on development data.
+1. **Edge objective.** The negative camera-x readings are a false optimum of
+   the edge objective, not a calibration error, and the half-image screen did
+   not remove them at an acceptable cost. A v4 freeze needs an objective that
+   avoids that optimum (for example more vertical evidence from `down_lidar`,
+   or a different edge weighting), developed only on development data.
 2. **Boreas.** A camera, LiDAR and Applanix converter, and a split with the
    two INS-LiDAR sequences as development data. Boreas is the second dataset
    family the research plan's final gate needs.
