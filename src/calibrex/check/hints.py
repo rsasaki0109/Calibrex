@@ -34,8 +34,11 @@ TEMPLATE_SCHEMA_VERSION = "slac.check_frames_template/v0.1"
 # Message types expected by each sensor slot of ``missing_topic``.
 SLOT_MESSAGE_TYPES: dict[str, str] = {
     "imu": "sensor_msgs/msg/Imu",
-    "lidar": "sensor_msgs/msg/PointCloud2",
-    "camera": "sensor_msgs/msg/Image (plus a CameraInfo or a Kalibr camchain for its intrinsics)",
+    "lidar": "sensor_msgs/msg/PointCloud2 or a Livox CustomMsg",
+    "camera": (
+        "sensor_msgs/msg/Image or CompressedImage (plus a CameraInfo or a Kalibr camchain for "
+        "its intrinsics)"
+    ),
     "gnss": "sensor_msgs/msg/NavSatFix",
     "ins": "nav_msgs/msg/Odometry classified as ins (--topic-kind TOPIC=ins)",
     "wheel": "nav_msgs/msg/Odometry or TwistStamped classified as wheel (--topic-kind TOPIC=wheel)",

@@ -153,6 +153,7 @@ The camera-imu v3 audit did exactly this with the camera-camera runs.
 | Hilti 2022 | `camera-camera` | exp05, exp06, exp09, exp10, exp11, exp14, exp15, exp16, exp18, exp23 parts 0-2 (first 5 GB of each), plus development on exp01 and exp21 |
 | MID360 | `imu-lidar` | RTK-SLAM stadtgarten_seq1, stadtgarten_seq2, construction_seq1, construction_seq2 (every RTK-SLAM recording) and the Zenodo vehicle recording of the rotation audit |
 | NTU VIRAL | `lidar-lidar` | rtp_01, spms_01, tnp_02 (evaluation), tnp_01 (development) |
+| FAST-LIVO (Hugging Face MCAP) | `camera-lidar`, `imu-lidar`, `camera-imu` (tool validation, no audit) | hku1, hku2 (`calibrex check` runs recorded in the [check tutorial](tutorials/calibrex_check.md)) |
 
 The v2 camera-lidar runs also read the Velodyne and OXTS of the first 600 frames of its
 18 drives. A `lidar-vehicle` or `ins-lidar` audit on those drives must disclose that.
