@@ -17,6 +17,13 @@
   the GitHub actions they use (`checkout@v5`, `setup-python@v6`, `setup-node@v5`,
   `upload-artifact@v6`, `upload-pages-artifact@v5`, `deploy-pages@v5`); the Node 20
   versions were deprecated and warned on every run.
+- Show a real `calibrex check --html` camera-LiDAR overlay in the FAST-LIVO section of the
+  check tutorial: `hku2`, a Livox Avia scan with two registered neighbours on the JPEG
+  camera image, under FAST-LIVO's own calibration (which passes). The image is the check's
+  own output from the v0.6.0 wheel, byte-identical to an earlier development run; its
+  digests, command and the CC BY-NC 4.0 data license are in
+  `docs/assets/calibrex_check_fastlivo/overlay.json` and `readme-data-gifs.json`. The README
+  links to it.
 
 ## 0.6.0 - 2026-11-02
 

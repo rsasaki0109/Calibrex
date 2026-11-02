@@ -1961,6 +1961,16 @@ rate](#camera-imu-tracking-rate). With the earlier fixed stride of 4 it could no
   Avia's rosette is sparse. The overlay adds the two following scans, registered to it (the
   drawn scan is the recording's first, so it has no earlier neighbours). With them, near
   points cover the bushes in front, and far ones the building and the trees.
+
+<p align="center">
+  <img alt="calibrex check --html on FAST-LIVO hku2: one Livox Avia scan plus two registered neighbours, drawn through FAST-LIVO's own camera-LiDAR calibration on the left JPEG camera image and coloured by depth; the rosette's loops land on the bushes in front (red) and on the building and trees behind (green and blue)" src="../assets/calibrex_check_fastlivo/hku2-overlay-candidate.jpg" width="640">
+</p>
+<p align="center"><sub>The <code>--html</code> overlay of <code>hku2</code> under FAST-LIVO's own
+calibration, which passes (roll −0.20, pitch 0.05, yaw 0.25 deg against 0.5; x, y, z not
+judged). Written by <code>calibrex check</code> 0.6.0, unchanged; digests and the command are in
+<a href="../assets/calibrex_check_fastlivo/overlay.json"><code>overlay.json</code></a>. Data:
+FAST-LIVO via <code>DapengFeng/MCAP</code>, CC BY-NC 4.0 (non-commercial).</sub></p>
+
 - **Both IMU pairs find the IMU rolled about 1 deg about its forward axis.** `imu-lidar`
   measures it against the LiDAR and `camera-imu` against the camera, which `camera-lidar`
   finds aligned with the LiDAR. These are two independent yardsticks, and they agree on both
