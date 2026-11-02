@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 from tools import check_schema_compat as compat
@@ -83,3 +85,28 @@ def test_schema_versions_read_const_and_enum() -> None:
 def test_retired_version_is_not_reported_as_unreadable() -> None:
     assert compat._unreadable_version("slac.doctor/v0.1") is None
     assert compat._unreadable_version("slac.never_existed/v0.1") is not None
+
+
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
+def test_only_artifacts_in_versions_the_release_could_read_are_checked(tmp_path: Path) -> None:
+    _write_json(
+        tmp_path / "schemas" / "schema_ledger.json",
+        {"kinds": {"assessment": {"accepted_versions": ["slac.assessment/v0.1"]}}},
+    )
+    # never registered: a benchmark record written by a tool
+    _write_json(tmp_path / "docs" / "bench.json", {"schema_version": "slac.some_benchmark/v0.1"})
+    # accepted by the release, but no longer valid
+    _write_json(tmp_path / "docs" / "broken.json", {"schema_version": "slac.assessment/v0.1"})
+
+    released = compat._released_versions(tmp_path)
+    assert released == {"slac.assessment/v0.1"}
+    errors = compat._unreadable_artifacts(tmp_path, {}, set(), released)
+    assert len(errors) == 1 and "docs/broken.json" in errors[0]
+    # a release without a ledger checks every artifact
+    (tmp_path / "schemas" / "schema_ledger.json").unlink()
+    assert compat._released_versions(tmp_path) is None
+    assert len(compat._unreadable_artifacts(tmp_path, {}, set(), None)) == 2

@@ -5,6 +5,14 @@
 - The release workflow can also be started by hand (`workflow_dispatch` with a `tag`
   input) on `main`: it creates the annotated tag on the commit it runs on after the
   same release smoke and version check, then the draft release as a tag push does.
+- A `Publish release` workflow (`workflow_dispatch` with `tag` and `title`) publishes such
+  a draft once it carries the version's wheel and sdist: the body is the CHANGELOG
+  highlights at the tag, the install command and GitHub's generated list
+  (`tools/release_notes.py`). It then installs the published wheel.
+- `tools/check_schema_compat.py` checks the artifacts committed at the release only in
+  schema versions that release's ledger accepts. Against v0.6.0 it reported 412
+  benchmark and research records (`slac.*_benchmark/v0.1` and similar) that no release
+  ever read; against v0.6.0 and v0.5.1 it now passes.
 
 ## 0.6.0 - 2026-11-02
 
