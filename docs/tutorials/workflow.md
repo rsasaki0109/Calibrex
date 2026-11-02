@@ -27,7 +27,7 @@ chain for a ground vehicle [further down](#the-same-chain-on-a-ground-vehicle-ki
 ## 0. Install
 
 ```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.1/calibrex-0.5.1-py3-none-any.whl"
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.0/calibrex-0.6.0-py3-none-any.whl"
 calibrex --help        # the commands are grouped: Start here, Per-pair calibration, Evidence and CI, ...
 ```
 
@@ -251,9 +251,7 @@ The three commands detect the format from the file and read it directly, with no
 
 `calibrex check my_bag/ --plan` lists which sensor pairs the bag can be checked for and why the
 others are skipped, without running an estimator. The details are in [supported input
-formats](calibrex_check.md#supported-input-formats). The ROS 1 and MCAP-lz4 readers are on `main`
-and ship with the release after v0.5.1; the `0.5.1` wheel used above reads rosbag2 `.db3` and `.mcap`
-(`lz4` MCAP chunks and ROS 1 bags need `main`).
+formats](calibrex_check.md#supported-input-formats).
 
 **Which pairs.** Besides the IMU-LiDAR run above, the same commands cover camera-IMU, LiDAR-LiDAR,
 the GNSS pairs, the ground-vehicle pairs and, newly, **camera-LiDAR**. camera-LiDAR is

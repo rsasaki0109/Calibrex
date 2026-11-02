@@ -79,7 +79,7 @@
 </p>
 
 ```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.1/calibrex-0.5.1-py3-none-any.whl"
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.0/calibrex-0.6.0-py3-none-any.whl"
 
 calibrex estimate my_bag/ --output est/ --html est.html    # 1. no calibration yet: measure it, export frames.yaml / static transforms / URDF
 calibrex check other_bag/ --tf est/frames.yaml --html check.html   # 2. is the deployed calibration still right on another recording?
@@ -159,11 +159,6 @@ Their results, including what each pair could not judge, are
 `calibrex check my_bag/ --plan` prints which sensor pairs the bag can be checked for, and why the
 others are skipped, without running an estimator. Vehicle pairs are opt-in with
 `--vehicle-frame base_link`. Details: [supported input formats](docs/tutorials/calibrex_check.md#supported-input-formats).
-
-> The ROS 1 and MCAP-lz4 readers, camera-LiDAR and its overlays, compressed images, Livox
-> `CustomMsg`, the Autoware Velodyne decoder and the faster first runs are on `main` and arrive
-> with the release after v0.5.1. To use them now, install from the
-> repository: `python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"`.
 
 **Autoware bags.** Autoware's all-sensors sample records raw `velodyne_msgs/VelodyneScan` packets
 and, as a point cloud, only one concatenated cloud in `base_link`. Calibrex decodes the packets
@@ -498,7 +493,7 @@ bundle:
 
 ```bash
 python -m pip install \
-  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.1/calibrex-0.5.1-py3-none-any.whl"
+  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.0/calibrex-0.6.0-py3-none-any.whl"
 
 calibrex demo kitti-lidar-camera-evidence \
   --output-dir outputs/kitti-lidar-camera-evidence \
@@ -548,7 +543,7 @@ Run the same evidence gates on every calibration change:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: rsasaki0109/Calibrex@v0.5.1
+- uses: rsasaki0109/Calibrex@v0.6.0
   with:
     candidate: calibration/candidate.yaml
     baseline: calibration/baseline.yaml
@@ -807,11 +802,11 @@ not silently ranked together.
 ## Install
 
 The supported no-source install is the versioned wheel attached to the
-[v0.5.1 GitHub Release](https://github.com/rsasaki0109/Calibrex/releases/tag/v0.5.1):
+[v0.6.0 GitHub Release](https://github.com/rsasaki0109/Calibrex/releases/tag/v0.6.0):
 
 ```bash
 python -m pip install \
-  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.1/calibrex-0.5.1-py3-none-any.whl"
+  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.0/calibrex-0.6.0-py3-none-any.whl"
 ```
 
 Development checkouts and optional backends remain explicit:

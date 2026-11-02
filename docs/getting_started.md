@@ -11,7 +11,7 @@ no-source install is the versioned wheel attached to the GitHub release.
 ## Install
 
 ```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.1/calibrex-0.5.1-py3-none-any.whl"
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.0/calibrex-0.6.0-py3-none-any.whl"
 ```
 
 ## Check a recording
@@ -34,9 +34,6 @@ The bag is read as it is, with no conversion and no ROS installation; the format
 the file: rosbag2 (`.db3`), ROS 2 MCAP (chunks `none`, `zstd`, `lz4`) and ROS 1 `.bag` (chunks
 `none`, `bz2`, `lz4`). `calibrex check my_bag/ --plan` shows which sensor pairs the bag can be
 checked for without running an estimator ([details](tutorials/calibrex_check.md#supported-input-formats)).
-The ROS 1 and MCAP-lz4 readers, camera-LiDAR (rotation only) and the Autoware Velodyne decoder are on
-`main` and ship with the release after v0.5.1; to use them now, install from the repository:
-`python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"`.
 
 **Autoware bags** record raw Velodyne packets; `tools/velodyne_scan_to_pointcloud2.py` (in the repository) writes a
 derived bag with one point cloud per sensor, after which `lidar-lidar` gives real verdicts
