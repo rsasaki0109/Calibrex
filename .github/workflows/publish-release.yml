@@ -1,0 +1,71 @@
+name: Publish release
+
+# Publishes a draft release made by the Release workflow: checks the draft carries the
+# wheel and sdist of the tag's version, writes the body from CHANGELOG.md at the tag
+# (highlights, install command, generated "What's Changed"), publishes it as the latest
+# non-prerelease, and installs the published wheel.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Draft release to publish, e.g. v0.6.0"
+        required: true
+      title:
+        description: "Release title, e.g. Calibrex 0.6.0 — ..."
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_TITLE: ${{ inputs.title }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check the tag, the draft and its assets
+        run: |
+          [[ "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          git fetch --depth=1 origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+          git show "${RELEASE_TAG}:pyproject.toml" > "${RUNNER_TEMP}/pyproject.toml"
+          git show "${RELEASE_TAG}:CHANGELOG.md" > "${RUNNER_TEMP}/CHANGELOG.md"
+          version="$(
+            python -c 'import sys, tomllib; print(tomllib.load(open(sys.argv[1], "rb"))["project"]["version"])' \
+              "${RUNNER_TEMP}/pyproject.toml"
+          )"
+          test "${RELEASE_TAG}" = "v${version}"
+          echo "RELEASE_VERSION=${version}" >> "${GITHUB_ENV}"
+          test "$(gh release view "${RELEASE_TAG}" --json isDraft --jq .isDraft)" = "true"
+          assets="$(gh release view "${RELEASE_TAG}" --json assets --jq '.assets[].name')"
+          grep -qxF "calibrex-${version}-py3-none-any.whl" <<<"${assets}"
+          grep -qxF "calibrex-${version}.tar.gz" <<<"${assets}"
+          gh release view "${RELEASE_TAG}" --json body --jq .body > "${RUNNER_TEMP}/draft_body.md"
+      - name: Write the release notes
+        run: |
+          python tools/release_notes.py \
+            --version "${RELEASE_VERSION}" \
+            --tag "${RELEASE_TAG}" \
+            --changelog "${RUNNER_TEMP}/CHANGELOG.md" \
+            --draft-body "${RUNNER_TEMP}/draft_body.md" \
+            --output "${RUNNER_TEMP}/notes.md"
+          cat "${RUNNER_TEMP}/notes.md"
+      - name: Publish
+        run: |
+          gh release edit "${RELEASE_TAG}" \
+            --title "${RELEASE_TITLE}" \
+            --notes-file "${RUNNER_TEMP}/notes.md" \
+            --draft=false \
+            --prerelease=false \
+            --latest
+      - name: Install the published wheel
+        run: |
+          python -m venv "${RUNNER_TEMP}/venv"
+          "${RUNNER_TEMP}/venv/bin/python" -m pip install \
+            "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/calibrex-${RELEASE_VERSION}-py3-none-any.whl"
+          "${RUNNER_TEMP}/venv/bin/calibrex" --version | grep -F "${RELEASE_VERSION}"

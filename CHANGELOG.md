@@ -5,6 +5,10 @@
 - The release workflow can also be started by hand (`workflow_dispatch` with a `tag`
   input) on `main`: it creates the annotated tag on the commit it runs on after the
   same release smoke and version check, then the draft release as a tag push does.
+- A `Publish release` workflow (`workflow_dispatch` with `tag` and `title`) publishes such
+  a draft once it carries the version's wheel and sdist: the body is the CHANGELOG
+  highlights at the tag, the install command and GitHub's generated list
+  (`tools/release_notes.py`). It then installs the published wheel.
 
 ## 0.6.0 - 2026-11-02
 
