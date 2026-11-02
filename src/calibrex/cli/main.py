@@ -4937,6 +4937,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
             camera_lidar_motion=args.camera_lidar_motion,
             camera_lidar_start_scan_min_control_t=args.camera_lidar_start_scan_min_control_t,
             camera_lidar_start_agreement_deg=args.camera_lidar_start_agreement_deg,
+            camera_lidar_overlay=bool(args.html),
             rigid_scan_rotation_floor_deg=(
                 args.rigid_scan_rotation_floor_deg
                 if args.rigid_scan_rotation_floor_deg is not None

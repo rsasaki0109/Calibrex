@@ -4,12 +4,16 @@ One static page, no scripts and no external assets: the overall verdict, a
 table of the judged pairs (per-axis error against tolerance, unchecked axes
 with their reasons, detectable error, evidence link and digest), the skipped
 pairs, the closure loops, the frame the pair errors point to, the candidate
-frame tree and the provenance.
+frame tree and the provenance. Overlay images a ``camera-lidar`` pair wrote to the
+evidence directory (``calibrex check --html``) are embedded after the pairs table,
+each only when its file still matches the digest in the artifact.
 Light and dark themes follow ``prefers-color-scheme``.
 """
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import math
 import os
 import re
@@ -55,6 +59,12 @@ _CSS = """
   --bar: #8b99a3; --accent: #7db2ee;
 }
 * { box-sizing: border-box; }
+.overlays { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0 16px; }
+.overlay { margin: 0; flex: 1 1 320px; max-width: 540px; }
+.overlay img { display: block; width: 100%; height: auto; border-radius: 6px;
+  border: 1px solid var(--line); }
+.overlay figcaption { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+h3 { font-size: 1rem; margin: 20px 0 4px; }
 body { margin: 0; background: var(--bg); color: var(--fg);
   font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
 main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 64px; }
@@ -229,6 +239,73 @@ def _pair_rows(
         '<div class="tablewrap"><table><thead><tr><th>pair</th><th>verdict</th>'
         "<th>|candidate error| / tolerance</th><th>detectable error</th><th>evidence</th>"
         "</tr></thead><tbody>" + "".join(rows) + "</tbody></table></div>"
+    )
+
+
+_OVERLAY_LABELS = {
+    "overlay_candidate": "deployed candidate",
+    "overlay_estimate": "estimate the candidate was compared with",
+}
+
+
+def _embedded_image(artifact_dir: Path | None, path: str, sha256: str) -> str | None:
+    if artifact_dir is None:
+        return None
+    try:
+        data = (artifact_dir / path).read_bytes()
+    except OSError:
+        return None
+    if hashlib.sha256(data).hexdigest() != sha256:
+        return None
+    return base64.b64encode(data).decode("ascii")
+
+
+def _overlay_section(artifact: CalibrationCheckArtifact, artifact_dir: Path | None) -> str:
+    figures = []
+    for pair in artifact.pairs:
+        images = [ref for ref in pair.evidence if ref.schema_version.startswith("image/")]
+        if not images:
+            continue
+        panels = []
+        for ref in images:
+            label = escape(_OVERLAY_LABELS.get(ref.role, ref.role))
+            encoded = _embedded_image(artifact_dir, ref.path, ref.sha256)
+            if encoded is None:
+                panels.append(
+                    f'<figure class="overlay"><figcaption>{label}: '
+                    f"<code>{escape(ref.path)}</code> is missing or no longer matches its "
+                    "digest</figcaption></figure>"
+                )
+                continue
+            panels.append(
+                f'<figure class="overlay"><img alt="LiDAR scan drawn on the camera image, '
+                f'{label}" src="data:{escape(ref.schema_version)};base64,{encoded}">'
+                f"<figcaption>{label}</figcaption></figure>"
+            )
+        errors = ", ".join(
+            f"{escape(axis.name)} {axis.candidate_error:+.2f} {escape(axis.unit)}"
+            for axis in pair.axes
+        )
+        figures.append(
+            f"<h3>{escape(pair.pair)}: {escape(ARROW.join(pair.frames))}</h3>"
+            + (
+                f'<p class="note">candidate minus estimate on the judged axes: {errors}</p>'
+                if errors
+                else ""
+            )
+            + f'<div class="overlays">{"".join(panels)}</div>'
+        )
+    if not figures:
+        return ""
+    return (
+        "<h2>Camera-LiDAR overlays</h2>"
+        '<p class="legend">One synchronized scan drawn on its image, coloured by depth (red '
+        "near, blue far). Under a right calibration the points sit on the objects they hit: "
+        "car outlines, poles, building edges, the kerb. Compare the two images before trusting "
+        "a warn or fail: the edge objective can prefer a wrong rotation that moves edges onto "
+        "stronger image edges nearby. When the estimate moves the points off their objects and "
+        "the candidate keeps them on, the candidate is the better calibration.</p>"
+        + "".join(figures)
     )
 
 
@@ -518,6 +595,7 @@ def render_check_html(
         "<h2>Pairs</h2>",
         legend,
         _pair_rows(artifact, artifact_dir, html_dir) or '<p class="note">No pair ran.</p>',
+        _overlay_section(artifact, artifact_dir),
     ]
     skipped = _skipped_rows(artifact, redact_paths)
     if skipped:
