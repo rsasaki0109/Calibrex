@@ -282,6 +282,25 @@ against the default rule on the same runs:
 - no more judged turned-run axes beyond 1.0°;
 - at least 0.5 of scored baseline axes judged.
 
+**Result (ran once, 2026-11-02): `not carried forward`.**
+([screen](../assets/camera_lidar_v4/av2_half_agreement_screen.json)). Two of
+the six criteria fail:
+
+| 23 development logs | Default rule | Half-image agreement |
+| --- | ---: | ---: |
+| Judged baseline axes beyond 0.5° | 7 | 1 |
+| Baseline fail verdicts | 2 | 0 |
+| Vendor calibration flagged (warn or fail) | 6 logs | 1 log |
+| Judged turned-run axes beyond 1.0° | 24 | 5 |
+| Judged baseline axes | 0.75 | **0.44** (needs ≥ 0.5) |
+| Counted 3° turns flagged | 0.89 | **0.54** (needs ≥ 0.84) |
+| Counted 1° turns flagged | 0.87 | 0.86 |
+
+The rule removes almost every confidently wrong judgement, but half an image
+gives noisy raw estimates. Clean logs therefore lose axes too (17 of 23 lose
+at least one), and turned runs lose the axis that was turned. As committed,
+it is recorded and not adopted. Per-log forensics on Argoverse 2 stop here.
+
 **No v4 claim is frozen.** Gates of 4.5° and a 45 % vendor-flag allowance would
 be honest, but they would not support a meaningful check claim. The 150
 evaluation logs stay unread.
