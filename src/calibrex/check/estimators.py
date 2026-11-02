@@ -907,6 +907,38 @@ def require_image_topic(ctx: PairContext, topics: Sequence[str]) -> str:
     return topic
 
 
+def camera_tracking_stride(ctx: PairContext, image_topic: str) -> tuple[int, str]:
+    """Every how many images camera-imu tracks, from the topic's frame rate, and a note.
+
+    Tracked images are compared with the gyro over intervals of at most the rotation
+    solver's ``max_step_s``; a camera slower than that cannot give one, and is skipped.
+    """
+
+    from calibrex.evaluation.camera_imu_rotation import (
+        TRACKING_RATE_HZ,
+        camera_frame_interval_s,
+        tracking_stride,
+    )
+    from calibrex.solvers.imu_lidar_rotation_solver import RotationOptions
+
+    interval = camera_frame_interval_s(ctx.bag, image_topic)
+    limit = RotationOptions().max_step_s
+    if interval is not None and interval > limit:
+        raise CheckSkipError(
+            "unsupported_sensor",
+            f"{image_topic} runs at about {1.0 / interval:.1f} Hz; camera-imu compares image "
+            f"rotations with the gyro over at most {limit:g} s, so it needs at least "
+            f"{1.0 / limit:g} Hz",
+        )
+    stride = tracking_stride(interval)
+    rate = "unknown rate" if interval is None else f"{1.0 / interval:.1f} Hz"
+    return stride, (
+        f"tracking every {stride}. image ({rate}), about {TRACKING_RATE_HZ:g} Hz"
+        if stride > 1
+        else f"tracking every image ({rate})"
+    )
+
+
 def image_decoder_key(ctx: PairContext, topic: str) -> dict[str, str]:
     """Cache-key entry for a compressed topic: a different JPEG decoder may give other pixels."""
 
@@ -989,11 +1021,12 @@ def run_camera_imu(ctx: PairContext) -> EstimatorRun:
         raise CheckSkipError("missing_topic", "no IMU topic for the pair")
     camera_frame = ctx.pair.frames[0]
     model, intrinsics_source, _key = resolve_camera_intrinsics(ctx, image_topic, camera_frame)
+    stride, stride_note = camera_tracking_stride(ctx, image_topic)
     ctx.controls.progress(
         f"camera-imu: {image_topic} + {imu_topics[0]} (intrinsics: {intrinsics_source})"
     )
     candidate = ctx.candidate  # T_cam_imu
-    run_options = CameraImuRunOptions(max_seconds=ctx.controls.max_duration_s)
+    run_options = CameraImuRunOptions(frame_stride=stride, max_seconds=ctx.controls.max_duration_s)
     artifact, cached = cached_artifact(
         ctx.controls.cache,
         ctx.controls.bag_sha256,
@@ -1048,7 +1081,7 @@ def run_camera_imu(ctx: PairContext) -> EstimatorRun:
         estimates=tuple(estimates),
         compared=candidate,
         time_offset=time_offset_of(artifact.dofs, artifact.time_offset_s),
-        notes=(f"intrinsics: {intrinsics_source}",),
+        notes=(f"intrinsics: {intrinsics_source}", stride_note),
     )
 
 
@@ -1148,6 +1181,7 @@ def run_camera_focal(ctx: PairContext) -> EstimatorRun:
         raise CheckSkipError("missing_topic", "camera-focal needs an image and an IMU topic")
     image_topic = require_image_topic(ctx, camera_topics)
     model, intrinsics_source, _key = resolve_camera_intrinsics(ctx, image_topic, ctx.pair.frames[0])
+    stride, _stride_note = camera_tracking_stride(ctx, image_topic)
     ctx.controls.progress(
         f"camera-focal: {image_topic} + {imu_topics[0]} (intrinsics: {intrinsics_source})"
     )
@@ -1161,7 +1195,7 @@ def run_camera_focal(ctx: PairContext) -> EstimatorRun:
             "image_topic": image_topic,
             "imu_topic": imu_topics[0],
             "camera": model,
-            "frame_stride": 4,
+            "frame_stride": stride,
             "max_seconds": ctx.controls.max_duration_s,
             "options": focal_options,
             **image_decoder_key(ctx, image_topic),
@@ -1180,7 +1214,7 @@ def run_camera_focal(ctx: PairContext) -> EstimatorRun:
             rotation_artifact_sha256=rotation_digest,
             dataset_family=DATASET_FAMILY,
             dataset_license=DATASET_LICENSE,
-            frame_stride=4,
+            frame_stride=stride,
             max_seconds=ctx.controls.max_duration_s,
             options=focal_options,
             command=["calibrex", "check", str(ctx.bag), "camera-focal", image_topic, imu_topics[0]],

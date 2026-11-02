@@ -166,7 +166,7 @@ connected and the topics exist. Otherwise it is `skipped` with a reason code:
 | `degenerate_frames` | two sensors of a pair (or a sensor and `--vehicle-frame`) are stamped in the same frame, typically streams already transformed into `base_link`; the candidate would be the identity by construction, so the pair is not run (use `--frame-map` or `--tf` to name the physical sensor frames) |
 | `method_not_wired` | no check method exists for the pair yet (none is unwired in this version; kept for older artifacts) |
 | `not_selected` | a wired pair that `--pairs` or `--camera` left out |
-| `unsupported_sensor` | the sensor cannot be read by the estimator: a LiDAR that is not `PointCloud2`, a LiDAR without a per-point time field only when `--lidar-lidar-deskew`, `--gnss-lidar-deskew` or `--imu-lidar-deskew` is forced to `constant_velocity`/`gyro` (by default such clouds run as rigid scans), a compressed camera image |
+| `unsupported_sensor` | the sensor cannot be read by the estimator: a LiDAR that is neither `PointCloud2` nor a Livox `CustomMsg` (for example raw Velodyne packets), a LiDAR without a per-point time field only when `--lidar-lidar-deskew`, `--gnss-lidar-deskew` or `--imu-lidar-deskew` is forced to `constant_velocity`/`gyro` (by default such clouds run as rigid scans), a `CompressedImage` camera without Pillow or OpenCV to decode it, a camera slower than 4 Hz for `camera-imu` and `camera-focal` |
 | `missing_intrinsics` | `camera-imu`, `camera-lidar` and `camera-camera` need intrinsics: a Kalibr camchain given with `--tf`, or a `CameraInfo` topic next to the image topic |
 | `missing_dependency` | `camera-imu` needs OpenCV (`pip install 'calibrex[opencv]'`); `gnss-imu` needs this check's own `gnss-lidar` and `imu-lidar` results; `camera-focal` needs this check's own `camera-imu` result for the same camera (selected, solved, not failed, rotation std at most 0.5 deg about every axis) |
 
@@ -175,6 +175,19 @@ estimator raised; the message is recorded and the other pairs still run),
 `estimator_failed` (no solution, or the estimator failed its own held-out check,
 so its estimate is not a reliable yardstick) or `no_judgeable_axes` (every axis
 was unobservable).
+
+## camera-imu: tracking rate
+
+`camera-imu` tracks features from image to image and compares the camera's rotation
+with the gyro over intervals of at most 0.25 s (the rotation solver's `max_step_s`). It
+tracks every `N`-th image, with `N` chosen from the camera's frame rate (the median
+interval of its first 41 header stamps) so that tracked images are about 0.1 s apart:
+`N = round(rate / 10 Hz)`, at least 1. The 40 Hz Hilti cameras keep the stride of 4 that
+their results were obtained with; a 20 Hz camera gets 2 and a 10 Hz camera tracks every
+image. The pair's notes say which stride ran. A camera slower than 4 Hz cannot give a
+0.25 s interval and is skipped (`unsupported_sensor`). `camera-focal` reuses the same
+stride. Before this rule the stride was always 4, which left a 10 Hz camera no interval at
+all (see [FAST-LIVO `hku1` and `hku2`](#fast-livo-hku1-and-hku2-jpeg-camera-and-livox-custommsg)).
 
 ## camera-lidar: targetless edge alignment
 
