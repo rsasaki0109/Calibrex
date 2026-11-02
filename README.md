@@ -542,7 +542,7 @@ workflows. Running it without a path retains the lightweight environment check.
 Run the same evidence gates on every calibration change:
 
 ```yaml
-- uses: actions/checkout@v4
+- uses: actions/checkout@v5
 - uses: rsasaki0109/Calibrex@v0.6.0
   with:
     candidate: calibration/candidate.yaml
