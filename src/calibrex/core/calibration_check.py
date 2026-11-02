@@ -89,6 +89,7 @@ CandidateSourceKind = Literal[
     "kalibr_camchain",
     "rtk_slam_calib",
     "hilti_sensors",
+    "fast_lio_config",
 ]
 FrameSource = Literal["override", "header", "source_topic_hint", "role_default"]
 
