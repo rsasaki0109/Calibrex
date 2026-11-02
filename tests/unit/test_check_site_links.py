@@ -21,7 +21,8 @@ def test_a_raw_html_path_written_for_github_is_broken_on_the_site(tmp_path: Path
         tmp_path,
         "tutorials/workflow/index.html",
         '<img src="../assets/x.gif"> <img src="../../assets/x.gif">'
-        ' <a href="../calibrex_drift/#control">drift</a>',
+        ' <a href="../calibrex_drift/#control">drift</a>'
+        ' <code>&lt;img src="../assets/missing.gif"&gt;</code>',
     )
     _page(tmp_path, "tutorials/calibrex_drift/index.html", "")
 

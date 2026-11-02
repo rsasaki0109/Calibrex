@@ -16,6 +16,7 @@ import re
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
+TAG = re.compile(r"<[A-Za-z][^<>]*>")
 URL_ATTRIBUTE = re.compile(r'\s(?:src|href)="([^"]+)"')
 
 
@@ -44,7 +45,9 @@ def broken_links(site: Path, base_path: str = "/") -> dict[str, list[str]]:
     broken: dict[str, list[str]] = {}
     for page in sorted(site.rglob("*.html")):
         text = page.read_text(encoding="utf-8", errors="replace")
-        for url in URL_ATTRIBUTE.findall(text):
+        # attributes of real tags only: a code span shows ``<img src="...">`` as &lt;img
+        urls = [url for tag in TAG.findall(text) for url in URL_ATTRIBUTE.findall(tag)]
+        for url in urls:
             target = target_path(site, page, url, base)
             if target is not None and not target.exists():
                 broken.setdefault(page.relative_to(site).as_posix(), []).append(url)
