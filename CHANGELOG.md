@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The release workflow can also be started by hand (`workflow_dispatch` with a `tag`
+  input) on `main`: it creates the annotated tag on the commit it runs on after the
+  same release smoke and version check, then the draft release as a tag push does.
+
 ## 0.6.0 - 2026-11-02
 
 Highlights:
