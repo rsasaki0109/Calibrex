@@ -55,7 +55,7 @@
 </table>
 <p>両手法で画像対・幾何補正・初期値・校正ソルバーを揃えた。UniMatchはRGB、SGBMはグレースケールという入力表現の違いはある。過去の「3フレームで5/12」は前処理が異なり、上表の対照値と混同しない。</p>
 <p>UniMatchのコードとSceneFlow学習済み重みは固定済み。CPUでも元解像度で動くことは確認できたが、実行可能であることと校正精度が高いことは別である。最新の遮蔽対応方式は、この実データ比較にはまだ入っていない。</p>
-<p>根拠：<a href="../../research/learned_stereo_comparison.md">単一フレーム比較</a>／<a href="../../research/joint_learned_stereo.md">3フレーム比較</a>／<a href="../../research/unimatch_runtime.md">モデル・実行環境</a></p>
+<p>根拠：<a href="../../research/learned_stereo_comparison/">単一フレーム比較</a>／<a href="../../research/joint_learned_stereo/">3フレーム比較</a>／<a href="../../research/unimatch_runtime/">モデル・実行環境</a></p>
 <h2 id="3">3. なぜ探索・目的関数まで調べたか</h2>
 <p>カメラとLiDARを別々の視点から解析的に描画し、正解が分かる合成条件を用意した。正確な深度と、カメラから見える点だけを与えても、現行MI方式はずらした2初期値から両方とも復元に失敗した。</p>
 <p>MI（相互情報量）は深度値どうしの統計的な関係を高める指標。高いMIが必ずしも正しい位置・姿勢を意味するわけではない。</p>
@@ -91,7 +91,7 @@
 </tbody>
 </table>
 <p>上表は同じ系統の合成形状を使った適応的な開発であり、未見データでのランキングではない。別点群の検証も同じ深度画像を共有している。</p>
-<p>根拠：<a href="../../research/known_geometry_joint_results.md">正解形状による切り分け</a>／<a href="../../research/joint_continuation_results.md">探索継続</a>／<a href="../../research/joint_geometric_validation_results.md">検証の誤判定</a>／<a href="../../research/joint_metric_results.md">距離を直接合わせた結果</a></p>
+<p>根拠：<a href="../../research/known_geometry_joint_results/">正解形状による切り分け</a>／<a href="../../research/joint_continuation_results/">探索継続</a>／<a href="../../research/joint_geometric_validation_results/">検証の誤判定</a>／<a href="../../research/joint_metric_results/">距離を直接合わせた結果</a></p>
 <h2 id="4">4. 直近の成果：遮蔽を含む条件で改善</h2>
 <p>カメラには最も手前の面が写る。一方、離れた位置にあるLiDARには、その面の奥が見える場合がある。そこで、<strong>測定面より奥の大きな距離残差だけ影響を弱める</strong>非対称な方式を試した。手前側の矛盾と、対応不能点のペナルティは維持している。</p>
 <p>これは遮蔽に着想を得た近似であり、遮蔽を厳密に推定するモデルではない。正解姿勢を使って点を除く処理は、推定器には入れていない。</p>
@@ -129,7 +129,7 @@
 </table>
 <p>正解開始の6件は、摂動からの復元12件と別の検査である。合計18/18を「復元率」として示さない。</p>
 <p><strong>残る限界：</strong>元の形状で遮蔽がない場合、回転誤差は約0.14°から約0.20°へ増えた。正解からのずれもゼロではない。球・平面・ノイズなしという共通の前提があり、12/12は実環境での成功率を示さない。深度バイアスはこの実験に含めていない。</p>
-<p>根拠：<a href="../../research/occlusion_pose_protocol.md">固定した実験条件</a>／<a href="../../research/occlusion_pose_results.md">全ケースの結果</a></p>
+<p>根拠：<a href="../../research/occlusion_pose_protocol/">固定した実験条件</a>／<a href="../../research/occlusion_pose_results/">全ケースの結果</a></p>
 <h2 id="5">5. 次の開発：深度バイアスと位置ずれの混同</h2>
 <p>カメラの深度が一律に長く見積もられると、校正器がセンサーの位置を動かして帳尻を合わせる可能性がある。以前の距離フィットでは、深度に+25 cmを加えると位置誤差が約22.2 cmとなり、基準を外れた。</p>
 <p>以下は<strong>次の実験の設計案であり、未実施・未凍結</strong>。</p>
@@ -174,6 +174,6 @@
 <li>実験前にコード・入力条件のハッシュを固定し、全ケースを保存。</li>
 <li>元の形状の対称方式6件は、前回結果と完全一致を確認。</li>
 <li>直近変更の検証：関連テスト7件、リポジトリLint、strict文書ビルドに成功。</li>
-<li>基準資料：<a href="../../sota_handoff.md">開発引き継ぎ</a>。より詳細な値・制約は各実験資料を参照。</li>
+<li>基準資料：<a href="../../sota_handoff/">開発引き継ぎ</a>。より詳細な値・制約は各実験資料を参照。</li>
 </ul>
 <p><strong>次の判断会議で答える問い：</strong>「バイアスを推定すると精度が上がるか」だけでなく、「バイアスと位置ずれを、この観測から本当に区別できるか」。</p><p class="note">この資料は2026年10月29日時点の開発判断を整理したものです。参照資料へのリンクはリポジトリ内の相対パスです。評価対象は本文記載のコミットに固定しています。HTML本体は外部フォント・画像・スクリプトなしで閲覧できます。</p></main></body></html>
