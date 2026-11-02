@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - "v*"
+  # A manual run creates the tag itself, on the commit it runs on (main only),
+  # for when a tag cannot be pushed from where the release was prepared.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to create on main's head, e.g. v0.6.0 (must match the package version)"
+        required: true
 
 permissions:
   contents: write
@@ -11,6 +18,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -23,17 +32,39 @@ jobs:
           package_version="$(
             python -c 'from pathlib import Path; import tomllib; print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])'
           )"
-          test "${GITHUB_REF_NAME}" = "v${package_version}"
+          test "${RELEASE_TAG}" = "v${package_version}"
+      - name: Create the annotated tag (manual runs)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "${GITHUB_REF}" = "refs/heads/main"
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Tag ${RELEASE_TAG} already exists" >&2
+            exit 1
+          fi
+          tag_object="$(
+            gh api "repos/${GITHUB_REPOSITORY}/git/tags" \
+              -f tag="${RELEASE_TAG}" \
+              -f message="Calibrex ${RELEASE_TAG#v}" \
+              -f object="${GITHUB_SHA}" \
+              -f type=commit \
+              --jq .sha
+          )"
+          gh api "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/tags/${RELEASE_TAG}" \
+            -f sha="${tag_object}" >/dev/null
       - name: Create draft GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="${GITHUB_REF_NAME}"
+          tag="${RELEASE_TAG}"
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "Release $tag already exists" >&2
             exit 1
           fi
           gh release create "$tag" dist/* \
+            --verify-tag \
             --draft \
             --prerelease \
             --generate-notes \
