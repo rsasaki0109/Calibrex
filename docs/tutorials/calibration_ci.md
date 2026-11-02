@@ -65,14 +65,14 @@ jobs:
   evidence:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Check calibration evidence
         id: calibrex
         uses: rsasaki0109/Calibrex@v0.6.0
         with:
           candidate: calibration/candidate.yaml
           baseline: calibration/baseline.yaml
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: calibration-evidence

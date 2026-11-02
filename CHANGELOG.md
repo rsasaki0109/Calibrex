@@ -13,6 +13,10 @@
   schema versions that release's ledger accepts. Against v0.6.0 it reported 412
   benchmark and research records (`slac.*_benchmark/v0.1` and similar) that no release
   ever read; against v0.6.0 and v0.5.1 it now passes.
+- Move the workflows, the composite action and the CI examples to the Node 24 majors of
+  the GitHub actions they use (`checkout@v5`, `setup-python@v6`, `setup-node@v5`,
+  `upload-artifact@v6`, `upload-pages-artifact@v5`, `deploy-pages@v5`); the Node 20
+  versions were deprecated and warned on every run.
 
 ## 0.6.0 - 2026-11-02
 

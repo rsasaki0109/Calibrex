@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Compare calibration evidence
         id: calibrex
@@ -37,7 +37,7 @@ jobs:
 
       - name: Upload calibration CI artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: calibration-ci
           path: calibrex-ci/

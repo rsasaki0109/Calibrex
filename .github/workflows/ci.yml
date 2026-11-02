@@ -11,8 +11,8 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install
@@ -121,7 +121,7 @@ jobs:
       - name: Upload package artifacts
         if: matrix.python-version == '3.12'
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: calibrex-dist
           path: dist/*
@@ -131,7 +131,7 @@ jobs:
         run: ruff check .
       - name: Set up Node for browser controller tests
         if: matrix.python-version == '3.12'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '22'
       - name: Browser worker controller tests
@@ -152,8 +152,8 @@ jobs:
       MKL_NUM_THREADS: "1"
       OMP_NUM_THREADS: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install
@@ -175,10 +175,10 @@ jobs:
   schema-compat:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install
@@ -198,7 +198,7 @@ jobs:
     steps:
       - name: Install system Python tooling
         run: apt-get update && apt-get install -y --no-install-recommends git python3-venv
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Trust the workspace
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Install into a venv
@@ -219,8 +219,8 @@ jobs:
   compressed-bag-formats:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install bag format and compression extras
@@ -241,8 +241,8 @@ jobs:
   av2-adapter:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install Argoverse 2 adapter
@@ -258,8 +258,8 @@ jobs:
   opencv-adapter:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install OpenCV adapter
@@ -293,8 +293,8 @@ jobs:
   numba-adapter:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install Numba adapter
@@ -325,7 +325,7 @@ jobs:
   calibration-action:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Exercise local Calibration CI action
         id: calibration
         uses: ./
@@ -344,7 +344,7 @@ jobs:
           test -f "${CALIBRATION_SUMMARY}"
       - name: Upload calibration CI artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: calibration-ci-smoke
           path: calibrex-ci/
