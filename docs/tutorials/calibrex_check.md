@@ -1976,6 +1976,66 @@ rate](#camera-imu-tracking-rate). With the earlier fixed stride of 4 it could no
   0.006) exceed the 0.005 bound on a 10 Hz handheld recording.
 - Each run took about 10-12 min, mostly `imu-lidar`. Tracking needs OpenCV.
 
+**Half-recording screen of the IMU pitch (stopped, unresolved).** One screen was run on
+`hku2` with its rule fixed in advance. The bag was split at its middle into two halves of
+about 52.6 s, and `imu-lidar`, `camera-imu` and `camera-lidar` were run on each. The rule:
+a method whose IMU-pitch reading moves by more than 0.3 deg between the halves, while the
+other's moves by less, is the less stable one on that axis; otherwise the question stays
+open and the screen stops.
+
+| Half | `imu-lidar` IMU pitch | `camera-imu`, matching axis | closure |
+| --- | --- | --- | --- |
+| first | −1.01 ± 0.10 deg | +0.10 ± 0.15 deg | `warn` on that axis (0.71 deg) |
+| second | −0.91 ± 0.06 deg | not judged (unobservable) | `pass` on the two judged axes |
+
+`imu-lidar` moved by 0.10 deg. `camera-imu` could not be measured on the second half, so
+the rule did not resolve the question, and the screen stopped there. Every half still shows
+the IMU rolled by about 1 deg about its forward axis.
+
+### Newer College 2021 `math-easy`: four JPEG cameras, Ouster OS0-128, ROS 1 lz4
+
+A second rig: the Newer College 2021 handheld collection (Ouster OS0-128 and Alphasense
+cameras, Hugging Face `ori-drs/newer_college_dataset`, CC BY-NC-SA 4.0), recording
+`2021-04-07-13-52-31_1-math-easy.bag` (1.84 GB, 37.8 s). It is a ROS 1 bag with lz4
+chunks, which need `calibrex[rosbag1-lz4]`. It holds:
+
+- four 720 x 540 mono JPEG cameras at 30 Hz (`/alphasense_driver_ros/camN/compressed`);
+- the Alphasense IMU (200 Hz) and the Ouster IMU (100 Hz);
+- `/os_cloud_node/points` (`PointCloud2`, 10 Hz, frame `os_sensor`).
+
+There is no `CameraInfo` or TF. The candidate comes from the dataset's Kalibr camchain for
+cam0 and cam1 (equidistant), whose `rostopic` names the raw topics. The LiDAR comes from
+`os_imu_lidar_transforms.yaml`, as a `slac.check_frames` file: `os_sensor` in the Alphasense
+IMU frame, and the Ouster IMU in `os_sensor`. cam3 and cam4 have no calibration and stay
+unmapped. All thirteen planned pairs ran in 24 min:
+
+| Pair | Result |
+| --- | --- |
+| `camera-camera` cam0 / cam1 | `pass`: every rotation axis within 0.04 deg |
+| `camera-lidar` cam0 | `warn`: roll 0.50 (tolerance 0.5), pitch 0.40, yaw 0.25 deg |
+| `camera-lidar` cam1 | `pass`: pitch 0.35 deg judged; roll and yaw tolerances wider (1.38, 0.79 deg) |
+| closure cam0-LiDAR + cam1-LiDAR + cam0-cam1 | `pass` |
+| which frame | `os_sensor` alone: roll +0.20, pitch +0.40, yaw −0.38 deg (± 0.11-0.14), x −1.8 cm |
+| `imu-lidar`, Alphasense IMU | `pass` on the x lever arm only; rotation not constrained (std 0.15-0.20 deg) |
+| `imu-lidar`, Ouster IMU | `pass` on pitch only (0.28 deg) |
+| `camera-imu`, four camera / IMU pairs | `inconclusive`: no axis's known-bad control was detected |
+| `camera-focal`, four pairs | `inconclusive` (ratio stds 0.006, above the 0.005 bound) |
+
+- **Every input path ran on this rig:**
+  - the ROS 1 lz4 bag;
+  - the JPEG topics, matched to the camchain through their raw topic names;
+  - the 30 Hz cameras, tracked every third image (about 10 Hz);
+  - the 128-beam cloud.
+- **The camera / LiDAR calibration is consistent.** The stereo pair passes, the two
+  camera-LiDAR estimates close against it, and a single frame (the Ouster sensor) explains
+  them. Its 0.2-0.4 deg is near the edge-alignment floor of 0.5 deg. The reference mixes
+  CAD values with Kalibr results.
+  The cam0 overlay shows the roofline, the tower and the windows of the building under the
+  points.
+- **37.8 s is too short for the IMU pairs.** Almost no rotation axis of `imu-lidar` or
+  `camera-imu` is constrained, and the check says so axis by axis rather than judging.
+  Longer collections of this dataset (for example the 119 s `stairs`) would be needed.
+
 ### Remaining gaps
 
 - The Autoware bag's raw Velodyne packets (see "raw Velodyne packets" above) give real
