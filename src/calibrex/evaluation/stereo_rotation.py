@@ -37,8 +37,7 @@ from calibrex.core.stereo_rotation import (
     StereoRotationAxis,
     StereoRotationProvenance,
 )
-from calibrex.data import ros_cdr
-from calibrex.data.ros2_camera_imu import to_gray
+from calibrex.data.ros2_camera_imu import decode_gray_message, image_header
 from calibrex.data.rosbag2 import iter_messages
 from calibrex.evaluation.fisheye_stereo import (
     VERTICAL_OFFSET_COLUMNS,
@@ -229,14 +228,15 @@ def read_stereo_frames(
     opts = options or StereoRotationOptions()
     gap_ns = round((opts.max_gap_s if max_gap_s is None else max_gap_s) * 1.0e9)
     pending: dict[str, list[tuple[int, int, bytes]]] = {left_topic: [], right_topic: []}
+    message_types: dict[str, str] = {}
     pairs: list[tuple[FloatArray, FloatArray]] = []
     times: list[tuple[float, float]] = []
     first_ns: int | None = None
     last_ns: int | None = None
     for connection, stamp, payload in iter_messages(bag, topics={left_topic, right_topic}):
         topic = connection.topic
-        header = ros_cdr.decode_ros2_image(topic, stamp, payload, include_data=False)
-        time_ns = header.timestamp_ns
+        message_types[topic] = connection.message_type
+        time_ns, _frame = image_header(connection.message_type, topic, stamp, payload)
         first_ns = time_ns if first_ns is None else first_ns
         if opts.max_seconds is not None and time_ns - first_ns > opts.max_seconds * 1.0e9:
             break
@@ -253,7 +253,10 @@ def read_stereo_frames(
         images = {topic: (stamp, payload), other: (match[1], match[2])}
         stamps = {topic: time_ns, other: match[0]}
         pairs.append(
-            (_gray(left_topic, *images[left_topic]), _gray(right_topic, *images[right_topic]))
+            (
+                _gray(message_types[left_topic], left_topic, *images[left_topic]),
+                _gray(message_types[right_topic], right_topic, *images[right_topic]),
+            )
         )
         times.append((stamps[left_topic] * 1.0e-9, stamps[right_topic] * 1.0e-9))
         if len(pairs) >= opts.max_pairs:
@@ -561,15 +564,6 @@ def _inverse(transform: FloatArray) -> FloatArray:
     return inverse
 
 
-def _gray(topic: str, stamp: int, payload: bytes) -> FloatArray:
-    image = ros_cdr.decode_ros2_image(topic, stamp, payload)
-    if image.data is None:
-        raise ValueError(f"{topic}: image without data")
-    gray = to_gray(
-        bytes(image.data),
-        height=image.height,
-        width=image.width,
-        step=image.step,
-        encoding=image.encoding,
-    )
+def _gray(message_type: str, topic: str, stamp: int, payload: bytes) -> FloatArray:
+    _stamp, _frame, gray = decode_gray_message(message_type, topic, stamp, payload)
     return np.asarray(gray, dtype=np.float64)

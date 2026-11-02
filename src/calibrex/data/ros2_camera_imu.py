@@ -1,8 +1,10 @@
 """Gray images and IMU samples from ROS 2 bags, without ROS.
 
 Used for camera-IMU calibration: images come from a ``sensor_msgs/msg/Image``
-topic (``mono8``, ``mono16``, ``rgb8``, ``bgr8``, ``rgba8``, ``bgra8``) and
-are returned as 8-bit gray arrays with their header time in seconds.
+topic (``mono8``, ``mono16``, ``rgb8``, ``bgr8``, ``rgba8``, ``bgra8``) or a
+``sensor_msgs/msg/CompressedImage`` topic (JPEG or PNG, see
+:mod:`calibrex.data.compressed_image`) and are returned as 8-bit gray arrays with
+their header time in seconds.
 """
 
 from __future__ import annotations
@@ -20,6 +22,8 @@ from calibrex.data.livox_ros2 import STANDARD_GRAVITY_MPS2, ImuSamples
 from calibrex.data.rosbag2 import iter_messages, require_cdr_connection
 
 GrayImage: TypeAlias = NDArray[np.uint8]
+IMAGE_MESSAGE_TYPE = "sensor_msgs/msg/Image"
+COMPRESSED_IMAGE_MESSAGE_TYPE = "sensor_msgs/msg/CompressedImage"
 _CHANNELS = {"mono8": 1, "mono16": 1, "rgb8": 3, "bgr8": 3, "rgba8": 4, "bgra8": 4}
 # A check reads one IMU topic for every camera paired with it; the last reads are kept,
 # keyed by the bag's files (name, size, modification time), the topic and the unit.
@@ -98,11 +102,65 @@ def to_gray(data: bytes, *, height: int, width: int, step: int, encoding: str) -
     image = pixels.reshape(height, width, channels)
     if channels == 1:
         return np.ascontiguousarray(image[:, :, 0])
-    color = image[:, :, :3].astype(np.float32)
+    return color_to_gray(image[:, :, :3], bgr=encoding.startswith("bgr"))
+
+
+def color_to_gray(color: NDArray[np.uint8], *, bgr: bool) -> GrayImage:
+    """8-bit gray of an ``(H, W, 3)`` 8-bit colour image (ITU-R 601 luma weights)."""
+
     weights = np.array([0.299, 0.587, 0.114], dtype=np.float32)
-    if encoding.startswith("bgr"):
+    if bgr:
         weights = weights[::-1]
-    return np.asarray(np.clip(color @ weights, 0, 255), dtype=np.uint8)
+    return np.asarray(np.clip(color.astype(np.float32) @ weights, 0, 255), dtype=np.uint8)
+
+
+def image_header(
+    message_type: str, topic: str, timestamp_ns: int, payload: bytes
+) -> tuple[int, str]:
+    """``(stamp in ns, frame id)`` of an Image or CompressedImage payload, pixels not decoded.
+
+    The stamp is the header stamp, or the bag time when the header stamp is zero.
+    """
+
+    if message_type == COMPRESSED_IMAGE_MESSAGE_TYPE:
+        compressed = ros_cdr.decode_ros2_compressed_image(
+            topic, timestamp_ns, payload, include_data=False
+        )
+        return compressed.timestamp_ns, compressed.frame_id
+    image = ros_cdr.decode_ros2_image(topic, timestamp_ns, payload, include_data=False)
+    return image.timestamp_ns, image.frame_id
+
+
+def decode_gray_message(
+    message_type: str, topic: str, timestamp_ns: int, payload: bytes
+) -> tuple[int, str, GrayImage]:
+    """``(stamp in ns, frame id, 8-bit gray image)`` of an Image or CompressedImage payload."""
+
+    if message_type == COMPRESSED_IMAGE_MESSAGE_TYPE:
+        from calibrex.data.compressed_image import decode_compressed_gray
+
+        compressed = ros_cdr.decode_ros2_compressed_image(topic, timestamp_ns, payload)
+        assert compressed.data is not None
+        try:
+            gray = decode_compressed_gray(bytes(compressed.data), compressed.format)
+        except ValueError as exc:
+            raise ValueError(f"{topic} at {compressed.timestamp_ns} ns: {exc}") from exc
+        return compressed.timestamp_ns, compressed.frame_id, gray
+    if message_type != IMAGE_MESSAGE_TYPE:
+        raise ValueError(f"{topic} is {message_type}, not an image topic")
+    image = ros_cdr.decode_ros2_image(topic, timestamp_ns, payload)
+    assert image.data is not None
+    return (
+        image.timestamp_ns,
+        image.frame_id,
+        to_gray(
+            bytes(image.data),
+            height=image.height,
+            width=image.width,
+            step=image.step,
+            encoding=image.encoding,
+        ),
+    )
 
 
 def iter_gray_images(
@@ -120,20 +178,13 @@ def iter_gray_images(
         if index % stride:
             continue
         require_cdr_connection(connection)
-        message = ros_cdr.decode_ros2_image(topic, timestamp_ns, payload)
+        stamp_ns, _frame = image_header(connection.message_type, topic, timestamp_ns, payload)
         emit_tick(index + 1)
-        time_s = message.timestamp_ns * 1.0e-9
+        time_s = stamp_ns * 1.0e-9
         first = time_s if first is None else first
         if max_seconds is not None and time_s - first > max_seconds:
             return
-        assert message.data is not None
-        yield (
-            time_s,
-            to_gray(
-                bytes(message.data),
-                height=message.height,
-                width=message.width,
-                step=message.step,
-                encoding=message.encoding,
-            ),
+        _stamp, _frame, gray = decode_gray_message(
+            connection.message_type, topic, timestamp_ns, payload
         )
+        yield time_s, gray

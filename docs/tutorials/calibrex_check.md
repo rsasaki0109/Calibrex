@@ -51,6 +51,33 @@ The estimators use the same message types as before (`sensor_msgs/Imu`, `PointCl
 `tf2_msgs/TFMessage`, Livox `CustomMsg`). A file-compressed sqlite3 bag (`.db3.zstd`) is not read
 directly: decompress it first (`zstd -d`).
 
+### Compressed camera images
+
+The camera pairs (`camera-imu`, `camera-focal`, `camera-lidar`, `camera-camera`) read a
+`sensor_msgs/CompressedImage` topic (JPEG or PNG, as image_transport's `compressed` plugin
+writes it) when the camera has no raw `sensor_msgs/Image` topic. When both are recorded, the
+raw topic is read. Decoding needs Pillow (`pip install 'calibrex[images]'`); OpenCV
+(`calibrex[opencv]`) is used when Pillow is missing. Without either, the pair is skipped
+`unsupported_sensor` with that install hint. `compressedDepth` topics hold depth maps and are
+never read as a camera.
+
+* **Topics.** `<topic>/compressed` stands for its raw topic. The `CameraInfo` of
+  `/cam/image_raw/compressed` is `/cam/camera_info`, `image_rect*/compressed` is rectified, and
+  a Kalibr camchain whose `rostopic` is `/cam/image_raw` maps the compressed topic to its camera.
+* **Pixels.** Gray uses the weights of a raw `rgb8` / `bgr8` image, and a 16-bit PNG keeps its
+  high byte, as `mono16` does. A lossless PNG therefore gives exactly the raw topic's result;
+  tests check this on the synthetic `camera-lidar` and `camera-camera` bags. A JPEG adds its
+  compression error. On the synthetic `camera-lidar` bag at quality 90, the true extrinsic
+  still passed and a 3° pitch error still failed. The decoder and its version are part of the
+  estimator cache key, because two JPEG decoders can differ by a gray level.
+* **Real data.** One Argoverse 2 validation log (`02678d04`, development data) was converted
+  twice: decoded `mono8` images (1.14 GB) and its source JPEGs unchanged on
+  `/camera/image_raw/compressed` (219 MB, see [Converting an Argoverse 2 sensor
+  log](#converting-an-argoverse-2-sensor-log)). `calibrex check --pairs camera-lidar` gave the
+  same result on both, to the last bit: `pass`, roll 0.00°, pitch −0.10°, yaw +0.15°, each
+  with the same std, in 12 s each. The two bags' gray images can differ by one level (the
+  converter's `mono8` is Pillow's `L`), which did not move the search's optimum.
+
 `--plan` is unchanged and runs no estimator. Without `--output` the estimator
 artifacts go to `./calibrex_check_evidence/`.
 
@@ -153,7 +180,8 @@ was unobservable).
 
 `camera-lidar` audits the **rotation** of `T_camera_lidar` (the camera optical frame, `z`
 forward, to the LiDAR frame) from the data alone: no board, no extra motion. It needs an
-image topic (`sensor_msgs/Image`), a `PointCloud2` of a spinning multi-beam LiDAR, and
+image topic (`sensor_msgs/Image`, or a `CompressedImage`, see [Compressed camera
+images](#compressed-camera-images)), a `PointCloud2` of a spinning multi-beam LiDAR, and
 intrinsics from a `CameraInfo` topic next to the image or from a Kalibr camchain (`--tf`), the
 same sources as `camera-imu`; `--camera TOPIC` selects one camera. OpenCV is not needed.
 
@@ -669,7 +697,7 @@ calibrex convert av2 av2/sensor/val/LOG_ID --camera ring_front_center \
 
 | Topic | Content |
 | --- | --- |
-| `/camera/image_raw`, `/camera/camera_info` | `mono8` images and the per-log pinhole intrinsics in `CAMERA_optical`, with zero distortion. The official `av2-api` projects with `K` alone, so the images are treated as undistorted. The source `k1..k3` are recorded in the sidecar only. |
+| `/camera/image_raw`, `/camera/camera_info` | `mono8` images and the per-log pinhole intrinsics in `CAMERA_optical`, with zero distortion. The official `av2-api` projects with `K` alone, so the images are treated as undistorted. The source `k1..k3` are recorded in the sidecar only. With `--image-format jpeg`, the source JPEG files are written unchanged as `sensor_msgs/CompressedImage` on `/camera/image_raw/compressed` instead, about a fifth of the size (219 MB instead of 1.14 GB on one validation log). |
 | `/velodyne_points` | One LiDAR's points (`laser_number` 0–31 for `up_lidar`, 32–63 for the upside-down `down_lidar`), moved from the distributed ego frame back into that sensor's frame. By default each sweep is a snapshot at its timestamp, with no `time` field, as `av2-api` moves a whole sweep with one ego pose. `--point-time offset_ns` keeps each point's offset as a `time` field, for comparison only. |
 | `/av2/odometry` | `city_SE3_egovehicle` in `av2_city`, child `imu_link`. The body twist is a finite difference over the poses about 0.05 s either side. |
 | `/tf_static` | `base_link -> imu_link` identity (the egovehicle frame), and `imu_link -> velo_link` and `imu_link -> CAMERA_optical` from `egovehicle_SE3_sensor.feather`. |
@@ -1856,8 +1884,9 @@ per-point time" above.
   `inconclusive` on 36 s of data. No real bag here newly became judgeable.
 - No bag here has the length or motion to give a verdict: the real-bag verdict
   tables remain the Phase B/C results above.
-- `CompressedImage` cameras remain `unsupported_sensor` (none of these bags had
-  one); no bag here exercised Livox `CustomMsg`.
+- None of these bags had a `CompressedImage` camera, which the camera pairs now read
+  (see [Compressed camera images](#compressed-camera-images)); no bag here exercised
+  Livox `CustomMsg`.
 - Sensor-class is not inferred beyond the message type (sonar counts as LiDAR).
 
 ## Plan and run a bag in the browser

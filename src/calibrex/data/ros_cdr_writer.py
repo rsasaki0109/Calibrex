@@ -313,6 +313,22 @@ def encode_image(
     return writer.finish()
 
 
+def encode_compressed_image(
+    *,
+    frame_id: str,
+    timestamp_ns: int,
+    format: str,
+    data: bytes,
+) -> bytes:
+    """CDR-encode a ``sensor_msgs/msg/CompressedImage`` from encoded image bytes."""
+
+    writer = CdrWriter()
+    _write_header(writer, frame_id, timestamp_ns)
+    writer.write_string(format)
+    writer.write_byte_sequence(data)
+    return writer.finish()
+
+
 def encode_camera_info(
     *,
     frame_id: str,

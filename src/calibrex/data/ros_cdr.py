@@ -17,6 +17,7 @@ from calibrex.data.ros_messages import (
     MAX_ROS_STRING_BYTES,
     RADAR_SCAN_ROS2_TYPE,
     CameraInfoMessage,
+    CompressedImageMessage,
     ImageMessage,
     ImuMessage,
     LivoxCustomMessage,
@@ -371,6 +372,47 @@ def decode_ros2_radar(
     """Compatibility alias for the ROS 2 RadarScan decoder."""
 
     return decode_ros2_radar_scan(topic, timestamp_ns, data)
+
+
+def decode_ros2_compressed_image(
+    topic: str,
+    timestamp_ns: int,
+    data: bytes,
+    *,
+    include_data: bool = True,
+    max_data_bytes: int = MAX_IMAGE_BYTES,
+) -> CompressedImageMessage:
+    """Deserialize a ROS 2 CDR ``sensor_msgs/msg/CompressedImage`` payload."""
+
+    reader = CdrReader(data)
+    stamp_secs = reader.read_int32()
+    stamp_nsecs = reader.read_uint32()
+    if stamp_nsecs >= 1_000_000_000:
+        raise DatasetError(
+            "sensor_msgs/msg/CompressedImage header nanoseconds are outside [0, 1e9)"
+        )
+    frame_id = reader.read_string(max_length=MAX_ROS_STRING_BYTES)
+    image_format = reader.read_string(max_length=MAX_IMAGE_ENCODING_LENGTH)
+    data_length, image_data = reader.read_bounded_byte_sequence(
+        max_length=max_data_bytes,
+        copy=include_data,
+    )
+    if data_length == 0:
+        raise DatasetError(f"sensor_msgs/msg/CompressedImage on {topic} has no data")
+    if not reader.only_end_padding_remains():
+        raise DatasetError(
+            f"sensor_msgs/msg/CompressedImage payload has {reader.remaining} trailing byte(s)"
+        )
+    header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
+    return CompressedImageMessage(
+        topic=topic,
+        timestamp_ns=header_stamp_ns if header_stamp_ns else timestamp_ns,
+        frame_id=frame_id,
+        format=image_format,
+        data_length=int(data_length),
+        data=image_data,
+        header_stamp_ns=header_stamp_ns,
+    )
 
 
 def decode_ros2_image(

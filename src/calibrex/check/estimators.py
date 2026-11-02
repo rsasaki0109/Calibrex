@@ -33,6 +33,7 @@ from numpy.typing import NDArray
 
 from calibrex.check.cache import EstimatorCache, cached_artifact
 from calibrex.check.frame_tree import StaticFrameTree
+from calibrex.check.roles import image_transport_base
 from calibrex.check.tf_sources import LoadedSource, camchain_entries
 from calibrex.check.verdict import (
     RIGID_SCAN_ROTATION_FLOOR_DEG,
@@ -73,6 +74,7 @@ POINT_TIME_FIELD_CANDIDATES: tuple[str, ...] = (
 )
 POINTCLOUD2_TYPE = "sensor_msgs/msg/PointCloud2"
 IMAGE_TYPE = "sensor_msgs/msg/Image"
+COMPRESSED_IMAGE_TYPE = "sensor_msgs/msg/CompressedImage"
 CAMERA_INFO_TYPE = "sensor_msgs/msg/CameraInfo"
 DATASET_FAMILY = "calibrex-check"
 DATASET_LICENSE = "user-provided"
@@ -858,14 +860,57 @@ def camera_model_from_camera_info(bag: Path, topic: str, *, rectified: bool = Fa
     raise CheckSkipError("missing_intrinsics", f"CameraInfo topic {topic} has no messages")
 
 
+def select_image_topic(topics: Sequence[str], topic_types: Mapping[str, str]) -> str | None:
+    """The topic a camera pair reads: a raw ``Image`` first, else a ``CompressedImage``.
+
+    image_transport's ``compressedDepth`` topics carry depth maps and are never chosen.
+    """
+
+    for wanted in (IMAGE_TYPE, COMPRESSED_IMAGE_TYPE):
+        for topic in topics:
+            if topic_types.get(topic) == wanted and not topic.rstrip("/").endswith(
+                "/compressedDepth"
+            ):
+                return topic
+    return None
+
+
+def require_image_topic(ctx: PairContext, topics: Sequence[str]) -> str:
+    """:func:`select_image_topic`, or a skip naming why no topic can be read."""
+
+    topic = select_image_topic(topics, ctx.topic_types)
+    if topic is None:
+        raise CheckSkipError(
+            "unsupported_sensor",
+            f"camera topic(s) {', '.join(topics)} are neither sensor_msgs/Image nor "
+            "sensor_msgs/CompressedImage camera images",
+        )
+    if ctx.topic_types.get(topic) == COMPRESSED_IMAGE_TYPE:
+        from calibrex.data.compressed_image import INSTALL_HINT, compressed_image_decoder
+
+        if compressed_image_decoder() is None:
+            raise CheckSkipError("unsupported_sensor", f"{topic}: {INSTALL_HINT}")
+    return topic
+
+
+def image_decoder_key(ctx: PairContext, topic: str) -> dict[str, str]:
+    """Cache-key entry for a compressed topic: a different JPEG decoder may give other pixels."""
+
+    if ctx.topic_types.get(topic) != COMPRESSED_IMAGE_TYPE:
+        return {}
+    from calibrex.data.compressed_image import require_compressed_image_decoder
+
+    return {f"image_decoder:{topic}": require_compressed_image_decoder()}
+
+
 def is_rectified_image_topic(topic: str) -> bool:
     """Whether an image topic carries rectified images (image_pipeline's ``image_rect*``)."""
 
-    return topic.rstrip("/").rsplit("/", 1)[-1].startswith("image_rect")
+    return image_transport_base(topic).rsplit("/", 1)[-1].startswith("image_rect")
 
 
 def _camera_info_topic(ctx: PairContext, image_topic: str) -> str | None:
-    folder = image_topic.rsplit("/", 1)[0]
+    folder = image_transport_base(image_topic).rsplit("/", 1)[0]
     candidates = sorted(
         topic for topic, message_type in ctx.topic_types.items() if message_type == CAMERA_INFO_TYPE
     )
@@ -924,14 +969,7 @@ def run_camera_imu(ctx: PairContext) -> EstimatorRun:
     )
     from calibrex.evaluation.imu_lidar_rotation import rebase_rotation_reference
 
-    camera_topics = ctx.sensor_topics.get("camera", ())
-    image_topic = next((t for t in camera_topics if ctx.topic_types.get(t) == IMAGE_TYPE), None)
-    if image_topic is None:
-        raise CheckSkipError(
-            "unsupported_sensor",
-            f"camera topic(s) {', '.join(camera_topics)} are not sensor_msgs/Image "
-            "(compressed images are not supported by the check yet)",
-        )
+    image_topic = require_image_topic(ctx, ctx.sensor_topics.get("camera", ()))
     imu_topics = ctx.sensor_topics.get("imu", ())
     if not imu_topics:
         raise CheckSkipError("missing_topic", "no IMU topic for the pair")
@@ -952,6 +990,7 @@ def run_camera_imu(ctx: PairContext) -> EstimatorRun:
             "camera": model,
             "acceleration_unit": ctx.controls.acceleration_unit,
             "options": run_options,
+            **image_decoder_key(ctx, image_topic),
         },
         loader=load_imu_lidar_rotation,
         compute=lambda: run_ros2_camera_imu_rotation(
@@ -1090,10 +1129,10 @@ def run_camera_focal(ctx: PairContext) -> EstimatorRun:
 
     _run, rotation = _camera_imu_dependency(ctx)
     camera_topics = ctx.sensor_topics.get("camera", ())
-    image_topic = next((t for t in camera_topics if ctx.topic_types.get(t) == IMAGE_TYPE), None)
     imu_topics = ctx.sensor_topics.get("imu", ())
-    if image_topic is None or not imu_topics:
-        raise CheckSkipError("missing_topic", "camera-focal needs an Image and an IMU topic")
+    if select_image_topic(camera_topics, ctx.topic_types) is None or not imu_topics:
+        raise CheckSkipError("missing_topic", "camera-focal needs an image and an IMU topic")
+    image_topic = require_image_topic(ctx, camera_topics)
     model, intrinsics_source, _key = resolve_camera_intrinsics(ctx, image_topic, ctx.pair.frames[0])
     ctx.controls.progress(
         f"camera-focal: {image_topic} + {imu_topics[0]} (intrinsics: {intrinsics_source})"
@@ -1111,6 +1150,7 @@ def run_camera_focal(ctx: PairContext) -> EstimatorRun:
             "frame_stride": 4,
             "max_seconds": ctx.controls.max_duration_s,
             "options": focal_options,
+            **image_decoder_key(ctx, image_topic),
             # the camera-imu estimate, not the candidate: the rotation, clock offset, bias
             "rotation_quat_xyzw": rotation.rotation_quat_xyzw,
             "time_offset_s": rotation.time_offset_s,
@@ -2296,14 +2336,7 @@ def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
     )
     from calibrex.evaluation.camera_lidar_motion import read_lidar_motion
 
-    camera_topics = ctx.sensor_topics.get("camera", ())
-    image_topic = next((t for t in camera_topics if ctx.topic_types.get(t) == IMAGE_TYPE), None)
-    if image_topic is None:
-        raise CheckSkipError(
-            "unsupported_sensor",
-            f"camera topic(s) {', '.join(camera_topics)} are not sensor_msgs/Image "
-            "(compressed images are not supported by the check yet)",
-        )
+    image_topic = require_image_topic(ctx, ctx.sensor_topics.get("camera", ()))
     lidar_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("lidar", ()))
     camera_frame, lidar_frame = ctx.pair.frames[0], ctx.pair.frames[1]
     model, intrinsics_source, _key = resolve_camera_intrinsics(ctx, image_topic, camera_frame)
@@ -2340,6 +2373,7 @@ def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
                 "type": motion_source[1],
                 "t_body_lidar": [round(float(v), 9) for v in motion_source[2].ravel()],
             },
+            **image_decoder_key(ctx, image_topic),
         },
         loader=load_camera_lidar_edge,
         compute=lambda: run_ros2_camera_lidar_edge(
@@ -2447,15 +2481,7 @@ def run_camera_camera(ctx: PairContext) -> EstimatorRun:
 
     topics: list[str] = []
     for key in ("first", "second"):
-        candidates = ctx.sensor_topics.get(key, ())
-        image = next((t for t in candidates if ctx.topic_types.get(t) == IMAGE_TYPE), None)
-        if image is None:
-            raise CheckSkipError(
-                "unsupported_sensor",
-                f"camera topic(s) {', '.join(candidates)} are not sensor_msgs/Image "
-                "(compressed images are not supported by the check yet)",
-            )
-        topics.append(image)
+        topics.append(require_image_topic(ctx, ctx.sensor_topics.get(key, ())))
     left_topic, right_topic = topics
     left_frame, right_frame = ctx.pair.frames[0], ctx.pair.frames[1]
     left_model, left_source, _ = resolve_camera_intrinsics(ctx, left_topic, left_frame)
@@ -2537,6 +2563,8 @@ def run_camera_camera(ctx: PairContext) -> EstimatorRun:
             if gyro is None
             else {"topic": gyro[0], "t_imu_camera": [round(float(v), 9) for v in gyro[1].ravel()]},
             "options": options,
+            **image_decoder_key(ctx, left_topic),
+            **image_decoder_key(ctx, right_topic),
         },
         loader=load_stereo_rotation,
         compute=compute,
