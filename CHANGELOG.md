@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Fill in `camera-lidar` overlays with the scans recorded within 0.25 s of the drawn one
+  (at most four), each registered onto it with the check's point-to-plane scan
+  registration and kept only when that converged with an RMS residual of at most 0.1 m.
+  A non-repetitive LiDAR's rosette no longer leaves the picture sparse, and no motion
+  model is needed. The pair's notes say how many scans were added.
+
 - Read Livox `CustomMsg` LiDAR topics in every `calibrex check` LiDAR pair
   (`imu-lidar`, `lidar-lidar`, `gnss-lidar`, `camera-lidar` and the vehicle pairs)
   instead of skipping them as `unsupported_sensor`; a `PointCloud2` is still preferred.

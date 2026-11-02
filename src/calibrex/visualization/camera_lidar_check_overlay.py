@@ -8,6 +8,13 @@ synchronized scan on its image under a given ``T_camera_lidar``, coloured by dep
 near, blue far) on a dimmed gray image, keeping the nearest point where several land on
 one pixel. :func:`encode_overlay` stores it as JPEG with Pillow, or as PNG with the
 standard library when Pillow is missing.
+
+One scan of a non-repetitive LiDAR (a Livox rosette) covers its field of view sparsely.
+:func:`neighbour_scans` and :func:`register_neighbours` add the scans recorded within
+``NEIGHBOUR_HALF_WINDOW_S`` of it, each registered onto it with the check's point-to-plane
+scan registration, so the drawing does not depend on a motion model. A neighbour whose
+registration did not converge, left a residual above ``MAX_NEIGHBOUR_RMSE_M`` or matched
+too few points is left out.
 """
 
 from __future__ import annotations
@@ -15,8 +22,10 @@ from __future__ import annotations
 import math
 import struct
 import zlib
+from collections.abc import Sequence
 from dataclasses import dataclass
 from io import BytesIO
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -28,6 +37,10 @@ if TYPE_CHECKING:
 MAX_SIDE_PX = 960
 """The longer side of an overlay image after downscaling."""
 MAX_POINTS = 80_000
+NEIGHBOUR_HALF_WINDOW_S = 0.25
+"""Scans whose header stamps lie this close to the drawn scan's are added to it."""
+MAX_NEIGHBOUR_SCANS = 4
+MAX_NEIGHBOUR_RMSE_M = 0.1
 NEAR_M, FAR_M = 1.0, 80.0
 _RAMP = np.array(
     [
@@ -121,6 +134,98 @@ def overlay_rgb(
     chosen = order[first]
     canvas[dot_rows[chosen], dot_columns[chosen]] = dot_colors[chosen]
     return canvas
+
+
+def neighbour_scans(
+    bag: str | Path,
+    lidar_topic: str,
+    reference_time_s: float,
+    *,
+    half_window_s: float = NEIGHBOUR_HALF_WINDOW_S,
+    max_scans: int = MAX_NEIGHBOUR_SCANS,
+) -> list[NDArray[np.float64]]:
+    """The scans (LiDAR frame) recorded within ``half_window_s`` of the drawn scan.
+
+    The drawn scan is the one whose header stamp is the latest at or before
+    ``reference_time_s`` (the frame's reference time can lie inside its sweep); it is
+    not returned. The nearest ``max_scans`` others are.
+    """
+
+    from calibrex.data.livox_ros2 import decode_lidar_scan
+    from calibrex.data.rosbag2 import iter_messages, require_cdr_connection
+
+    found: list[tuple[float, NDArray[np.float64]]] = []
+    for connection, timestamp_ns, payload in iter_messages(bag, topics={lidar_topic}):
+        require_cdr_connection(connection)
+        scan = decode_lidar_scan(connection.message_type, lidar_topic, timestamp_ns, payload)
+        header_s = scan.timestamp_ns * 1.0e-9
+        if header_s > reference_time_s + 2.0 * half_window_s + 1.0:
+            break
+        if abs(header_s - reference_time_s) <= 2.0 * half_window_s + 1.0:
+            found.append((header_s, scan.xyz))
+    earlier = [item for item in found if item[0] <= reference_time_s + 1.0e-6]
+    if not earlier:
+        return []
+    drawn = max(earlier, key=lambda item: item[0])[0]
+    others = [
+        item
+        for item in found
+        if item[0] != drawn and abs(item[0] - drawn) <= half_window_s + 1.0e-9
+    ]
+    others.sort(key=lambda item: abs(item[0] - drawn))
+    return [xyz for _time, xyz in others[:max_scans]]
+
+
+def register_neighbours(
+    reference: NDArray[np.floating],
+    neighbours: Sequence[NDArray[np.floating]],
+    *,
+    max_rmse_m: float = MAX_NEIGHBOUR_RMSE_M,
+) -> tuple[NDArray[np.float64], int]:
+    """``(reference plus registered neighbours, number of neighbours used)``.
+
+    Each neighbour is registered onto the reference with point-to-plane ICP from the
+    identity (consecutive scans of one sweep rate barely move) and kept only when the
+    registration converged with an RMS residual of at most ``max_rmse_m`` and enough
+    correspondences.
+    """
+
+    from scipy.spatial import cKDTree
+
+    from calibrex.solvers.scan_to_scan_odometry import (
+        ScanOdometryOptions,
+        TargetNormals,
+        preprocess_scan,
+        register_point_to_plane,
+    )
+
+    base = np.asarray(reference, dtype=np.float64).reshape(-1, 3)
+    if not neighbours:
+        return base, 0
+    options = ScanOdometryOptions(min_range_m=1.0)
+    target = preprocess_scan(base, options)
+    if len(target) < options.min_correspondences:
+        return base, 0
+    tree = cKDTree(target)
+    normals = TargetNormals(target, tree, options)
+    parts = [base]
+    for neighbour in neighbours:
+        points = np.asarray(neighbour, dtype=np.float64).reshape(-1, 3)
+        source = preprocess_scan(points, options)
+        if len(source) < options.min_correspondences:
+            continue
+        registration = register_point_to_plane(
+            source, target, np.eye(4), options, target_tree=tree, target_normals=normals
+        )
+        if (
+            not registration.converged
+            or registration.rmse_m > max_rmse_m
+            or registration.correspondences < options.min_correspondences
+        ):
+            continue
+        transform = registration.transform
+        parts.append(points @ transform[:3, :3].T + transform[:3, 3])
+    return np.concatenate(parts), len(parts) - 1
 
 
 def encode_png(rgb: NDArray[np.uint8]) -> bytes:
