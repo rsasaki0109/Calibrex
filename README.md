@@ -141,12 +141,28 @@ Outer MCAP payload reads use bounded blocks, including for `.mcap.zstd` streams,
 so declared lengths do not directly determine individual read allocations.
 ROS 1 inner record lengths are checked against the expanded chunk as well.
 
+The sensor messages it reads:
+
+| Sensor | Messages | Notes |
+|---|---|---|
+| camera | `sensor_msgs/Image`, or `CompressedImage` (JPEG / PNG) | compressed images need `calibrex[images]`; `<topic>/compressed` finds the `CameraInfo` and Kalibr camchain entry of its raw topic; any frame rate from 4 Hz, tracked about 10 Hz for `camera-imu` |
+| LiDAR | `sensor_msgs/PointCloud2`, or Livox `CustomMsg` (`livox_ros_driver`, `livox_ros_driver2`) | per-point time from a time field or Livox `offset_time`; raw Velodyne packets via the converter below |
+| IMU, GNSS, odometry | `Imu`, `NavSatFix`, `Odometry`, `TwistStamped`, Autoware `VelocityReport` | |
+
+Public bags checked end to end with these paths:
+- the FAST-LIVO handheld rig (Livox Avia `CustomMsg`, 10 Hz JPEG camera, ROS 2 MCAP);
+- Newer College 2021 (Ouster OS0-128, four 30 Hz JPEG cameras, ROS 1 lz4).
+
+Their results, including what each pair could not judge, are
+[recorded in the tutorial](docs/tutorials/calibrex_check.md#fast-livo-hku1-and-hku2-jpeg-camera-and-livox-custommsg).
+
 `calibrex check my_bag/ --plan` prints which sensor pairs the bag can be checked for, and why the
 others are skipped, without running an estimator. Vehicle pairs are opt-in with
 `--vehicle-frame base_link`. Details: [supported input formats](docs/tutorials/calibrex_check.md#supported-input-formats).
 
-> The ROS 1 and MCAP-lz4 readers, camera-LiDAR, the Autoware Velodyne decoder and the faster first
-> runs are on `main` and arrive with the release after v0.5.1. To use them now, install from the
+> The ROS 1 and MCAP-lz4 readers, camera-LiDAR and its overlays, compressed images, Livox
+> `CustomMsg`, the Autoware Velodyne decoder and the faster first runs are on `main` and arrive
+> with the release after v0.5.1. To use them now, install from the
 > repository: `python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"`.
 
 **Autoware bags.** Autoware's all-sensors sample records raw `velodyne_msgs/VelodyneScan` packets
@@ -269,6 +285,13 @@ the estimate and its uncertainty: `pass`, `warn`, `fail` or `inconclusive`. It
 also checks the estimates against each other (rig closure) and reports which
 axes it could not judge. Vehicle pairs (LiDAR, IMU or wheel odometry against the
 vehicle frame) are opt-in with `--vehicle-frame base_link`.
+
+With `--html`, every camera-LiDAR pair also draws a LiDAR scan on its camera image, coloured by
+depth. It draws one image under the deployed calibration and one under the estimate. Neighbouring
+scans are registered onto the drawn one, so a Livox rosette fills in. Look at both before trusting
+a camera-LiDAR `warn` or `fail`. The edge alignment can prefer a wrong rotation, and the picture
+shows which calibration puts the points on their objects
+([how to read it](docs/tutorials/calibrex_check.md#html-report)).
 
 <p align="center">
   <img alt="calibrex check on pooled KITTI development drives: the vendor tf is inconclusive, a +1 degree yaw error injected into velo_link makes lidar-vehicle and lidar-wheel_odometry fail (yaw 1.31 deg against a 0.5 deg tolerance)" src="docs/assets/readme-check-hero.svg" width="900">
