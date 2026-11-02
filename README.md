@@ -286,7 +286,8 @@ depth. It draws one image under the deployed calibration and one under the estim
 scans are registered onto the drawn one, so a Livox rosette fills in. Look at both before trusting
 a camera-LiDAR `warn` or `fail`. The edge alignment can prefer a wrong rotation, and the picture
 shows which calibration puts the points on their objects
-([how to read it](docs/tutorials/calibrex_check.md#html-report)).
+([how to read it](docs/tutorials/calibrex_check.md#html-report); a real one, Livox Avia and
+JPEG camera: [FAST-LIVO `hku2`](docs/tutorials/calibrex_check.md#fast-livo-hku1-and-hku2-jpeg-camera-and-livox-custommsg)).
 
 <p align="center">
   <img alt="calibrex check on pooled KITTI development drives: the vendor tf is inconclusive, a +1 degree yaw error injected into velo_link makes lidar-vehicle and lidar-wheel_odometry fail (yaw 1.31 deg against a 0.5 deg tolerance)" src="docs/assets/readme-check-hero.svg" width="900">

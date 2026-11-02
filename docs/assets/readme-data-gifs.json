@@ -1,6 +1,6 @@
 {
   "schema_version": "calibrex.readme_data_gifs/v1",
-  "description": "README GIFs rendered from real calibration runs by their own generators; each provenance file records input digests, the calibrex version and commit, and the commands.",
+  "description": "README GIFs and images rendered from real calibration runs by their own generators; each provenance file records input digests, the calibrex version and commit, and the commands.",
   "assets": [
     {
       "output": "docs/assets/calibrex-check-yaw-sweep.gif",
@@ -65,6 +65,14 @@
       "dataset_license": "KITTI raw (CC BY-NC-SA 3.0, non-commercial)",
       "sha256": "0a9cd5cb34854388afbbd8510a443d5222de24110888d07dbd1d966f38e9d772",
       "size_bytes": 614733
+    },
+    {
+      "output": "docs/assets/calibrex_check_fastlivo/hku2-overlay-candidate.jpg",
+      "generator": "src/calibrex/visualization/camera_lidar_check_overlay.py",
+      "provenance": "docs/assets/calibrex_check_fastlivo/overlay.json",
+      "dataset_license": "FAST-LIVO via DapengFeng/MCAP (CC BY-NC 4.0, non-commercial)",
+      "sha256": "ad16afefe90e40aca3aa0d533eadfa8f4bc0c5589bd0edfa8512c952502b924f",
+      "size_bytes": 172811
     }
   ]
 }

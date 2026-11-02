@@ -1,0 +1,60 @@
+{
+  "schema": "calibrex.check_overlay_figure/v0",
+  "description": "The camera-lidar overlay that `calibrex check --html` wrote for FAST-LIVO hku2, copied unchanged from the check's evidence directory. It is the check's own drawing (src/calibrex/visualization/camera_lidar_check_overlay.py): one Livox Avia scan plus its registered neighbours, projected through the candidate calibration onto the left JPEG camera image and coloured by depth (red near, blue far).",
+  "output": "docs/assets/calibrex_check_fastlivo/hku2-overlay-candidate.jpg",
+  "evidence_name": "camera-lidar_left_camera-image_livox_frame_overlay_candidate.jpg",
+  "sha256": "ad16afefe90e40aca3aa0d533eadfa8f4bc0c5589bd0edfa8512c952502b924f",
+  "size_bytes": 172811,
+  "calibrex_version": "0.6.0",
+  "git_commit": "8ff7e3bf66b9e20dec603acc195b191a945cc026",
+  "wheel": {
+    "url": "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.0/calibrex-0.6.0-py3-none-any.whl",
+    "sha256": "4eec64a315583ccecc9039e4ab506b0cf62dcf3690e4aaa03653ed9a480adb02",
+    "install": "python -m pip install \"calibrex[images] @ <url>\""
+  },
+  "check_command": [
+    "calibrex",
+    "check",
+    "<hku2>",
+    "--tf",
+    "fastlivo_camchain.yaml",
+    "--tf",
+    "fastlivo_frames.yaml",
+    "--frame-map",
+    "/livox/imu=imu",
+    "--pairs",
+    "camera-lidar",
+    "--output",
+    "check.json",
+    "--html",
+    "check.html"
+  ],
+  "inputs": {
+    "bag": {
+      "source": "Hugging Face dataset DapengFeng/MCAP, FAST-LIVO/hku2 (ROS 2 MCAP conversion of the FAST-LIVO hku2 sequence)",
+      "hku2_0.mcap_sha256": "e8f806354de94c01c3d8e20bc18865a80b03b3c573d076537d73b3b640a14944",
+      "check_input_sha256": "58fa27136df5c8218e1361380bbccfaf7a5fa663270907ebca8b22e73fb18e56",
+      "check_input_digest_scope": "metadata.yaml in full; each storage file by name, size and first 64 MiB"
+    },
+    "fastlivo_camchain.yaml": {
+      "sha256": "f9b2b480a094f5518af8c3d1ec88ebde1d60565ae7559ec77a8735015152124e",
+      "built_from": "FAST-LIVO config/avia.yaml (Rcl, Pcl) and config/camera_pinhole.yaml, intrinsics doubled for the 1280 x 1024 images; see docs/tutorials/calibrex_check.md, FAST-LIVO hku1 and hku2"
+    },
+    "fastlivo_frames.yaml": {
+      "sha256": "e94502470325cc1265c823a82e1568054ff49062dfaf34f74ec4c017856b9074",
+      "built_from": "FAST-LIVO config/avia.yaml extrinsic_T (the LiDAR in the IMU frame, R = I)"
+    }
+  },
+  "check_result": {
+    "check_json_sha256": "aacb4a2dc3f25b2dca3bff7bca4906df2648ef65b7ed2034fdf7f5097593a0a3",
+    "pair": "camera-lidar, left_camera/image / livox_frame",
+    "status": "pass",
+    "candidate_error_deg": {"roll": -0.2, "pitch": 0.05, "yaw": 0.25},
+    "tolerance_deg": 0.5,
+    "unjudged": ["x", "y", "z"],
+    "overlay_note": "overlay: the scan at 1577837173.15 s with 2 neighbouring scan(s) registered to it (51378 points) drawn on its image under the candidate and the estimate"
+  },
+  "reproduced": "The same bytes were written by an earlier development run of the same command (before the v0.6.0 release) and by the v0.6.0 wheel.",
+  "data_status": "FAST-LIVO hku1 and hku2 are spent development data for the tool, not evidence for a claim.",
+  "dataset_license": "FAST-LIVO via DapengFeng/MCAP on Hugging Face, CC BY-NC 4.0: non-commercial use only, with attribution; the image contains a FAST-LIVO camera image and must stay non-commercial"
+}
