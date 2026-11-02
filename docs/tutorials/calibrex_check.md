@@ -1941,23 +1941,33 @@ calibrex check hku2 --tf fastlivo_camchain.yaml --tf fastlivo_frames.yaml \
 | Pair | `hku1` | `hku2` |
 | --- | --- | --- |
 | `camera-lidar` | `pass`: roll 0.25, pitch 0.05, yaw 0.10 deg (tolerance 0.5) | `pass`: roll 0.20, pitch 0.05, yaw 0.25 deg |
-| `imu-lidar` | `fail`: IMU turned by roll −1.02, pitch −0.78, yaw +0.24 deg (± 0.17); clock offset 6.9 ms | `fail`: roll −1.06, pitch −1.00, yaw +0.21 deg (± 0.17); clock offset 7.1 ms |
-| `camera-imu` | not run | `inconclusive` (`estimator_failed`) |
+| `imu-lidar` | `fail`: IMU turned by roll −1.02, pitch −0.78, yaw +0.24 deg (± 0.03-0.04); clock offset 6.9 ms | `fail`: roll −1.06, pitch −1.00, yaw +0.21 deg (± 0.03-0.04); clock offset 7.1 ms |
+| `camera-imu` | `fail`: about the optical axis (the IMU's forward axis) −1.07 ± 0.18 deg; the other axes 0.16 and −0.44 deg; clock offset 12.2 ms | `warn`: about the optical axis −0.82 ± 0.12 deg; the other axes 0.11 and −0.15 deg; clock offset 12.3 ms |
+| closure `camera-imu` + `imu-lidar`⁻¹ + `camera-lidar`⁻¹ | `pass` (0.37, 0.27, 0.15 deg) | `warn` on one axis (0.68 deg; the other two within 0.01 deg) |
+| which frame | the IMU alone: roll −1.04 ± 0.12, pitch −0.52 ± 0.13, yaw +0.34 ± 0.12 deg (p 0.15) | no single frame (p 0.004) |
+
+The `camera-imu` rows are with the frame-rate stride of [camera-imu: tracking
+rate](#camera-imu-tracking-rate). With the earlier fixed stride of 4 it could not estimate on
+`hku2`: tracked images were 0.4 s apart, longer than any interval it compares with the gyro.
 
 - **`camera-lidar` passes on both.** It read the JPEG topic through the camchain's raw
   topic, and the CustomMsg scans with their `offset_time`. Its overlay shows the Avia's
   rosette, which a single 0.1 s scan leaves sparse. Near points land on the plants and
   stones in front and far ones on the building.
-- **`imu-lidar` flags `R = I` by the same rotation on both recordings.** The two IMU
-  rotations agree within their stds, and the clock offsets differ by 0.2 ms. FAST-LIVO's
-  `R = I` is the Avia's design alignment, not a calibration, and these bags hold no
-  independent IMU reference. The flag is therefore a repeatable property of this rig: either
-  its built-in IMU sits about 1.3 deg off the LiDAR axes, or the method has a bias on this
-  sensor. These recordings cannot tell which.
-- **`camera-imu` could not estimate on `hku2`.** It tracks every fourth image, which for a
-  10 Hz camera is 0.4 s apart. On this handheld walk, 55 of 262 image pairs failed to track,
-  which left no gyro-rate interval to compare. Tracking also needs OpenCV.
-- Each run took about 9-10 min, mostly `imu-lidar`.
+- **Both IMU pairs find the IMU rolled about 1 deg about its forward axis.** `imu-lidar`
+  measures it against the LiDAR and `camera-imu` against the camera, which `camera-lidar`
+  finds aligned with the LiDAR. These are two independent yardsticks, and they agree on both
+  recordings: −1.02 and −1.06 deg from the LiDAR, −1.07 and −0.82 deg from the camera.
+  FAST-LIVO's `R = I` is the Avia's design alignment, not a calibration. A built-in IMU
+  rolled by about 1 deg is the simplest reading.
+- **The IMU's pitch is not settled.** `imu-lidar` reads −0.78 and −1.00 deg about the IMU's
+  y axis, and `camera-imu` −0.4 and 0.1 deg about the matching camera axis. On `hku1` the
+  rig closes and the IMU alone explains every pair (pitch −0.52 deg). On `hku2` the two IMU
+  pairs differ by 0.68 deg on that axis, and no single frame explains them. One of the
+  methods is biased there on this sensor; these recordings cannot say which.
+- **`camera-focal` stays `inconclusive`** on `hku2`: the focal-length ratio stds (0.013 and
+  0.006) exceed the 0.005 bound on a 10 Hz handheld recording.
+- Each run took about 10-12 min, mostly `imu-lidar`. Tracking needs OpenCV.
 
 ### Remaining gaps
 
