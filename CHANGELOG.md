@@ -9,6 +9,13 @@
   after the header stamp, the Livox driver and FAST-LIO convention), and empty returns
   at the origin are dropped. Add `encode_livox_custommsg` to the CDR writers.
 
+- Draw camera-LiDAR overlays for `calibrex check --html`: the first synchronized scan on
+  its image, coloured by depth, under the deployed candidate and under the estimate. The
+  two images are written to the evidence directory as digest-bound evidence (`image/jpeg`
+  with Pillow, otherwise a standard-library PNG) and embedded in the HTML report while
+  they match their digest. They let a reader tell a real error from a false optimum of the
+  edge objective. Runs without `--html` are unchanged.
+
 - Read `sensor_msgs/CompressedImage` cameras (JPEG or PNG, as image_transport's
   `compressed` plugin writes them) in the `camera-imu`, `camera-focal`,
   `camera-lidar` and `camera-camera` checks instead of skipping them as

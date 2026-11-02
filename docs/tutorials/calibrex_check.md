@@ -225,7 +225,9 @@ same sources as `camera-imu`; `--camera TOPIC` selects one camera. OpenCV is not
   without a per-point time field the rolling sweep is not compensated;
   intrinsics are taken as correct (an intrinsics error reads as an extrinsic error); a scene
   without depth discontinuities and image edges (a plain corridor, a distant skyline) leaves every
-  axis `unobservable` and the pair `inconclusive`. A solid-state LiDAR has no beams: its depth
+  axis `unobservable` and the pair `inconclusive`. A scene whose LiDAR edges, moved a few
+  degrees, land on stronger image edges can give a confident wrong rotation; check a `warn` or
+  `fail` against the [overlay images](#html-report) of `--html`. A solid-state LiDAR has no beams: its depth
   edges are taken among the angular neighbours of each return instead, which was evaluated only
   on static Livox Avia recordings ([benchmark](../benchmarks/camera_lidar_check.md)).
 * **Evidence.** `slac.camera_lidar_edge/v0.1` (`edge_alignment` in the evidence directory): the
@@ -1240,6 +1242,25 @@ verdict banner, a table of the judged pairs (verdict, coverage, `|error| / toler
 axis, unchecked axes with reasons, detectable error, evidence file with SHA-256 and a link
 relative to the report), the skipped pairs with reasons, the closure loops, the candidate frame
 tree, and the provenance (bag digest and its scope, candidate sources, command, version).
+
+**Camera-LiDAR overlays.** With `--html`, every `camera-lidar` pair that ran also writes two
+images to the evidence directory. Each draws the first synchronized scan on its image,
+coloured by depth (red near, blue far): one under the deployed candidate and one under the
+estimate it was compared with. The scan is paired and moved to the image time exactly as
+the estimator does it. The images are JPEG with Pillow, or PNG from the standard library
+without it, at most 960 px on the longer side. They are listed as evidence with their
+SHA-256 (`schema_version` `image/jpeg` or `image/png`, roles `overlay_candidate` and
+`overlay_estimate`). The report embeds each one only while its file still matches that
+digest. Without `--html` nothing is drawn, and the evidence list is unchanged.
+
+The overlays are for telling a real calibration error from a false optimum of the edge
+objective. Under a right calibration the points sit on the objects they hit. On the Argoverse 2
+development log `0fb7276f` the check fails the vendor calibration, with roll (the camera's
+x axis) off by +3.0°. Under the candidate, the points sit on the box truck and the parked
+sedan ahead. Under the estimate, every point moves down and the sedan's points fall onto the
+road in front of it. The vendor calibration is therefore the better one, as the
+[v4 investigation](../benchmarks/camera_lidar_v4_candidates.md) found with the log's
+annotated cuboids.
 
 ### The 1 degree demo
 
