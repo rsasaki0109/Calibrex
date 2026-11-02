@@ -23,6 +23,8 @@ jobs:
         run: python tools/build_browser_wheel.py
       - name: Build
         run: mkdocs build --strict
+      - name: Links in the built site resolve
+        run: python tools/check_site_links.py site --base-path /Calibrex/
       - name: Upload site artifact
         if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && vars.DEPLOY_DOCS == 'true'
         uses: actions/upload-pages-artifact@v5

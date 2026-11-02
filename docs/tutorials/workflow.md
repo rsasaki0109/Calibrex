@@ -10,16 +10,22 @@ each. They chain, and every step reads your bag as it is (rosbag2 `.db3`, ROS 2 
 | a calibration and **another recording** | is the deployed calibration still right? | [`calibrex check`](#2-check-on-another-recording) | per-axis `pass` / `warn` / `fail` / `inconclusive`, what it could not judge, next steps, progress |
 | **several recordings** of one rig over time | did the calibration change, and in which bag? | [`calibrex drift`](#3-drift-over-time) | per-axis `stable` / `drift` / `inconclusive`, the deviating bag, the size of the change |
 
-<p align="center">
-  <img alt="Terminal recording of calibrex estimate on Koide indoor_easy_01 (roll, pitch and yaw observed, the lever arm marked NOT MEASURED), calibrex check on indoor_easy_02 with the exported frames.yaml (pass on the three judged axes, x y z unchecked), and calibrex drift over three recordings where the one with a remounted IMU is flagged as drifted" src="../assets/calibrex-workflow.gif" width="100%">
-</p>
+<div align="center" markdown="1">
 
-<p align="center"><sub>Real runs on the Koide hard-localization recordings
+![Terminal recording of calibrex estimate on Koide indoor_easy_01 (roll, pitch and yaw observed, the lever arm marked NOT MEASURED), calibrex check on indoor_easy_02 with the exported frames.yaml (pass on the three judged axes, x y z unchecked), and calibrex drift over three recordings where the one with a remounted IMU is flagged as drifted](../assets/calibrex-workflow.gif)
+
+</div>
+
+<div align="center" markdown="1">
+
+<sub>Real runs on the Koide hard-localization recordings
 <code>indoor_easy_01</code> and <code>indoor_easy_02</code> (first 130 s each; calibrex 0.5.1). The
 output lines are verbatim and abridged; the transcript and the digest of each full output are in
 <a href="https://github.com/rsasaki0109/Calibrex/blob/main/docs/assets/calibrex_workflow/transcript.json"><code>transcript.json</code></a>.
 The third recording is <code>indoor_easy_01</code> with its IMU rotated 2 deg about z
-(<a href="calibrex_drift.md#known-bad-control-a-remounted-imu">known-bad control</a>).</sub></p>
+([known-bad control](calibrex_drift.md#known-bad-control-a-remounted-imu)).</sub>
+
+</div>
 
 The commands and outputs below are the ones in the recording. A KITTI drive set shows the same
 chain for a ground vehicle [further down](#the-same-chain-on-a-ground-vehicle-kitti).
@@ -84,9 +90,11 @@ What this tells you, and what it will not pretend:
   (`slac.bag_estimate/v0.1`, with the bag digest as provenance). `--html est.html` writes one
   offline page:
 
-<p align="center">
-  <img alt="The calibrex estimate HTML report for indoor_easy_01: imu-lidar partial, roll pitch and yaw observed with their standard deviation bars, x y z greyed as unobservable and from prior, NOT MEASURED, and the exported frame tree" src="../assets/calibrex-estimate-report.png" width="720">
-</p>
+<div align="center" markdown="1">
+
+![The calibrex estimate HTML report for indoor_easy_01: imu-lidar partial, roll pitch and yaw observed with their standard deviation bars, x y z greyed as unobservable and from prior, NOT MEASURED, and the exported frame tree](../assets/calibrex-estimate-report.png)
+
+</div>
 
 <p align="center"><sub>The top of <code>est.html</code>. Observed axes are green bars; the greyed rows
 are not measurements. The page also lists the exported files with digests and copy buttons for the
@@ -259,9 +267,11 @@ targetless edge alignment and judges **rotation only**: translation is never jud
 was up to 11 cm off with a 1-2 cm std). `estimate` and `drift` take it with a rough `--tf` prior;
 the evidence is in the [camera-LiDAR results](../benchmarks/camera_lidar_check.md).
 
-<p align="center">
-  <img alt="calibrex check --pairs camera-lidar on KITTI drive 0005: the vendor calibration passes (roll and pitch judged); the same calibration turned 3 degrees about the camera y axis fails on pitch (3.00 degrees against 0.50)" src="../assets/calibrex-check-camera-lidar.gif" width="100%">
-</p>
+<div align="center" markdown="1">
+
+![calibrex check --pairs camera-lidar on KITTI drive 0005: the vendor calibration passes (roll and pitch judged); the same calibration turned 3 degrees about the camera y axis fails on pitch (3.00 degrees against 0.50)](../assets/calibrex-check-camera-lidar.gif)
+
+</div>
 
 ## Autoware bags
 

@@ -24,6 +24,14 @@
   digests, command and the CC BY-NC 4.0 data license are in
   `docs/assets/calibrex_check_fastlivo/overlay.json` and `readme-data-gifs.json`. The README
   links to it.
+- Fix images and links that were broken on the docs site but worked on GitHub. Raw HTML
+  paths such as `<img src="../assets/...">` are not rewritten by MkDocs, so on
+  `tutorials/workflow/` they pointed one level too shallow: the workflow tutorial's three
+  images, its known-bad-control link, the FAST-LIVO overlay and its `overlay.json`, a
+  landing-page link, two evidence-archive directory links and ten links of the printable
+  development brief. They are now Markdown (inside `markdown="1"` blocks) or GitHub URLs,
+  which work in both places. `tools/check_site_links.py` checks every relative `src` and
+  `href` of the built site in the docs workflow.
 
 ## 0.6.0 - 2026-11-02
 

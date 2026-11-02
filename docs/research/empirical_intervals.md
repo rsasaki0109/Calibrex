@@ -117,5 +117,5 @@ frozen evaluation cohort. The current evaluation data are now spent development
 data. The existing stationarity, observability and quality gates remain required.
 
 Complete inputs/results, frozen models, evaluator source snapshots and a SHA-256
-manifest are under [the evidence archive](../assets/empirical_intervals/). Numerical
+manifest are under [the evidence archive](https://github.com/rsasaki0109/Calibrex/tree/main/docs/assets/empirical_intervals). Numerical
 producer hashes match the recorded base commit; no large raw bags are committed.

@@ -123,10 +123,10 @@ with a 3° yaw error <b>fails</b>; restoring the calibration file and re-checkin
 
 <div class="cx-visual"><img src="assets/calibrex-check-camera-lidar.gif" alt="calibrex check --pairs camera-lidar on KITTI drive 0005: LiDAR points projected through the vendor calibration land on the cyclist and bollards and the pair passes; turned 3 degrees about the camera y axis they miss and the pair fails on pitch" loading="lazy"></div>
 
-<p class="cx-caption">Two real <code>calibrex check --pairs camera-lidar</code> runs on KITTI development drive 0005:
+<p class="cx-caption" markdown="1">Two real <code>calibrex check --pairs camera-lidar</code> runs on KITTI development drive 0005:
 the vendor calibration <b>passes</b> (roll and pitch judged); the same calibration turned +3° about the
 camera y axis <b>fails</b> (pitch 3.00° against 0.50°). The frames in between only slide the overlay.
-Translation is not judged; <a href="benchmarks/camera_lidar_check.md">results and limits</a>.</p>
+Translation is not judged; [results and limits](benchmarks/camera_lidar_check.md).</p>
 
 </div>
 

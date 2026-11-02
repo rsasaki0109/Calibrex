@@ -87,7 +87,7 @@ rotation, lever arm, IMU bias and clock-offset comparisons remain applicable.
 
 ## Retained outcomes
 
-See [the evidence archive](../assets/p0_reliability/). It includes all 25 final
+See [the evidence archive](https://github.com/rsasaki0109/Calibrex/tree/main/docs/assets/p0_reliability). It includes all 25 final
 results, protocols, schema-valid coverage reports, individual trial records,
 package versions, and SHA-256 manifests. `measured_source/` contains exact source
 bytes differing from base commit `7ae0905d`; all other source hashes are recorded
