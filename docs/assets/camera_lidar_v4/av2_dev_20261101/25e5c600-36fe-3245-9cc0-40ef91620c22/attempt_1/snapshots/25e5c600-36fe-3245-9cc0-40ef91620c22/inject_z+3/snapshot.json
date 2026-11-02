@@ -1,0 +1,220 @@
+{
+  "schema_version": "calibrex.camera_lidar_development_input/v1",
+  "drive": "25e5c600-36fe-3245-9cc0-40ef91620c22",
+  "run": "inject_z+3",
+  "arrays_sha256": "554704d3152acdbbb703e4fad3e435c0b656fd97f42a539f40b3c5552aa5e492",
+  "conversion_sha256": "8acd4892919bc61fb37b8c23f5aa6570441ceaf02c62614bd3cb76ce551158d4",
+  "camera": {
+    "fx": 1778.1035465809466,
+    "fy": 1778.1035465809466,
+    "cx": 774.1667292000918,
+    "cy": 1019.0351888428509,
+    "distortion_model": "radtan",
+    "distortion": [
+      -0.24431437903020545,
+      -0.1872311727229443,
+      0.0,
+      0.0,
+      0.2808925533138131
+    ]
+  },
+  "options": {
+    "spacing_s": 1.0,
+    "max_frames": 48,
+    "max_seconds": null,
+    "short_recording_spacing_s": 0.25,
+    "short_recording_min_view_change": 0.05,
+    "max_gap_s": 0.06,
+    "min_frames": 8,
+    "blocks": 6,
+    "min_jump_m": 0.3,
+    "jump_exponent": 0.5,
+    "max_edge_points_per_frame": 4000,
+    "min_edge_points_per_frame": 150,
+    "image_max_width": 960,
+    "spill_gamma": 0.98,
+    "spill_radius_px": 40,
+    "edge_background_sigma_px": 20.0,
+    "repeated_view_change": 0.05,
+    "image_margin_px": 80.0,
+    "rotation_bound_deg": 12.0,
+    "translation_bound_m": 0.2,
+    "rotation_levels_deg": [
+      1.0,
+      0.5,
+      0.25,
+      0.1,
+      0.05
+    ],
+    "translation_levels_m": [
+      0.02,
+      0.01,
+      0.005,
+      0.0025,
+      0.001
+    ],
+    "jackknife_first_level": 1,
+    "max_moves_per_level": 12,
+    "rotation_control_deg": 2.0,
+    "translation_control_m": 0.05,
+    "min_control_t": 2.5,
+    "observable_rotation_std_deg": 0.5,
+    "observable_translation_std_m": 0.03,
+    "min_ring_fraction": 0.5,
+    "min_gain": 2e-05,
+    "estimate_translation": false,
+    "start_scan_deg": 8.0,
+    "start_scan_step_deg": 0.5,
+    "start_scan_min_observed": 2,
+    "unstructured_lidar": true,
+    "start_scan_min_control_t": null,
+    "preparation_workers": 1
+  },
+  "frames": [
+    {
+      "time_s": 315966104.30007035,
+      "image_time_s": 315966104.29992723,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 315966105.39998883,
+      "image_time_s": 315966105.39992726,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 315966106.49989396,
+      "image_time_s": 315966106.4999272,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 315966107.4999736,
+      "image_time_s": 315966107.4999272,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 315966108.5999161,
+      "image_time_s": 315966108.59992725,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 315966109.6998678,
+      "image_time_s": 315966109.6999273,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 315966110.7998596,
+      "image_time_s": 315966110.79992723,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 315966111.89994377,
+      "image_time_s": 315966111.89992726,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 315966112.9999821,
+      "image_time_s": 315966112.9999272,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 315966114.0999299,
+      "image_time_s": 315966114.09992725,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 315966115.19982135,
+      "image_time_s": 315966115.1999273,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 315966116.2999702,
+      "image_time_s": 315966116.29992723,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 315966117.3997998,
+      "image_time_s": 315966117.39992726,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 315966118.5000397,
+      "image_time_s": 315966118.4999272,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": true
+    },
+    {
+      "time_s": 315966119.60002023,
+      "image_time_s": 315966119.59992725,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": true
+    }
+  ],
+  "input_provenance": {
+    "generator": "calibrex.evaluation.camera_lidar_edge",
+    "generator_version": "0.5.1",
+    "git_commit": "b1f3a20b",
+    "command": [
+      "calibrex",
+      "check",
+      "/home/user/av2-v4-work/25e5c600-36fe-3245-9cc0-40ef91620c22/attempt_1/bag",
+      "camera-lidar",
+      "/camera/image_raw",
+      "/velodyne_points"
+    ],
+    "dataset_family": "calibrex-check",
+    "sequence_ids": [
+      "bag"
+    ],
+    "image_topic": "/camera/image_raw",
+    "lidar_topic": "/velodyne_points",
+    "input_sha256": "5b0f0f6dd561a5e7591936b76266a5d578dff04f30e3583f77efaf6e702d7d7f",
+    "input_digest_scope": "bag digest (metadata.yaml in full; storage files by name, size and first 64 MiB)",
+    "dataset_license": "user-provided",
+    "created_at": "2026-11-01T10:34:31.317081+00:00"
+  },
+  "parent_frame": "ring_front_center_optical",
+  "child_frame": "velo_link",
+  "reference_label": "deployed candidate calibration (T_camera_lidar)",
+  "start_note": "image and scan are paired at the time the camera's visible points were measured (per-point time field 'time'); the recording is short but its view hardly changes (median view change 0.014), so scans stay 1 s apart: denser frames would repeat it",
+  "motion_compensation": {
+    "source_topic": "/av2/odometry",
+    "kind": "twist",
+    "per_point_time": true,
+    "frames_moved": 15,
+    "frames_without_motion": 0,
+    "median_rotation_deg": 3.2002852835268517e-06,
+    "max_rotation_deg": 8.95639117756785e-05,
+    "median_translation_m": 9.924916618414253e-07,
+    "max_translation_m": 0.0009654063827603578
+  },
+  "generator_sha256": "5a178903bee0768570bed7812c1eec0886eb7ee65182519bbf0136d7ebf90211",
+  "estimator_sha256": "1ec1c8d4d96f368b3f6498a5849ea5bedc217ed43428c49c1dae7b8b5d78e3d0"
+}

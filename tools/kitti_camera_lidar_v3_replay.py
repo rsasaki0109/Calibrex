@@ -45,6 +45,7 @@ from calibrex.evaluation import camera_lidar_edge as edge
 
 ROOT = Path(__file__).resolve().parents[1]
 KITTI360_SEGMENTS = ROOT / "docs/assets/kitti_camera_lidar_v3/kitti360_prep/segments.json"
+AV2_SPLIT = ROOT / "docs/assets/camera_lidar_v4/av2_split.json"
 RUNS = {
     "baseline": None,
     **{f"inject_{axis}+{angle}": f"{axis}:{angle}" for angle in (3, 1) for axis in "xyz"},
@@ -93,8 +94,22 @@ def spent_kitti360_segments() -> dict[str, dict[str, Any]]:
     return {item["id"]: item for item in [*fixed["development"], *fixed["evaluation"]]}
 
 
+def spent_av2_logs() -> dict[str, dict[str, Any]]:
+    """The fixed Argoverse 2 development logs by ID (validation split only)."""
+
+    split = json.loads(AV2_SPLIT.read_text())
+    logs = {item["log"]: item for item in split["development"]}
+    if any(item["split"] != "val" for item in logs.values()):
+        raise ValueError("Argoverse 2 development logs must come from the validation split")
+    return logs
+
+
 def _require_spent(drive: str) -> None:
-    if drive not in spent_drives() and drive not in spent_kitti360_segments():
+    if (
+        drive not in spent_drives()
+        and drive not in spent_kitti360_segments()
+        and drive not in spent_av2_logs()
+    ):
         raise ValueError(f"not a spent KITTI raw drive or KITTI-360 development segment: {drive}")
 
 
@@ -122,10 +137,31 @@ def _kitti360_reference(conversion: dict[str, Any], segment: dict[str, Any]) -> 
     return _serialized_chain(reference, np.asarray(camera["t_pose_velodyne"], dtype=np.float64))
 
 
+def _av2_reference(conversion: dict[str, Any], log: str) -> np.ndarray:
+    source = conversion.get("source", {})
+    camera = conversion.get("camera", {})
+    if (
+        source.get("dataset_family") != "argoverse2_sensor"
+        or source.get("log_id") != log
+        or source.get("split") != "val"
+        or camera.get("directory") != "ring_front_center"
+        or conversion.get("lidar", {}).get("sensor") != "up_lidar"
+    ):
+        raise ValueError(
+            "bag conversion must match this development log, ring_front_center and up_lidar"
+        )
+    return _serialized_chain(
+        np.asarray(camera["t_camera_velodyne"], dtype=np.float64),
+        np.asarray(camera["t_pose_velodyne"], dtype=np.float64),
+    )
+
+
 def _reference(conversion: dict[str, Any], drive: str) -> np.ndarray:
     segments = spent_kitti360_segments()
     if drive in segments:
         return _kitti360_reference(conversion, segments[drive])
+    if drive in spent_av2_logs():
+        return _av2_reference(conversion, drive)
     date, number = drive[:10], drive[11:]
     sources = conversion.get("source", {})
     source_drives = [item["drive"] for item in sources.get("drives", [])]
@@ -685,6 +721,8 @@ def compare_drives(
             "capture_manifests_sha256": manifests,
             "reference": "the KITTI-360 published calibration, not ground truth"
             if set(order) <= set(spent_kitti360_segments())
+            else "each Argoverse 2 log's published calibration, not ground truth"
+            if set(order) <= set(spent_av2_logs())
             else "each KITTI day's published calibration, not ground truth",
         },
     }

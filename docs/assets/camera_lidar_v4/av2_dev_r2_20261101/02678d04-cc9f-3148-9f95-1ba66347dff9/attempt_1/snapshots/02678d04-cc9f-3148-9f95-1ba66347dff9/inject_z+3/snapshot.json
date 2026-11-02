@@ -1,0 +1,451 @@
+{
+  "schema_version": "calibrex.camera_lidar_development_input/v1",
+  "drive": "02678d04-cc9f-3148-9f95-1ba66347dff9",
+  "run": "inject_z+3",
+  "arrays_sha256": "4985a3fd3ddb968698644cc6b0abd98e09860a9ab9dc9e970685957c8c6f51bd",
+  "conversion_sha256": "0e60ad6e2c6b7858bcbfe07e526c5a0f1e4145ceaffb1357dd3446ffcad94761",
+  "camera": {
+    "fx": 1781.4918642880275,
+    "fy": 1781.4918642880275,
+    "cx": 775.5073959728344,
+    "cy": 1022.9360073122974,
+    "distortion_model": "none",
+    "distortion": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "options": {
+    "spacing_s": 1.0,
+    "max_frames": 48,
+    "max_seconds": null,
+    "short_recording_spacing_s": 0.25,
+    "short_recording_min_view_change": 0.05,
+    "max_gap_s": 0.06,
+    "min_frames": 8,
+    "blocks": 6,
+    "min_jump_m": 0.3,
+    "jump_exponent": 0.5,
+    "max_edge_points_per_frame": 4000,
+    "min_edge_points_per_frame": 150,
+    "image_max_width": 960,
+    "spill_gamma": 0.98,
+    "spill_radius_px": 40,
+    "edge_background_sigma_px": 20.0,
+    "repeated_view_change": 0.05,
+    "image_margin_px": 80.0,
+    "rotation_bound_deg": 12.0,
+    "translation_bound_m": 0.2,
+    "rotation_levels_deg": [
+      1.0,
+      0.5,
+      0.25,
+      0.1,
+      0.05
+    ],
+    "translation_levels_m": [
+      0.02,
+      0.01,
+      0.005,
+      0.0025,
+      0.001
+    ],
+    "jackknife_first_level": 1,
+    "max_moves_per_level": 12,
+    "rotation_control_deg": 2.0,
+    "translation_control_m": 0.05,
+    "min_control_t": 2.5,
+    "observable_rotation_std_deg": 0.5,
+    "observable_translation_std_m": 0.03,
+    "min_ring_fraction": 0.5,
+    "min_gain": 2e-05,
+    "estimate_translation": false,
+    "start_scan_deg": 8.0,
+    "start_scan_step_deg": 0.5,
+    "start_scan_min_observed": 2,
+    "unstructured_lidar": true,
+    "start_scan_min_control_t": null,
+    "preparation_workers": 1
+  },
+  "frames": [
+    {
+      "time_s": 315969904.359876,
+      "image_time_s": 315969904.39992726,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969904.659802,
+      "image_time_s": 315969904.64992726,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969904.959727,
+      "image_time_s": 315969904.9499273,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969905.259658,
+      "image_time_s": 315969905.2499272,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969905.559583,
+      "image_time_s": 315969905.54992723,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969906.160103,
+      "image_time_s": 315969906.14992726,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969906.460029,
+      "image_time_s": 315969906.4499273,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969906.759954,
+      "image_time_s": 315969906.7499272,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969907.059883,
+      "image_time_s": 315969907.04992723,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969907.359808,
+      "image_time_s": 315969907.34992725,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969907.659734,
+      "image_time_s": 315969907.64992726,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969907.95966005,
+      "image_time_s": 315969907.9499273,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969908.259591,
+      "image_time_s": 315969908.2499272,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969908.559517,
+      "image_time_s": 315969908.54992723,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969908.859442,
+      "image_time_s": 315969908.84992725,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969909.459962,
+      "image_time_s": 315969909.4499273,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969909.759888,
+      "image_time_s": 315969909.7499272,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969910.059817,
+      "image_time_s": 315969910.04992723,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969910.359743,
+      "image_time_s": 315969910.34992725,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969910.65966797,
+      "image_time_s": 315969910.64992726,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969910.96313703,
+      "image_time_s": 315969910.9499273,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969911.259526,
+      "image_time_s": 315969911.2499272,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969911.56011504,
+      "image_time_s": 315969911.54992723,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969911.86004,
+      "image_time_s": 315969911.84992725,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969912.459895,
+      "image_time_s": 315969912.4499273,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969912.759821,
+      "image_time_s": 315969912.7499272,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969913.05975205,
+      "image_time_s": 315969913.04992723,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969913.359677,
+      "image_time_s": 315969913.34992725,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969913.659603,
+      "image_time_s": 315969913.64992726,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969913.960192,
+      "image_time_s": 315969913.9499273,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969914.26012105,
+      "image_time_s": 315969914.2499272,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969914.560046,
+      "image_time_s": 315969914.54992723,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969914.859972,
+      "image_time_s": 315969914.84992725,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969915.45982903,
+      "image_time_s": 315969915.4499273,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969915.759754,
+      "image_time_s": 315969915.7499272,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969916.059685,
+      "image_time_s": 315969916.04992723,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969916.35961103,
+      "image_time_s": 315969916.34992725,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969916.6602,
+      "image_time_s": 315969916.64992726,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969916.960125,
+      "image_time_s": 315969916.9499273,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969917.260055,
+      "image_time_s": 315969917.2499272,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969917.559981,
+      "image_time_s": 315969917.54992723,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969917.859906,
+      "image_time_s": 315969917.84992725,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969918.159837,
+      "image_time_s": 315969918.14992726,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969918.759688,
+      "image_time_s": 315969918.7499272,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969919.059619,
+      "image_time_s": 315969919.04992723,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969919.35954404,
+      "image_time_s": 315969919.34992725,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969919.660133,
+      "image_time_s": 315969919.64992726,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    },
+    {
+      "time_s": 315969919.96005905,
+      "image_time_s": 315969919.9499273,
+      "cloud_frame_id": "velo_link",
+      "image_frame_id": "ring_front_center_optical",
+      "has_point_times": false
+    }
+  ],
+  "input_provenance": {
+    "generator": "calibrex.evaluation.camera_lidar_edge",
+    "generator_version": "0.5.1",
+    "git_commit": "76901adc",
+    "command": [
+      "calibrex",
+      "check",
+      "/home/user/av2-v4-work-r2/02678d04-cc9f-3148-9f95-1ba66347dff9/attempt_1/bag",
+      "camera-lidar",
+      "/camera/image_raw",
+      "/velodyne_points"
+    ],
+    "dataset_family": "calibrex-check",
+    "sequence_ids": [
+      "bag"
+    ],
+    "image_topic": "/camera/image_raw",
+    "lidar_topic": "/velodyne_points",
+    "input_sha256": "405d158552d3ecae0f69611d275ae6a0e58786b50441014f7dbd359a7977dcbf",
+    "input_digest_scope": "bag digest (metadata.yaml in full; storage files by name, size and first 64 MiB)",
+    "dataset_license": "user-provided",
+    "created_at": "2026-11-01T11:06:03.744424+00:00"
+  },
+  "parent_frame": "ring_front_center_optical",
+  "child_frame": "velo_link",
+  "reference_label": "deployed candidate calibration (T_camera_lidar)",
+  "start_note": "the cloud has no per-point time: image and scan are paired at the header stamp; the recording is shorter than 48 scans 1 s apart, so up to 48 scans at least 0.25 s apart were spread over it (median view change 0.052)",
+  "motion_compensation": {
+    "source_topic": "/av2/odometry",
+    "kind": "twist",
+    "per_point_time": false,
+    "frames_moved": 48,
+    "frames_without_motion": 0,
+    "median_rotation_deg": 0.007800302803382341,
+    "max_rotation_deg": 0.043165314816475446,
+    "median_translation_m": 0.10236778140454311,
+    "max_translation_m": 0.4392881841741878
+  },
+  "generator_sha256": "5a178903bee0768570bed7812c1eec0886eb7ee65182519bbf0136d7ebf90211",
+  "estimator_sha256": "1ec1c8d4d96f368b3f6498a5849ea5bedc217ed43428c49c1dae7b8b5d78e3d0"
+}

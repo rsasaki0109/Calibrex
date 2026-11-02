@@ -1,0 +1,173 @@
+{
+  "schema_version": "calibrex.av2_camera_lidar_v4_batch/v0.1",
+  "analysis": "gate derivation from the 30 Argoverse 2 development logs; no verdict",
+  "primary": {
+    "metrics": {
+      "drives": 30,
+      "scored_drives": 28,
+      "failed_drives": [],
+      "inconclusive_drives": [
+        "185d3943-dd15-397a-8b2e-69cd86628fb7",
+        "25e5c600-36fe-3245-9cc0-40ef91620c22"
+      ],
+      "flagged_baselines": [
+        "04994d08-156c-3018-9717-ba0e29be8153",
+        "05fa5048-f355-3274-b565-c0ddc547b315",
+        "0fb7276f-ecb5-3e5b-87a8-cc74c709c715",
+        "11ba4e81-c26f-3cd1-827d-b6913bcef64e",
+        "182ba3f7-b89a-36cc-ae40-32a341b0d3e9",
+        "19350c96-623d-4d77-af96-f8c23f00c358",
+        "214e388e-cbd7-3dde-a204-d2ec42298808"
+      ],
+      "max_baseline_judged_error_deg": 2.9999999999999947,
+      "max_turned_judged_error_deg": 7.124732139314033,
+      "judged_axes": 63,
+      "scored_axes": 84,
+      "all_axes": 90,
+      "judged_fraction_scored": 0.75,
+      "judged_fraction_all": 0.7,
+      "trials": {
+        "3deg": {
+          "counted": 63,
+          "flagged": 58,
+          "flagged_fraction": 0.9206349206349206,
+          "judged_right": 0
+        },
+        "1deg": {
+          "counted": 63,
+          "flagged": 57,
+          "flagged_fraction": 0.9047619047619048,
+          "judged_right": 5
+        }
+      }
+    },
+    "gates": {
+      "judged-axis-accuracy": {
+        "development_worst_deg": 2.9999999999999947,
+        "times_1_5": 4.499999999999992,
+        "threshold_deg": 4.5
+      },
+      "turned-judged-axis-accuracy": {
+        "development_worst_deg": 7.124732139314033,
+        "times_1_5": 10.68709820897105,
+        "threshold_deg": 10.75
+      },
+      "judged-axis-coverage": {
+        "development": 0.75,
+        "threshold": 0.5
+      },
+      "scored-segments-coverage": {
+        "development": "28 of 30",
+        "threshold_segments": 93
+      },
+      "turn-3deg-flagged": {
+        "development": "5 of 63",
+        "upper_bound_95": 0.1596549162176728,
+        "allowance": 0.2
+      },
+      "turn-1deg-flagged": {
+        "development": "6 of 63",
+        "allowance": 0.25
+      },
+      "turn-3deg-never-judged-right": {
+        "development": 0,
+        "allowed": 0
+      },
+      "no-failed-segments": {
+        "development": [],
+        "allowed": 0
+      },
+      "vendor-calibration-flagged": {
+        "development": "7 of 28",
+        "upper_bound_95": 0.41872774041150573,
+        "allowance": 0.45,
+        "flagged": [
+          "04994d08-156c-3018-9717-ba0e29be8153",
+          "05fa5048-f355-3274-b565-c0ddc547b315",
+          "0fb7276f-ecb5-3e5b-87a8-cc74c709c715",
+          "11ba4e81-c26f-3cd1-827d-b6913bcef64e",
+          "182ba3f7-b89a-36cc-ae40-32a341b0d3e9",
+          "19350c96-623d-4d77-af96-f8c23f00c358",
+          "214e388e-cbd7-3dde-a204-d2ec42298808"
+        ]
+      }
+    }
+  },
+  "secondary": {
+    "metrics": {
+      "drives": 30,
+      "scored_drives": 28,
+      "failed_drives": [],
+      "inconclusive_drives": [
+        "185d3943-dd15-397a-8b2e-69cd86628fb7",
+        "25e5c600-36fe-3245-9cc0-40ef91620c22"
+      ],
+      "flagged_baselines": [
+        "04994d08-156c-3018-9717-ba0e29be8153",
+        "05fa5048-f355-3274-b565-c0ddc547b315",
+        "0fb7276f-ecb5-3e5b-87a8-cc74c709c715",
+        "11ba4e81-c26f-3cd1-827d-b6913bcef64e",
+        "182ba3f7-b89a-36cc-ae40-32a341b0d3e9",
+        "19350c96-623d-4d77-af96-f8c23f00c358",
+        "19f53e16-9f99-3035-9672-7e860f3b0048",
+        "214e388e-cbd7-3dde-a204-d2ec42298808"
+      ],
+      "max_baseline_judged_error_deg": 2.9999999999999947,
+      "max_turned_judged_error_deg": 4.499561042395209,
+      "judged_axes": 61,
+      "scored_axes": 84,
+      "all_axes": 90,
+      "judged_fraction_scored": 0.7261904761904762,
+      "judged_fraction_all": 0.6777777777777778,
+      "trials": {
+        "3deg": {
+          "counted": 61,
+          "flagged": 28,
+          "flagged_fraction": 0.45901639344262296,
+          "judged_right": 0
+        },
+        "1deg": {
+          "counted": 61,
+          "flagged": 50,
+          "flagged_fraction": 0.819672131147541,
+          "judged_right": 2
+        }
+      }
+    },
+    "gates": {
+      "baseline-warned": {
+        "development": "8 of 28",
+        "upper_bound_95": 0.4567310050307225,
+        "allowance": 0.5
+      },
+      "judged-axis-accuracy": {
+        "development_worst_deg": 2.9999999999999947,
+        "times_1_5": 4.499999999999992,
+        "threshold_deg": 4.5
+      },
+      "turned-judged-axis-accuracy": {
+        "development_worst_deg": 4.499561042395209,
+        "times_1_5": 6.749341563592814,
+        "threshold_deg": 6.75
+      },
+      "turn-3deg-run-flagged": {
+        "development": "1 of 61",
+        "upper_bound_95": 0.0754220320305016,
+        "allowance": 0.1
+      },
+      "turn-1deg-run-flagged": {
+        "development": "2 of 61",
+        "upper_bound_95": 0.0996348801942324,
+        "allowance": 0.1
+      }
+    }
+  },
+  "provenance": {
+    "generator": "tools/av2_camera_lidar_v4_batch.py",
+    "generator_sha256": "cada0a6da022d92a2428494770cb20a182b238ec4c8aad99fe2ab959114e9d02",
+    "git_commit": "76901adc220d4bd774b250ac03031f87e4599af6",
+    "created_at": "2026-11-01T13:05:43.996478+00:00",
+    "rule_document_sha256": "9d0598e2ed4e898a87eb40fb1757cadf6a2ed8318415cc0954000c2b6f8cb03c",
+    "manifest_sha256": "3ca7f7cfaacd77639147bbf08fa0648ba0342f0fb2062ea969e79c82a46e2bdb"
+  }
+}

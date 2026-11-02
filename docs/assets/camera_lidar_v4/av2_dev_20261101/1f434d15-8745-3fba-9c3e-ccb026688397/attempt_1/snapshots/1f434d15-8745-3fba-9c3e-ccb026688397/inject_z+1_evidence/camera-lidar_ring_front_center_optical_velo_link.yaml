@@ -1,0 +1,275 @@
+schema_version: slac.camera_lidar_edge/v0.1
+method: edge_alignment/v0.1
+solver_status: converged
+policy_status: pass
+policy_reasons:
+- all three rotation DoFs are observed with detected held-out controls
+- 'x: translation is not estimated (parallax resolves it too weakly; see limitations)'
+- 'y: translation is not estimated (parallax resolves it too weakly; see limitations)'
+- 'z: translation is not estimated (parallax resolves it too weakly; see limitations)'
+- '14 frame(s) dropped: t=315972873.3s: repeats the last kept view (image change 0.016
+  < 0.05; a spinning LiDAR at a standing rig adds no view)'
+calibrated_dofs:
+- roll
+- pitch
+- yaw
+transform:
+  parent_frame: ring_front_center_optical
+  child_frame: velo_link
+  translation_m:
+  - 0.01540981937556185
+  - -0.20001287332463824
+  - -0.2817674810808546
+  rotation_quat_xyzw:
+  - 0.49860153099626475
+  - -0.4982004814597741
+  - 0.5034576918777969
+  - 0.49972306935993177
+start_transform:
+  parent_frame: ring_front_center_optical
+  child_frame: velo_link
+  translation_m:
+  - 0.01540981937556185
+  - -0.20001287332463824
+  - -0.2817674810808546
+  rotation_quat_xyzw:
+  - 0.506220706657158
+  - -0.49449551676799913
+  - 0.5023583779672816
+  - 0.49684085996821875
+dofs:
+- name: roll
+  unit: deg
+  value: 69.09659764337275
+  delta_from_start: -0.45
+  std_jackknife: 0.04166666666666666
+  std_reported: 0.04166666666666666
+  status: estimated
+  at_search_bound: false
+  reference_value: 70.24077380539524
+  error_to_reference: -0.44999999999999846
+  known_bad_control:
+    amount: 2.0
+    unit: deg
+    held_out_blocks: 6
+    detected_blocks: 6
+    mean_objective_drop: 0.010353007221819768
+    min_t_statistic: 10.48645693321645
+    detected: true
+- name: pitch
+  unit: deg
+  value: -69.041019878895
+  delta_from_start: -0.55
+  std_jackknife: 0.025
+  std_reported: 0.025
+  status: estimated
+  at_search_bound: false
+  reference_value: -68.61384231089296
+  error_to_reference: -0.5499999999999787
+  known_bad_control:
+    amount: 2.0
+    unit: deg
+    held_out_blocks: 6
+    detected_blocks: 6
+    mean_objective_drop: 0.009837726675568745
+    min_t_statistic: 3.4324520430390706
+    detected: true
+- name: yaw
+  unit: deg
+  value: 69.7695682895965
+  delta_from_start: -0.75
+  std_jackknife: 0.1787300882460602
+  std_reported: 0.1787300882460602
+  status: estimated
+  at_search_bound: false
+  reference_value: 69.70485547510962
+  error_to_reference: -0.74999999999999
+  known_bad_control:
+    amount: 2.0
+    unit: deg
+    held_out_blocks: 6
+    detected_blocks: 4
+    mean_objective_drop: 0.004917068401758747
+    min_t_statistic: 4.040365428606754
+    detected: true
+- name: x
+  unit: m
+  value: 0.01540981937556185
+  delta_from_start: 0.0
+  std_jackknife: 0.0005
+  std_reported: 0.0005
+  status: unobservable
+  at_search_bound: false
+  reference_value: 0.01540981937556185
+  error_to_reference: 0.0
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    held_out_blocks: 6
+    detected_blocks: 3
+    mean_objective_drop: 0.0006601895311419007
+    min_t_statistic: 1.2265808989962486
+    detected: false
+- name: y
+  unit: m
+  value: -0.20001287332463824
+  delta_from_start: 0.0
+  std_jackknife: 0.0005
+  std_reported: 0.0005
+  status: unobservable
+  at_search_bound: false
+  reference_value: -0.20001287332463824
+  error_to_reference: 0.0
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    held_out_blocks: 6
+    detected_blocks: 1
+    mean_objective_drop: -0.00038297277385242304
+    min_t_statistic: -0.7181742479693956
+    detected: false
+- name: z
+  unit: m
+  value: -0.2817674810808546
+  delta_from_start: 0.0
+  std_jackknife: 0.0005
+  std_reported: 0.0005
+  status: unobservable
+  at_search_bound: false
+  reference_value: -0.2817674810808546
+  error_to_reference: 0.0
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    held_out_blocks: 6
+    detected_blocks: 2
+    mean_objective_drop: -0.00019365006217552812
+    min_t_statistic: -1.0888325294381302
+    detected: false
+objective:
+  start: 0.014358727582563553
+  estimate: 0.0191943502905301
+  gain: 0.004835622707966546
+samples:
+  frames: 34
+  edge_points: 25319
+  blocks: 6
+  median_abs_time_gap_s: 0.0003853142261505127
+  max_abs_time_gap_s: 0.000691831111907959
+  first_frame_time_s: 315972873.00048506
+  last_frame_time_s: 315972888.3003083
+  median_rings: 56
+motion_compensation:
+  source_topic: /av2/odometry
+  kind: twist
+  per_point_time: true
+  frames_moved: 48
+  frames_without_motion: 0
+  median_rotation_deg: 0.00018733270453585757
+  max_rotation_deg: 0.007738097085654908
+  median_translation_m: 0.0005780039510973737
+  max_translation_m: 0.003026852350486815
+jackknife_fits: 6
+camera:
+  fx: 1780.784401045191
+  fy: 1780.784401045191
+  cx: 775.2786934524187
+  cy: 1023.2766368342913
+  distortion_model: radtan
+  distortion:
+  - -0.2428911310824554
+  - -0.2066974788230091
+  - 0.0
+  - 0.0
+  - 0.3192701615175106
+options:
+  spacing_s: 1.0
+  max_frames: 48
+  max_seconds: null
+  short_recording_spacing_s: 0.25
+  short_recording_min_view_change: 0.05
+  max_gap_s: 0.06
+  min_frames: 8
+  blocks: 6
+  min_jump_m: 0.3
+  jump_exponent: 0.5
+  max_edge_points_per_frame: 4000
+  min_edge_points_per_frame: 150
+  image_max_width: 960
+  spill_gamma: 0.98
+  spill_radius_px: 40
+  edge_background_sigma_px: 20.0
+  repeated_view_change: 0.05
+  image_margin_px: 80.0
+  rotation_bound_deg: 12.0
+  translation_bound_m: 0.2
+  rotation_levels_deg:
+  - 1.0
+  - 0.5
+  - 0.25
+  - 0.1
+  - 0.05
+  translation_levels_m:
+  - 0.02
+  - 0.01
+  - 0.005
+  - 0.0025
+  - 0.001
+  jackknife_first_level: 1
+  max_moves_per_level: 12
+  rotation_control_deg: 2.0
+  translation_control_m: 0.05
+  min_control_t: 2.5
+  observable_rotation_std_deg: 0.5
+  observable_translation_std_m: 0.03
+  min_ring_fraction: 0.5
+  min_gain: 2.0e-05
+  estimate_translation: false
+  start_scan_deg: 8.0
+  start_scan_step_deg: 0.5
+  start_scan_min_observed: 2
+  unstructured_lidar: true
+  start_scan_min_control_t: null
+  preparation_workers: 1
+reference: deployed candidate calibration (T_camera_lidar)
+limitations:
+- The camera frame is assumed to be the optical frame (x right, y down, z forward)
+  and the intrinsics are taken as correct; an intrinsics error reads as an extrinsic
+  error.
+- LiDAR points were moved to the image time with the rig motion from /av2/odometry
+  (constant velocity between each point's and the image's time; each point by its
+  own measurement time).
+- 'Image edges and LiDAR depth discontinuities constrain rotation well and translation
+  weakly (translation is a parallax effect that scales with 1/depth): on the Hilti
+  2022 and KITTI recordings the translation estimate differed from the reference by
+  up to 11 cm with a reported std of 1-2 cm. Translation is therefore not estimated
+  by default; its held-out control is still recorded.'
+- The jackknife standard deviation does not include systematic effects (lens model,
+  timing, scene composition); the verdict floors cover those.
+- Edge alignment needs structured scenes with depth discontinuities and image edges;
+  textureless or very distant scenes yield an inconclusive result.
+- image and scan are paired at the time the camera's visible points were measured
+  (per-point time field 'time'); the recording is shorter than 48 scans 1 s apart,
+  so up to 48 scans at least 0.25 s apart were spread over it (median view change
+  0.073)
+provenance:
+  generator: calibrex.evaluation.camera_lidar_edge
+  generator_version: 0.5.1
+  git_commit: b1f3a20b
+  command:
+  - calibrex
+  - check
+  - /home/user/av2-v4-work/1f434d15-8745-3fba-9c3e-ccb026688397/attempt_1/bag
+  - camera-lidar
+  - /camera/image_raw
+  - /velodyne_points
+  dataset_family: calibrex-check
+  sequence_ids:
+  - bag
+  image_topic: /camera/image_raw
+  lidar_topic: /velodyne_points
+  input_sha256: 9c0c362b977b3186c84f62a91d0fbac89d8899d5a2c55a655e3d8ec35c7b00ef
+  input_digest_scope: bag digest (metadata.yaml in full; storage files by name, size
+    and first 64 MiB)
+  dataset_license: user-provided
+  created_at: '2026-11-01T09:59:27.865614+00:00'

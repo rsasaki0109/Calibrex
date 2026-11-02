@@ -60,16 +60,260 @@ On it the check passes the vendor calibration with all three rotation axes
 judged. With the LiDAR left in the ego frame it judged none, which is why the
 converter moves points back into the sensor frame.
 
+## Argoverse 2 split (metadata only, 2026-11-01)
+
+`tools/av2_camera_lidar_v4_split.py` fixed the split from anonymous bucket
+listings alone ([split](../assets/camera_lidar_v4/av2_split.json)):
+
+| Role | Logs | Rule | Members pinned |
+| --- | ---: | --- | ---: |
+| Development | 30 | the first 30 validation logs by log ID | 7.7 GB |
+| Evaluation | 150 | every test log | 37.7 GB |
+| Reserve, never read | 120 validation, 700 train | everything else | – |
+
+The members a `calibrex convert av2` run reads are the two calibration tables,
+the poses, every LiDAR sweep and every `ring_front_center` image. They are
+pinned per log by the SHA-256 of their sorted key, size and ETag lines. All 180
+chosen logs have every member, with 155–197 sweeps and 319–399 images each.
+The one log already read for the converter (`02678d04-…`) is the first
+development log. No other payload has been read.
+
+## Gate rule, fixed before the Argoverse 2 development results
+
+This rule was committed before any development check ran on Argoverse 2. The
+one log read so far was read only to build the converter. The gates follow from
+the rule once the 30 development logs have run. Development values come from
+those logs, scored by the frozen v2 scorer under the default rule. KITTI raw and
+KITTI-360 are reported beside them and set no gate. The rules are v2's,
+unchanged, except one:
+
+- **Judged-axis error, baseline and turned runs.** 1.5 times the worst
+  development value, rounded up to the next 0.25°.
+- **Judged-axis coverage.** The development rate divided by 1.5, rounded down
+  to the next 0.25.
+- **Scored logs.** The development rate divided by 1.5, rounded down to a whole
+  number of the 150 logs.
+- **3° turns missed.** The one-sided 95 % exact binomial upper bound of the
+  development miss rate (the rule of three when none is missed), rounded up to
+  the next 0.05.
+- **1° turns missed.** 0.25.
+- **3° turns judged right, failed logs.** None allowed.
+- **Vendor calibration flagged (the change).** The binomial allowance above,
+  from the development rate, where v2 allowed none. On KITTI-360's spent
+  development data the default rule flagged the vendor calibration on 1 of 22
+  segments. The cause was a scene-dependent bias lasting the whole minute,
+  which no single recording can reveal
+  ([cause](kitti360_camera_lidar_v3_prep.md#cause-of-the-0002-s04-flag-post-hoc-spent-data-only)).
+  "None allowed" would test the reference's luck on 150 logs, not the check.
+  The claim must therefore state its vendor-flag rate.
+
+The secondary claim measures the opt-in warning
+(`--camera-lidar-start-agreement-deg 0.5`, replayed on the same inputs). Its
+baseline warning rate and its run-level 3° and 1° miss rates get the binomial
+allowance, and its judged-axis errors the 1.5× rule. If the development batch
+already fails a gate derived from itself, the pre-registration records that.
+It is not tuned away.
+
+## First development batch (converter superseded, 2026-11-01)
+
+The first batch ran all 30 development logs from commit `b1f3a20b`, with no
+failed attempt ([receipts](../assets/camera_lidar_v4/av2_dev_20261101/gates.json)).
+Its converter applied the distributed `k1..k3` and each point's `offset_ns`.
+The default rule flagged the vendor calibration on **12 of 28** scored logs.
+Judged baseline axes reached 4.5° from it, and turned-run axes 8.75°. The
+gates the rule derives from those numbers (6.75°, a 0.6 vendor-flag
+allowance) would make any claim empty.
+
+Probes on four development logs changed one choice at a time. Zeroing the
+distortion turned 19f53e16 from −4.5° to a pass, and 15ec0778's judged axis
+from fail to pass. A sweep snapshot instead of per-point offsets also
+turned 19f53e16 to a pass. 0fb7276f (about 2 m/s) kept a 2.75–2.9° roll
+error either way. `av2-api` itself projects with `K` alone, and moves a whole
+sweep with one ego pose. So the converter was changed to follow it (commit
+`0364679d`), not to fit those four logs. The batch is re-run on all 30 logs
+with the corrected converter, and the gates come from that run. These first
+receipts stay as history.
+
+## Second development batch (av2-api conventions, 2026-11-01)
+
+All 30 development logs ran again from commit `76901adc`, with no failed attempt
+([receipts and gates](../assets/camera_lidar_v4/av2_dev_r2_20261101/gates.json)).
+The rule committed above gives:
+
+| Requirement | Development (default rule) | Gate by the rule |
+| --- | --- | --- |
+| Vendor calibration flagged | 7 of 28 scored (first batch: 12) | ≤ 0.45 |
+| Worst judged baseline axis | 3.00° (first batch: 4.5°) | ≤ 4.5° |
+| Worst judged turned-run axis | 7.12° | ≤ 10.75° |
+| Judged baseline axes | 0.75 (first batch: 0.51) | ≥ 0.5 |
+| Scored logs | 28 of 30 | ≥ 93 of 150 |
+| 3° turns missed / judged right | 5 of 63 / 0 | ≤ 0.2 / none |
+| 1° turns missed | 6 of 63 | ≤ 0.25 |
+
+The opt-in warning misses 1 of 61 3° turns and 2 of 61 1° turns by the run
+verdict. It warns on 8 of 28 baselines.
+
+Most logs now judge every axis within ±0.5° of the vendor calibration. The
+exceptions are of two kinds:
+
+- **Camera-x rotation (vertical tilt).** It reads −3.00° (0fb7276f), −1.75°
+  (05fa5048), −1.50° (214e388e), and about −0.6° on two more, with reported
+  stds of 0.04–0.09°.
+- **Yaw.** It reads +0.6° to +0.8° on three logs, with a std of 0.03°.
+
+The calibrations differ between logs, but two logs with the same calibration
+read −1.45° and +0.10°. So the exceptions belong to the log, as on KITTI-360,
+not to the calibration. Every one of the large tilt readings has the same sign,
+which a scene effect alone would not explain. The cause is open.
+
+### Tilt investigation on 0fb7276f (post hoc, development data)
+
+The default check on this log reads camera-x −3.0°. The diagnostics below
+changed nothing in the check:
+
+- **The objective genuinely prefers the tilt.** Along camera-x, the pooled edge
+  objective of the saved inputs peaks at −2.5° (score 0.019) and drops to 0.003
+  at the vendor calibration. Two clean logs (02678d04, 070bbf42) peak sharply
+  at 0°, and 05fa5048 peaks near −1.5°. So the axis is not merely weakly
+  constrained.
+- **The ego hood is not the cause.** The `up_lidar`'s edge points fall in a band
+  around the horizon (image rows about 800–1100 of 2048), far above the hood at
+  the bottom of the image.
+- **The forward cameras share it.** The same log was converted for five ring
+  cameras, each checked against its own vendor calibration:
+
+| Camera | Verdict | Camera-x reading |
+| --- | --- | ---: |
+| front centre | fail | −3.0° |
+| front left | inconclusive (no axis judged) | −3.0° |
+| front right | inconclusive (no axis judged) | −3.0° |
+| side left | pass | +0.35° |
+| side right | pass | +0.15° |
+
+A pitch error of the LiDAR extrinsic would show in the side cameras too, about
+its camera-z axis, and it does not. A front-centre calibration error would not
+appear in the front-left and front-right cameras, and it does. What remains is
+something the forward views share. That is either their common scene (palm
+fronds against the sky, whose LiDAR and image silhouettes may disagree
+vertically) or a timing or motion effect along the direction of travel, which
+displaces points radially from the focus of expansion. These two are not yet
+separated.
+
+Splitting the saved inputs (0fb7276f and 05fa5048, against two clean logs)
+separates them:
+
+| Subset of edge points | 0fb7276f | 05fa5048 | 02678d04 | 070bbf42 |
+| --- | ---: | ---: | ---: | ---: |
+| all | −2.50° | −1.50° | 0.00° | 0.00° |
+| frames at under 0.5 m/s | −2.75° (2 frames) | – | −0.5° (1 frame) | – |
+| above image row 950 (above the optical axis) | +0.25° | +1.50° | 0.00° | +0.25° |
+| at or below row 950 | −2.50° | −1.50° | 0.00° | 0.00° |
+| depth 40–200 m | −2.75° | −2.75° | −0.25° | 0.00° |
+
+- **Not motion.** Stationary frames carry the same tilt, and a clean log at
+  11 m/s carries none.
+- **Not a vertical translation error.** Points beyond 40 m carry it as well,
+  and a translation error would fade with range.
+- **It comes from edges below the optical axis.** Edges above it agree with the
+  vendor calibration.
+
+One mechanism fits, though it is not yet tested: near-side edge
+quantization by sparse beams. At an object's top silhouette, the near-side
+edge point is the last beam that hits the object, which lies below the true
+silhouette by up to one beam spacing. At its bottom the bias reverses. A scene
+whose below-axis edges are mostly tops (planters, car bodies, kerbs) would
+bias tilt one way. Below the horizon the `up_lidar` is a 32-beam VLP-32C with
+coarser spacing than KITTI's 64 beams. Beam spacing alone does not yet account
+for 3°. A test would localise vertical depth edges between beams, or weight
+them by beam spacing, on development logs.
+
+**Follow-up: the vendor calibration is right, and the check finds a false
+optimum.** Two further diagnostics settle the question:
+
+- **The mechanism above does not apply.** Its edges come from range jumps
+  along each beam, which are object sides, not tops. Keeping only edges with a
+  neighbouring beam's edge at a similar azimuth and range kept 90 % of them and
+  left every optimum unchanged (0fb7276f −2.50°).
+- **The annotated cuboids align at the vendor tilt.** The log's 3D annotations
+  were projected with the vendor calibration and with −2.5° tilt. At the
+  vendor tilt, the vehicle, pedestrian and bollard boxes sit on their objects
+  (the sedan's box spans roof to wheels). At −2.5° every box drops onto the
+  road. The annotations come from the same LiDAR, so this is not an
+  independent reference. It does show that the LiDAR-to-camera alignment
+  under the vendor calibration is visibly right.
+
+So on this scene the edge objective has a **false optimum**. The `up_lidar`'s
+edges crowd a band around the horizon, mostly foliage and distant structure.
+Moved down about 78 px, they land on the strong ground-level edges below
+(kerb lines, car bottoms, building bases). Every start reaches it, so the
+opt-in cross-start warning does not catch it on 0fb7276f or 214e388e. It
+withholds the tilt only on 05fa5048. The split above does catch it: edges
+above the optical axis agree with the vendor calibration, and edges below it
+do not. An internal agreement test between those two halves is a candidate
+for development. It would ask for the same answer from disjoint parts of the
+image, much as the cross-start rule asks it from disjoint starts.
+
+### Half-image agreement screen (protocol, committed before it ran)
+
+This is a one-shot development screen. It is not a claim, and per-log forensics
+stop here.
+
+**Rule.** `tools/av2_half_image_agreement_screen.py` re-estimates every saved
+run twice, from the LiDAR points projecting above the principal point and from
+those at or below it, with the unchanged estimator. An axis the full run judges
+is withheld (unchecked, with no forced warning) when the two halves' raw
+estimates differ by more than 0.5°. A real calibration error moves both halves
+alike. The raw estimates are compared because neither half of 0fb7276f alone
+passes the evidence rules for tilt. Its halves read +2.95° and −0.75°, while
+02678d04's read 0.0° and −0.1°. Those are the only two baselines inspected
+before fixing the rule.
+
+**Data.** Every development log whose seven saved runs are all still on disk
+(23 of 30), scored with the frozen v2 scorer. These logs motivated the rule, so
+the result is development evidence only.
+
+**Carried forward**, as an opt-in check option, only if all of these hold
+against the default rule on the same runs:
+
+- fewer judged baseline axes beyond 0.5° of the vendor calibration;
+- no more baseline fail verdicts;
+- the flagged fraction of counted 3° trials drops by at most 0.05, and the same
+  for 1° trials;
+- no more judged turned-run axes beyond 1.0°;
+- at least 0.5 of scored baseline axes judged.
+
+**Result (ran once, 2026-11-02): `not carried forward`.**
+([screen](../assets/camera_lidar_v4/av2_half_agreement_screen.json)). Two of
+the six criteria fail:
+
+| 23 development logs | Default rule | Half-image agreement |
+| --- | ---: | ---: |
+| Judged baseline axes beyond 0.5° | 7 | 1 |
+| Baseline fail verdicts | 2 | 0 |
+| Vendor calibration flagged (warn or fail) | 6 logs | 1 log |
+| Judged turned-run axes beyond 1.0° | 24 | 5 |
+| Judged baseline axes | 0.75 | **0.44** (needs ≥ 0.5) |
+| Counted 3° turns flagged | 0.89 | **0.54** (needs ≥ 0.84) |
+| Counted 1° turns flagged | 0.87 | 0.86 |
+
+The rule removes almost every confidently wrong judgement, but half an image
+gives noisy raw estimates. Clean logs therefore lose axes too (17 of 23 lose
+at least one), and turned runs lose the axis that was turned. As committed,
+it is recorded and not adopted. Per-log forensics on Argoverse 2 stop here.
+
+**No v4 claim is frozen.** Gates of 4.5° and a 45 % vendor-flag allowance would
+be honest, but they would not support a meaningful check claim. The 150
+evaluation logs stay unread.
+
 ## Next steps (not yet decided)
 
-1. **Converters.** ~~Argoverse 2~~ done above. Boreas camera, LiDAR and
-   Applanix are still to do. Both are development work, validated first on
-   development data only.
-2. **Split rules.** Fix the development and evaluation split rules from
-   metadata before reading any payload. For Argoverse 2 a natural rule is
-   validation logs for development and test logs for evaluation, leaving train
-   as a reserve. For Boreas, the two INS-LiDAR sequences would be development
-   data.
-3. **Pre-registration.** Develop on the development split, derive gates by the
-   committed v2 rule, and freeze a v4 pre-registration that discloses the
-   exposure policy above.
+1. **Edge objective.** The negative camera-x readings are a false optimum of
+   the edge objective, not a calibration error, and the half-image screen did
+   not remove them at an acceptable cost. A v4 freeze needs an objective that
+   avoids that optimum (for example more vertical evidence from `down_lidar`,
+   or a different edge weighting), developed only on development data.
+2. **Boreas.** A camera, LiDAR and Applanix converter, and a split with the
+   two INS-LiDAR sequences as development data. Boreas is the second dataset
+   family the research plan's final gate needs.
+3. **Pre-registration.** Freeze a v4 pre-registration only when its derived
+   gates support a meaningful claim, with the exposure policy above disclosed.

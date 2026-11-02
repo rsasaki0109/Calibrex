@@ -1,0 +1,188 @@
+{
+  "schema_version": "calibrex.av2_camera_lidar_v4_batch/v0.1",
+  "analysis": "gate derivation from the 30 Argoverse 2 development logs; no verdict",
+  "primary": {
+    "metrics": {
+      "drives": 30,
+      "scored_drives": 28,
+      "failed_drives": [],
+      "inconclusive_drives": [
+        "185d3943-dd15-397a-8b2e-69cd86628fb7",
+        "25e5c600-36fe-3245-9cc0-40ef91620c22"
+      ],
+      "flagged_baselines": [
+        "04994d08-156c-3018-9717-ba0e29be8153",
+        "05fa5048-f355-3274-b565-c0ddc547b315",
+        "070bbf42-31d3-3aa9-aca4-c262afc9077d",
+        "0b86f508-5df9-4a46-bc59-5b9536dbde9f",
+        "0fb7276f-ecb5-3e5b-87a8-cc74c709c715",
+        "15ec0778-826e-3ed7-9775-54fbf66997f4",
+        "19350c96-623d-4d77-af96-f8c23f00c358",
+        "19f53e16-9f99-3035-9672-7e860f3b0048",
+        "1f434d15-8745-3fba-9c3e-ccb026688397",
+        "201fe83b-7dd7-38f4-9d26-7b4a668638a9",
+        "214e388e-cbd7-3dde-a204-d2ec42298808",
+        "280269f9-6111-311d-b351-ce9f63f88c81"
+      ],
+      "max_baseline_judged_error_deg": 4.499999999999999,
+      "max_turned_judged_error_deg": 8.749899206099297,
+      "judged_axes": 43,
+      "scored_axes": 84,
+      "all_axes": 90,
+      "judged_fraction_scored": 0.5119047619047619,
+      "judged_fraction_all": 0.4777777777777778,
+      "trials": {
+        "3deg": {
+          "counted": 43,
+          "flagged": 32,
+          "flagged_fraction": 0.7441860465116279,
+          "judged_right": 1
+        },
+        "1deg": {
+          "counted": 43,
+          "flagged": 37,
+          "flagged_fraction": 0.8604651162790697,
+          "judged_right": 4
+        }
+      }
+    },
+    "gates": {
+      "judged-axis-accuracy": {
+        "development_worst_deg": 4.499999999999999,
+        "times_1_5": 6.749999999999998,
+        "threshold_deg": 6.75
+      },
+      "turned-judged-axis-accuracy": {
+        "development_worst_deg": 8.749899206099297,
+        "times_1_5": 13.124848809148945,
+        "threshold_deg": 13.25
+      },
+      "judged-axis-coverage": {
+        "development": 0.5119047619047619,
+        "threshold": 0.25
+      },
+      "scored-segments-coverage": {
+        "development": "28 of 30",
+        "threshold_segments": 93
+      },
+      "turn-3deg-flagged": {
+        "development": "11 of 43",
+        "upper_bound_95": 0.38771520784647484,
+        "allowance": 0.4
+      },
+      "turn-1deg-flagged": {
+        "development": "6 of 43",
+        "allowance": 0.25
+      },
+      "turn-3deg-never-judged-right": {
+        "development": 1,
+        "allowed": 0
+      },
+      "no-failed-segments": {
+        "development": [],
+        "allowed": 0
+      },
+      "vendor-calibration-flagged": {
+        "development": "12 of 28",
+        "upper_bound_95": 0.5999556279296739,
+        "allowance": 0.6,
+        "flagged": [
+          "04994d08-156c-3018-9717-ba0e29be8153",
+          "05fa5048-f355-3274-b565-c0ddc547b315",
+          "070bbf42-31d3-3aa9-aca4-c262afc9077d",
+          "0b86f508-5df9-4a46-bc59-5b9536dbde9f",
+          "0fb7276f-ecb5-3e5b-87a8-cc74c709c715",
+          "15ec0778-826e-3ed7-9775-54fbf66997f4",
+          "19350c96-623d-4d77-af96-f8c23f00c358",
+          "19f53e16-9f99-3035-9672-7e860f3b0048",
+          "1f434d15-8745-3fba-9c3e-ccb026688397",
+          "201fe83b-7dd7-38f4-9d26-7b4a668638a9",
+          "214e388e-cbd7-3dde-a204-d2ec42298808",
+          "280269f9-6111-311d-b351-ce9f63f88c81"
+        ]
+      }
+    }
+  },
+  "secondary": {
+    "metrics": {
+      "drives": 30,
+      "scored_drives": 28,
+      "failed_drives": [],
+      "inconclusive_drives": [
+        "185d3943-dd15-397a-8b2e-69cd86628fb7",
+        "25e5c600-36fe-3245-9cc0-40ef91620c22"
+      ],
+      "flagged_baselines": [
+        "04994d08-156c-3018-9717-ba0e29be8153",
+        "05fa5048-f355-3274-b565-c0ddc547b315",
+        "070bbf42-31d3-3aa9-aca4-c262afc9077d",
+        "0b86f508-5df9-4a46-bc59-5b9536dbde9f",
+        "0c3bad78-9f1e-395d-a376-2eb7499229fd",
+        "0fb7276f-ecb5-3e5b-87a8-cc74c709c715",
+        "15ec0778-826e-3ed7-9775-54fbf66997f4",
+        "19350c96-623d-4d77-af96-f8c23f00c358",
+        "19f53e16-9f99-3035-9672-7e860f3b0048",
+        "1f434d15-8745-3fba-9c3e-ccb026688397",
+        "201fe83b-7dd7-38f4-9d26-7b4a668638a9",
+        "214e388e-cbd7-3dde-a204-d2ec42298808",
+        "280269f9-6111-311d-b351-ce9f63f88c81"
+      ],
+      "max_baseline_judged_error_deg": 2.8999999999999932,
+      "max_turned_judged_error_deg": 7.491683068533682,
+      "judged_axes": 38,
+      "scored_axes": 84,
+      "all_axes": 90,
+      "judged_fraction_scored": 0.4523809523809524,
+      "judged_fraction_all": 0.4222222222222222,
+      "trials": {
+        "3deg": {
+          "counted": 38,
+          "flagged": 11,
+          "flagged_fraction": 0.2894736842105263,
+          "judged_right": 0
+        },
+        "1deg": {
+          "counted": 38,
+          "flagged": 30,
+          "flagged_fraction": 0.7894736842105263,
+          "judged_right": 3
+        }
+      }
+    },
+    "gates": {
+      "baseline-warned": {
+        "development": "13 of 28",
+        "upper_bound_95": 0.6338032519942278,
+        "allowance": 0.65
+      },
+      "judged-axis-accuracy": {
+        "development_worst_deg": 2.8999999999999932,
+        "times_1_5": 4.34999999999999,
+        "threshold_deg": 4.5
+      },
+      "turned-judged-axis-accuracy": {
+        "development_worst_deg": 7.491683068533682,
+        "times_1_5": 11.237524602800523,
+        "threshold_deg": 11.25
+      },
+      "turn-3deg-run-flagged": {
+        "development": "6 of 38",
+        "upper_bound_95": 0.28803979602672275,
+        "allowance": 0.3
+      },
+      "turn-1deg-run-flagged": {
+        "development": "3 of 38",
+        "upper_bound_95": 0.19158811127255088,
+        "allowance": 0.2
+      }
+    }
+  },
+  "provenance": {
+    "generator": "tools/av2_camera_lidar_v4_batch.py",
+    "generator_sha256": "cada0a6da022d92a2428494770cb20a182b238ec4c8aad99fe2ab959114e9d02",
+    "git_commit": "b1f3a20b63ed0be29e0ceddb563e489af1f0bba6",
+    "created_at": "2026-11-01T10:51:39.062343+00:00",
+    "rule_document_sha256": "bde10423e7756be1919d1af746faffde78a75b31d24fdcafe9e817af71b1f474",
+    "manifest_sha256": "739f643746af14ef8368c56d04e91110001e9cb3b1390ac7ef497e29cf5e0dbe"
+  }
+}
