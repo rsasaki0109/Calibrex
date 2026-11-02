@@ -923,8 +923,17 @@ detected from the first message by comparing its values with the header stamp. A
 LiDAR without such a field runs as rigid scans in `imu-lidar`, `lidar-lidar` (reference
 cloud) and `gnss-lidar` (see "Clouds without per-point time"): an undeskewed scan on a
 moving platform is a biased yardstick, so the larger floors and the record's
-`deskew: none` say so. Livox
-`CustomMsg` is not read yet.
+`deskew: none` say so.
+
+Every LiDAR pair also reads a Livox `CustomMsg` topic (`livox_ros_driver`,
+`livox_ros_driver2`, `livox_interfaces`; ROS 1 bags too) when the LiDAR has no
+`PointCloud2` topic. A `PointCloud2` is preferred when both are recorded. Its
+`offset_time` (nanoseconds after `timebase`) is the per-point time, read as seconds
+after the header stamp, as the Livox drivers and FAST-LIO stamp a scan at its start.
+Points at the origin (no return) are dropped. Tests check that a `CustomMsg` carrying
+the same points as a `PointCloud2` gives the same `camera-lidar` result and the same
+LiDAR odometry. On real data, two FAST-LIVO recordings were checked with it (see
+[FAST-LIVO `hku1` and `hku2`](#fast-livo-hku1-and-hku2-jpeg-camera-and-livox-custommsg)).
 
 ## Phase C2: GNSS pairs
 
@@ -1892,6 +1901,51 @@ per-point time" above.
   `PointCloud2` counts as a "lidar" and the plan lists pairs that make no physical
   sense for a sonar. No estimator was run on it.
 
+### FAST-LIVO `hku1` and `hku2`: JPEG camera and Livox `CustomMsg`
+
+The first real recordings with a `CompressedImage` camera and a Livox `CustomMsg` LiDAR
+are two handheld FAST-LIVO sequences, from the ROS 2 MCAP conversion on Hugging Face
+(`DapengFeng/MCAP`, `FAST-LIVO/hku1` and `FAST-LIVO/hku2`, 128 s and 105 s). They hold a
+Livox Avia (`/livox/lidar`, `livox_ros_driver/msg/CustomMsg`, 10 Hz), its built-in IMU
+(`/livox/imu`, 200 Hz) and two hardware-triggered 1280 x 1024 JPEG cameras
+(`/left_camera/image/compressed`, `/right_camera/image/compressed`, 10 Hz). There is no
+`CameraInfo`, no TF, and the image `frame_id` is empty. Both are development data for the
+tool, not evidence for a claim.
+
+The candidate is FAST-LIVO's own configuration: `config/avia.yaml` (`Rcl`, `Pcl` for the
+left camera, and `extrinsic_T` with `R = I` for the LiDAR in the IMU frame), plus
+`config/camera_pinhole.yaml`. Those intrinsics are for 640 x 512 and were doubled for the
+full-size JPEGs. The camera went into a Kalibr camchain whose `rostopic` is the raw
+`/left_camera/image`, which also maps the compressed topic to its camera. The LiDAR went
+into a `slac.check_frames` file. The LiDAR and the IMU share the header frame
+`livox_frame`, so the IMU is mapped explicitly:
+
+```bash
+calibrex check hku2 --tf fastlivo_camchain.yaml --tf fastlivo_frames.yaml \
+  --frame-map /livox/imu=imu --html check.html
+```
+
+| Pair | `hku1` | `hku2` |
+| --- | --- | --- |
+| `camera-lidar` | `pass`: roll 0.25, pitch 0.05, yaw 0.10 deg (tolerance 0.5) | `pass`: roll 0.20, pitch 0.05, yaw 0.25 deg |
+| `imu-lidar` | `fail`: IMU turned by roll −1.02, pitch −0.78, yaw +0.24 deg (± 0.17); clock offset 6.9 ms | `fail`: roll −1.06, pitch −1.00, yaw +0.21 deg (± 0.17); clock offset 7.1 ms |
+| `camera-imu` | not run | `inconclusive` (`estimator_failed`) |
+
+- **`camera-lidar` passes on both.** It read the JPEG topic through the camchain's raw
+  topic, and the CustomMsg scans with their `offset_time`. Its overlay shows the Avia's
+  rosette, which a single 0.1 s scan leaves sparse. Near points land on the plants and
+  stones in front and far ones on the building.
+- **`imu-lidar` flags `R = I` by the same rotation on both recordings.** The two IMU
+  rotations agree within their stds, and the clock offsets differ by 0.2 ms. FAST-LIVO's
+  `R = I` is the Avia's design alignment, not a calibration, and these bags hold no
+  independent IMU reference. The flag is therefore a repeatable property of this rig: either
+  its built-in IMU sits about 1.3 deg off the LiDAR axes, or the method has a bias on this
+  sensor. These recordings cannot tell which.
+- **`camera-imu` could not estimate on `hku2`.** It tracks every fourth image, which for a
+  10 Hz camera is 0.4 s apart. On this handheld walk, 55 of 262 image pairs failed to track,
+  which left no gyro-rate interval to compare. Tracking also needs OpenCV.
+- Each run took about 9-10 min, mostly `imu-lidar`.
+
 ### Remaining gaps
 
 - The Autoware bag's raw Velodyne packets (see "raw Velodyne packets" above) give real
@@ -1905,9 +1959,10 @@ per-point time" above.
   `inconclusive` on 36 s of data. No real bag here newly became judgeable.
 - No bag here has the length or motion to give a verdict: the real-bag verdict
   tables remain the Phase B/C results above.
-- None of these bags had a `CompressedImage` camera, which the camera pairs now read
-  (see [Compressed camera images](#compressed-camera-images)); no bag here exercised
-  Livox `CustomMsg`.
+- None of these bags had a `CompressedImage` camera or a Livox `CustomMsg` LiDAR. The
+  check now reads both (see [Compressed camera images](#compressed-camera-images) and
+  "LiDAR support" under [Runtime controls](#runtime-controls)), but neither has been
+  exercised on these bags.
 - Sensor-class is not inferred beyond the message type (sonar counts as LiDAR).
 
 ## Plan and run a bag in the browser

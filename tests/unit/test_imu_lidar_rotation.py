@@ -122,6 +122,7 @@ def test_livox_profiles_convert_absolute_point_times_and_g(
     header_ns = 1_713_244_621_000_000_000
     cloud = SimpleNamespace(
         timestamp_ns=header_ns,
+        frame_id="livox_frame",
         xyz=np.zeros((2, 3)),
         point_time_offsets_s=np.array([header_ns, header_ns + 50_000_000], dtype=np.float64),
     )
@@ -164,6 +165,7 @@ def test_generic_profile_reads_absolute_seconds_and_stops_at_max_seconds(
     clouds = iter(
         SimpleNamespace(
             timestamp_ns=stamp,
+            frame_id="hesai",
             xyz=np.zeros((2, 3)),
             point_time_offsets_s=np.array([stamp * 1e-9, stamp * 1e-9 + 0.08]),
         )

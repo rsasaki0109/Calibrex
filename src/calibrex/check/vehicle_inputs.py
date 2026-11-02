@@ -23,6 +23,7 @@ from scipy.spatial.transform import Rotation
 
 from calibrex.core.progress import emit_tick
 from calibrex.data import ros_cdr
+from calibrex.data.livox_ros2 import decode_lidar_scan
 from calibrex.data.rosbag2 import (
     ODOMETRY_TYPE,
     TWIST_COVARIANCE_STAMPED_TYPE,
@@ -117,7 +118,7 @@ def read_lidar_odometry(
     max_duration_s: float | None = None,
     max_gap_s: float = MAX_STREAM_GAP_S,
 ) -> LidarOdometryTrack:
-    """Run scan-to-scan LiDAR odometry over a ``PointCloud2`` topic, one pass over the bag.
+    """Scan-to-scan LiDAR odometry over a PointCloud2 or Livox CustomMsg topic, one pass.
 
     A gap longer than ``max_gap_s`` between scans starts a new, independent segment
     (a new odometry instance), exactly as the KITTI runners start one per drive.
@@ -132,7 +133,7 @@ def read_lidar_odometry(
     segment_start = 0
     for _conn, timestamp_ns, payload in iter_topic_messages(bag, topic):
         require_cdr_connection(_conn)
-        cloud = ros_cdr.decode_ros2_pointcloud2(topic, timestamp_ns, payload)
+        cloud = decode_lidar_scan(_conn.message_type, topic, timestamp_ns, payload)
         time_s = cloud.timestamp_ns * 1.0e-9
         if max_duration_s is not None and times and time_s - times[0] > max_duration_s:
             break

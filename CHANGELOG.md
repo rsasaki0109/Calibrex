@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Read Livox `CustomMsg` LiDAR topics in every `calibrex check` LiDAR pair
+  (`imu-lidar`, `lidar-lidar`, `gnss-lidar`, `camera-lidar` and the vehicle pairs)
+  instead of skipping them as `unsupported_sensor`; a `PointCloud2` is still preferred.
+  Scans are decoded by one shared reader. `offset_time` is the per-point time (seconds
+  after the header stamp, the Livox driver and FAST-LIO convention), and empty returns
+  at the origin are dropped. Add `encode_livox_custommsg` to the CDR writers.
+
 - Draw camera-LiDAR overlays for `calibrex check --html`: the first synchronized scan on
   its image, coloured by depth, under the deployed candidate and under the estimate. The
   two images are written to the evidence directory as digest-bound evidence (`image/jpeg`

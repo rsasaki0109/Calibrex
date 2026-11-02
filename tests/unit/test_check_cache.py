@@ -392,6 +392,7 @@ def _fake_stream(monkeypatch: pytest.MonkeyPatch, count: int = 6) -> list[int]:
     clouds = [
         SimpleNamespace(
             timestamp_ns=1_700_000_000_000_000_000 + i * 100_000_000,
+            frame_id="lidar",
             xyz=rng.normal(size=(50, 3)).astype(np.float32),
             point_time_offsets_s=np.linspace(0.0, 0.09, 50),
         )

@@ -1,8 +1,8 @@
 """Synchronized image and LiDAR-scan pairs from ROS 2 bags, without ROS.
 
 One pass over a ``sensor_msgs/msg/Image`` (or ``CompressedImage``) topic and a
-``sensor_msgs/msg/PointCloud2`` topic yields ``(image, scan)`` pairs for targetless
-camera-LiDAR calibration.
+``sensor_msgs/msg/PointCloud2`` (or Livox ``CustomMsg``) topic yields ``(image, scan)``
+pairs for targetless camera-LiDAR calibration.
 Scans are taken at a fixed spacing; each is paired with the nearest image to the
 scan's *reference time*: the header stamp, or, when the cloud has a per-point time
 field and the caller supplies a rule, the time its visible points were measured
@@ -34,7 +34,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from calibrex.core.progress import emit_tick
-from calibrex.data import ros_cdr
+from calibrex.data.livox_ros2 import decode_lidar_scan
 from calibrex.data.ros2_camera_imu import GrayImage, decode_gray_message, image_header
 from calibrex.data.rosbag2 import iter_messages, require_cdr_connection
 
@@ -195,8 +195,13 @@ def load_camera_lidar_frames(
         if not (take_regular or take_dense):
             continue
         require_cdr_connection(connection)
-        cloud = ros_cdr.decode_ros2_pointcloud2(
-            lidar_topic, timestamp_ns, payload, point_time_field=point_time_field
+        cloud = decode_lidar_scan(
+            connection.message_type,
+            lidar_topic,
+            timestamp_ns,
+            payload,
+            point_time_field=point_time_field,
+            point_time_encoding=point_time[1] if point_time is not None else "offset_s",
         )
         points = np.asarray(cloud.xyz, dtype=np.float32)
         if points.shape[0] == 0:
@@ -213,11 +218,7 @@ def load_camera_lidar_frames(
                 kept = dense[::2]
                 forget(set(dense) - set(kept) - set(regular))
                 dense[:] = kept
-        times = (
-            relative_point_times(cloud.point_time_offsets_s, cloud.timestamp_ns, point_time[1])
-            if point_time is not None
-            else None
-        )
+        times = cloud.offsets_s if point_time is not None else None
         offset = reference_time(points, times) if reference_time is not None else 0.0
         pending[scanned] = _PendingScan(
             reference_ns=cloud.timestamp_ns + round(offset * 1.0e9),

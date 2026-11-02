@@ -44,6 +44,7 @@ from calibrex.data.ros_cdr_writer import (
     encode_compressed_image,
     encode_image,
     encode_imu,
+    encode_livox_custommsg,
     encode_odometry,
     encode_pointcloud2,
     encode_tf_message,
@@ -107,6 +108,7 @@ def write_bag(
     motion: tuple[np.ndarray, np.ndarray] | None = None,
     image_delay_s: float = 0.005,
     compressed: str | None = None,
+    livox: bool = False,
 ) -> Path:
     """A bag whose data follow ``truth`` and whose /tf_static says ``candidate`` (default truth).
 
@@ -114,7 +116,8 @@ def write_bag(
     constant velocity: each scan is cast from where the LiDAR was ``image_delay_s`` before
     its image, and the bag gets the body's odometry (``/odom``) and IMU (``/imu``).
     With ``compressed`` (``"PNG"`` or ``"JPEG"``) the images are recorded only as
-    image_transport's ``/camera/image_raw/compressed``.
+    image_transport's ``/camera/image_raw/compressed``. With ``livox`` the scans are a
+    Livox ``CustomMsg`` (every ``offset_time`` 0) instead of a PointCloud2.
     """
 
     moving = motion is not None
@@ -126,7 +129,10 @@ def write_bag(
             "sensor_msgs/msg/Image" if compressed is None else "sensor_msgs/msg/CompressedImage",
         )
         writer.add_topic("/camera/camera_info", "sensor_msgs/msg/CameraInfo")
-        writer.add_topic("/lidar/points", "sensor_msgs/msg/PointCloud2")
+        writer.add_topic(
+            "/lidar/points",
+            "livox_ros_driver2/msg/CustomMsg" if livox else "sensor_msgs/msg/PointCloud2",
+        )
         if moving:
             writer.add_topic("/odom", "nav_msgs/msg/Odometry")
             writer.add_topic("/imu", "sensor_msgs/msg/Imu")
@@ -209,7 +215,13 @@ def write_bag(
             writer.write(
                 "/lidar/points",
                 stamp,
-                encode_pointcloud2(
+                encode_livox_custommsg(
+                    frame_id=LIDAR_FRAME,
+                    timestamp_ns=stamp,
+                    points=[(0, float(x), float(y), float(z), 50, 0, 0) for x, y, z in points],
+                )
+                if livox
+                else encode_pointcloud2(
                     frame_id=LIDAR_FRAME,
                     timestamp_ns=stamp,
                     fields=FIELDS,
@@ -374,6 +386,22 @@ def test_a_jpeg_bag_passes_the_truth_and_flags_a_pitch_error(
     (record,) = [p for p in _run(bad, tmp_path / "bad").pairs if p.pair == "camera-lidar"]
     judged = {axis.name: axis for axis in record.axes}
     assert record.status in {"warn", "fail"} and judged["pitch"].status == "fail"
+
+
+def test_a_livox_custommsg_bag_gives_the_pointcloud2_result(
+    good_bag: Path, tmp_path_factory: pytest.TempPathFactory, truth: np.ndarray
+) -> None:
+    livox = write_bag(tmp_path_factory.mktemp("cl") / "livox", truth, livox=True)
+    raw_dir, livox_dir = tmp_path_factory.mktemp("pc2_run"), tmp_path_factory.mktemp("lv_run")
+    (cloud,) = [p for p in _run(good_bag, raw_dir).pairs if p.pair == "camera-lidar"]
+    (custom,) = [p for p in _run(livox, livox_dir).pairs if p.pair == "camera-lidar"]
+    assert custom.status == cloud.status == "pass", custom.reason
+    assert [(a.name, a.candidate_error, a.estimate_std) for a in custom.axes] == [
+        (a.name, a.candidate_error, a.estimate_std) for a in cloud.axes
+    ]
+    (evidence,) = custom.evidence
+    edge = load_camera_lidar_edge(livox_dir / evidence.path)
+    assert edge.provenance.lidar_topic == "/lidar/points" and edge.samples.frames == FRAMES
 
 
 def test_compressed_images_without_a_decoder_are_skipped_with_the_extra(

@@ -8,6 +8,13 @@ Livox drivers and recordings disagree on conventions, so a
   seconds (for example a Hesai PandarXT ``timestamp`` float64); and
 * whether the IMU reports acceleration in m/s^2 or in g.
 
+Scans come from a ``sensor_msgs/PointCloud2`` or a Livox ``CustomMsg`` topic
+(:func:`decode_lidar_scan`). A ``CustomMsg`` carries each point's
+``offset_time`` in nanoseconds after its ``timebase``; it is read as seconds
+after the header stamp (the convention of the Livox drivers and of FAST-LIO,
+which stamp the header at the scan start), and points at the origin (no
+return) are dropped.
+
 The MID360 manual places the built-in IMU at (11.0, 23.29, -44.12) mm in the
 LiDAR frame with axes aligned to it; :data:`MID360_T_LIDAR_IMU` encodes that
 design value as a reference, not a measurement.
@@ -27,7 +34,7 @@ from numpy.typing import NDArray
 from calibrex.core.progress import emit_stage, emit_tick
 from calibrex.data import ros_cdr
 from calibrex.data.livox_profile_fields import LIVOX_PROFILE_FIELDS
-from calibrex.data.rosbag2 import iter_messages, require_cdr_connection
+from calibrex.data.rosbag2 import LIVOX_CUSTOMMSG_TYPES, iter_messages, require_cdr_connection
 
 FloatArray: TypeAlias = NDArray[np.float64]
 STANDARD_GRAVITY_MPS2 = 9.80665
@@ -57,6 +64,63 @@ class LivoxStreamProfile:
 LIVOX_PROFILES: dict[str, LivoxStreamProfile] = {
     name: LivoxStreamProfile(name, *fields) for name, fields in LIVOX_PROFILE_FIELDS.items()
 }
+
+
+LIVOX_POINT_TIME_FIELD = "offset_time"
+"""The per-point time of a Livox ``CustomMsg`` (see the module docstring)."""
+
+
+@dataclass(frozen=True)
+class LidarScan:
+    """One decoded LiDAR scan, whatever message carried it."""
+
+    timestamp_ns: int
+    frame_id: str
+    xyz: FloatArray
+    """``(N, 3)`` finite float64 points in the LiDAR frame."""
+    offsets_s: FloatArray | None
+    """Seconds after the header stamp per point, when a point-time field was asked for."""
+
+
+def decode_lidar_scan(
+    message_type: str,
+    topic: str,
+    timestamp_ns: int,
+    payload: bytes,
+    *,
+    point_time_field: str | None = None,
+    point_time_encoding: Literal["offset_s", "absolute_ns", "absolute_s"] = "offset_s",
+) -> LidarScan:
+    """Decode a ``PointCloud2`` or Livox ``CustomMsg`` payload into a :class:`LidarScan`.
+
+    ``point_time_field`` names the PointCloud2 time field (read with
+    ``point_time_encoding``); for a ``CustomMsg`` any non-``None`` value asks for
+    its ``offset_time``.
+    """
+
+    if message_type in LIVOX_CUSTOMMSG_TYPES:
+        message = ros_cdr.decode_ros2_livox_custommsg(topic, timestamp_ns, payload)
+        xyz = np.asarray(message.xyz, dtype=np.float64).reshape(-1, 3)
+        keep = np.all(np.isfinite(xyz), axis=1) & np.any(xyz != 0.0, axis=1)
+        offsets: FloatArray | None = None
+        if point_time_field is not None and message.offset_time_ns is not None:
+            offsets = np.asarray(message.offset_time_ns, dtype=np.float64)[keep] * 1.0e-9
+        return LidarScan(message.timestamp_ns, message.frame_id, xyz[keep], offsets)
+    cloud = ros_cdr.decode_ros2_pointcloud2(
+        topic, timestamp_ns, payload, point_time_field=point_time_field
+    )
+    offsets = None
+    if cloud.point_time_offsets_s is not None:
+        raw = np.asarray(cloud.point_time_offsets_s, dtype=np.float64)
+        if point_time_encoding == "absolute_ns":
+            offsets = (raw - float(cloud.timestamp_ns)) * 1.0e-9
+        elif point_time_encoding == "absolute_s":
+            offsets = raw - cloud.timestamp_ns * 1.0e-9
+        else:
+            offsets = raw
+    return LidarScan(
+        cloud.timestamp_ns, cloud.frame_id, np.asarray(cloud.xyz, dtype=np.float64), offsets
+    )
 
 
 @dataclass(frozen=True)
@@ -92,27 +156,20 @@ def iter_livox_points(
     messages = iter_messages(bag_dir, topics={profile.point_topic})
     for scans_read, (connection, timestamp_ns, payload) in enumerate(messages, start=1):
         require_cdr_connection(connection)
-        cloud = ros_cdr.decode_ros2_pointcloud2(
+        scan = decode_lidar_scan(
+            connection.message_type,
             profile.point_topic,
             timestamp_ns,
             payload,
             point_time_field=profile.point_time_field,
+            point_time_encoding=profile.point_time_encoding,
         )
-        offsets = cloud.point_time_offsets_s
-        if offsets is not None:
-            raw = np.asarray(offsets, dtype=np.float64)
-            if profile.point_time_encoding == "absolute_ns":
-                offsets = (raw - float(cloud.timestamp_ns)) * 1.0e-9
-            elif profile.point_time_encoding == "absolute_s":
-                offsets = raw - cloud.timestamp_ns * 1.0e-9
-            else:
-                offsets = raw
-        header_s = cloud.timestamp_ns * 1.0e-9
+        header_s = scan.timestamp_ns * 1.0e-9
         first_s = header_s if first_s is None else first_s
         if max_seconds is not None and header_s - first_s > max_seconds:
             break
         emit_tick(scans_read)
-        yield header_s, np.asarray(cloud.xyz, dtype=np.float64), offsets
+        yield header_s, scan.xyz, scan.offsets_s
 
 
 LivoxScan: TypeAlias = tuple[float, FloatArray, "FloatArray | None"]
