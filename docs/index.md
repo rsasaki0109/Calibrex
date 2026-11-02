@@ -183,12 +183,8 @@ pre-registered audit marks `supported`. Refuted audits are listed too.
 
 ## Quickstart
 
-The ROS 1 and MCAP-lz4 readers, camera-LiDAR and the Autoware decoder are on `main` and ship with
-the release after v0.5.1. To use them now, install from the repository:
-`python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"`.
-
 ```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.5.1/calibrex-0.5.1-py3-none-any.whl"
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.0/calibrex-0.6.0-py3-none-any.whl"
 calibrex estimate my_bag/ --output est/ --html est.html     # no calibration yet
 calibrex check other_bag/ --tf est/frames.yaml --html check.html
 calibrex drift day1/ day2/ day3/ --output drift/

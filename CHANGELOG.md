@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## 0.6.0 - 2026-11-02
+
+Highlights:
+
+- **`calibrex check` reads more of the bags people record:** `sensor_msgs/CompressedImage`
+  cameras (JPEG or PNG), Livox `CustomMsg` LiDAR topics in every LiDAR pair, ROS 1
+  `.bag` files and every MCAP chunk compression.
+- **`calibrex check --html` draws camera-LiDAR overlays:** the scan on its image under
+  the candidate and under the estimate, filled in with registered neighbouring scans.
+- **`camera-imu` tracks images about 0.1 s apart at any frame rate**, so 10 Hz cameras
+  are checked; cameras below 4 Hz are skipped with a reason.
+- **New commands:** `calibrex imu-lidar joint`, `calibrex convert av2`,
+  `calibrex convert kitti-360` (synthetic round trips only) and
+  `calibrex external-run import-sensor-calib-tas`.
+- **Pre-registered audits:** the Hilti camera-IMU v3 audit supports its claim (7 of 7
+  gates); the KITTI camera-LiDAR audits are refuted (5 of 9, then 8 of 9 gates).
+- First runs on public FAST-LIVO, Newer College 2021 and Argoverse 2 recordings; these
+  are development data, not unseen evaluations.
+
 - Fill in `camera-lidar` overlays with the scans recorded within 0.25 s of the drawn one
   (at most four), each registered onto it with the check's point-to-plane scan
   registration and kept only when that converged with an RMS residual of at most 0.1 m.

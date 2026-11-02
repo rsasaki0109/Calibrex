@@ -203,9 +203,9 @@ accuracy.
    calibration). HDL-32E, VLP-32A/B, VLP-16 Hi-Res, VLP-32C and VLS-128 dual
    return and other vendors' packets are refused by name, so such bags need
    their own `PointCloud2` topics.
-10. **Unreleased backlog:** the bag-level path, ROS 1/MCAP readers,
-    camera-LiDAR check, Autoware decoding, browser check page and CUDA backend
-    are on `main` only; the latest release wheel is v0.5.1.
+10. **Released in v0.6.0:** the bag-level path, ROS 1/MCAP readers,
+    camera-LiDAR check, Autoware decoding, browser check page and CUDA backend,
+    which were on `main` only after v0.5.1.
 
 ## Research and OSS map
 
