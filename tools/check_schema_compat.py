@@ -9,9 +9,12 @@ default) and fails when
   properties, removed properties, tighter constraints, removed enum values or
   types) unless the narrowing is acknowledged in
   ``tools/schema_compat_acknowledged.yaml``; or
-* a ``slac.*`` artifact committed at the ref can no longer be read, unless
-  acknowledged as ``artifact:<path>`` (for example, one already invalid when
-  it was released).
+* a ``slac.*`` artifact committed at the ref, in a schema version the ref's
+  schema ledger accepts, can no longer be read, unless acknowledged as
+  ``artifact:<path>`` (for example, one already invalid when it was released).
+  Artifacts in versions the ref could not read either (benchmark and research
+  records written by tools, never registered as schemas) are not a released
+  format and are not checked.
 
 Compatible widenings (new optional properties, extra enum values) are reported
 but never fail the check.  Run with ``--base <ref>`` to compare against another
@@ -109,7 +112,11 @@ def main(argv: list[str] | None = None) -> int:
             if old == new or _schema_versions(old) != _schema_versions(new):
                 continue
             findings.extend(_compare(base_schema.name, old, new))
-        errors.extend(_unreadable_artifacts(base_root, acknowledged, seen_artifacts))
+        errors.extend(
+            _unreadable_artifacts(
+                base_root, acknowledged, seen_artifacts, _released_versions(base_root)
+            )
+        )
 
     unacknowledged = [
         finding
@@ -196,10 +203,36 @@ def _unreadable_version(version: str) -> str | None:
     return None
 
 
+def _released_versions(base_root: Path) -> set[str] | None:
+    """Schema versions the ref could read: its ledger's accepted and migrated ones.
+
+    ``None`` when the ref has no ledger, in which case every artifact is checked.
+    """
+
+    ledger_path = base_root / "schemas" / "schema_ledger.json"
+    if not ledger_path.exists():
+        return None
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    versions = {
+        str(version)
+        for kind in ledger.get("kinds", {}).values()
+        for version in kind.get("accepted_versions", ())
+    }
+    for migration in ledger.get("migrations", ()):
+        if isinstance(migration, Mapping):
+            versions.update(
+                value
+                for value in migration.values()
+                if isinstance(value, str) and value.startswith("slac.")
+            )
+    return versions
+
+
 def _unreadable_artifacts(
     base_root: Path,
     acknowledged: Mapping[str, str],
     seen: set[str],
+    released_versions: set[str] | None = None,
 ) -> list[str]:
     errors: list[str] = []
     for path in sorted(base_root.rglob("*")):
@@ -221,6 +254,8 @@ def _unreadable_artifacts(
         if not isinstance(version, str) or not version.startswith("slac."):
             continue
         if version.startswith(UNREGISTERED_PREFIXES) or retired_schema_version(version):
+            continue
+        if released_versions is not None and version not in released_versions:
             continue
         try:
             validate_file(path)
