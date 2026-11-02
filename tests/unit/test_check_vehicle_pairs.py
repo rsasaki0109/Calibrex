@@ -313,10 +313,12 @@ def test_unknown_topic_kind_target_is_rejected(tmp_path: Path, simulation: vf.Si
         build_calibration_check(bag, topic_kinds={"/not/a/topic": "wheel"})
 
 
-def test_lidar_pairs_need_pointcloud2(tmp_path: Path, simulation: vf.Simulation) -> None:
+def test_lidar_pairs_need_a_point_cloud_or_livox_topic(
+    tmp_path: Path, simulation: vf.Simulation
+) -> None:
     bag = vf.write_vehicle_bag(tmp_path / "bag", simulation)
     ctx = context(bag, tmp_path, "lidar-vehicle")
-    object.__setattr__(ctx, "topic_types", {"/velodyne_points": "livox_ros_driver2/msg/CustomMsg"})
+    object.__setattr__(ctx, "topic_types", {"/velodyne_points": "velodyne_msgs/msg/VelodyneScan"})
     for adapter in (estimators.run_lidar_vehicle,):
         with pytest.raises(CheckSkipError) as skipped:
             adapter(ctx)
@@ -406,10 +408,17 @@ def test_a_pooled_bag_keeps_motions_and_blocks_inside_each_segment(
     assert len(motions) == 2 * (half - 2)
 
 
-def test_lidar_odometry_from_a_bag_equals_the_loader_path_and_splits_gaps(tmp_path: Path) -> None:
+@pytest.mark.parametrize("livox", [False, True], ids=["pointcloud2", "custommsg"])
+def test_lidar_odometry_from_a_bag_equals_the_loader_path_and_splits_gaps(
+    tmp_path: Path, livox: bool
+) -> None:
     from tests.unit.test_ins_lidar_hand_eye import _motion, _scene, _view
 
-    from calibrex.data.ros_cdr_writer import POINT_FIELD_FLOAT32, encode_pointcloud2
+    from calibrex.data.ros_cdr_writer import (
+        POINT_FIELD_FLOAT32,
+        encode_livox_custommsg,
+        encode_pointcloud2,
+    )
     from calibrex.data.rosbag2_writer import Rosbag2Writer
     from calibrex.solvers.scan_to_scan_odometry import odometry_from_loader
 
@@ -423,12 +432,21 @@ def test_lidar_odometry_from_a_bag_equals_the_loader_path_and_splits_gaps(tmp_pa
         base + 600 * 10**9 + k * 10**8 for k in range(5)
     ]
     with Rosbag2Writer(tmp_path / "bag") as writer:
-        writer.add_topic("/points", "sensor_msgs/msg/PointCloud2")
+        writer.add_topic(
+            "/points",
+            "livox_ros_driver2/msg/CustomMsg" if livox else "sensor_msgs/msg/PointCloud2",
+        )
         for stamp, scan in zip(stamps, scans + scans, strict=True):
             writer.write(
                 "/points",
                 stamp,
-                encode_pointcloud2(
+                encode_livox_custommsg(
+                    frame_id="lidar",
+                    timestamp_ns=stamp,
+                    points=[(0, float(x), float(y), float(z), 1, 0, 0) for x, y, z in scan[:, :3]],
+                )
+                if livox
+                else encode_pointcloud2(
                     frame_id="lidar",
                     timestamp_ns=stamp,
                     fields=fields,

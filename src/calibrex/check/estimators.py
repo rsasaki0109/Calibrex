@@ -331,19 +331,23 @@ def _pose_rotation(artifact: Any) -> FloatArray:
 
 
 def detect_point_time(bag: Path, topic: str) -> tuple[str, PointTimeEncoding] | None:
-    """Find a per-point time field of a PointCloud2 topic and how to read it.
+    """Find a per-point time field of a LiDAR topic and how to read it.
 
-    Looks at the first message: picks the first of the usual field names and
-    classifies its values against the header stamp as an offset in seconds, an
-    absolute time in seconds or an absolute time in nanoseconds. Returns
-    ``None`` when there is no usable field.
+    Looks at the first message. A Livox ``CustomMsg`` always has one: its
+    ``offset_time``, read as seconds after the header stamp. For a PointCloud2
+    the first of the usual field names is classified against the header stamp
+    as an offset in seconds, an absolute time in seconds or an absolute time in
+    nanoseconds. Returns ``None`` when there is no usable field.
     """
 
     from calibrex.data import ros_cdr
-    from calibrex.data.rosbag2 import iter_topic_messages
+    from calibrex.data.livox_ros2 import LIVOX_POINT_TIME_FIELD
+    from calibrex.data.rosbag2 import LIVOX_CUSTOMMSG_TYPES, iter_topic_messages
 
     for _conn, timestamp_ns, payload in iter_topic_messages(bag, topic, limit=1):
         require_cdr_connection(_conn)
+        if _conn.message_type in LIVOX_CUSTOMMSG_TYPES:
+            return LIVOX_POINT_TIME_FIELD, "offset_s"
         cloud = ros_cdr.decode_ros2_pointcloud2(topic, timestamp_ns, payload)
         names = {point_field.name for point_field in cloud.fields}
         for candidate in POINT_TIME_FIELD_CANDIDATES:
@@ -469,14 +473,19 @@ def select_odometry_deskew(
     return "none", None
 
 
-def _require_pointcloud2(ctx: PairContext, topics: Sequence[str]) -> str:
-    for topic in topics:
-        if ctx.topic_types.get(topic) == POINTCLOUD2_TYPE:
-            return topic
+def _require_lidar_topic(ctx: PairContext, topics: Sequence[str]) -> str:
+    """The LiDAR topic a pair reads: a PointCloud2 first, else a Livox ``CustomMsg``."""
+
+    from calibrex.data.rosbag2 import LIVOX_CUSTOMMSG_TYPES
+
+    for wanted in ({POINTCLOUD2_TYPE}, LIVOX_CUSTOMMSG_TYPES):
+        for topic in topics:
+            if ctx.topic_types.get(topic) in wanted:
+                return topic
     raise CheckSkipError(
         "unsupported_sensor",
-        f"LiDAR topic(s) {', '.join(topics)} are not sensor_msgs/PointCloud2 "
-        "(Livox CustomMsg is not supported by the check yet)",
+        f"LiDAR topic(s) {', '.join(topics)} are neither sensor_msgs/PointCloud2 nor a "
+        "Livox CustomMsg",
     )
 
 
@@ -529,7 +538,7 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
         run_livox_imu_lidar_translation,
     )
 
-    lidar_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("lidar", ()))
+    lidar_topic = _require_lidar_topic(ctx, ctx.sensor_topics.get("lidar", ()))
     imu_topics = ctx.sensor_topics.get("imu", ())
     if not imu_topics:
         raise CheckSkipError("missing_topic", "no IMU topic for the pair")
@@ -731,8 +740,8 @@ def run_lidar_lidar(ctx: PairContext) -> EstimatorRun:
 
     from calibrex.evaluation.lidar_lidar_map import run_ros2_lidar_lidar_map
 
-    reference_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("first", ()))
-    target_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("second", ()))
+    reference_topic = _require_lidar_topic(ctx, ctx.sensor_topics.get("first", ()))
+    target_topic = _require_lidar_topic(ctx, ctx.sensor_topics.get("second", ()))
     # Only the reference odometry deskews (the target scans are registered as given),
     # so only the reference cloud needs a per-point time field.
     deskew, ref_time = select_odometry_deskew(
@@ -1396,7 +1405,7 @@ def run_lidar_vehicle(ctx: PairContext) -> EstimatorRun:
         evaluate_vehicle_frame,
     )
 
-    lidar_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("lidar", ()))
+    lidar_topic = _require_lidar_topic(ctx, ctx.sensor_topics.get("lidar", ()))
     options = VehicleFrameRunOptions()
     candidate = invert_transform(ctx.candidate)  # T_vehicle_lidar
 
@@ -1610,7 +1619,7 @@ def run_ins_lidar(ctx: PairContext) -> EstimatorRun:
     )
     from calibrex.solvers.trajectory_hand_eye_solver import ReferenceTrajectory
 
-    lidar_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("lidar", ()))
+    lidar_topic = _require_lidar_topic(ctx, ctx.sensor_topics.get("lidar", ()))
     ins_topics = [
         topic
         for topic in ctx.sensor_topics.get("ins", ())
@@ -1733,7 +1742,7 @@ def run_lidar_wheel(ctx: PairContext) -> EstimatorRun:
     )
     from calibrex.solvers.lidar_wheel_solver import WheelOdometry
 
-    lidar_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("lidar", ()))
+    lidar_topic = _require_lidar_topic(ctx, ctx.sensor_topics.get("lidar", ()))
     wheel_topics = [
         topic
         for topic in ctx.sensor_topics.get("wheel", ())
@@ -1911,7 +1920,7 @@ def run_gnss_lidar(ctx: PairContext) -> EstimatorRun:
             f"GNSS topic(s) {', '.join(ctx.sensor_topics.get('gnss', ()))} are not "
             "sensor_msgs/NavSatFix",
         )
-    lidar_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("lidar", ()))
+    lidar_topic = _require_lidar_topic(ctx, ctx.sensor_topics.get("lidar", ()))
     deskew, point_time = select_odometry_deskew(
         ctx.bag, lidar_topic, ctx.controls.gnss_lidar_deskew, "--gnss-lidar-deskew"
     )
@@ -2337,7 +2346,7 @@ def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
     from calibrex.evaluation.camera_lidar_motion import read_lidar_motion
 
     image_topic = require_image_topic(ctx, ctx.sensor_topics.get("camera", ()))
-    lidar_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("lidar", ()))
+    lidar_topic = _require_lidar_topic(ctx, ctx.sensor_topics.get("lidar", ()))
     camera_frame, lidar_frame = ctx.pair.frames[0], ctx.pair.frames[1]
     model, intrinsics_source, _key = resolve_camera_intrinsics(ctx, image_topic, camera_frame)
     camera = EdgeCamera(

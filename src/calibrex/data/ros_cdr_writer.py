@@ -3,7 +3,8 @@
 The counterpart of :mod:`calibrex.data.ros_cdr`: byte-for-byte encoders for
 ``sensor_msgs/PointCloud2``, ``Imu``, ``NavSatFix``, ``Image``, ``CameraInfo``,
 ``nav_msgs/Odometry``, ``geometry_msgs/TwistStamped`` and
-``TwistWithCovarianceStamped`` and ``tf2_msgs/TFMessage``. They need no ROS install,
+``TwistWithCovarianceStamped``, ``tf2_msgs/TFMessage`` and the Livox ``CustomMsg``.
+They need no ROS install,
 and the decoders in ``ros_cdr`` read them back. Little-endian is the default (what ROS 2 emits);
 big-endian is supported for tests of the reader.
 """
@@ -326,6 +327,39 @@ def encode_compressed_image(
     _write_header(writer, frame_id, timestamp_ns)
     writer.write_string(format)
     writer.write_byte_sequence(data)
+    return writer.finish()
+
+
+LivoxPoint = tuple[int, float, float, float, int, int, int]
+"""``(offset_time_ns, x, y, z, reflectivity, tag, line)`` of one Livox ``CustomPoint``."""
+
+
+def encode_livox_custommsg(
+    *,
+    frame_id: str,
+    timestamp_ns: int,
+    points: Sequence[LivoxPoint],
+    timebase_ns: int | None = None,
+    lidar_id: int = 0,
+) -> bytes:
+    """CDR-encode a Livox ``CustomMsg`` (``livox_ros_driver2`` layout).
+
+    ``timebase_ns`` defaults to the header stamp, as the Livox drivers write it.
+    Each ``CustomPoint`` is 19 bytes padded to a four-byte stride; the last one
+    carries no trailing padding.
+    """
+
+    writer = CdrWriter()
+    _write_header(writer, frame_id, timestamp_ns)
+    writer.write_uint64(timestamp_ns if timebase_ns is None else timebase_ns)
+    writer.write_uint32(len(points))
+    writer.write_uint8(lidar_id)
+    for _ in range(3):
+        writer.write_uint8(0)
+    writer.write_uint32(len(points))
+    layout = struct.Struct(f"{writer._endian}IfffBBBx")
+    packed = b"".join(layout.pack(*point) for point in points)
+    writer._buf.extend(packed[:-1] if packed else packed)
     return writer.finish()
 
 

@@ -921,8 +921,16 @@ detected from the first message by comparing its values with the header stamp. A
 LiDAR without such a field runs as rigid scans in `imu-lidar`, `lidar-lidar` (reference
 cloud) and `gnss-lidar` (see "Clouds without per-point time"): an undeskewed scan on a
 moving platform is a biased yardstick, so the larger floors and the record's
-`deskew: none` say so. Livox
-`CustomMsg` is not read yet.
+`deskew: none` say so.
+
+Every LiDAR pair also reads a Livox `CustomMsg` topic (`livox_ros_driver`,
+`livox_ros_driver2`, `livox_interfaces`; ROS 1 bags too) when the LiDAR has no
+`PointCloud2` topic. A `PointCloud2` is preferred when both are recorded. Its
+`offset_time` (nanoseconds after `timebase`) is the per-point time, read as seconds
+after the header stamp, as the Livox drivers and FAST-LIO stamp a scan at its start.
+Points at the origin (no return) are dropped. Tests check that a `CustomMsg` carrying
+the same points as a `PointCloud2` gives the same `camera-lidar` result and the same
+LiDAR odometry. No real Livox `CustomMsg` bag has been checked yet.
 
 ## Phase C2: GNSS pairs
 
@@ -1884,9 +1892,10 @@ per-point time" above.
   `inconclusive` on 36 s of data. No real bag here newly became judgeable.
 - No bag here has the length or motion to give a verdict: the real-bag verdict
   tables remain the Phase B/C results above.
-- None of these bags had a `CompressedImage` camera, which the camera pairs now read
-  (see [Compressed camera images](#compressed-camera-images)); no bag here exercised
-  Livox `CustomMsg`.
+- None of these bags had a `CompressedImage` camera or a Livox `CustomMsg` LiDAR. The
+  check now reads both (see [Compressed camera images](#compressed-camera-images) and
+  "LiDAR support" under [Runtime controls](#runtime-controls)), but neither has been
+  exercised on these bags.
 - Sensor-class is not inferred beyond the message type (sonar counts as LiDAR).
 
 ## Plan and run a bag in the browser

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Read Livox `CustomMsg` LiDAR topics in every `calibrex check` LiDAR pair
+  (`imu-lidar`, `lidar-lidar`, `gnss-lidar`, `camera-lidar` and the vehicle pairs)
+  instead of skipping them as `unsupported_sensor`; a `PointCloud2` is still preferred.
+  Scans are decoded by one shared reader. `offset_time` is the per-point time (seconds
+  after the header stamp, the Livox driver and FAST-LIO convention), and empty returns
+  at the origin are dropped. Add `encode_livox_custommsg` to the CDR writers.
+
 - Read `sensor_msgs/CompressedImage` cameras (JPEG or PNG, as image_transport's
   `compressed` plugin writes them) in the `camera-imu`, `camera-focal`,
   `camera-lidar` and `camera-camera` checks instead of skipping them as
