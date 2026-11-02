@@ -565,6 +565,53 @@ def test_check_cli_runs_camera_lidar_and_writes_json(good_bag: Path, tmp_path: P
     payload = json.loads(output.read_text())
     (record,) = [p for p in payload["pairs"] if p["pair"] == "camera-lidar"]
     assert record["status"] == "pass"
+    assert [ref["role"] for ref in record["evidence"]] == ["edge_alignment"]  # no overlay
+
+
+def test_overlays_are_written_only_when_asked_and_embedded_when_intact(
+    bad_bag: Path, tmp_path: Path
+) -> None:
+    from calibrex.check.tf_sources import sha256_file
+    from calibrex.visualization.check_report import render_check_html
+
+    artifact = _run(bad_bag, tmp_path, camera_lidar_overlay=True)
+    (record,) = [p for p in artifact.pairs if p.pair == "camera-lidar"]
+    roles = {ref.role: ref for ref in record.evidence}
+    assert set(roles) == {"edge_alignment", "overlay_candidate", "overlay_estimate"}
+    for role in ("overlay_candidate", "overlay_estimate"):
+        ref = roles[role]
+        assert ref.schema_version in {"image/jpeg", "image/png"}
+        assert sha256_file(tmp_path / ref.path) == ref.sha256
+    assert any(note.startswith("overlay: the scan at") for note in record.notes)
+    page = render_check_html(artifact, artifact_dir=tmp_path)
+    assert "Camera-LiDAR overlays" in page
+    assert page.count(";base64,") == 2
+    (tmp_path / roles["overlay_estimate"].path).write_bytes(b"changed")
+    page = render_check_html(artifact, artifact_dir=tmp_path)
+    assert page.count(";base64,") == 1 and "no longer matches its digest" in page
+
+
+def test_check_cli_html_draws_the_overlays(good_bag: Path, tmp_path: Path) -> None:
+    output, html = tmp_path / "check.json", tmp_path / "check.html"
+    code = main(
+        [
+            "check",
+            str(good_bag),
+            "--pairs",
+            "camera-lidar",
+            "--output",
+            str(output),
+            "--html",
+            str(html),
+            "--no-cache",
+        ]
+    )
+    assert code == 0
+    payload = json.loads(output.read_text())
+    (record,) = [p for p in payload["pairs"] if p["pair"] == "camera-lidar"]
+    images = [ref for ref in record["evidence"] if ref["schema_version"].startswith("image/")]
+    assert len(images) == 2 and all((tmp_path / ref["path"]).is_file() for ref in images)
+    assert html.read_text().count(";base64,") == 2
 
 
 # ---------------------------------------------------------------------------------- drift

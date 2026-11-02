@@ -58,6 +58,7 @@ if TYPE_CHECKING:
     from calibrex.data.livox_ros2 import ScanStore
     from calibrex.evaluation.imu_lidar_rotation import ImuLidarRunOptions
     from calibrex.evaluation.visual_rotation import CameraModel
+    from calibrex.visualization.camera_lidar_check_overlay import OverlayImage
 
 FloatArray: TypeAlias = NDArray[np.float64]
 PointTimeEncoding = Literal["offset_s", "absolute_ns", "absolute_s"]
@@ -125,6 +126,8 @@ class EstimatorRun:
     """LiDAR pairs: how the scans were deskewed (``none`` = rigid scans)."""
     focal: FocalRecord | None = None
     """camera-focal: the focal-length estimates (the pair is judged on these, not on axes)."""
+    images: tuple[OverlayImage, ...] = ()
+    """camera-lidar with ``RunControls.camera_lidar_overlay``: the scan drawn on its image."""
 
     @property
     def evidence_from_cache(self) -> bool | None:
@@ -159,6 +162,8 @@ class RunControls:
     """Per-run results shared by pairs (the LiDAR odometry of the vehicle pairs)."""
     camera_lidar_start_scan_min_control_t: float | None = None
     camera_lidar_start_agreement_deg: float | None = None
+    camera_lidar_overlay: bool = False
+    """Draw one scan on its image under the candidate and the estimate (``check --html``)."""
     edge_preparation_cache: EdgePreparationCache | None = field(
         default=None, repr=False, compare=False
     )
@@ -2351,6 +2356,15 @@ def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
         start_agreement_deg=ctx.controls.camera_lidar_start_agreement_deg,
     )
     motion_source = camera_lidar_motion_source(ctx, lidar_frame)
+    motions: list[Any] = []
+
+    def lidar_motion() -> Any:
+        if motion_source is None:
+            return None
+        if not motions:
+            motions.append(read_lidar_motion(ctx.bag, *motion_source))
+        return motions[0]
+
     ctx.controls.progress(
         f"camera-lidar: {image_topic} + {lidar_topic} (intrinsics: {intrinsics_source})"
     )
@@ -2395,9 +2409,7 @@ def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
                     "bag digest (metadata.yaml in full; storage files by name, size and first "
                     "64 MiB)"
                 ),
-                motion=read_lidar_motion(ctx.bag, *motion_source)
-                if motion_source is not None
-                else None,
+                motion=lidar_motion(),
             ),
             options,
             **(
@@ -2445,6 +2457,23 @@ def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
             f"edge-alignment objective {artifact.objective.start:.4f} at the candidate, "
             f"{artifact.objective.estimate:.4f} at the estimate"
         )
+    images: tuple[OverlayImage, ...] = ()
+    if ctx.controls.camera_lidar_overlay:
+        ctx.controls.progress("camera-lidar: drawing the overlay images")
+        try:
+            images, overlay_note = _camera_lidar_overlays(
+                ctx,
+                (image_topic, lidar_topic),
+                camera,
+                candidate,
+                point_time,
+                options,
+                lidar_motion,
+                artifact,
+            )
+        except Exception as exc:  # an illustration must never fail the pair
+            overlay_note = f"overlay not drawn: {type(exc).__name__}: {exc}"
+        notes.append(overlay_note)
     return EstimatorRun(
         estimator=f"{artifact.method} (camera-lidar)",
         artifacts=(
@@ -2461,6 +2490,65 @@ def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
         estimates=tuple(estimates),
         compared=candidate,
         notes=tuple(notes),
+        images=images,
+    )
+
+
+def _camera_lidar_overlays(
+    ctx: PairContext,
+    topics: tuple[str, str],
+    camera: Any,
+    candidate: FloatArray,
+    point_time: Any,
+    options: Any,
+    motion: Callable[[], Any],
+    artifact: Any,
+) -> tuple[tuple[OverlayImage, ...], str]:
+    """The first synchronized scan drawn on its image under the candidate and the estimate.
+
+    The scan is paired and moved to the image time exactly as the estimator does it.
+    """
+
+    from calibrex.data.ros2_camera_lidar import load_camera_lidar_frames
+    from calibrex.evaluation.camera_lidar_edge import visible_time_rule
+    from calibrex.evaluation.camera_lidar_motion import move_frames_to_image_time
+    from calibrex.visualization.camera_lidar_check_overlay import encode_overlay, overlay_rgb
+
+    image_topic, lidar_topic = topics
+    frames = load_camera_lidar_frames(
+        ctx.bag,
+        image_topic,
+        lidar_topic,
+        spacing_s=options.effective_spacing_s,
+        max_frames=1,
+        max_seconds=options.max_seconds,
+        max_gap_s=options.max_gap_s,
+        point_time=point_time,
+        reference_time=visible_time_rule(camera, candidate) if point_time is not None else None,
+    )
+    if not frames:
+        return (), "overlay not drawn: no image within the pairing gap of a scan"
+    moving = motion()
+    if moving is not None:
+        frames, _summary = move_frames_to_image_time(frames, moving)
+    frame = frames[0]
+    images = [
+        encode_overlay(
+            "overlay_candidate", overlay_rgb(frame.image, frame.points, camera, candidate)
+        )
+    ]
+    if artifact.transform is not None:
+        estimate = transform_matrix(
+            artifact.transform.translation_m, artifact.transform.rotation_quat_xyzw
+        )
+        images.append(
+            encode_overlay(
+                "overlay_estimate", overlay_rgb(frame.image, frame.points, camera, estimate)
+            )
+        )
+    return tuple(images), (
+        f"overlay: the scan at {frame.time_s:.2f} s ({len(frame.points)} points) drawn on its "
+        "image under the candidate" + (" and the estimate" if len(images) > 1 else "")
     )
 
 

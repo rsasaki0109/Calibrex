@@ -215,6 +215,8 @@ class CheckRunOptions:
     """Extra held-out control margin for adopting camera-LiDAR fits from distant starts."""
     camera_lidar_start_agreement_deg: float | None = None
     """Experimental: withhold and warn on camera-LiDAR axes where search starts disagree."""
+    camera_lidar_overlay: bool = False
+    """Write camera-lidar overlay images to the evidence directory (``check --html``)."""
     edge_preparation_cache: EdgePreparationCache | None = field(
         default=None, repr=False, compare=False
     )
@@ -475,6 +477,7 @@ def _run_pairs(
         camera_lidar_motion=run.camera_lidar_motion,
         camera_lidar_start_scan_min_control_t=run.camera_lidar_start_scan_min_control_t,
         camera_lidar_start_agreement_deg=run.camera_lidar_start_agreement_deg,
+        camera_lidar_overlay=run.camera_lidar_overlay,
         frame_tree=frame_tree,
         progress=progress,
         cache=EstimatorCache(run.cache_dir) if run.cache_dir is not None else None,
@@ -832,6 +835,17 @@ def _write_evidence(
                 role=item.role,
                 policy_status=item.policy_status,
                 from_cache=item.from_cache,
+            )
+        )
+    for image in outcome.images:
+        path = evidence_dir / f"{stem}_{_safe_name(image.role)}{image.suffix}"
+        path.write_bytes(image.data)
+        refs.append(
+            CheckEvidenceRef(
+                path=_relative(path, base_dir),
+                sha256=sha256_file(path),
+                schema_version=image.media_type,
+                role=image.role,
             )
         )
     return refs
