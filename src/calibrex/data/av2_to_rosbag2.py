@@ -7,7 +7,9 @@ the sweep timestamp, ring and stereo camera JPEGs with radial distortion ``k1, k
 a per-log ``calibration/`` and the ``city_SE3_egovehicle`` poses.
 
 The bag holds one camera (``/camera/image_raw`` mono8 and ``/camera/camera_info``
-without distortion), one LiDAR's points moved back into that sensor's frame
+without distortion; with ``image_format="jpeg"`` the source JPEG files are stored unchanged
+as ``sensor_msgs/CompressedImage`` on ``/camera/image_raw/compressed`` instead, a fifth
+of the size on a validation log), one LiDAR's points moved back into that sensor's frame
 (``/velodyne_points`` stamped at the sweep timestamp, a snapshot without per-point
 times by default), the poses (``/av2/odometry`` with a finite-difference body twist) and
 a static TF from the per-log calibration. The sensor frame matters: ``calibrex check``
@@ -62,6 +64,7 @@ from calibrex.data.kitti_raw_to_rosbag2 import (
 from calibrex.data.ros_cdr_writer import (
     Transform,
     encode_camera_info,
+    encode_compressed_image,
     encode_image,
     encode_odometry,
     encode_pointcloud2,
@@ -85,6 +88,8 @@ CAMERAS = (
 )
 LIDARS = {"up_lidar": range(0, 32), "down_lidar": range(32, 64)}
 POINT_TIMES = ("sweep", "offset_ns")
+IMAGE_FORMATS = ("mono8", "jpeg")
+COMPRESSED_IMAGE_TOPIC = f"{IMAGE_TOPIC}/compressed"
 """Each LiDAR's ``laser_number`` values in a merged Argoverse 2 sweep."""
 TWIST_HALF_WINDOW_S = 0.05
 """Poses about this far before and after a pose give its finite-difference twist."""
@@ -185,6 +190,7 @@ def convert_av2_to_rosbag2(
     max_seconds: float | None = None,
     command: list[str] | None = None,
     overwrite: bool = False,
+    image_format: str = "mono8",
 ) -> KittiConversionResult:
     """Convert one Argoverse 2 sensor log (or a time window of it) to a rosbag2 directory.
 
@@ -201,6 +207,8 @@ def convert_av2_to_rosbag2(
         raise DatasetError(f"lidar must be one of {', '.join(LIDARS)}")
     if point_time not in POINT_TIMES:
         raise DatasetError(f"point_time must be one of {', '.join(POINT_TIMES)}")
+    if image_format not in IMAGE_FORMATS:
+        raise DatasetError(f"image_format must be one of {', '.join(IMAGE_FORMATS)}")
     if not math.isfinite(start_s) or start_s < 0.0:
         raise DatasetError("start_s must be finite and nonnegative")
     if max_seconds is not None and (not math.isfinite(max_seconds) or max_seconds <= 0.0):
@@ -214,7 +222,15 @@ def convert_av2_to_rosbag2(
             raise DatasetError("overwrite requires an existing rosbag2 metadata.yaml")
     try:
         return _convert(
-            root, out, camera, lidar, point_time, start_s, max_seconds, list(command or [])
+            root,
+            out,
+            camera,
+            lidar,
+            point_time,
+            start_s,
+            max_seconds,
+            list(command or []),
+            image_format,
         )
     except (OSError, ValueError, KeyError) as exc:
         raise DatasetError(f"Argoverse 2 conversion failed: {exc}") from exc
@@ -229,7 +245,9 @@ def _convert(
     start_s: float,
     max_seconds: float | None,
     command: list[str],
+    image_format: str = "mono8",
 ) -> KittiConversionResult:
+    image_topic = IMAGE_TOPIC if image_format == "mono8" else COMPRESSED_IMAGE_TOPIC
     extrinsics_path = root / "calibration" / "egovehicle_SE3_sensor.feather"
     intrinsics_path = root / "calibration" / "intrinsics.feather"
     poses_path = root / "city_SE3_egovehicle.feather"
@@ -331,6 +349,10 @@ def _convert(
             "d": [],
             "source_k1_k2_k3": source_distortion,
             "image_size_px": [width, height],
+            "image_topic": image_topic,
+            "image_format": "mono8 (Pillow L of the source JPEG)"
+            if image_format == "mono8"
+            else "the source JPEG bytes unchanged (sensor_msgs/CompressedImage)",
             "t_camera_velodyne": (np.linalg.inv(ego_camera) @ ego_lidar).tolist(),
             "t_pose_velodyne": ego_lidar.tolist(),
             "convention": "imu_link = base_link = egovehicle; both TF edges are "
@@ -353,7 +375,7 @@ def _convert(
         },
     }
     counts = dict.fromkeys(
-        (TF_STATIC_TOPIC, IMAGE_TOPIC, CAMERA_INFO_TOPIC, LIDAR_TOPIC, ODOMETRY_TOPIC), 0
+        (TF_STATIC_TOPIC, image_topic, CAMERA_INFO_TOPIC, LIDAR_TOPIC, ODOMETRY_TOPIC), 0
     )
     image_module = _image_module()
     first_ns = min(min(sweeps), min(images), int(stamps[written[0]]))
@@ -376,7 +398,12 @@ def _convert(
             )
             counts[TF_STATIC_TOPIC] = 1
             for topic, message_type in (
-                (IMAGE_TOPIC, "sensor_msgs/msg/Image"),
+                (
+                    image_topic,
+                    "sensor_msgs/msg/Image"
+                    if image_format == "mono8"
+                    else "sensor_msgs/msg/CompressedImage",
+                ),
                 (CAMERA_INFO_TOPIC, "sensor_msgs/msg/CameraInfo"),
                 (LIDAR_TOPIC, "sensor_msgs/msg/PointCloud2"),
                 (ODOMETRY_TOPIC, "nav_msgs/msg/Odometry"),
@@ -384,10 +411,9 @@ def _convert(
                 writer.add_topic(topic, message_type)
             for stamp, path in images.items():
                 with image_module.open(path) as image:
-                    gray = image.convert("L")
-                    if gray.size != (width, height):
+                    if image.size != (width, height):
                         raise DatasetError(f"{path}: image size differs from intrinsics.feather")
-                    pixels = gray.tobytes()
+                    pixels = image.convert("L").tobytes() if image_format == "mono8" else b""
                 writer.write(
                     CAMERA_INFO_TOPIC,
                     stamp,
@@ -402,7 +428,7 @@ def _convert(
                     ),
                 )
                 writer.write(
-                    IMAGE_TOPIC,
+                    image_topic,
                     stamp,
                     encode_image(
                         frame_id=frame,
@@ -412,9 +438,16 @@ def _convert(
                         encoding="mono8",
                         step=width,
                         data=pixels,
+                    )
+                    if image_format == "mono8"
+                    else encode_compressed_image(
+                        frame_id=frame,
+                        timestamp_ns=stamp,
+                        format="rgb8; jpeg compressed bgr8",
+                        data=path.read_bytes(),
                     ),
                 )
-                counts[IMAGE_TOPIC] += 1
+                counts[image_topic] += 1
                 counts[CAMERA_INFO_TOPIC] += 1
             for stamp, path in sweeps.items():
                 table = _table(path)

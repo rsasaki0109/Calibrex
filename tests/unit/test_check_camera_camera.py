@@ -19,7 +19,7 @@ from tests.unit.stereo_scene import LEFT, RIGHT, TRUTH, render_pairs, render_tur
 from calibrex.check.runner import CheckRunOptions, build_calibration_check, format_check_table
 from calibrex.core.calibration_check import CHECK_PAIR_NAMES, CalibrationCheckArtifact
 from calibrex.core.validation import validate_file
-from calibrex.data.ros_cdr_writer import encode_image, encode_imu
+from calibrex.data.ros_cdr_writer import encode_compressed_image, encode_image, encode_imu
 from calibrex.data.rosbag2_writer import Rosbag2Writer
 
 LEFT_TOPIC = "/left/image_raw"
@@ -27,12 +27,19 @@ RIGHT_TOPIC = "/right/image_raw"
 
 
 def _write_bag(
-    path: Path, *, rates: np.ndarray | None = None, delay_s: float = 0.0, gyro: bool = True
+    path: Path,
+    *,
+    rates: np.ndarray | None = None,
+    delay_s: float = 0.0,
+    gyro: bool = True,
+    png: bool = False,
 ) -> Path:
     """Eight image pairs; with ``rates`` the rig turns and the right image is ``delay_s`` late.
 
     The right image is stamped when it was taken. With ``gyro``, ``/imu`` (frame ``imu``,
-    the left camera's own axes in the camchain below) reports each pair's rate.
+    the left camera's own axes in the camchain below) reports each pair's rate. With
+    ``png`` the images are recorded only as lossless ``<topic>/compressed`` PNGs, while
+    the camchain keeps naming the raw topics.
     """
 
     count = 8
@@ -40,9 +47,11 @@ def _write_bag(
         pairs = render_pairs(TRUTH, count)
     else:
         pairs = render_turning_pairs(TRUTH, np.full(count, delay_s), rates)
+    suffix = "/compressed" if png else ""
+    image_type = "sensor_msgs/msg/CompressedImage" if png else "sensor_msgs/msg/Image"
     with Rosbag2Writer(path) as writer:
-        writer.add_topic(LEFT_TOPIC, "sensor_msgs/msg/Image")
-        writer.add_topic(RIGHT_TOPIC, "sensor_msgs/msg/Image")
+        writer.add_topic(LEFT_TOPIC + suffix, image_type)
+        writer.add_topic(RIGHT_TOPIC + suffix, image_type)
         if rates is not None and gyro:
             writer.add_topic("/imu", "sensor_msgs/msg/Imu")
         for index, (left, right) in enumerate(pairs):
@@ -66,9 +75,16 @@ def _write_bag(
             ):
                 data = np.clip(np.rint(image), 0, 255).astype(np.uint8)
                 writer.write(
-                    topic,
+                    topic + suffix,
                     when,
-                    encode_image(
+                    encode_compressed_image(
+                        frame_id=frame,
+                        timestamp_ns=when,
+                        format="mono8; png compressed mono8",
+                        data=_png(data),
+                    )
+                    if png
+                    else encode_image(
                         frame_id=frame,
                         timestamp_ns=when,
                         height=data.shape[0],
@@ -79,6 +95,16 @@ def _write_bag(
                     ),
                 )
     return path
+
+
+def _png(data: np.ndarray) -> bytes:
+    from io import BytesIO
+
+    from PIL import Image
+
+    buffer = BytesIO()
+    Image.fromarray(data).save(buffer, format="PNG")
+    return buffer.getvalue()
 
 
 def _camchain(path: Path, left_right: np.ndarray) -> Path:
@@ -140,6 +166,23 @@ def test_the_true_camchain_passes_on_every_rotation_axis(bag: Path, tmp_path: Pa
     (group,) = artifact.rotation_attribution.groups
     assert group.status == "consistent"
     assert "which frame's rotation the pair errors point to" in format_check_table(artifact)
+
+
+def test_compressed_topics_give_the_raw_result_under_the_raw_camchain_topics(
+    bag: Path, tmp_path: Path
+) -> None:
+    pytest.importorskip("PIL")
+    png = _write_bag(tmp_path / "png", png=True)
+    camchain = _camchain(tmp_path / "c.yaml", TRUTH)
+    (raw,) = [p for p in _run(bag, camchain, tmp_path / "raw").pairs if p.pair == "camera-camera"]
+    (packed,) = [
+        p for p in _run(png, camchain, tmp_path / "png_run").pairs if p.pair == "camera-camera"
+    ]
+    assert packed.status == raw.status == "pass", packed.reason
+    assert packed.frames == raw.frames == ["left/image_raw", "right/image_raw"]
+    assert [(a.name, a.candidate_error, a.estimate_std) for a in packed.axes] == [
+        (a.name, a.candidate_error, a.estimate_std) for a in raw.axes
+    ]
 
 
 def test_a_camchain_turned_in_pitch_fails_on_pitch(bag: Path, tmp_path: Path) -> None:

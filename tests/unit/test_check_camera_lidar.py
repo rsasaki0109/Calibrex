@@ -41,6 +41,7 @@ from calibrex.core.validation import validate_file
 from calibrex.data.ros_cdr_writer import (
     POINT_FIELD_FLOAT32,
     encode_camera_info,
+    encode_compressed_image,
     encode_image,
     encode_imu,
     encode_odometry,
@@ -59,6 +60,19 @@ FIELDS = (
     ("intensity", 12, POINT_FIELD_FLOAT32, 1),
 )
 FAST_OPTIONS = {"max_duration_s": None}
+COMPRESSED_TOPIC = "/camera/image_raw/compressed"
+
+
+def _encoded(image: np.ndarray, kind: str) -> bytes:
+    from io import BytesIO
+
+    from PIL import Image
+
+    buffer = BytesIO()
+    Image.fromarray(np.ascontiguousarray(image, dtype=np.uint8)).save(
+        buffer, format=kind, **({"quality": 90} if kind == "JPEG" else {})
+    )
+    return buffer.getvalue()
 
 
 BASE_FRAME = "base_link"
@@ -92,18 +106,25 @@ def write_bag(
     candidate: np.ndarray | None = None,
     motion: tuple[np.ndarray, np.ndarray] | None = None,
     image_delay_s: float = 0.005,
+    compressed: str | None = None,
 ) -> Path:
     """A bag whose data follow ``truth`` and whose /tf_static says ``candidate`` (default truth).
 
     With ``motion = (omega, v)`` (rad/s and m/s in the LiDAR frame) the rig moves at that
     constant velocity: each scan is cast from where the LiDAR was ``image_delay_s`` before
     its image, and the bag gets the body's odometry (``/odom``) and IMU (``/imu``).
+    With ``compressed`` (``"PNG"`` or ``"JPEG"``) the images are recorded only as
+    image_transport's ``/camera/image_raw/compressed``.
     """
 
     moving = motion is not None
+    image_topic = "/camera/image_raw" if compressed is None else COMPRESSED_TOPIC
     with Rosbag2Writer(path) as writer:
         writer.add_topic("/tf_static", "tf2_msgs/msg/TFMessage", latched=True)
-        writer.add_topic("/camera/image_raw", "sensor_msgs/msg/Image")
+        writer.add_topic(
+            image_topic,
+            "sensor_msgs/msg/Image" if compressed is None else "sensor_msgs/msg/CompressedImage",
+        )
         writer.add_topic("/camera/camera_info", "sensor_msgs/msg/CameraInfo")
         writer.add_topic("/lidar/points", "sensor_msgs/msg/PointCloud2")
         if moving:
@@ -166,7 +187,7 @@ def write_bag(
                 ),
             )
             writer.write(
-                "/camera/image_raw",
+                image_topic,
                 stamp + delay_ns,
                 encode_image(
                     frame_id=CAMERA_FRAME,
@@ -176,6 +197,13 @@ def write_bag(
                     encoding="mono8",
                     step=WIDTH,
                     data=image.tobytes(),
+                )
+                if compressed is None
+                else encode_compressed_image(
+                    frame_id=CAMERA_FRAME,
+                    timestamp_ns=stamp + delay_ns,
+                    format=f"mono8; {compressed.lower()} compressed mono8",
+                    data=_encoded(image, compressed),
                 ),
             )
             writer.write(
@@ -302,6 +330,67 @@ def test_check_flags_a_pitch_error_of_three_degrees(bad_bag: Path, tmp_path: Pat
     assert "pitch" in judged and judged["pitch"].status == "fail"
     assert abs(judged["pitch"].candidate_error) == pytest.approx(3.0, abs=0.6)
     assert artifact.overall_verdict in {"warn", "fail"}
+
+
+def _edge_estimate(record: object, tmp_path: Path) -> tuple[list[float], list[float]]:
+    (evidence,) = record.evidence  # type: ignore[attr-defined]
+    edge = load_camera_lidar_edge(tmp_path / evidence.path)
+    assert edge.transform is not None
+    return list(edge.transform.rotation_quat_xyzw), [dof.std_jackknife for dof in edge.dofs]
+
+
+def test_a_lossless_compressed_bag_gives_the_raw_bag_result(
+    good_bag: Path, tmp_path_factory: pytest.TempPathFactory, truth: np.ndarray
+) -> None:
+    pytest.importorskip("PIL")
+    png = write_bag(tmp_path_factory.mktemp("cl") / "png", truth, compressed="PNG")
+    raw_dir, png_dir = tmp_path_factory.mktemp("raw_run"), tmp_path_factory.mktemp("png_run")
+    (raw,) = [p for p in _run(good_bag, raw_dir).pairs if p.pair == "camera-lidar"]
+    (packed,) = [p for p in _run(png, png_dir).pairs if p.pair == "camera-lidar"]
+    assert packed.status == raw.status == "pass"
+    assert [(a.name, a.candidate_error) for a in packed.axes] == [
+        (a.name, a.candidate_error) for a in raw.axes
+    ]
+    assert _edge_estimate(packed, png_dir) == _edge_estimate(raw, raw_dir)
+    (evidence,) = packed.evidence
+    edge = load_camera_lidar_edge(png_dir / evidence.path)
+    assert edge.provenance.image_topic == COMPRESSED_TOPIC  # intrinsics: /camera/camera_info
+
+
+def test_a_jpeg_bag_passes_the_truth_and_flags_a_pitch_error(
+    tmp_path_factory: pytest.TempPathFactory, truth: np.ndarray, tmp_path: Path
+) -> None:
+    pytest.importorskip("PIL")
+    root = tmp_path_factory.mktemp("cl")
+    good = write_bag(root / "jpeg_good", truth, compressed="JPEG")
+    bad = write_bag(
+        root / "jpeg_bad",
+        truth,
+        candidate=perturbed(truth, (0.0, 3.0, 0.0)),
+        compressed="JPEG",
+    )
+    (record,) = [p for p in _run(good, tmp_path / "good").pairs if p.pair == "camera-lidar"]
+    assert record.status == "pass", record.reason
+    (record,) = [p for p in _run(bad, tmp_path / "bad").pairs if p.pair == "camera-lidar"]
+    judged = {axis.name: axis for axis in record.axes}
+    assert record.status in {"warn", "fail"} and judged["pitch"].status == "fail"
+
+
+def test_compressed_images_without_a_decoder_are_skipped_with_the_extra(
+    tmp_path_factory: pytest.TempPathFactory,
+    truth: np.ndarray,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("PIL")
+    from calibrex.data import compressed_image
+
+    png = write_bag(tmp_path_factory.mktemp("cl") / "png_nodecoder", truth, compressed="PNG")
+    monkeypatch.setattr(compressed_image, "_pillow", lambda: None)
+    monkeypatch.setattr(compressed_image, "_opencv", lambda: None)
+    (record,) = [p for p in _run(png, tmp_path).pairs if p.pair == "camera-lidar"]
+    assert record.status == "skipped" and record.reason_code == "unsupported_sensor"
+    assert "calibrex[images]" in (record.reason or "")
 
 
 # The rig turns at 60 deg/s about the camera's y axis (pitch) and moves at 2 m/s, and each

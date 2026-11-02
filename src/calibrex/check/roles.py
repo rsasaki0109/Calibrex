@@ -70,6 +70,13 @@ def classify_message_type(message_type: str, topic: str) -> SensorRole | None:
     return None
 
 
+def image_transport_base(topic: str) -> str:
+    """The raw image topic an image_transport ``/compressed`` topic was published from."""
+
+    stripped = topic.rstrip("/")
+    return stripped[: -len("/compressed")] if stripped.endswith("/compressed") else stripped
+
+
 def classify_odometry_kind(topic: str) -> OdometryKind:
     """Guess by name whether an odometry or twist topic is wheel odometry or an INS/GNSS."""
 
@@ -271,6 +278,14 @@ def map_topics_to_frames(
             updated = updated.model_copy(
                 update={
                     "mapped_frame": hints.topic_frames[record.topic],
+                    "frame_source": "source_topic_hint",
+                }
+            )
+        elif record.role == "camera" and image_transport_base(record.topic) in hints.topic_frames:
+            # A Kalibr camchain names the raw topic; the bag recorded its /compressed twin.
+            updated = updated.model_copy(
+                update={
+                    "mapped_frame": hints.topic_frames[image_transport_base(record.topic)],
                     "frame_source": "source_topic_hint",
                 }
             )

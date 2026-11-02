@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Read `sensor_msgs/CompressedImage` cameras (JPEG or PNG, as image_transport's
+  `compressed` plugin writes them) in the `camera-imu`, `camera-focal`,
+  `camera-lidar` and `camera-camera` checks instead of skipping them as
+  `unsupported_sensor`. A raw `Image` topic is still preferred; `<topic>/compressed`
+  finds its `CameraInfo` and Kalibr camchain topic as the raw topic would;
+  `compressedDepth` is never read as a camera. Decoding needs Pillow
+  (`calibrex[images]`, OpenCV as a fallback), and the decoder is part of the
+  estimator cache key. A lossless PNG gives exactly the raw topic's result.
+  `calibrex convert av2 --image-format jpeg` stores the source JPEGs unchanged.
+
 - Add an opt-in camera–LiDAR research profile mode that chooses each fold's
   initialization from training frames only, without a pooled conditional report.
   Preserve archived report serialization and default numerical behavior. Add a

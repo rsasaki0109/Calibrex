@@ -570,6 +570,24 @@ class ImageMessage:
 
 
 @dataclass(frozen=True)
+class CompressedImageMessage:
+    """A validated ``sensor_msgs/CompressedImage`` payload without ROS dependencies.
+
+    ``format`` is the producer's description (image_transport writes, for example,
+    ``"bgr8; jpeg compressed bgr8"``); the pixels are decoded only on request by
+    :mod:`calibrex.data.compressed_image`.
+    """
+
+    topic: str
+    timestamp_ns: int
+    frame_id: str
+    format: str
+    data_length: int
+    data: bytes | None = None
+    header_stamp_ns: int | None = None
+
+
+@dataclass(frozen=True)
 class RegionOfInterest:
     """The ROS ``sensor_msgs/RegionOfInterest`` value object."""
 

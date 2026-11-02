@@ -1126,6 +1126,14 @@ def _build_parser() -> argparse.ArgumentParser:
         "offset_ns: keep each point's offset as a time field (development comparison)",
     )
     convert_av2.add_argument(
+        "--image-format",
+        choices=("mono8", "jpeg"),
+        default="mono8",
+        help="mono8 (default): decoded gray sensor_msgs/Image on /camera/image_raw; jpeg: the "
+        "source JPEGs unchanged as sensor_msgs/CompressedImage on /camera/image_raw/compressed "
+        "(about a fifth of the size; checking it needs Pillow)",
+    )
+    convert_av2.add_argument(
         "--start-s", type=float, default=0.0, help="window start after the first sweep"
     )
     convert_av2.add_argument("--max-seconds", type=_positive_float, default=None)
@@ -5419,6 +5427,7 @@ def _cmd_convert_av2(args: argparse.Namespace) -> int:
         max_seconds=args.max_seconds,
         overwrite=args.overwrite,
         command=["calibrex", *args.invoked_argv],
+        image_format=args.image_format,
     )
     payload = {
         "bag": str(result.bag),

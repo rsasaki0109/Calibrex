@@ -185,6 +185,29 @@ def test_images_are_undistorted_pinhole_and_sweeps_are_snapshots_by_default(
     assert image.encoding == "mono8" and len(image.data) == 48
 
 
+def test_jpeg_format_keeps_the_source_files_and_reads_as_their_gray_image(
+    tmp_path: Path,
+) -> None:
+    from calibrex.data.ros2_camera_imu import iter_gray_images
+
+    log, bag = _log(tmp_path), tmp_path / "bag"
+    result = av2.convert_av2_to_rosbag2(log, bag, image_format="jpeg")
+    topic = av2.COMPRESSED_IMAGE_TOPIC
+    assert result.provenance["camera"]["image_topic"] == topic
+    assert result.message_counts[topic] == 8 and IMAGE_TOPIC not in result.message_counts
+    types = {c.topic: c.message_type for c, _count in list_rosbag2_connections(bag)}
+    assert types[topic] == "sensor_msgs/msg/CompressedImage" and IMAGE_TOPIC not in types
+    files = sorted((log / "sensors" / "cameras" / "ring_front_center").glob("*.jpg"))
+    (_c, stamp, payload), *_ = list(iter_topic_messages(bag, topic, limit=1))
+    message = ros_cdr.decode_ros2_compressed_image(topic, stamp, payload)
+    assert message.data == files[0].read_bytes() and "jpeg" in message.format
+    _time, gray = next(iter(iter_gray_images(bag, topic)))
+    with Image.open(files[0]) as source:
+        expected = np.asarray(source.convert("L"), dtype=np.int64)
+    assert gray.shape == (8, 6)
+    assert np.abs(gray.astype(np.int64) - expected).max() <= 1  # luma rounding only
+
+
 def test_odometry_twist_is_the_body_velocity_and_the_window_selects(tmp_path: Path) -> None:
     log = _log(tmp_path)
     bag = tmp_path / "bag"
@@ -209,6 +232,7 @@ def test_odometry_twist_is_the_body_velocity_and_the_window_selects(tmp_path: Pa
         ({"camera": "fisheye"}, "camera must be"),
         ({"lidar": "both"}, "lidar must be"),
         ({"point_time": "azimuth"}, "point_time must be"),
+        ({"image_format": "png"}, "image_format must be"),
         ({"start_s": -1.0}, "start_s"),
         ({"max_seconds": 0.0}, "max_seconds"),
         ({"start_s": 50.0}, "no sweep or no image"),

@@ -1,7 +1,8 @@
 """Synchronized image and LiDAR-scan pairs from ROS 2 bags, without ROS.
 
-One pass over a ``sensor_msgs/msg/Image`` topic and a ``sensor_msgs/msg/PointCloud2``
-topic yields ``(image, scan)`` pairs for targetless camera-LiDAR calibration.
+One pass over a ``sensor_msgs/msg/Image`` (or ``CompressedImage``) topic and a
+``sensor_msgs/msg/PointCloud2`` topic yields ``(image, scan)`` pairs for targetless
+camera-LiDAR calibration.
 Scans are taken at a fixed spacing; each is paired with the nearest image to the
 scan's *reference time*: the header stamp, or, when the cloud has a per-point time
 field and the caller supplies a rule, the time its visible points were measured
@@ -34,7 +35,7 @@ from numpy.typing import NDArray
 
 from calibrex.core.progress import emit_tick
 from calibrex.data import ros_cdr
-from calibrex.data.ros2_camera_imu import GrayImage, to_gray
+from calibrex.data.ros2_camera_imu import GrayImage, decode_gray_message, image_header
 from calibrex.data.rosbag2 import iter_messages, require_cdr_connection
 
 PointTimeEncoding = Literal["offset_s", "absolute_ns", "absolute_s"]
@@ -113,6 +114,7 @@ def load_camera_lidar_frames(
     """
 
     recent: collections.deque[tuple[int, str, bytes]] = collections.deque()
+    image_type = ""
     pending: dict[int, _PendingScan] = {}
     paired: dict[int, CameraLidarFrame] = {}
     regular: list[int] = []
@@ -139,22 +141,14 @@ def load_camera_lidar_frames(
         best = min(recent, key=lambda item: abs(item[0] - scan.reference_ns))
         if abs(best[0] - scan.reference_ns) > gap_ns:
             return
-        message = ros_cdr.decode_ros2_image(image_topic, best[0], best[2])
-        if message.data is None:
-            return
+        _stamp, frame_id, gray = decode_gray_message(image_type, image_topic, best[0], best[2])
         paired[key] = CameraLidarFrame(
             time_s=scan.reference_ns * 1.0e-9,
             image_time_s=best[0] * 1.0e-9,
-            image=to_gray(
-                bytes(message.data),
-                height=message.height,
-                width=message.width,
-                step=message.step,
-                encoding=message.encoding,
-            ),
+            image=gray,
             points=scan.points,
             cloud_frame_id=scan.cloud_frame_id,
-            image_frame_id=message.frame_id,
+            image_frame_id=frame_id,
             point_time_offsets_s=scan.point_time_offsets_s,
         )
 
@@ -166,17 +160,16 @@ def load_camera_lidar_frames(
     for connection, timestamp_ns, payload in iter_messages(bag, topics={image_topic, lidar_topic}):
         if connection.topic == image_topic:
             require_cdr_connection(connection)
-            header = ros_cdr.decode_ros2_image(
-                image_topic, timestamp_ns, payload, include_data=False
-            )
-            recent.append((header.timestamp_ns, header.frame_id, payload))
+            image_type = connection.message_type
+            image_ns, image_frame = image_header(image_type, image_topic, timestamp_ns, payload)
+            recent.append((image_ns, image_frame, payload))
             # Pair before evicting: a camera slower than the window would lose the image
             # nearest to a scan.
             for key, scan in list(pending.items()):
-                if header.timestamp_ns >= scan.reference_ns + gap_ns:
+                if image_ns >= scan.reference_ns + gap_ns:
                     del pending[key]
                     pair(key, scan)
-            while recent and recent[0][0] < header.timestamp_ns - _IMAGE_WINDOW_NS:
+            while recent and recent[0][0] < image_ns - _IMAGE_WINDOW_NS:
                 recent.popleft()
             if regular_full() and not pending:
                 break
