@@ -132,8 +132,46 @@ board's square size comes from KITTI's stereo pair (the sizes are not documented
 radial-tangential undistortion now iterates to convergence (five iterations left up to
 4 px in the corners of a lens like KITTI's). The harness,
 `tools/kitti_board_camera_lidar_evaluate.py`, starts from the axis permutation only and reads
-KITTI's camera-LiDAR calibration only to score the estimate. The results will be recorded
-here, whatever they are.
+KITTI's camera-LiDAR calibration only to score the estimate.
+
+### Result: both claims refuted, no estimate on any day
+
+The harness ran once (2026-11-03, from a checkout whose `src/` and `tools/` equal the frozen
+commit; records in [`docs/assets/kitti_board_camera_lidar/`](../assets/kitti_board_camera_lidar/run.json)).
+It stopped before the calibration on four days and had too few boards on the fifth:
+
+| Day (recording) | Still interval | Boards found in the chosen left image | Outcome |
+| --- | --- | --- | --- |
+| 2011_09_26 (0119) | 3.4 s | 30 (the cap) | no right image within 5 ms |
+| 2011_09_28 (0225) | 3.8 s | 30 (the cap) | no right image within 5 ms |
+| 2011_09_29 (0108) | 3.9 s | 17 | no right image within 5 ms |
+| 2011_09_30 (0072) | 2.3 s | 17 | no right image within 5 ms |
+| 2011_10_03 (0058) | 7.1 s | 30 (the cap); 16 in the right image | 2 boards with a stereo square size; 4 needed |
+
+Claim 1 (accuracy on all five days) is refuted with no day converged; claim 2 is refuted
+because it needs at least three converged days. The audit says nothing about the plane solve
+on KITTI's Velodyne: no day reached it.
+
+What failed, read from the records and, after the run, from the cameras' timestamp files:
+
+- **The stereo time bound.** The harness took the right image within 5 ms of the chosen left
+  one. In these recordings the two grey cameras run at about 5 Hz, and the nearest right image
+  was 8 ms away on 2011_09_26 and 92-111 ms away (half a frame) on 2011_09_28, 2011_09_29 and
+  2011_09_30; only 2011_10_03 was within 5 ms. With the vehicle standing still, any right
+  image of the still interval would have served; the 5 ms bound was a wrong design choice,
+  not a property of the data.
+- **Board fragments.** `find_boards` with `CALIB_CB_LARGER` sometimes returned a 4 x 3 or
+  3 x 7 corner of a board; painting over that piece left the rest to be found again, so frames
+  reached the 30-board cap, and choosing the frame with the most detections favoured the most
+  fragmented one. On 2011_10_03, 28 of the 30 left detections were such pieces and none
+  triangulated with the right image. The two that did were 7 x 5 inner-corner boards whose
+  stereo square sizes were 0.099 m and 0.100 m (0.21 and 0.02 px stereo error) at 5.6 and
+  7.6 m.
+
+The five recordings are now spent. Fixing either point (pairing the stereo images over the
+still interval; rejecting grids smaller than a declared pattern, or detecting the declared
+pattern only) would be development on them, and a claim would need recordings no method here
+has read.
 
 ## Next
 

@@ -39,6 +39,7 @@ pre-registered audit marks `supported`. Five things follow from that:
 | `camera-camera` | refuted | Hilti (4/6): accurate, but a 1 deg turn was flagged in only 70 % of trials | [Hilti camera SOTA](benchmarks/hilti_camera_sota.md) |
 | `lidar-lidar` | refuted | NTU VIRAL (2/4): accurate, but does not beat scan-to-scan; cross-recording consistency 1.143 against 1.0 | [NTU VIRAL](benchmarks/ntu_viral_lidar_lidar.md) |
 | `ins-lidar` | refuted | KITTI + Boreas rotation v1 (6/8); one recording has no observable rotation | [INS-LiDAR rotation](benchmarks/ins_lidar_rotation_v1.md) |
+| `camera-lidar` (checkerboard) | refuted | KITTI calibration recordings (0/5 days): no estimate on any day (stereo time bound, board fragments) | [board camera-LiDAR](benchmarks/board_camera_lidar.md#result-both-claims-refuted-no-estimate-on-any-day) |
 | `camera`, `gnss-imu`, `imu-vehicle`, `lidar-wheel_odometry` | no claim | native methods exist; no audit yet | [estimate on real data](benchmarks/estimate_real_data.md) |
 
 ## How an audit is run
@@ -155,6 +156,7 @@ The camera-imu v3 audit did exactly this with the camera-camera runs.
 | NTU VIRAL | `lidar-lidar` | rtp_01, spms_01, tnp_02 (evaluation), tnp_01 (development) |
 | FAST-LIVO (Hugging Face MCAP) | `camera-lidar`, `imu-lidar`, `camera-imu` (tool validation, no audit) | hku1, hku2 (`calibrex check` runs recorded in the [check tutorial](tutorials/calibrex_check.md)), and the two halves of hku2 |
 | Newer College 2021 | `camera-camera`, `camera-lidar`, `imu-lidar`, `camera-imu`, `camera-focal` (tool validation, no audit) | collection 3 `math-easy` part 1 (`calibrex check` run recorded in the [check tutorial](tutorials/calibrex_check.md)) |
+| KITTI raw | board-based `camera-lidar` evaluation (refuted) | the five calibration recordings 2011_09_26_0119, 2011_09_28_0225, 2011_09_29_0108, 2011_09_30_0072, 2011_10_03_0058 (extract archives: grey stereo images, Velodyne scans and OXTS read by the frozen harness; the cameras' timestamp files read again afterwards for the diagnosis) |
 | ACSC sample (Livox Horizon + checkerboard) | board-based `camera-lidar` development | the whole sample (21 board poses; [board camera-LiDAR](benchmarks/board_camera_lidar.md)) |
 
 The v2 camera-lidar runs also read the Velodyne and OXTS of the first 600 frames of its

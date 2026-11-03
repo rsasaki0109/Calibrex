@@ -6,9 +6,12 @@
   (a single shot of boards on walls), and a board pose may carry its own board size.
   `CameraModel.normalize` iterates radial-tangential undistortion to convergence: OpenCV's
   default five iterations left up to 4 px in the image corners of a strong barrel lens such
-  as KITTI's. The board camera-LiDAR audit on KITTI's five calibration recordings is
-  pre-registered (`docs/benchmarks/kitti_board_camera_lidar_preregistration.yaml`) and not
-  run yet.
+  as KITTI's. The board camera-LiDAR audit on KITTI's five calibration recordings was
+  pre-registered (`docs/benchmarks/kitti_board_camera_lidar_preregistration.yaml`) and run
+  once: both claims refuted, no estimate on any day. The harness required the right image
+  within 5 ms of the left one (the cameras were 8-111 ms apart on four days), and board
+  fragments from `CALIB_CB_LARGER` left too few full boards on the fifth
+  ([board camera-LiDAR](docs/benchmarks/board_camera_lidar.md)).
 - `calibrex check --board COLSxROWSxSQUARE_M` judges camera-lidar from a checkerboard
   recording: all six axes by the usual rule, the translation included, which edge alignment
   leaves unchecked. The check artifact's options record `board`, and the unchecked
