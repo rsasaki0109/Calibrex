@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `calibrex check --board COLSxROWSxSQUARE_M` judges camera-lidar from a checkerboard
+  recording: all six axes by the usual rule, the translation included, which edge alignment
+  leaves unchecked. The check artifact's options record `board`, and the unchecked
+  edge-alignment translation now points to it. On a synthetic nine-pose recording the true
+  candidate passes, one 6 cm off in x warns and one 10 cm off fails.
 - `calibrex estimate --board COLSxROWSxSQUARE_M` measures camera-lidar from a checkerboard
   held still at several poses, all six axes including the translation that targetless edge
   alignment cannot measure. `calibrex.evaluation.board_camera_lidar_bag` finds the still

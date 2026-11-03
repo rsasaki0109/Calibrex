@@ -362,6 +362,7 @@ def build_calibration_check(
             camera_lidar_motion=run.camera_lidar_motion,
             camera_lidar_start_scan_min_control_t=run.camera_lidar_start_scan_min_control_t,
             camera_lidar_start_agreement_deg=run.camera_lidar_start_agreement_deg,
+            board=run.board,
             topic_kinds=dict(topic_kinds or {}),
         )
         evidence_dir_record = _relative(evidence_dir, base_dir)

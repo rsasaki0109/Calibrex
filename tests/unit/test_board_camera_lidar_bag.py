@@ -238,3 +238,64 @@ def test_estimate_without_board_suggests_it_for_the_translation(tmp_path: Path) 
     )
     steps = next_steps([pair], EstimateFrames(), [], bag_name="b", output_dir=tmp_path)
     assert BOARD_HINT in steps
+
+
+def _frames_file(path: Path, translation: np.ndarray) -> Path:
+    """A slac.check_frames candidate: the lidar in the camera frame."""
+
+    entry = {
+        "name": LIDAR_FRAME,
+        "parent": CAMERA_FRAME,
+        "translation_m": [float(v) for v in translation],
+        "rotation_quat_xyzw": [float(v) for v in Rotation.from_matrix(TRUE[:3, :3]).as_quat()],
+    }
+    path.write_text(
+        yaml.safe_dump({"schema_version": "slac.check_frames/v0.1", "frames": [entry]}),
+        encoding="utf-8",
+    )
+    return path
+
+
+@pytest.mark.parametrize(
+    ("shift_m", "verdict"),
+    # tolerance max(3 std, 2 cm): the x std is about 1.2 cm here, so 6 cm is between one and
+    # two tolerances (warn) and 10 cm beyond two (fail)
+    [(0.0, "pass"), (0.06, "warn"), (0.10, "fail")],
+    ids=["true-candidate", "x-off-by-6-cm", "x-off-by-10-cm"],
+)
+def test_check_board_judges_the_translation(
+    board_bag: Path, tmp_path: Path, shift_m: float, verdict: str
+) -> None:
+    translation = TRUE[:3, 3] + np.array([shift_m, 0.0, 0.0])
+    frames = _frames_file(tmp_path / "frames.yaml", translation)
+    output = tmp_path / "check.json"
+    code = main(
+        [
+            "check",
+            str(board_bag),
+            "--tf",
+            str(frames),
+            "--pairs",
+            "camera-lidar",
+            "--board",
+            "7x5x0.08",
+            "--output",
+            str(output),
+            "--evidence-dir",
+            str(tmp_path / "evidence"),
+            "--no-cache",
+        ]
+    )
+
+    artifact = json.loads(output.read_text())
+    assert artifact["options"]["board"] == "7x5x0.08"
+    (pair,) = [p for p in artifact["pairs"] if p["pair"] == "camera-lidar"]
+    assert pair["verdict"] == verdict
+    judged = {axis["name"]: axis for axis in pair["axes"]}
+    assert set(judged) == {"roll", "pitch", "yaw", "x", "y", "z"}
+    assert pair["unchecked_axes"] == []
+    assert judged["x"]["candidate_error"] == pytest.approx(shift_m, abs=0.01)
+    assert judged["x"]["status"] == verdict
+    assert all(judged[name]["status"] == "pass" for name in ("y", "z", "roll", "pitch", "yaw"))
+    assert code == (1 if verdict == "fail" else 0)  # --fail-on fail (the default)
+    validate_file(output)

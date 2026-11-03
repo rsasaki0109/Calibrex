@@ -220,7 +220,8 @@ same sources as `camera-imu`; `--camera TOPIC` selects one camera. OpenCV is not
   [camera-lidar benchmark](../benchmarks/camera_lidar_check.md) its estimate differed from the
   reference by up to 11 cm with a reported std of 1-2 cm. `x`, `y`, `z` are therefore listed in
   `unchecked_axes` (reason `unobservable`) on every run, and a translation error of 5 cm is not
-  detected. `--tf` translation is kept as is by `calibrex estimate`.
+  detected. `--tf` translation is kept as is by `calibrex estimate`. To judge the translation,
+  record a checkerboard and use [`--board`](#camera-lidar-with-a-checkerboard-board).
 * **Starts at the candidate.** Like `lidar-lidar` the estimate depends on the candidate: it is
   cached under a key that includes it (a different candidate on the same bag recomputes), and
   `calibrex estimate` runs it only when a `--tf` prior connects the two frames (rotation within a
@@ -256,6 +257,31 @@ were flagged `warn` or `fail`; the rest were `inconclusive` or passed with the a
 unchecked or too coarse. Runtime on a first run: 20-100 s, most of it reading the bag; a repeat
 with the same candidate is a cache hit. A gross error on one axis (about 5 deg) can leave
 that axis unchecked, so read `unchecked_axes` next to a `pass`.
+
+### camera-lidar with a checkerboard (`--board`)
+
+For the translation, record a checkerboard held still at a dozen poses in view of both sensors
+(about two seconds per pose, tilted up and down as well as left and right, within about 6 m;
+or stop the rig at a dozen places in front of a fixed board) and give its inner corners and
+square size:
+
+```bash
+calibrex check board_bag/ --pairs camera-lidar --board 7x5x0.08
+```
+
+`camera-lidar` then runs the [checkerboard method](../benchmarks/board_camera_lidar.md) instead
+of edge alignment: the images find the still poses, the LiDAR scans of each are accumulated, and
+the board's plane as each sensor sees it gives `T_camera_lidar` (OpenCV needed:
+`pip install 'calibrex[opencv]'`). It starts from the candidate, but its estimate does not
+depend on it within the crop margins (a candidate off by 10 cm gives the same estimate). All six
+axes are judged by the usual rule, each std a leave-one-pose-out jackknife; an axis the poses
+do not observe, such as the vertical translation when the board was only turned left and
+right, is listed in `unchecked_axes` with that reason. On a synthetic recording with nine
+poses (x std about 1.2 cm, so a tolerance of 3.4 cm), the true candidate passes, a candidate
+6 cm off in x warns and one 10 cm off fails (`tests/unit/test_board_camera_lidar_bag.py`).
+The evidence is `slac.board_camera_lidar/v0.1` (`board_planes`): the board, each pose with its
+plane residuals, and the axes. `calibrex estimate --board` measures the same pair on a bag with
+no calibration yet.
 
 ## camera-focal: the deployed focal length
 
