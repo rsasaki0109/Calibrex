@@ -192,24 +192,34 @@ def find_boards(
     *,
     min_pattern: tuple[int, int] = (4, 3),
     max_boards: int = 30,
+    pattern: tuple[int, int] | None = None,
 ) -> list[BoardCorners]:
-    """Every checkerboard in one image, of any size at least ``min_pattern`` inner corners.
+    """Every checkerboard in one image (boards on walls, a single shot).
 
-    For a scene with several boards in view at once (boards on walls, a single shot).
-    ``findChessboardCornersSBWithMeta`` with ``CALIB_CB_LARGER`` finds one board and its
-    full grid; the board and one square around it are then painted over with the image's
-    median grey and the search repeats, until no board is found or ``max_boards``. The
-    grid can come out turned by 90 deg relative to how the board was printed; its own
-    corner order is kept, which describes the same plane.
+    One board is found, it and one square around it are painted over with the image's
+    median grey, and the search repeats, until no board is found or ``max_boards``.
+
+    With ``pattern`` (inner corners, columns x rows) only grids of exactly that pattern are
+    found: use it when every board has that pattern (with boards of several sizes it also
+    matches a window of a larger board, which is planar but not the whole board, and may
+    differ between two views). Without it, any board of at least
+    ``min_pattern`` is found with ``CALIB_CB_LARGER``, which can return a corner piece of a
+    board whose far squares it cannot follow; the rest of that board is then found again
+    in pieces (on KITTI's calibration recordings 28 of 30 detections in one image were such
+    pieces). The grid can come out turned by 90 deg relative to how the board was printed;
+    its own corner order is kept, which describes the same plane.
     """
 
     cv2 = _opencv()
     work = np.ascontiguousarray(gray, dtype=np.uint8).copy()
     fill = int(np.median(work))
-    flags = cv2.CALIB_CB_LARGER | cv2.CALIB_CB_EXHAUSTIVE | cv2.CALIB_CB_ACCURACY
+    flags = cv2.CALIB_CB_EXHAUSTIVE | cv2.CALIB_CB_ACCURACY
+    if pattern is None:
+        flags |= cv2.CALIB_CB_LARGER
+    search = pattern if pattern is not None else min_pattern
     found: list[BoardCorners] = []
     for _ in range(max_boards):
-        ok, corners, meta = cv2.findChessboardCornersSBWithMeta(work, min_pattern, flags)
+        ok, corners, meta = cv2.findChessboardCornersSBWithMeta(work, search, flags)
         if not ok or corners is None or meta is None:
             break
         rows, columns = (int(v) for v in np.asarray(meta).shape[:2])

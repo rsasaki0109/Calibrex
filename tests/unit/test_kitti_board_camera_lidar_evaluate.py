@@ -63,7 +63,7 @@ def _render(truths, offset: np.ndarray) -> np.ndarray:
     return image
 
 
-def _extract_zip(path: Path) -> Path:
+def _extract_zip(path: Path, right_delay_s: float = 0.0) -> Path:
     """A KITTI-like calibration recording: still from OXTS record 5 to 25 (of 30)."""
 
     truths = []
@@ -82,7 +82,10 @@ def _extract_zip(path: Path) -> Path:
             archive.writestr(f"{root}/oxts/data/{i:010d}.txt", " ".join(map(str, fields)))
         # images and scans numbered from 3: the files' numbers index the timestamp lines
         for folder, image in (("image_00", left), ("image_01", right)):
-            archive.writestr(f"{root}/{folder}/timestamps.txt", _stamp_lines(start, 12, 0.25))
+            delay = timedelta(seconds=right_delay_s if folder == "image_01" else 0.0)
+            archive.writestr(
+                f"{root}/{folder}/timestamps.txt", _stamp_lines(start + delay, 12, 0.25)
+            )
             for i in range(3, 12):
                 ok, png = cv2.imencode(".png", image)
                 assert ok
@@ -182,3 +185,18 @@ def test_the_pass_rule() -> None:
     one_bad = {**all_good, days[0]: unsolved}
     assert verdicts(one_bad)["accuracy"]["verdict"] == "refuted"
     assert verdicts(one_bad)["check_honesty"]["verdict"] == "supported"
+
+
+def test_cameras_half_a_frame_apart_need_the_still_stereo_variant(tmp_path: Path) -> None:
+    """KITTI's 2011_09_28-30 recordings: the right camera runs ~0.1 s after the left one."""
+
+    extract = _extract_zip(tmp_path / "extract.zip", right_delay_s=0.1)
+    calibration = parse_calibration_text(CAM_TO_CAM)
+
+    frozen = estimate_day("2011_09_26", extract, calibration)
+    variant = estimate_day("2011_09_26", extract, calibration, still_stereo=True)
+
+    assert frozen["status"] == "no_stereo"
+    assert variant["status"] == "converged", variant.get("reason")
+    assert variant["right_gap_s"] == pytest.approx(0.1, abs=1e-3)
+    assert all(v["stereo"] == len(SHOT) for v in variant["boards_per_frame"].values())

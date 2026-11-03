@@ -322,8 +322,21 @@ def calibration_member(archive: zipfile.ZipFile, file_name: str) -> dict[str, Fl
     return parse_calibration_text(archive.read(name).decode())
 
 
-def estimate_day(day: str, extract: Path, cam_to_cam: dict[str, FloatArray]) -> dict[str, Any]:
-    """Steps 2-6 for one day: no reference camera-LiDAR transform is read here."""
+def estimate_day(
+    day: str,
+    extract: Path,
+    cam_to_cam: dict[str, FloatArray],
+    *,
+    still_stereo: bool = False,
+) -> dict[str, Any]:
+    """Steps 2-6 for one day: no reference camera-LiDAR transform is read here.
+
+    The defaults are the pre-registered harness. ``still_stereo`` is the development
+    variant written after the audit (on the then spent recordings): the right image is the
+    nearest one inside the still interval, with no time bound (the cameras of these
+    recordings run half a frame apart), and the frame is the one with the most boards that
+    triangulate with it, not the most detections (fragments of boards do not triangulate).
+    """
 
     left_camera, right_camera = camera_model(cam_to_cam, "00"), camera_model(cam_to_cam, "01")
     rotation, translation = stereo_extrinsic(cam_to_cam)
@@ -346,15 +359,44 @@ def estimate_day(day: str, extract: Path, cam_to_cam: dict[str, FloatArray]) -> 
             return record
         lefts, rights = frames(archive, "image_00"), frames(archive, "image_01")
         candidates = [i for i, (t, _name) in enumerate(lefts) if interval[0] <= t <= interval[1]]
+        still_rights = [item for item in rights if interval[0] <= item[0] <= interval[1]]
+
+        def detect(name: str) -> list[BoardCorners]:
+            return find_boards(_png(archive, name), min_pattern=MIN_PATTERN, max_boards=MAX_BOARDS)
+
+        def right_of(time: float) -> tuple[float, str] | None:
+            pool = still_rights if still_stereo else rights
+            if not pool:
+                return None
+            nearest = min(pool, key=lambda item: abs(item[0] - time))
+            if not still_stereo and abs(nearest[0] - time) > MAX_STEREO_GAP_S:
+                return None
+            return nearest
+
         best: tuple[int, list[BoardCorners]] | None = None
-        counts = {}
+        best_score = -1
+        counts: dict[str, Any] = {}
+        right_cache: dict[str, list[BoardCorners]] = {}
         for index in candidates:
-            boards = find_boards(
-                _png(archive, lefts[index][1]), min_pattern=MIN_PATTERN, max_boards=MAX_BOARDS
-            )
-            counts[Path(lefts[index][1]).stem] = len(boards)
-            if best is None or len(boards) > len(best[1]):
-                best = (index, boards)
+            boards = detect(lefts[index][1])
+            score = len(boards)
+            if still_stereo:
+                right = right_of(lefts[index][0])
+                if right is not None and right[1] not in right_cache:
+                    right_cache[right[1]] = detect(right[1])
+                partners = right_cache.get(right[1], []) if right is not None else []
+                score = sum(
+                    stereo_square_size(
+                        b, partners, left_camera, right_camera, rotation, translation
+                    )
+                    is not None
+                    for b in boards
+                )
+                counts[Path(lefts[index][1]).stem] = {"detections": len(boards), "stereo": score}
+            else:
+                counts[Path(lefts[index][1]).stem] = len(boards)
+            if score > best_score:
+                best, best_score = (index, boards), score
         record["boards_per_frame"] = counts
         if best is None or not best[1]:
             record.update(status="no_boards", reason="no board in any still left image")
@@ -362,17 +404,12 @@ def estimate_day(day: str, extract: Path, cam_to_cam: dict[str, FloatArray]) -> 
         index, left_boards = best
         frame_time, frame_name = lefts[index]
         record.update(frame=Path(frame_name).stem, left_boards=len(left_boards))
-        if not rights:
-            record.update(status="no_stereo", reason="no right image")
-            return record
-        right_time, right_name = min(rights, key=lambda item: abs(item[0] - frame_time))
-        if abs(right_time - frame_time) > MAX_STEREO_GAP_S:
+        right = right_of(frame_time)
+        if right is None:
             record.update(status="no_stereo", reason="no right image of the chosen instant")
             return record
-        right_boards = find_boards(
-            _png(archive, right_name), min_pattern=MIN_PATTERN, max_boards=MAX_BOARDS
-        )
-        record["right_boards"] = len(right_boards)
+        right_boards = right_cache.get(right[1]) or detect(right[1])
+        record.update(right_boards=len(right_boards), right_gap_s=abs(right[0] - frame_time))
         scans = [
             (t, n) for t, n in frames(archive, "velodyne_points") if interval[0] <= t <= interval[1]
         ]
@@ -507,6 +544,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--days", nargs="*", default=sorted(CALIBRATION_DRIVES))
     parser.add_argument("--keep-archives", action="store_true")
+    parser.add_argument(
+        "--still-stereo",
+        action="store_true",
+        help="development variant (not the pre-registered harness): pair the stereo images "
+        "over the still interval and choose the frame by boards that triangulate",
+    )
     args = parser.parse_args(argv)
     args.work_dir.mkdir(parents=True, exist_ok=True)
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -516,7 +559,8 @@ def main(argv: list[str] | None = None) -> int:
         with zipfile.ZipFile(calibration) as archive:
             cam_to_cam = calibration_member(archive, "calib_cam_to_cam.txt")
         extract = fetch_extract(day, args.work_dir)
-        record = estimate_day(day, extract, cam_to_cam)
+        record = estimate_day(day, extract, cam_to_cam, still_stereo=args.still_stereo)
+        record["variant"] = "still_stereo (development)" if args.still_stereo else "pre-registered"
         record["calibrex_version"] = __version__
         (args.output_dir / f"{day}_estimate.json").write_text(json.dumps(record, indent=1) + "\n")
         with zipfile.ZipFile(calibration) as archive:
