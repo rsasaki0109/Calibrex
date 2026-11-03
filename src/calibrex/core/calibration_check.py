@@ -371,6 +371,12 @@ class CheckOptions(StrictModel):
         "optima from different search starts differ by more than this (deg) and warn about "
         "it; absent keeps the ordinary rule",
     )
+    board: str | None = Field(
+        default=None,
+        description="camera-lidar judged from a checkerboard held still at several poses "
+        "(COLUMNSxROWSxSQUARE_M: inner corners and square size) instead of edge alignment; "
+        "all six axes, translation included",
+    )
     topic_kinds: dict[str, str] = Field(
         default_factory=dict,
         description="--topic-kind overrides: odometry/twist topic -> wheel or ins",

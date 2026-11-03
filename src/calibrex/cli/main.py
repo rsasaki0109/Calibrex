@@ -3188,6 +3188,15 @@ def _build_parser() -> argparse.ArgumentParser:
         "start (finite T >= 2.5 on every observed rotation axis; default: no extra margin)",
     )
     check.add_argument(
+        "--board",
+        type=_board_spec,
+        default=None,
+        metavar="COLSxROWSxSQUARE_M",
+        help="judge camera-lidar from a recording of a checkerboard held still at several "
+        "poses in view of both sensors, instead of targetless edge alignment: all six axes, "
+        "the translation included; inner corners and square size, for example 7x5x0.08",
+    )
+    check.add_argument(
         "--camera-lidar-start-agreement-deg",
         dest="camera_lidar_start_agreement_deg",
         type=_positive_float,
@@ -4960,6 +4969,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
             camera_lidar_start_scan_min_control_t=args.camera_lidar_start_scan_min_control_t,
             camera_lidar_start_agreement_deg=args.camera_lidar_start_agreement_deg,
             camera_lidar_overlay=bool(args.html),
+            board=args.board,
             rigid_scan_rotation_floor_deg=(
                 args.rigid_scan_rotation_floor_deg
                 if args.rigid_scan_rotation_floor_deg is not None

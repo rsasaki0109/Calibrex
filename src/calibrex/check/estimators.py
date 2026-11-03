@@ -2320,7 +2320,8 @@ def run_gnss_imu(ctx: PairContext) -> EstimatorRun:
 
 CAMERA_LIDAR_TRANSLATION_REASON = (
     "translation is not estimated: the edge objective sees it only through parallax, and on "
-    "the recordings evaluated its estimate differed from the reference by up to 11 cm"
+    "the recordings evaluated its estimate differed from the reference by up to 11 cm; a "
+    "checkerboard recording with --board measures it"
 )
 
 
@@ -2639,7 +2640,15 @@ def run_camera_lidar_board(ctx: PairContext) -> EstimatorRun:
         "distortion_model": model.distortion_model,
         "distortion": list(model.distortion),
     }
-    command = ("calibrex", "estimate", str(ctx.bag), "--board", ctx.controls.board)
+    command = (
+        "calibrex",
+        "check",
+        str(ctx.bag),
+        "--pairs",
+        "camera-lidar",
+        "--board",
+        ctx.controls.board,
+    )
     ctx.controls.progress(
         f"camera-lidar (board {ctx.controls.board}): {image_topic} + {lidar_topic} "
         f"(intrinsics: {intrinsics_source})"
@@ -2659,7 +2668,7 @@ def run_camera_lidar_board(ctx: PairContext) -> EstimatorRun:
             poses=capture.poses,
             capture=capture,
             camera=camera,
-            options={**options.__dict__, "start": "the --tf prior" if from_tree else "axes"},
+            options={**options.__dict__, "start": "frame tree" if from_tree else "lidar axes"},
             provenance={
                 "generator": "calibrex.check (board camera-lidar)",
                 "generator_version": __version__,
@@ -2734,7 +2743,7 @@ def run_camera_lidar_board(ctx: PairContext) -> EstimatorRun:
         f"board {ctx.controls.board}: {used} of {len(artifact.poses)} still pose(s) used "
         f"({artifact.images_with_board or 0} of {artifact.images_searched or 0} searched "
         "image(s) showed the board); the camera frame must be the optical frame (z forward)",
-        "started from the --tf prior"
+        "started from the frame tree's camera-lidar transform (the candidate or --tf prior)"
         if from_tree
         else "started from the LiDAR axes x forward, y left, z up (no --tf prior connects the "
         "frames); unobserved translation keeps the start's value",

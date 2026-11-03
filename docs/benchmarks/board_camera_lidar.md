@@ -115,5 +115,6 @@ boards do not observe are filled from it and marked NOT MEASURED, as for the oth
 ## Next
 
 A real capture tilted up and down as well, to observe the vertical translation and all
-three rotations, and the same option in `calibrex check`, so that a deployed camera-LiDAR
-translation can be checked and not only estimated.
+three rotations. `calibrex check --board` judges a deployed camera-LiDAR transform with the
+same method ([tutorial](../tutorials/calibrex_check.md#camera-lidar-with-a-checkerboard-board));
+on real data it has run only on the ACSC sample above.
