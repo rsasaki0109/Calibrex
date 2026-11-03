@@ -1,0 +1,57 @@
+{
+ "harness": "tools/kitti_board_camera_lidar_evaluate.py",
+ "checkout_commit": "46d2982f08a9a635e8589a39d81bd6cdefd13c2e",
+ "frozen_code_commit": "ee6bc9e3b61dc8b550d3cf81cd082e4bcbb13f76",
+ "started_at": "2026-11-03T10:51:57Z",
+ "finished_at": "2026-11-03T10:56:11Z",
+ "stdout": [
+  "2011_09_26 no_stereo {\"converged\": false, \"accurate\": false, \"check_fail_axes\": null}",
+  "2011_09_28 no_stereo {\"converged\": false, \"accurate\": false, \"check_fail_axes\": null}",
+  "2011_09_29 no_stereo {\"converged\": false, \"accurate\": false, \"check_fail_axes\": null}",
+  "2011_09_30 no_stereo {\"converged\": false, \"accurate\": false, \"check_fail_axes\": null}",
+  "2011_10_03 insufficient_poses {\"converged\": false, \"accurate\": false, \"check_fail_axes\": null}",
+  "{",
+  " \"accuracy\": {",
+  "  \"accurate_days\": [],",
+  "  \"verdict\": \"refuted\"",
+  " },",
+  " \"check_honesty\": {",
+  "  \"converged_days\": [],",
+  "  \"failing_days\": [],",
+  "  \"verdict\": \"refuted\"",
+  " }",
+  "}",
+  "exit=0"
+ ],
+ "post_run_diagnosis": {
+  "note": "read after the run, from the spent recordings' image_00 and image_01 timestamps.txt only (HTTP range)",
+  "nearest_right_image_gap_ms": {
+   "2011_09_26": {
+    "min": 7.9,
+    "median": 8.0,
+    "max": 8.0
+   },
+   "2011_09_28": {
+    "min": 95.5,
+    "median": 95.6,
+    "max": 110.9
+   },
+   "2011_09_29": {
+    "min": 91.9,
+    "median": 92.0,
+    "max": 92.1
+   },
+   "2011_09_30": {
+    "min": 102.3,
+    "median": 102.3,
+    "max": 102.4
+   },
+   "2011_10_03": {
+    "min": 0.0,
+    "median": 0.7,
+    "max": 3.2
+   }
+  },
+  "left_image_period_ms": 207.5
+ }
+}
