@@ -111,6 +111,13 @@ LIDAR_LIDAR_PRIOR_HINT = (
     "comes from the bag"
 )
 
+BOARD_HINT = (
+    "camera-lidar translation: targetless edge alignment does not measure it; record a "
+    "checkerboard held still at a dozen poses in view of both sensors (tilted up and down as "
+    "well as left and right, within about 6 m) and run calibrex estimate <that bag> --board "
+    "COLSxROWSxSQUARE_M"
+)
+
 
 # ----------------------------------------------------------------------- relations
 
@@ -323,7 +330,13 @@ def _pair_record(
         if record.pair in INVERTED_CONVENTION_PAIRS
         else (record.frames[0], record.frames[1])
     )
-    fill: EstimateFill = "prior" if informed else "placeholder_identity"
+    fill: EstimateFill = (
+        "prior"
+        if informed
+        else "board_axes"
+        if outcome.estimator.startswith("planar_board")
+        else "placeholder_identity"
+    )
     usable = status in {"estimated", "partial"}
     pair = EstimatePairRecord.model_validate(
         {
@@ -983,6 +996,11 @@ def next_steps(
     for pair in pairs:
         for text in excitation_hints(pair.pair, [a for a in pair.axes if a.status != "observed"]):
             add(text)
+    for pair in pairs:
+        if pair.pair == "camera-lidar" and not (pair.estimator or "").startswith("planar_board"):
+            translation = [a for a in pair.axes if a.name in TRANSLATION_AXES]
+            if pair.status != "skipped" and not all(a.status == "observed" for a in translation):
+                add(BOARD_HINT)
     return steps
 
 
@@ -1051,12 +1069,14 @@ def build_bag_estimate(
         if record.pair not in NOT_ESTIMATED_PAIRS
     ]
 
+    # a board needs only the LiDAR's axes to start from, not a prior
+    needs_guess = NEEDS_INITIAL_GUESS - ({"camera-lidar"} if run.board is not None else set())
     informed: dict[tuple[str, tuple[str, ...]], bool] = {}
     gated: list[CheckPairRecord] = []
     for record in plan:
         is_informed = len(record.frames) == 2 and prior.connected(*record.frames)
         informed[(record.pair, tuple(record.frames))] = is_informed
-        if record.status == "planned" and record.pair in NEEDS_INITIAL_GUESS and not is_informed:
+        if record.status == "planned" and record.pair in needs_guess and not is_informed:
             record = _skipped(
                 record,
                 "no_candidate_calibration",
@@ -1178,6 +1198,7 @@ def build_bag_estimate(
             camera_lidar_motion=run.camera_lidar_motion,
             camera_lidar_start_scan_min_control_t=run.camera_lidar_start_scan_min_control_t,
             camera_lidar_start_agreement_deg=run.camera_lidar_start_agreement_deg,
+            board=run.board,
             topic_kinds=dict(topic_kinds or {}),
             frame_map=overrides,
         ),

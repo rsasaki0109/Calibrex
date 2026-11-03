@@ -3275,7 +3275,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "For a bag with no calibration yet: run the native estimators of calibrex check "
             "(imu-lidar, camera-imu, the GNSS pairs, and with --vehicle-frame the "
             "ground-vehicle pairs; lidar-lidar and camera-lidar need a rough --tf prior to start "
-            "from) and "
+            "from, camera-lidar with --board a checkerboard recording instead) and "
             "keep their estimates, each axis with its standard deviation and whether the data "
             "observed it. Writes bag_estimate.json (slac.bag_estimate/v0.1) and, for the "
             "frames whose six axes are observed (or filled from a --tf prior and marked), a "
@@ -3304,6 +3304,16 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="PAIR[,PAIR]",
         help="estimate only these pairs, for example imu-lidar,camera-imu (default: every "
         "pair with an estimator)",
+    )
+    estimate.add_argument(
+        "--board",
+        type=_board_spec,
+        default=None,
+        metavar="COLSxROWSxSQUARE_M",
+        help="measure camera-lidar (all six axes, translation included) from a checkerboard "
+        "held still at several poses in view of both sensors, instead of targetless edge "
+        "alignment: inner corners and square size, for example 7x5x0.08; needs no --tf "
+        "prior when the LiDAR is mounted x forward, z up (otherwise give one)",
     )
     estimate.add_argument(
         "--output",
@@ -4712,6 +4722,16 @@ _ESTIMATE_SHARED_DESTS = frozenset(
 )
 
 
+def _board_spec(text: str) -> str:
+    from calibrex.evaluation.board_camera_lidar import Checkerboard
+
+    try:
+        board = Checkerboard.parse(text)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+    return f"{board.columns}x{board.rows}x{board.square_m:g}"
+
+
 def _cmd_estimate(args: argparse.Namespace) -> int:
     from calibrex.check.cache import default_cache_dir
     from calibrex.check.estimate import (
@@ -4747,6 +4767,7 @@ def _cmd_estimate(args: argparse.Namespace) -> int:
         camera_lidar_motion=args.camera_lidar_motion,
         camera_lidar_start_scan_min_control_t=args.camera_lidar_start_scan_min_control_t,
         camera_lidar_start_agreement_deg=args.camera_lidar_start_agreement_deg,
+        board=args.board,
         evidence_dir=output_dir / "evidence",
         base_dir=output_dir,
         cache_dir=None

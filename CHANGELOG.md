@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- `calibrex estimate --board COLSxROWSxSQUARE_M` measures camera-lidar from a checkerboard
+  held still at several poses, all six axes including the translation that targetless edge
+  alignment cannot measure. `calibrex.evaluation.board_camera_lidar_bag` finds the still
+  poses in the images (the board's centre within 1 cm and normal within 0.5 deg for a second
+  or more) and accumulates the LiDAR scans of each; no `--tf` prior is needed for a LiDAR
+  mounted x forward, z up. The evidence is a new `slac.board_camera_lidar/v0.1` artifact
+  (board, poses with their plane residuals, axes with leave-one-pose-out stds); the
+  `slac.bag_estimate` options record `board`. Without `--board`, `estimate` now suggests
+  it for the camera-lidar translation. The ACSC sample packed into a bag gives the library's
+  result exactly ([board camera-LiDAR](docs/benchmarks/board_camera_lidar.md)).
 - Add `calibrex.evaluation.board_camera_lidar`: `T_camera_lidar` from a checkerboard held at
   several poses. The camera's board plane comes from its corners (PnP on undistorted
   corners), the LiDAR's from a RANSAC plane cropped around the board the camera saw and
@@ -11,7 +21,6 @@
   observed; every axis gets a jackknife std. On the ACSC sample (development data, boards
   turned left and right only) x, z and pitch are observed (1.6 cm, 0.8 cm, 0.30 deg) and
   the vertical translation is not ([board camera-LiDAR](docs/benchmarks/board_camera_lidar.md)).
-  Library only; a bag front end and `calibrex estimate --board` come next.
 - `calibrex estimate` writes `fast_lio_extrinsics.yaml` when an IMU-LiDAR edge is exported:
   `mapping.extrinsic_R`/`extrinsic_T` (the LiDAR in the IMU frame) for FAST-LIO, FAST-LIO2,
   Point-LIO and FAST-LIVO, FAST-LIVO's `camera.Rcl`/`Pcl` when a camera is exported too,

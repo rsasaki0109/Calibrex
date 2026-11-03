@@ -241,7 +241,10 @@ def _pair_block(
     if pair.fill:
         facts.append(
             "non-observed axes filled from "
-            + ("the <code>--tf</code> prior" if pair.fill == "prior" else "an identity placeholder")
+            + {
+                "prior": "the <code>--tf</code> prior",
+                "board_axes": "the LiDAR axes (x forward, z up) the board solve started from",
+            }.get(pair.fill, "an identity placeholder")
         )
     if pair.runtime_s is not None:
         facts.append(f"runtime {pair.runtime_s:.1f} s")

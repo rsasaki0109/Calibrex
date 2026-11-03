@@ -626,6 +626,11 @@ _ENTRY_SPECS: Final = (
         "calibrex.core.camera_lidar_edge:camera_lidar_edge_json_schema",
     ),
     _EntrySpec(
+        "board-camera-lidar",
+        "calibrex.core.board_camera_lidar:BoardCameraLidarArtifact",
+        "calibrex.core.board_camera_lidar:board_camera_lidar_json_schema",
+    ),
+    _EntrySpec(
         "calibration-check",
         "calibrex.core.calibration_check:CalibrationCheckArtifact",
         "calibrex.core.calibration_check:calibration_check_json_schema",

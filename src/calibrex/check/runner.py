@@ -217,6 +217,9 @@ class CheckRunOptions:
     """Experimental: withhold and warn on camera-LiDAR axes where search starts disagree."""
     camera_lidar_overlay: bool = False
     """Write camera-lidar overlay images to the evidence directory (``check --html``)."""
+    board: str | None = None
+    """camera-lidar from a checkerboard held still at several poses (``COLUMNSxROWSxSQUARE_M``,
+    inner corners and square size) instead of targetless edge alignment."""
     edge_preparation_cache: EdgePreparationCache | None = field(
         default=None, repr=False, compare=False
     )
@@ -478,6 +481,7 @@ def _run_pairs(
         camera_lidar_start_scan_min_control_t=run.camera_lidar_start_scan_min_control_t,
         camera_lidar_start_agreement_deg=run.camera_lidar_start_agreement_deg,
         camera_lidar_overlay=run.camera_lidar_overlay,
+        board=run.board,
         frame_tree=frame_tree,
         progress=progress,
         cache=EstimatorCache(run.cache_dir) if run.cache_dir is not None else None,

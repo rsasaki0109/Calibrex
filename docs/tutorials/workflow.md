@@ -109,6 +109,25 @@ from a `--tf` prior; camera-IMU needs the intrinsics (a `CameraInfo` topic or a 
 Real-data results, with the failures: [`calibrex estimate` on real
 data](../benchmarks/estimate_real_data.md).
 
+### Camera-LiDAR translation from a checkerboard (`--board`)
+
+Targetless camera-lidar edge alignment estimates only the rotation. For the lever arm, record
+a checkerboard held still at a dozen poses in view of both sensors (about two seconds per
+pose, the board tilted up and down as well as left and right, within about 6 m) and give its
+inner corners and square size:
+
+```bash
+calibrex estimate board_bag/ --board 7x5x0.08 --pairs camera-lidar --output est_board/
+```
+
+The images find the still poses; the LiDAR scans recorded during each are accumulated (a
+Livox needs several to cover the board). Each axis is reported with a leave-one-pose-out std,
+and an axis the poses do not observe (the vertical translation when the board was only turned
+left and right) keeps its start value and is reported as such, not as measured. No `--tf` is
+needed when the LiDAR is mounted x forward, z up; otherwise give a rough one. The camera frame
+must be the optical frame. Method and the first real data:
+[camera-LiDAR from a checkerboard](../benchmarks/board_camera_lidar.md).
+
 ## 2. Check on another recording
 
 Deploy the estimate (`est/static_transforms.sh`, the launch file or the URDF joints), then verify it

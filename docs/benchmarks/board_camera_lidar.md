@@ -98,8 +98,22 @@ What this shows:
 **For a capture:** tilt the board up and down as well as left and right, keep it within
 about 6 m, hold it still, and use a dozen or more poses.
 
+## The same poses through `calibrex estimate --board`
+
+`calibrex.evaluation.board_camera_lidar_bag` finds the poses in a bag: images searched four
+times a second, a pose wherever the board's centre stays within 1 cm and its normal within
+0.5 deg for a second or more, and the LiDAR scans stamped inside that, less 0.2 s at either
+end, accumulated. The 21 ACSC poses were packed into a rosbag2 for it: each pose as four
+identical PNG images over 1.2 s (`CompressedImage`, with a `CameraInfo` holding the sample's
+intrinsics) and its cloud split into ten `PointCloud2` scans inside the hold, then one second
+without data. `calibrex estimate BAG --board 7x5x0.08 --pairs camera-lidar` (no `--tf`)
+found 21 still poses and gave the result above to the last digit: the same axes observed,
+x 13.27 cm and z 15.22 cm with the same stds. Without a prior that connects the two frames,
+the pair is `partial` and no frame is exported; with a rough `--tf` prior, the axes the
+boards do not observe are filled from it and marked NOT MEASURED, as for the other pairs.
+
 ## Next
 
-Reading the board poses from a bag (static segments of the board in the images, the LiDAR
-scans of each segment) and giving `calibrex estimate` a `--board` option, so the board result
-fills the camera-LiDAR translation that the targetless pair cannot measure.
+A real capture tilted up and down as well, to observe the vertical translation and all
+three rotations, and the same option in `calibrex check`, so that a deployed camera-LiDAR
+translation can be checked and not only estimated.

@@ -96,6 +96,7 @@ ValidationKind = Literal[
     "camera-focal-scale",
     "stereo-rotation",
     "camera-lidar-edge",
+    "board-camera-lidar",
     "calibration-check",
     "bag-estimate",
     "calibration-drift",
