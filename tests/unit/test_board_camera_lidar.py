@@ -200,3 +200,55 @@ def test_too_few_poses_give_no_solution() -> None:
     rng = np.random.default_rng(4)
     result = calibrate_board(_poses([(-20.0, 10.0), (20.0, -10.0)], rng), BOARD, ROUGH)
     assert result.status == "insufficient_poses" and result.transform_camera_lidar is None
+
+
+def _scan_with_wall_behind(rotation, translation, rng, gap_m: float = 0.12) -> np.ndarray:
+    """A board 15 cm wide of white border and, gap_m behind it, a parallel wall twice as dense.
+
+    Only the wall around the board is seen (the board hides the wall behind itself).
+    """
+
+    (x0, y0), (x1, y1) = BOARD.squares_extent()
+    board = np.array(
+        [
+            [x, y, 0.0]
+            for x in np.arange(x0 - 0.05, x1 + 0.05, 0.015)
+            for y in np.arange(y0 - 0.05, y1 + 0.05, 0.015)
+        ]
+    )
+    wall = np.array(
+        [
+            [x, y, gap_m]
+            for x in np.arange(x0 - 0.6, x1 + 0.6, 0.01)
+            for y in np.arange(y0 - 0.6, y1 + 0.6, 0.01)
+            if not (x0 - 0.05 <= x <= x1 + 0.05 and y0 - 0.05 <= y <= y1 + 0.05)
+        ]
+    )
+    points = np.vstack([board, wall]) @ rotation.T + translation
+    points += rotation[:, 2] * rng.normal(0.0, 0.003, (len(points), 1))
+    return (points - TRUE[:3, 3]) @ TRUE[:3, :3]
+
+
+def test_a_wall_close_behind_the_boards_is_not_taken_for_them() -> None:
+    """Boards on stands before a wall (KITTI's calibration scene): the wall around a board
+    is in its margin and outnumbers it, but not in its inner-corner area."""
+
+    rng = np.random.default_rng(8)
+    poses = []
+    for index, (yaw, pitch) in enumerate(
+        (y, p) for y in (-30.0, 0.0, 30.0) for p in (-25.0, 0.0, 25.0)
+    ):
+        centre = (rng.uniform(-0.4, 0.4), rng.uniform(-0.2, 0.2), rng.uniform(2.0, 3.5))
+        rotation, translation = _board_pose(yaw, pitch, centre)
+        view = detect_board(_render(rotation, translation), BOARD, CAMERA)
+        assert view is not None
+        poses.append(
+            BoardPose(f"{index:02d}", view, _scan_with_wall_behind(rotation, translation, rng))
+        )
+
+    result = calibrate_board(poses, BOARD, ROUGH)
+
+    assert result.status == "converged" and result.transform_camera_lidar is not None
+    error = Rotation.from_matrix(result.transform_camera_lidar[:3, :3] @ TRUE[:3, :3].T)
+    assert math.degrees(error.magnitude()) < 0.3
+    np.testing.assert_allclose(result.transform_camera_lidar[:3, 3], TRUE[:3, 3], atol=0.01)

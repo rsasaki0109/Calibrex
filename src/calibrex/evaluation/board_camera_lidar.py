@@ -268,8 +268,9 @@ def extract_board_plane(
 
     Points are mapped into the camera frame with ``t_camera_lidar`` and then into the
     board frame; those within ``margin_m`` of the squares and ``gate_m`` of the board
-    plane are candidates. The plane with most inliers within ``inlier_m`` (RANSAC) is
-    refined by least squares to a fixed point, keeping the points within
+    plane are candidates. RANSAC takes the plane with most inliers within ``inlier_m``
+    inside the inner-corner area (where the board hides what is behind it), then most
+    inliers overall; it is refined by least squares to a fixed point, keeping the points within
     ``max(inlier_m, 3 sigma)`` of it (sigma from the median absolute residual). ``None``
     when too few points fit, or when the plane turns more than ``max_normal_deg`` away
     from the board the camera saw.
@@ -289,8 +290,18 @@ def extract_board_plane(
     candidates = points[keep]
     if len(candidates) < min_inliers:
         return None
+    # The board hides what is behind it, so a plane with points inside the inner-corner
+    # area is the board's, and the wall, floor or stand around a board (which the margin
+    # lets in, and which can outnumber it) has none there: RANSAC scores a plane by its
+    # inliers inside that area first, by all its inliers second.
+    inner = (
+        (in_board[keep, 0] > x0 + board.square_m)
+        & (in_board[keep, 0] < x1 - board.square_m)
+        & (in_board[keep, 1] > y0 + board.square_m)
+        & (in_board[keep, 1] < y1 - board.square_m)
+    )
     rng = np.random.default_rng(seed)
-    best_count, best = 0, None
+    best_score, best_count, best = (0, 0), 0, None
     for _ in range(iterations):
         sample = candidates[rng.choice(len(candidates), 3, replace=False)]
         normal = np.cross(sample[1] - sample[0], sample[2] - sample[0])
@@ -298,9 +309,11 @@ def extract_board_plane(
         if length < 1.0e-9:
             continue
         normal /= length
-        count = int(np.count_nonzero(np.abs((candidates - sample[0]) @ normal) < inlier_m))
-        if count > best_count:
-            best_count, best = count, (normal, sample[0])
+        fits = np.abs((candidates - sample[0]) @ normal) < inlier_m
+        count = int(np.count_nonzero(fits))
+        score = (int(np.count_nonzero(fits & inner)), count)
+        if score > best_score:
+            best_score, best_count, best = score, count, (normal, sample[0])
     if best is None or best_count < min_inliers:
         return None
     normal, origin = best
