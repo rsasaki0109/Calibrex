@@ -966,6 +966,64 @@ def _camera_info_topic(ctx: PairContext, image_topic: str) -> str | None:
     return None
 
 
+def _fast_livo_camera_intrinsics(
+    ctx: PairContext, image_topic: str, camera_frame: str
+) -> tuple[CameraModel, str, str] | None:
+    """Intrinsics of a FAST-LIVO camera file for the camera of a FAST-LIVO config.
+
+    The vikit file names no topic or frame, so it applies only when the ``--tf``
+    sources hold one FAST-LIVO camera (a ``fast_lio_config`` LiDAR-camera edge) and
+    one camera file. The intrinsics are scaled to the first image's size.
+    """
+
+    from calibrex.check.tf_sources import (
+        FAST_LIO_LIDAR_FRAME,
+        scale_camera_entry,
+        vikit_camera_entry,
+    )
+    from calibrex.evaluation.visual_rotation import CameraModel
+
+    files = [s for s in ctx.sources if s.kind == "vikit_camera" and s.path is not None]
+    frames = {
+        edge.child
+        for source in ctx.sources
+        if source.kind == "fast_lio_config"
+        for edge in source.edges
+        if edge.parent == FAST_LIO_LIDAR_FRAME
+    }
+    if not files or camera_frame not in frames:
+        return None
+    if len(files) > 1 or len(frames) > 1:
+        raise CheckSkipError(
+            "missing_intrinsics",
+            f"{len(files)} FAST-LIVO camera file(s) for {len(frames)} FAST-LIVO camera(s): "
+            "give one camera file with one FAST-LIVO config, or a Kalibr camchain per camera",
+        )
+    path = files[0].path
+    assert path is not None
+    width, height = _first_image_size(ctx, image_topic)
+    try:
+        entry, scale = scale_camera_entry(vikit_camera_entry(path), width, height)
+    except ValueError as exc:
+        raise CheckSkipError("missing_intrinsics", f"{path.name}: {exc}") from exc
+    note = "" if scale == 1.0 else f" (scaled x{scale:g} to {width}x{height})"
+    return CameraModel.from_kalibr(entry), f"{path.name}{note}", ""
+
+
+def _first_image_size(ctx: PairContext, image_topic: str) -> tuple[int, int]:
+    """``(width, height)`` of the first image on a topic."""
+
+    from calibrex.data.ros2_camera_imu import decode_gray_message
+    from calibrex.data.rosbag2 import iter_topic_messages
+
+    for connection, timestamp_ns, payload in iter_topic_messages(ctx.bag, image_topic, limit=1):
+        _stamp, _frame, gray = decode_gray_message(
+            connection.message_type, image_topic, timestamp_ns, payload
+        )
+        return int(gray.shape[1]), int(gray.shape[0])
+    raise CheckSkipError("missing_topic", f"{image_topic} has no images")
+
+
 def resolve_camera_intrinsics(
     ctx: PairContext, image_topic: str, camera_frame: str
 ) -> tuple[CameraModel, str, str]:
@@ -986,6 +1044,9 @@ def resolve_camera_intrinsics(
                         "missing_intrinsics", f"{source.path.name} {key}: {exc}"
                     ) from exc
                 return model, f"{source.path.name} {key}", key
+    fast_livo = _fast_livo_camera_intrinsics(ctx, image_topic, camera_frame)
+    if fast_livo is not None:
+        return fast_livo
     info_topic = _camera_info_topic(ctx, image_topic)
     if info_topic is not None:
         rectified = is_rectified_image_topic(image_topic)

@@ -615,3 +615,102 @@ def test_livox_topics_map_to_the_config_frames_without_frame_map(tmp_path: Path)
         ("imu", "source_topic_hint"),
         ("left_camera/image", "source_topic_hint"),
     ]
+
+
+# ------------------------------------------------- FAST-LIVO camera file (vikit)
+
+# FAST-LIVO's config/camera_pinhole.yaml: the hku1/hku2 camera at 640 x 512.
+FAST_LIVO_CAMERA = """\
+cam_model: Pinhole
+cam_width: 640
+cam_height: 512
+cam_fx: 431.795259219
+cam_fy: 431.550090267
+cam_cx: 310.833037316
+cam_cy: 266.985989326
+cam_d0: -0.0944205499243979
+cam_d1: 0.0946727677776504
+cam_d2: -0.00807970960613932
+cam_d3: 8.07461209775283e-05
+"""
+
+
+def test_a_fast_livo_camera_file_is_a_source_without_frames(tmp_path: Path) -> None:
+    source = load_tf_file(_write(tmp_path / "camera_pinhole.yaml", FAST_LIVO_CAMERA))
+
+    assert source.kind == "vikit_camera"
+    assert source.edges == ()
+    assert any("640x512" in note for note in source.notes)
+
+
+def test_scaling_matches_the_hand_doubled_camchain(tmp_path: Path) -> None:
+    """The hku1/hku2 camchain doubled these intrinsics for the 1280 x 1024 JPEGs."""
+
+    from calibrex.check.tf_sources import scale_camera_entry, vikit_camera_entry
+
+    entry = vikit_camera_entry(_write(tmp_path / "camera_pinhole.yaml", FAST_LIVO_CAMERA))
+    scaled, scale = scale_camera_entry(entry, 1280, 1024)
+
+    assert scale == 2.0
+    assert scaled["intrinsics"] == pytest.approx(
+        [863.590518438, 863.100180534, 622.166074632, 534.471978652]
+    )
+    assert scaled["distortion_coeffs"] == entry["distortion_coeffs"]
+    assert scale_camera_entry(entry, 640, 512)[0]["intrinsics"] == entry["intrinsics"]
+    with pytest.raises(ValueError, match="another aspect ratio"):
+        scale_camera_entry(entry, 1280, 720)
+
+
+def test_a_camera_file_with_another_model_is_rejected(tmp_path: Path) -> None:
+    path = _write(tmp_path / "camera.yaml", FAST_LIVO_CAMERA.replace("Pinhole", "ATAN"))
+    with pytest.raises(DatasetError, match="only Pinhole"):
+        load_tf_file(path)
+
+
+def _image_bag(path: Path, width: int, height: int) -> Path:
+    import numpy as np
+
+    from calibrex.data.ros_cdr_writer import encode_compressed_image
+    from calibrex.data.rosbag2_writer import Rosbag2Writer
+    from calibrex.visualization.camera_lidar_check_overlay import encode_png
+
+    png = encode_png(np.zeros((height, width, 3), dtype=np.uint8))
+    with Rosbag2Writer(path) as writer:
+        writer.add_topic("/left_camera/image/compressed", "sensor_msgs/msg/CompressedImage")
+        writer.write(
+            "/left_camera/image/compressed",
+            10**9,
+            encode_compressed_image(frame_id="", timestamp_ns=10**9, format="png", data=png),
+        )
+    return path
+
+
+def test_the_fast_livo_camera_gets_the_camera_file_scaled_to_its_images(tmp_path: Path) -> None:
+    pytest.importorskip("PIL.Image")
+    from calibrex.check import estimators
+
+    config = load_tf_file(_write(tmp_path / "avia.yaml", FAST_LIVO_AVIA))
+    camera = load_tf_file(
+        _write(
+            tmp_path / "camera.yaml",
+            FAST_LIVO_CAMERA.replace("640", "32").replace("512", "24"),
+        )
+    )
+    topic = "/left_camera/image/compressed"
+    ctx = estimators.PairContext(
+        bag=_image_bag(tmp_path / "bag", 64, 48),
+        pair=None,  # type: ignore[arg-type]
+        topic_types={topic: "sensor_msgs/msg/CompressedImage"},
+        sensor_topics={"camera": (topic,)},
+        candidate=IDENTITY,  # type: ignore[arg-type]
+        sources=[config, camera],
+        controls=estimators.RunControls(),
+    )
+
+    model, description, _ = estimators.resolve_camera_intrinsics(ctx, topic, "left_camera/image")
+
+    assert description == "camera.yaml (scaled x2 to 64x48)"
+    assert (model.fx, model.cx) == pytest.approx((2 * 431.795259219, 2 * 310.833037316 + 0.5))
+    # a camera the FAST-LIVO config does not name is left to the other sources
+    with pytest.raises(estimators.CheckSkipError, match="no intrinsics"):
+        estimators.resolve_camera_intrinsics(ctx, topic, "other_camera")

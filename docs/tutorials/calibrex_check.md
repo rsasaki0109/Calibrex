@@ -97,7 +97,8 @@ its SHA-256 (for `/tf_static`, the hash of the raw messages read).
 | Kalibr camchain-imucam | `camN.T_cam_imu` is inverted to `T_imu_cam`. The IMU frame is named `imu`; camera frames take their `rostopic` as name, which also maps the topic to its frame. |
 | RTK-SLAM `calib.yaml` | Camera as Kalibr; `lidarN.T_lidar_imu` is read as the repository reads it (LiDAR points into the IMU frame); the GNSS antenna CAD offset becomes a `gnss_antenna` frame with identity rotation. `base_center` is not turned into a vehicle frame. |
 | Hilti `lidar_calibration.yaml` | `sensors: {name: {parent, extrinsics: {quaternion, translation}}}`. The quaternion order is x, y, z, w (the identity `imu` entry is `[0, 0, 0, 1]`). |
-| FAST-LIO-family config (FAST-LIO, FAST-LIO2, Point-LIO, FAST-LIVO, FAST-LIVO2) | `extrinsic_R`, `extrinsic_T` under `mapping` (FAST-LIVO2: `extrin_calib`) are the LiDAR in the IMU frame, `T_imu_lidar`; the frames are named `imu` and `lidar`, and `common.lid_topic`, `imu_topic` map the topics to them, so a Livox bag whose LiDAR and IMU share one header frame needs no `--frame-map` (unless another source defines that frame). FAST-LIVO's `Rcl`, `Pcl` (under `camera` or `extrin_calib`) map LiDAR points into the camera, `T_cam_lidar`; the camera frame is named after `img_topic`. Intrinsics are not read from FAST-LIVO's camera file; give them as a Kalibr camchain, which may hold `intrinsics` and `rostopic` without `T_cam_imu`. With `extrinsic_est_en: true` the file holds FAST-LIO's initial value, not the refined one. |
+| FAST-LIO-family config (FAST-LIO, FAST-LIO2, Point-LIO, FAST-LIVO, FAST-LIVO2) | `extrinsic_R`, `extrinsic_T` under `mapping` (FAST-LIVO2: `extrin_calib`) are the LiDAR in the IMU frame, `T_imu_lidar`; the frames are named `imu` and `lidar`, and `common.lid_topic`, `imu_topic` map the topics to them, so a Livox bag whose LiDAR and IMU share one header frame needs no `--frame-map` (unless another source defines that frame). FAST-LIVO's `Rcl`, `Pcl` (under `camera` or `extrin_calib`) map LiDAR points into the camera, `T_cam_lidar`; the camera frame is named after `img_topic`. The camera's intrinsics come from FAST-LIVO's camera file (next row), a Kalibr camchain, which may hold `intrinsics` and `rostopic` without `T_cam_imu`, or `CameraInfo`. With `extrinsic_est_en: true` the file holds FAST-LIO's initial value, not the refined one. |
+| FAST-LIVO camera file (vikit `Pinhole`) | `cam_width`, `cam_height`, `cam_fx`, `cam_fy`, `cam_cx`, `cam_cy` and the radial-tangential `cam_d0`-`cam_d3` (`cam_d4`). The file names no topic, so it gives the intrinsics of the camera of a FAST-LIVO config given with it (one camera file per FAST-LIVO camera). They are scaled to the recorded images when those keep the aspect ratio (`f' = k f`, `c' = k (c + 0.5) - 0.5`); FAST-LIVO's own `scale` is not applied. |
 
 Transforms follow `T_parent_child`. A pair named `A-B` carries `T_A_B` composed
 through the tree.
@@ -1945,18 +1946,18 @@ calibrex check hku2 --tf fastlivo_camchain.yaml --tf fastlivo_frames.yaml \
   --frame-map /livox/imu=imu --html check.html
 ```
 
-FAST-LIVO's own `config/avia.yaml` can now be given directly. It names the frames `imu`,
-`lidar` and `left_camera/image` and maps `/livox/lidar` and `/livox/imu` to them, so no
-`--frame-map` is needed; the intrinsics come from a camchain holding only `cam0`'s
-`intrinsics`, distortion, resolution and `rostopic` (no `T_cam_imu`):
+FAST-LIVO's own `config/avia.yaml` and `config/camera_pinhole.yaml` can now be given
+directly. The config names the frames `imu`, `lidar` and `left_camera/image` and maps
+`/livox/lidar` and `/livox/imu` to them, so no `--frame-map` is needed; the camera file's
+640 x 512 intrinsics are scaled x2 to the 1280 x 1024 JPEGs:
 
 ```bash
-calibrex check hku2 --tf avia.yaml --tf left_camera_intrinsics.yaml --html check.html
+calibrex check hku2 --tf avia.yaml --tf camera_pinhole.yaml --html check.html
 ```
 
 On `hku2` this gives the same `camera-lidar` and `imu-lidar` results as the hand-built files
 (`imu-lidar` roll −1.06, pitch −1.00, yaw +0.21 deg, clock offset 7.1 ms; `camera-lidar`
-roll −0.20, pitch 0.05, yaw 0.25 deg).
+roll −0.20, pitch 0.05, yaw 0.25 deg, from the same 63131 edge points).
 
 | Pair | `hku1` | `hku2` |
 | --- | --- | --- |
