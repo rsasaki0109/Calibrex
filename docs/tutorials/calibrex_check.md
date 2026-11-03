@@ -1945,6 +1945,19 @@ calibrex check hku2 --tf fastlivo_camchain.yaml --tf fastlivo_frames.yaml \
   --frame-map /livox/imu=imu --html check.html
 ```
 
+FAST-LIVO's own `config/avia.yaml` can now be given directly. It names the frames `imu`,
+`lidar` and `left_camera/image` and maps `/livox/lidar` and `/livox/imu` to them, so no
+`--frame-map` is needed; the intrinsics come from a camchain holding only `cam0`'s
+`intrinsics`, distortion, resolution and `rostopic` (no `T_cam_imu`):
+
+```bash
+calibrex check hku2 --tf avia.yaml --tf left_camera_intrinsics.yaml --html check.html
+```
+
+On `hku2` this gives the same `camera-lidar` and `imu-lidar` results as the hand-built files
+(`imu-lidar` roll −1.06, pitch −1.00, yaw +0.21 deg, clock offset 7.1 ms; `camera-lidar`
+roll −0.20, pitch 0.05, yaw 0.25 deg).
+
 | Pair | `hku1` | `hku2` |
 | --- | --- | --- |
 | `camera-lidar` | `pass`: roll 0.25, pitch 0.05, yaw 0.10 deg (tolerance 0.5) | `pass`: roll 0.20, pitch 0.05, yaw 0.25 deg |
