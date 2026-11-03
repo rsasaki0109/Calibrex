@@ -10,6 +10,8 @@ from calibrex.cli.main import main
 from calibrex.core.lidar_wheel_odometry import load_lidar_wheel_odometry
 from calibrex.core.validation import validate_file
 from calibrex.solvers.lidar_wheel_solver import (
+    CHECK_MIN_SPEED_MPS,
+    LidarWheelOptions,
     WheelOdometry,
     parse_wheel_csv,
     solve_lidar_wheel,
@@ -31,7 +33,13 @@ def yaw_rate(time: np.ndarray) -> np.ndarray:
     return 0.15 * np.sin(0.2 * time) + 0.05 * np.sin(1.1 * time)
 
 
-def drive(seed: int = 0) -> tuple[np.ndarray, list[np.ndarray], WheelOdometry]:
+def robot_speed(time: np.ndarray) -> np.ndarray:
+    return 1.2 + 0.3 * np.sin(0.05 * time) + 0.2 * np.sin(0.7 * time)
+
+
+def drive(
+    seed: int = 0, r_vs: np.ndarray = TRUE_R_VS, speed=speed
+) -> tuple[np.ndarray, list[np.ndarray], WheelOdometry]:
     rng = np.random.default_rng(seed)
     fine = np.arange(0.0, 120.0, 0.001)
     heading = np.concatenate(
@@ -51,7 +59,7 @@ def drive(seed: int = 0) -> tuple[np.ndarray, list[np.ndarray], WheelOdometry]:
         ).as_matrix()
         vehicle[:3, 3] = [x[i], y[i], 0.0]
         sensor = np.eye(4)
-        sensor[:3, :3] = TRUE_R_VS
+        sensor[:3, :3] = r_vs
         sensor[:3, 3] = LEVER
         noise = np.eye(4)
         noise[:3, :3] = Rotation.from_rotvec(rng.normal(0, 0.0003, 3)).as_matrix()
@@ -77,6 +85,25 @@ def test_recovers_rotation_scale_offset_and_lever() -> None:
     assert result.time_offset_s == pytest.approx(OFFSET, abs=0.005)
     assert result.lever_m == pytest.approx(LEVER[0], abs=0.1)
     assert np.all(np.isfinite(wheel_std(result)))
+
+
+def test_an_upside_down_lidar_on_a_slow_robot() -> None:
+    """NCLT's Segway: the LiDAR mounted upside down, driving at about 1.2 m/s.
+
+    The LiDAR's motion gives the turning axis but not which way is up; the wheel yaw rate
+    decides it, so the sensor's own z pointing down does not turn the answer by 180 deg.
+    """
+
+    upside_down = TRUE_R_VS @ np.diag([1.0, -1.0, -1.0])
+    times, poses, wheel = drive(r_vs=upside_down, speed=robot_speed)
+    options = LidarWheelOptions(min_speed_mps=CHECK_MIN_SPEED_MPS)
+    result = solve_lidar_wheel(motions_from_poses(times, poses), wheel, options=options)
+
+    assert result.rotation is not None
+    error = Rotation.from_matrix(result.rotation @ upside_down.T).magnitude()
+    assert np.degrees(error) < 0.2
+    assert result.speed_scale == pytest.approx(SCALE, abs=0.01)
+    assert result.time_offset_s == pytest.approx(OFFSET, abs=0.02)
 
 
 def test_parse_wheel_csv_accepts_headers_and_sorts() -> None:

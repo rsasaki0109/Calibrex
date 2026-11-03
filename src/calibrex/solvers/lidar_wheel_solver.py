@@ -54,11 +54,19 @@ class WheelOdometry:
         )
 
 
+CHECK_MIN_SPEED_MPS = 0.5
+"""The speed gate of ``calibrex check``: ten times ``velocity_sigma_mps``, so the forward
+direction of a kept motion is within about 6 deg. A wheeled robot such as NCLT's Segway
+drives at 1-1.5 m/s and would keep almost no motion at 2 m/s."""
+
+
 @dataclass(frozen=True)
 class LidarWheelOptions:
     """Noise model and bounds."""
 
     min_speed_mps: float = 2.0
+    """Motions slower than this are left out. 2 m/s suits cars (and is what the frozen KITTI
+    benchmarks ran with); ``calibrex check`` uses ``CHECK_MIN_SPEED_MPS`` for robots."""
     velocity_sigma_mps: float = 0.05
     velocity_sigma_fraction: float = 0.01
     rate_sigma_rps: float = 0.01
@@ -180,8 +188,8 @@ def solve_lidar_wheel(
     if len(moving) < 10:
         return LidarWheelResult("insufficient_motions", None, None, None, None, None, len(moving))
     base = initial if initial is not None else initial_vehicle_rotation(moving)
-    if initial is None and base[2, 2] < 0.0:
-        base = np.diag([1.0, -1.0, -1.0]) @ base
+    if initial is None:
+        base = _orient_up(moving, wheel, base)
     bound = opts.time_offset_bound_s
     lower = np.array([-np.inf] * 4 + [0.5, -bound])
     upper = np.array([np.inf] * 4 + [1.5, bound])
@@ -214,6 +222,32 @@ def solve_lidar_wheel(
         covariance,
         len(moving),
     )
+
+
+MIN_TURN_RATE_RPS = 0.05
+"""Wheel yaw rates at least this large (about 3 deg/s) decide which way the vehicle's up is."""
+
+
+def _orient_up(
+    moving: Sequence[VehicleMotion], wheel: WheelOdometry, base: FloatArray
+) -> FloatArray:
+    """Turn ``base`` so the LiDAR's yaw rate about its up axis agrees with the wheels' in sign.
+
+    The LiDAR's motion gives the turning axis but not which way along it is up. The wheel
+    yaw rate does: a left turn is positive about up. (Without turns, the up axis is taken
+    to have a positive component along the sensor's z, which assumes an upright sensor: an
+    upside-down LiDAR, as on NCLT's Segway, would come out turned by 180 deg.)
+    """
+
+    middle = np.array([0.5 * (item.start_s + item.end_s) for item in moving])
+    _speed, yaw_rate = wheel.at(middle)
+    lidar_yaw = np.array([item.angular_rate_rps for item in moving]) @ base[2]
+    turning = np.abs(yaw_rate) >= MIN_TURN_RATE_RPS
+    flip = np.diag([1.0, -1.0, -1.0])
+    if np.count_nonzero(turning) >= 10:
+        agreement = float(np.sum(np.sign(lidar_yaw[turning]) * np.sign(yaw_rate[turning])))
+        return flip @ base if agreement < 0.0 else base
+    return flip @ base if base[2, 2] < 0.0 else base
 
 
 def _yaw_rate_offset_scan(

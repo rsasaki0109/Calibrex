@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- `lidar-wheel_odometry` on wheeled robots. The solver no longer assumes an upright LiDAR:
+  the wheel yaw rate decides which way along the LiDAR's turning axis is up (the sensor's z
+  is used only when the wheels never turn). An upside-down LiDAR, such as NCLT's HDL-32E on
+  its Segway, came out turned by 180 deg. `calibrex check` and `estimate` keep motions from
+  0.5 m/s (`CHECK_MIN_SPEED_MPS`, ten times the velocity noise) instead of 2 m/s, which left
+  a robot at 1-1.5 m/s with almost no motion; the solver's default and the frozen KITTI
+  benchmarks keep 2 m/s. `tools/nclt_to_rosbag2.py` converts a window of an NCLT session
+  (raw Velodyne hits, one scan per turn of the head, and the 100 Hz wheel/FOG odometry) to a
+  rosbag2. On NCLT's development session 2012-01-08, 30 minutes put the rotation 0.60 deg
+  from NCLT's calibration (pitch; yaw within 0.05 deg, the lever within 0.015 m), and check
+  stayed inconclusive. An audit on five unseen sessions is pre-registered
+  (`docs/benchmarks/nclt_lidar_wheel_preregistration.yaml`)
+  ([LiDAR-wheel odometry](docs/benchmarks/lidar_wheel_odometry.md)).
 - `calibrex estimate`'s progress report says what each pair's estimate is (estimated,
   partial or failed) instead of a check verdict against the placeholder candidate, which
   read `fail` for a good estimate.
