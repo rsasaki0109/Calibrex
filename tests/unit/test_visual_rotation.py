@@ -221,3 +221,25 @@ def test_cli_passes_the_camchain_reference_and_topic(
     assert captured["image_topic"] == "/cam0/image_raw"
     assert np.allclose(captured["reference_rotation"], [[0, 1, 0], [0, 0, 1], [1, 0, 0]])
     assert "timeshift_cam_imu 0.002" in captured["reference"]
+
+
+def test_radtan_normalization_converges_in_the_corners_of_a_strong_barrel_lens() -> None:
+    """KITTI's cameras (k1 = -0.37): five fixed-point iterations left 4 px in the corners."""
+
+    cv2 = pytest.importorskip("cv2")
+    camera = CameraModel(
+        984.2, 980.8, 690.0, 233.2, "radtan", (-0.3728, 0.2037, 0.00222, 0.00138, -0.0723)
+    )
+    corners = np.array([[0.0, 0.0], [1391.0, 0.0], [0.0, 511.0], [1391.0, 511.0], [696.0, 256.0]])
+
+    normalized = camera.normalize(corners)
+
+    matrix = np.array([[camera.fx, 0, camera.cx], [0, camera.fy, camera.cy], [0, 0, 1]])
+    projected, _ = cv2.projectPoints(
+        np.column_stack([normalized, np.ones(len(normalized))]),
+        np.zeros(3),
+        np.zeros(3),
+        matrix,
+        np.asarray(camera.distortion),
+    )
+    np.testing.assert_allclose(projected.reshape(-1, 2), corners, atol=1e-3)
