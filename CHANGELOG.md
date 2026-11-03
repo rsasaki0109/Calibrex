@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `find_boards(pattern=(COLUMNS, ROWS))` finds only boards of that pattern (no fragments of
+  `CALIB_CB_LARGER`). The KITTI board harness has a development variant (`--still-stereo`):
+  run once on the spent calibration recordings after the audit, it converged on all five
+  days but was 0.9-1.8 deg and 0.03-0.28 m from KITTI's calibration, with stds that left
+  almost every axis unobserved and no observed axis wrong; some boards' LiDAR planes were the
+  wall around them ([board camera-LiDAR](docs/benchmarks/board_camera_lidar.md)).
 - `calibrex.evaluation.board_camera_lidar.find_boards` returns every checkerboard of one image
   (a single shot of boards on walls), and a board pose may carry its own board size.
   `CameraModel.normalize` iterates radial-tangential undistortion to convergence: OpenCV's

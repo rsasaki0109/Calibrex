@@ -184,3 +184,12 @@ def test_a_pose_without_a_board_needs_one_from_the_calibration() -> None:
     assert view is not None
     with pytest.raises(ValueError, match="every pose needs a board"):
         calibrate_board([BoardPose("a", view, np.zeros((10, 3)))], None, START)
+
+
+def test_a_given_pattern_finds_only_boards_of_that_pattern() -> None:
+    image, _truths = _shot()
+
+    found = find_boards(image, pattern=(8, 6))
+
+    assert [(item.columns, item.rows) for item in found] == [(8, 6)]
+    assert find_boards(image, pattern=(9, 7)) == []

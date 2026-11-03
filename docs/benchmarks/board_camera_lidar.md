@@ -173,6 +173,38 @@ still interval; rejecting grids smaller than a declared pattern, or detecting th
 pattern only) would be development on them, and a claim would need recordings no method here
 has read.
 
+### Development after the audit (spent recordings, not an evaluation)
+
+The harness's `--still-stereo` variant fixes the two points: the right image is the nearest
+inside the still interval, and the frame is the one with the most boards that triangulate.
+It ran once on the five spent recordings
+([records](../assets/kitti_board_camera_lidar/development/run.json)). Every day converged,
+from 5 to 10 boards (7 x 5, 11 x 7 and 15 x 5 inner corners, all with 0.099-0.100 m squares
+by stereo), and none was within the acceptance gates:
+
+| Day | Boards used | Rotation error | Position error | Axes reported observed |
+| --- | --- | --- | --- | --- |
+| 2011_09_26 | 9 | 1.56 deg | 0.22 m | x |
+| 2011_09_28 | 10 | 0.89 deg | 0.07 m | none |
+| 2011_09_29 | 10 | 1.40 deg | 0.03 m | x, z |
+| 2011_09_30 | 5 | 1.40 deg | 0.18 m | none |
+| 2011_10_03 | 9 | 1.76 deg | 0.28 m | none |
+
+- **The stds were honest.** Leave-one-board-out stds of 0.3-2.1 deg and up to 0.36 m left
+  almost every axis unobserved, and no axis reported as observed failed the check rule
+  against KITTI's calibration: the method did not give a wrong value as a measurement.
+- **Some LiDAR planes are not the board's.** Per board, the LiDAR plane differed from the
+  camera's by up to 9 deg and 0.5 m, where the ACSC boards held in free space agreed within
+  3.1 deg and 0.1 m. Most of KITTI's boards hang on walls, doors and stands, so the crop
+  around a board also holds the wall or floor around it, and the RANSAC plane can be that
+  surface; many boards also share the wall's normal, which leaves little variety in the
+  normals.
+
+A board mounted on a wall is therefore a poor target for this method as it stands: the
+LiDAR plane would need the board's own edges (or a board standing free of the wall), not a
+plane fit around it. That would be development on these spent recordings again; it is not
+pursued further here.
+
 ## Next
 
 A real capture tilted up and down as well, to observe the vertical translation and all
