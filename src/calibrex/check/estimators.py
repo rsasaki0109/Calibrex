@@ -1842,7 +1842,11 @@ def run_lidar_wheel(ctx: PairContext) -> EstimatorRun:
         build_artifact,
         evaluate_lidar_wheel,
     )
-    from calibrex.solvers.lidar_wheel_solver import WheelOdometry
+    from calibrex.solvers.lidar_wheel_solver import (
+        CHECK_MIN_SPEED_MPS,
+        LidarWheelOptions,
+        WheelOdometry,
+    )
 
     lidar_topic = _require_lidar_topic(ctx, ctx.sensor_topics.get("lidar", ()))
     wheel_topics = [
@@ -1858,7 +1862,7 @@ def run_lidar_wheel(ctx: PairContext) -> EstimatorRun:
         )
     wheel_topic = wheel_topics[0]
     wheel_type = ctx.topic_types[wheel_topic]
-    options = LidarWheelRunOptions()
+    options = LidarWheelRunOptions(solver=LidarWheelOptions(min_speed_mps=CHECK_MIN_SPEED_MPS))
     candidate = invert_transform(ctx.candidate)  # T_wheel_lidar
 
     def compute() -> Any:
