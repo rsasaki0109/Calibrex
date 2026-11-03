@@ -254,7 +254,9 @@ and whether the data **observed** it (`observed`, `unobservable`, `control_not_d
 `not_estimated`), with the bag digest and settings as provenance. From the observed
 frames it writes `frames.yaml` (loads directly with `--tf`), ROS 2
 `static_transform_publisher` commands and a launch file, and URDF joints (plus a Kalibr
-`camchain-imucam.yaml` when `--tf` gave a camchain). A frame with an axis the data did not
+`camchain-imucam.yaml` when `--tf` gave a camchain, and `fast_lio_extrinsics.yaml` with
+FAST-LIO's `extrinsic_R`/`extrinsic_T` and FAST-LIVO's `Rcl`/`Pcl` when an IMU-LiDAR edge was
+exported). A frame with an axis the data did not
 observe is **never** written as if measured: it is written only when a rough `--tf` prior
 supplies that axis (the YAML marks it `NOT MEASURED`), otherwise it is omitted and listed
 under `next steps`. Rotation-only estimators (camera-IMU, the vehicle pairs) therefore need a

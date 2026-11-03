@@ -101,6 +101,7 @@ PUBLISHER_FILENAME = "static_transforms.sh"
 LAUNCH_FILENAME = "static_transforms.launch.yaml"
 URDF_FILENAME = "joints.urdf.xml"
 CAMCHAIN_FILENAME = "camchain-imucam.yaml"
+FAST_LIO_FILENAME = "fast_lio_extrinsics.yaml"
 ARTIFACT_FILENAME = "bag_estimate.json"
 
 LIDAR_LIDAR_PRIOR_HINT = (
@@ -689,6 +690,140 @@ def camchain_export(
     return None
 
 
+def _path_entries(frames: EstimateFrames, first: str, second: str) -> list[EstimateFrameEntry]:
+    """The exported entries on the tree path between two frames (empty if not connected)."""
+
+    by_frame = {entry.frame: entry for entry in frames.entries}
+
+    def chain(frame: str) -> list[str]:
+        out = [frame]
+        while out[-1] in by_frame:
+            out.append(by_frame[out[-1]].parent)
+        return out
+
+    up_first, up_second = chain(first), chain(second)
+    common = next((frame for frame in up_first if frame in up_second), None)
+    if common is None:
+        return []
+    path = up_first[: up_first.index(common)] + up_second[: up_second.index(common)]
+    return [by_frame[frame] for frame in path]
+
+
+def _fast_lio_matrix(frames: EstimateFrames, parent: str, child: str) -> np.ndarray[Any, Any]:
+    tree = StaticFrameTree(
+        StaticEdge(
+            entry.parent,
+            entry.frame,
+            SE3.from_lists(entry.transform.translation_m, entry.transform.rotation_quat_xyzw),
+            "frames_yaml",
+        )
+        for entry in frames.entries
+    )
+    transform = tree.lookup(parent, child)
+    assert transform is not None
+    return np.asarray(
+        transform_matrix(transform.translation_m, transform.rotation_quat_xyzw), dtype=float
+    )
+
+
+def _provenance_comment(entries: Sequence[EstimateFrameEntry]) -> list[str]:
+    lines = []
+    for entry in entries:
+        quality = (
+            "all axes observed"
+            if not entry.axes_from_prior
+            else f"NOT MEASURED {', '.join(entry.axes_from_prior)}: kept from the --tf prior"
+        )
+        lines.append(f"#   {entry.parent} -> {entry.frame} ({entry.pair}): {quality}")
+    return lines
+
+
+def fast_lio_export(
+    records: Sequence[EstimatePairRecord],
+    frames: EstimateFrames,
+    *,
+    bag_name: str,
+) -> str | None:
+    """The estimate as FAST-LIO-family config entries, or ``None`` without an IMU-LiDAR pair.
+
+    ``mapping.extrinsic_R`` / ``extrinsic_T`` are the LiDAR in the IMU frame
+    (``p_imu = R p_lidar + T``), composed through the exported tree, as FAST-LIO,
+    FAST-LIO2, Point-LIO and FAST-LIVO read them (FAST-LIVO2: under ``extrin_calib``).
+    With a camera-LiDAR or camera-IMU edge for a camera, FAST-LIVO's ``camera.Rcl`` /
+    ``Pcl`` (``p_cam = Rcl p_lidar + Pcl``) follow. ``common`` names the topics so that
+    ``calibrex check --tf`` reads the file back. Axes the data did not observe keep
+    the ``--tf`` prior's value and are marked NOT MEASURED, edge by edge.
+    """
+
+    exported = {entry.frame for entry in frames.entries}
+    if frames.root is not None:
+        exported.add(frames.root)
+    imu_lidar = [
+        record
+        for record in records
+        if record.pair == "imu-lidar"
+        and len(record.frames) == 2
+        and set(record.frames) <= exported
+        and _path_entries(frames, record.frames[0], record.frames[1])
+    ]
+    if not imu_lidar:
+        return None
+    first = sorted(imu_lidar, key=lambda record: record.frames[1])[0]
+    imu, lidar = first.frames
+    t_imu_lidar = _fast_lio_matrix(frames, imu, lidar)
+    path = _path_entries(frames, imu, lidar)
+    lines = [
+        f"# calibrex estimate: FAST-LIO-family extrinsics estimated from bag {bag_name}.",
+        "# Paste mapping.extrinsic_R/extrinsic_T into your FAST-LIO, FAST-LIO2, Point-LIO or",
+        "# FAST-LIVO config (FAST-LIVO2: under extrin_calib), and camera.Rcl/Pcl into FAST-LIVO's.",
+        "# extrinsic_R/T are the LiDAR in the IMU frame: p_imu = R p_lidar + T.",
+        "# Verify on a different recording: calibrex check <other bag> --tf THIS_FILE",
+        f"# IMU frame {imu}, LiDAR frame {lidar}; the exported edges between them:",
+        *_provenance_comment(path),
+    ]
+    for other in imu_lidar:
+        if other is not first:
+            lines.append(
+                f"# another LiDAR, {other.frames[1]}, is not written: FAST-LIO takes one LiDAR"
+            )
+    topics = dict(zip(first.frames, first.topics, strict=False)) if first.topics else {}
+    common = {
+        key: topics[frame]
+        for key, frame in (("lid_topic", lidar), ("imu_topic", imu))
+        if frame in topics
+    }
+    camera_block: list[str] = []
+    for record in records:
+        if record.pair not in {"camera-lidar", "camera-imu"} or not record.frames:
+            continue
+        camera = record.frames[0]
+        if camera not in exported or not _path_entries(frames, camera, lidar):
+            continue
+        t_cam_lidar = _fast_lio_matrix(frames, camera, lidar)
+        camera_block = [
+            f"# camera frame {camera}; the exported edges between it and the LiDAR:",
+            *_provenance_comment(_path_entries(frames, camera, lidar)),
+            "camera:",
+        ]
+        if record.topics:
+            camera_block.append(f"    img_topic: {json.dumps(record.topics[0])}")
+        camera_block += [
+            "    Rcl: [" + ", ".join(_num(v) for v in t_cam_lidar[:3, :3].ravel()) + "]",
+            "    Pcl: [" + ", ".join(_num(v) for v in t_cam_lidar[:3, 3]) + "]",
+        ]
+        break
+    if common:
+        lines.append("common:")
+        lines += [f"    {key}: {json.dumps(topic)}" for key, topic in common.items()]
+    lines += [
+        "mapping:",
+        "    extrinsic_T: [" + ", ".join(_num(v) for v in t_imu_lidar[:3, 3]) + "]",
+        "    extrinsic_R: [" + ", ".join(_num(v) for v in t_imu_lidar[:3, :3].ravel()) + "]",
+        *camera_block,
+    ]
+    return "\n".join(lines) + "\n"
+
+
 def write_exports(
     frames: EstimateFrames,
     output_dir: Path,
@@ -697,8 +832,10 @@ def write_exports(
     bag_sha256: str,
     topic_frames: Mapping[str, str],
     camchain: str | None = None,
+    fast_lio: str | None = None,
 ) -> list[EstimateExportFile]:
-    """Write the frames YAML, publisher script, launch file, URDF snippets and camchain."""
+    """Write the frames YAML, publisher script, launch file, URDF snippets, camchain and
+    FAST-LIO config entries."""
 
     output_dir.mkdir(parents=True, exist_ok=True)
     exports: list[EstimateExportFile] = []
@@ -722,6 +859,8 @@ def write_exports(
     ]
     if camchain is not None:
         files.append(("kalibr_camchain", CAMCHAIN_FILENAME, camchain))
+    if fast_lio is not None:
+        files.append(("fast_lio_config", FAST_LIO_FILENAME, fast_lio))
     for kind, name, text in files:
         path = output_dir / name
         path.write_text(text, encoding="utf-8")
@@ -976,8 +1115,16 @@ def build_bag_estimate(
         bag_sha256=input_sha256,
         topic_frames=topic_frames,
         camchain=camchain_export(sources, frames, bag_name=bag_path.name),
+        fast_lio=fast_lio_export(records, frames, bag_name=bag_path.name),
     )
     steps = next_steps(records, frames, topics, bag_name=bag_path.name, output_dir=output_dir)
+    if any(export.kind == "fast_lio_config" for export in exports):
+        deploy = next((i for i, step in enumerate(steps) if step.startswith("deploy:")), None)
+        steps.insert(
+            len(steps) if deploy is None else deploy + 1,
+            f"FAST-LIO, FAST-LIO2, Point-LIO or FAST-LIVO: paste {output_dir / FAST_LIO_FILENAME} "
+            "(mapping.extrinsic_R/T, FAST-LIVO camera.Rcl/Pcl) into your config",
+        )
     if conflict is not None:
         steps.insert(0, conflict)
 

@@ -86,7 +86,10 @@ What this tells you, and what it will not pretend:
   observable](../concepts/translation_observability.md), which also compares these predictions with
   what happened when more data were recorded.
 * **Files.** `est/frames.yaml` (loads directly with `--tf`), `est/static_transforms.sh`,
-  `est/static_transforms.launch.yaml`, `est/joints.urdf.xml`, and `est/bag_estimate.json`
+  `est/static_transforms.launch.yaml`, `est/joints.urdf.xml`, `est/fast_lio_extrinsics.yaml`
+  (FAST-LIO, FAST-LIO2, Point-LIO and FAST-LIVO `extrinsic_R`/`extrinsic_T`, and FAST-LIVO
+  `Rcl`/`Pcl`; it also loads with `--tf`; axes taken from the prior are marked `NOT MEASURED`),
+  and `est/bag_estimate.json`
   (`slac.bag_estimate/v0.1`, with the bag digest as provenance). `--html est.html` writes one
   offline page:
 

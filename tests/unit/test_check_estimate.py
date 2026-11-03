@@ -16,6 +16,7 @@ from tests.unit.check_fixtures import write_check_bag
 from calibrex.check import estimators
 from calibrex.check.estimate import (
     ARTIFACT_FILENAME,
+    FAST_LIO_FILENAME,
     FRAMES_FILENAME,
     build_bag_estimate,
     format_estimate_text,
@@ -27,8 +28,9 @@ from calibrex.check.estimators import (
     invert_transform,
     transform_matrix,
 )
+from calibrex.check.frame_tree import normalize_frame_id
 from calibrex.check.runner import CheckRunOptions, build_calibration_check
-from calibrex.check.tf_sources import load_tf_file
+from calibrex.check.tf_sources import load_tf_file, merge_sources
 from calibrex.check.verdict import AxisEstimate
 from calibrex.cli.main import main
 from calibrex.core.bag_estimate import BagEstimateArtifact
@@ -169,6 +171,7 @@ def test_estimate_recovers_observed_axes_and_round_trips_through_check(
         "static_transform_publisher",
         "launch_yaml",
         "urdf_joints",
+        "fast_lio_config",
     }
 
     # The frames YAML loads with --tf and carries T_imu_lidar = inverse of the estimate.
@@ -500,3 +503,109 @@ def test_gnss_lever_arm_with_one_observed_axis_keeps_the_prior_for_the_rest() ->
     assert entry.axes_from_prior == ["roll", "pitch", "yaw", "x", "z"]
     assert entry.transform.translation_m == pytest.approx([0.023, -0.0157, 0.090])
     assert entry.transform.rotation_quat_xyzw == pytest.approx([0.0, 0.0, 0.0, 1.0])
+
+
+def test_fast_lio_export_is_the_lidar_in_the_imu_frame_and_reads_back(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _install(monkeypatch, {"imu-lidar": _imu_lidar_full})
+    out = tmp_path / "est"
+    _estimate(bag, out)
+
+    text = (out / FAST_LIO_FILENAME).read_text(encoding="utf-8")
+    payload = yaml.safe_load(text)
+    expected = invert_transform(_expected_t_lidar_imu())  # T_imu_lidar
+    np.testing.assert_allclose(payload["mapping"]["extrinsic_T"], expected[:3, 3], atol=1e-8)
+    np.testing.assert_allclose(
+        np.reshape(payload["mapping"]["extrinsic_R"], (3, 3)), expected[:3, :3], atol=1e-8
+    )
+    assert payload["common"] == {"lid_topic": "/lidar_front/points", "imu_topic": "/imu"}
+    assert "imu_link -> lidar_front (imu-lidar): all axes observed" in text
+    assert "another LiDAR, lidar_rear, is not written" in text
+    assert "camera" not in payload
+
+    # calibrex check reads it back: the config's topics map to its imu and lidar frames
+    source = load_tf_file(out / FAST_LIO_FILENAME)
+    assert source.kind == "fast_lio_config"
+    plan = build_calibration_check(bag, tf_files=[out / FAST_LIO_FILENAME])
+    planned = next(
+        p
+        for p in plan.pairs
+        if p.pair == "imu-lidar" and p.status == "planned" and p.frames == ["imu", "lidar"]
+    )
+    assert planned.candidate_transform is not None
+    np.testing.assert_allclose(
+        planned.candidate_transform.translation_m, expected[:3, 3], atol=1e-8
+    )
+
+
+def test_fast_lio_export_marks_axes_kept_from_the_prior(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _install(
+        monkeypatch,
+        {"imu-lidar": lambda ctx: _run(invert_transform(ctx.candidate), translation=False)},
+    )
+    prior = tmp_path / "prior.yaml"
+    prior.write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": "slac.check_frames/v0.1",
+                "frames": [
+                    {
+                        "name": "lidar_front",
+                        "parent": "imu_link",
+                        "translation_m": [0.5, -0.25, 0.1],
+                        "rotation_quat_xyzw": [0.0, 0.0, 0.0, 1.0],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    out = tmp_path / "est"
+    _estimate(bag, out, tf_files=(prior,))
+
+    text = (out / FAST_LIO_FILENAME).read_text(encoding="utf-8")
+    assert "NOT MEASURED x, y, z: kept from the --tf prior" in text
+    assert yaml.safe_load(text)["mapping"]["extrinsic_T"] == pytest.approx([0.5, -0.25, 0.1])
+
+
+def test_no_fast_lio_export_without_an_imu_lidar_edge(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _install(monkeypatch, {})
+    out = tmp_path / "est"
+    artifact = _estimate(bag, out)
+    assert "fast_lio_config" not in {e.kind for e in artifact.exports}
+    assert not (out / FAST_LIO_FILENAME).exists()
+
+
+def test_fast_lio_export_adds_fast_livo_camera_extrinsics(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _install(monkeypatch, {"imu-lidar": _imu_lidar_full, "camera-imu": _imu_lidar_full})
+    out = tmp_path / "est"
+    artifact = _estimate(bag, out)
+    camera_pair = next(
+        p for p in artifact.pairs if p.pair == "camera-imu" and p.status == "estimated"
+    )
+    camera_frame = camera_pair.frames[0]
+
+    payload = yaml.safe_load((out / FAST_LIO_FILENAME).read_text(encoding="utf-8"))
+    assert payload["camera"]["img_topic"] == camera_pair.topics[0]
+    t_cam_lidar = np.eye(4)
+    t_cam_lidar[:3, :3] = np.reshape(payload["camera"]["Rcl"], (3, 3))
+    t_cam_lidar[:3, 3] = payload["camera"]["Pcl"]
+
+    # read back, the camera sits where the frames YAML puts it relative to the LiDAR
+    tree_yaml, _ = merge_sources(None, [load_tf_file(out / FRAMES_FILENAME)])
+    expected = tree_yaml.lookup(camera_frame, "lidar_front")
+    assert expected is not None
+    np.testing.assert_allclose(
+        t_cam_lidar,
+        transform_matrix(expected.translation_m, expected.rotation_quat_xyzw),
+        atol=1e-8,
+    )
+    tree_lio, _ = merge_sources(None, [load_tf_file(out / FAST_LIO_FILENAME)])
+    assert tree_lio.lookup("lidar", normalize_frame_id(camera_pair.topics[0])) is not None
