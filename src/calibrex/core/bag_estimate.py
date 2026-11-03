@@ -54,7 +54,12 @@ EstimateAxisStatus = Literal[
 ]
 EstimatePairStatus = Literal["estimated", "partial", "failed", "skipped"]
 EstimateExportKind = Literal[
-    "frames_yaml", "static_transform_publisher", "launch_yaml", "urdf_joints", "kalibr_camchain"
+    "frames_yaml",
+    "static_transform_publisher",
+    "launch_yaml",
+    "urdf_joints",
+    "kalibr_camchain",
+    "fast_lio_config",
 ]
 EstimateFill = Literal["prior", "placeholder_identity"]
 

@@ -2,12 +2,20 @@
 
 ## Unreleased
 
+- `calibrex estimate` writes `fast_lio_extrinsics.yaml` when an IMU-LiDAR edge is exported:
+  `mapping.extrinsic_R`/`extrinsic_T` (the LiDAR in the IMU frame) for FAST-LIO, FAST-LIO2,
+  Point-LIO and FAST-LIVO, FAST-LIVO's `camera.Rcl`/`Pcl` when a camera is exported too,
+  and `common` topics, so the file pastes into a SLAM config and loads back with
+  `calibrex check --tf`. Each edge between the frames says which axes were measured;
+  axes kept from the `--tf` prior are marked NOT MEASURED. New export kind
+  `fast_lio_config` (schema widening).
 - `calibrex check --tf` reads FAST-LIVO's camera file (vikit `Pinhole`: `cam_fx` ... `cam_d3`)
   as the intrinsics of the camera of a FAST-LIVO config given with it, scaled to the
   recorded image size when the aspect ratio matches (`f' = k f`,
   `c' = k (c + 0.5) - 0.5`). FAST-LIVO `hku2` now runs from `avia.yaml` and
   `camera_pinhole.yaml` alone, with the same `camera-lidar` result as the hand-built
   camchain. New candidate source kind `vikit_camera` (schema widening).
+
 ## 0.6.1 - 2026-11-03
 
 Highlights:

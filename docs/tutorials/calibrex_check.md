@@ -1959,6 +1959,14 @@ On `hku2` this gives the same `camera-lidar` and `imu-lidar` results as the hand
 (`imu-lidar` roll −1.06, pitch −1.00, yaw +0.21 deg, clock offset 7.1 ms; `camera-lidar`
 roll −0.20, pitch 0.05, yaw 0.25 deg, from the same 63131 edge points).
 
+`calibrex estimate hku2 --tf avia.yaml --tf camera_pinhole.yaml --pairs
+imu-lidar,camera-lidar --output est` writes the measured rotations back in FAST-LIVO's own
+terms, `est/fast_lio_extrinsics.yaml`. Its `extrinsic_R` carries the IMU turn `imu-lidar`
+found (off-diagonal terms of 0.017-0.018, about 1 deg); `extrinsic_T` and the camera's
+position stay `avia.yaml`'s and are marked NOT MEASURED: the 2-minute handheld recording
+did not observe the lever arm (the y std is 5.1 cm against the 1 cm bound, and x and z
+need more rotation than it has).
+
 | Pair | `hku1` | `hku2` |
 | --- | --- | --- |
 | `camera-lidar` | `pass`: roll 0.25, pitch 0.05, yaw 0.10 deg (tolerance 0.5) | `pass`: roll 0.20, pitch 0.05, yaw 0.25 deg |
