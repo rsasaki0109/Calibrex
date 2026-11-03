@@ -108,7 +108,7 @@ What the development runs show:
 - The clock offset is 0.10 s. It is reported, not judged. The scans are stamped at the
   start of their turn.
 
-[Development records](../assets/nclt_lidar_wheel/development/).
+[Development records](../assets/nclt_lidar_wheel/development/summary.json).
 
 The audit on five unseen sessions, one hour each, is
 [pre-registered](nclt_lidar_wheel_preregistration.yaml). It tests two claims:
