@@ -182,9 +182,17 @@ def revolutions(
         current.append((utime, points))
 
 
-def velodyne_stream(session: str) -> tuple[subprocess.Popen[bytes], tarfile.TarFile]:
+def _if_match(etag: str | None) -> list[str]:
+    """curl arguments that make S3 refuse (412) an archive whose ETag is not ``etag``."""
+
+    return [] if etag is None else ["-H", f'If-Match: "{etag}"']
+
+
+def velodyne_stream(
+    session: str, etag: str | None = None
+) -> tuple[subprocess.Popen[bytes], tarfile.TarFile]:
     url = f"{S3}/velodyne_data/{session}_vel.tar.gz"
-    process = subprocess.Popen(["curl", "-sSf", url], stdout=subprocess.PIPE)
+    process = subprocess.Popen(["curl", "-sSf", *_if_match(etag), url], stdout=subprocess.PIPE)
     assert process.stdout is not None
     return process, tarfile.open(fileobj=process.stdout, mode="r|gz")
 
@@ -197,13 +205,17 @@ def convert(
     start_s: float,
     duration_s: float,
     decimate: int,
+    etags: tuple[str, str] | None = None,
 ) -> dict[str, object]:
+    """Write the bag; ``etags`` (sensor, velodyne archive) pin the archives fetched."""
+
     work.mkdir(parents=True, exist_ok=True)
+    sensor_etag, velodyne_etag = etags if etags is not None else (None, None)
     sensor = work / f"{session}_sen.tar.gz"
     if not sensor.exists():
+        url = f"{S3}/sensor_data/{session}_sen.tar.gz"
         subprocess.run(
-            ["curl", "-sSf", "-o", str(sensor), f"{S3}/sensor_data/{session}_sen.tar.gz"],
-            check=True,
+            ["curl", "-sSf", *_if_match(sensor_etag), "-o", str(sensor), url], check=True
         )
     odometry = read_odometry(sensor, session)
     utime, position, quaternion, twist = odometry_twist(odometry)
@@ -220,7 +232,7 @@ def convert(
             )
         ]  # type: ignore[list-item]
     )
-    process, archive = velodyne_stream(session)
+    process, archive = velodyne_stream(session, velodyne_etag)
     scans = points_written = 0
     first: int | None = None
     window: tuple[int, int] | None = None
