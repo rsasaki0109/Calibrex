@@ -1,0 +1,258 @@
+{
+ "day": "2011_09_30",
+ "drive": "0072",
+ "still_interval_s": [
+  0.0,
+  2.300093173980713
+ ],
+ "boards_per_frame": {
+  "0000000001": {
+   "detections": 10,
+   "stereo": 5
+  },
+  "0000000002": {
+   "detections": 11,
+   "stereo": 5
+  },
+  "0000000003": {
+   "detections": 12,
+   "stereo": 3
+  },
+  "0000000004": {
+   "detections": 11,
+   "stereo": 5
+  },
+  "0000000005": {
+   "detections": 10,
+   "stereo": 2
+  },
+  "0000000006": {
+   "detections": 20,
+   "stereo": 2
+  },
+  "0000000007": {
+   "detections": 13,
+   "stereo": 4
+  },
+  "0000000008": {
+   "detections": 15,
+   "stereo": 4
+  },
+  "0000000009": {
+   "detections": 9,
+   "stereo": 4
+  },
+  "0000000010": {
+   "detections": 12,
+   "stereo": 4
+  }
+ },
+ "frame": "0000000001",
+ "left_boards": 10,
+ "right_boards": 12,
+ "right_gap_s": 0.1022636890411377,
+ "scans": 20,
+ "status": "converged",
+ "reason": "4 board poses; jackknife over 4 leave-one-out solves",
+ "boards": [
+  {
+   "board": 0,
+   "pattern": [
+    7,
+    5
+   ],
+   "square_m": 0.09937473645275338,
+   "stereo_error_px": 0.04297408074571312,
+   "distance_m": 7.3251508012655835,
+   "reprojection_px": 0.03844275162177861,
+   "used": false,
+   "reason": "no LiDAR plane near the board the camera saw"
+  },
+  {
+   "board": 1,
+   "pattern": [
+    7,
+    5
+   ],
+   "reason": "no right board triangulates within the stereo error bound",
+   "used": false
+  },
+  {
+   "board": 2,
+   "pattern": [
+    7,
+    5
+   ],
+   "reason": "no right board triangulates within the stereo error bound",
+   "used": false
+  },
+  {
+   "board": 3,
+   "pattern": [
+    7,
+    5
+   ],
+   "reason": "no right board triangulates within the stereo error bound",
+   "used": false
+  },
+  {
+   "board": 4,
+   "pattern": [
+    7,
+    5
+   ],
+   "square_m": 0.09928368086956058,
+   "stereo_error_px": 0.01958790078058522,
+   "distance_m": 7.708108290948553,
+   "reprojection_px": 0.03726533569380819,
+   "used": true,
+   "normal_residual_deg": 2.6163381231376954,
+   "offset_residual_m": -0.036393763029185955
+  },
+  {
+   "board": 5,
+   "pattern": [
+    7,
+    5
+   ],
+   "square_m": 0.09891897090305944,
+   "stereo_error_px": 0.05328395985469493,
+   "distance_m": 7.495580981460076,
+   "reprojection_px": 0.03103252234773744,
+   "used": true,
+   "normal_residual_deg": 0.5956613061149318,
+   "offset_residual_m": -0.005306997246985468
+  },
+  {
+   "board": 6,
+   "pattern": [
+    11,
+    7
+   ],
+   "square_m": 0.09926514224569587,
+   "stereo_error_px": 0.10362432885415766,
+   "distance_m": 5.305499898564018,
+   "reprojection_px": 0.15083253323822463,
+   "used": true,
+   "normal_residual_deg": 1.0128473635677884,
+   "offset_residual_m": 0.02076881472052472
+  },
+  {
+   "board": 7,
+   "pattern": [
+    15,
+    5
+   ],
+   "square_m": 0.09923072867802028,
+   "stereo_error_px": 0.13857134305811922,
+   "distance_m": 6.302173224976245,
+   "reprojection_px": 0.33304732794080777,
+   "used": true,
+   "normal_residual_deg": 1.2888965601420275,
+   "offset_residual_m": 0.050740936680672366
+  },
+  {
+   "board": 8,
+   "pattern": [
+    4,
+    3
+   ],
+   "reason": "no right board triangulates within the stereo error bound",
+   "used": false
+  },
+  {
+   "board": 9,
+   "pattern": [
+    7,
+    5
+   ],
+   "reason": "no right board triangulates within the stereo error bound",
+   "used": false
+  }
+ ],
+ "poses_used": 4,
+ "normal_singular_values": [
+  1.4634198211359406,
+  1.3617191952180934,
+  0.06421261932860493
+ ],
+ "unobserved_directions": [
+  [
+   -0.0458997347218644,
+   0.9975957084387448,
+   -0.051923182270167685
+  ]
+ ],
+ "axes": [
+  {
+   "name": "roll",
+   "unit": "deg",
+   "value": 68.94924330165514,
+   "std": 1.8745889572959396,
+   "observed": false
+  },
+  {
+   "name": "pitch",
+   "unit": "deg",
+   "value": -65.87374163985423,
+   "std": 0.4695274888061201,
+   "observed": false
+  },
+  {
+   "name": "yaw",
+   "unit": "deg",
+   "value": 70.79299722589901,
+   "std": 0.7355236066932858,
+   "observed": false
+  },
+  {
+   "name": "x",
+   "unit": "m",
+   "value": -0.05103732027640542,
+   "std": 0.03151356210273446,
+   "observed": false
+  },
+  {
+   "name": "y",
+   "unit": "m",
+   "value": -0.018371623472813958,
+   "std": 0.004342690549672695,
+   "observed": false
+  },
+  {
+   "name": "z",
+   "unit": "m",
+   "value": -0.3078558087745355,
+   "std": 0.018569518651733365,
+   "observed": true
+  }
+ ],
+ "transform_camera_lidar": [
+  [
+   0.018022295325469007,
+   -0.9994899032907336,
+   0.026365319855472802,
+   -0.05103732027640542
+  ],
+  [
+   0.045562155319750886,
+   -0.025521226667100827,
+   -0.9986354474942422,
+   -0.018371623472813958
+  ],
+  [
+   0.9987989221429008,
+   0.019198963755533094,
+   0.045078963130192495,
+   -0.3078558087745355
+  ],
+  [
+   0.0,
+   0.0,
+   0.0,
+   1.0
+  ]
+ ],
+ "variant": "still_stereo (development)",
+ "calibrex_version": "0.6.1"
+}

@@ -224,6 +224,11 @@ class CheckRunOptions:
         default=None, repr=False, compare=False
     )
     """Caller-owned preprocessing reuse; candidate checks and evidence are rerun."""
+    finished_label: Callable[[EstimatorRun], str] | None = field(
+        default=None, repr=False, compare=False
+    )
+    """The word the progress report shows for a finished pair (``calibrex estimate`` reports
+    estimated / partial / failed); ``None`` shows the check verdict."""
 
     def __post_init__(self) -> None:
         margin = self.camera_lidar_start_scan_min_control_t
@@ -702,9 +707,8 @@ def _run_one(
         update["evidence_artifact"] = evidence[0].path
     if outcome.evidence_from_cache is not None:
         update["evidence_from_cache"] = outcome.evidence_from_cache
-    progress.pair_finished(
-        _label(record), str(update["status"]), runtime, outcome.evidence_from_cache
-    )
+    shown = run.finished_label(outcome) if run.finished_label else str(update["status"])
+    progress.pair_finished(_label(record), shown, runtime, outcome.evidence_from_cache)
     return CheckPairRecord.model_validate({**record.model_dump(), **update})
 
 
