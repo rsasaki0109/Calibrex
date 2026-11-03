@@ -66,13 +66,21 @@ SESSIONS: dict[str, tuple[int, str, int, str]] = {
 }
 START_S = 60.0
 """The window starts this long after the session's first Velodyne packet."""
-DURATION_S = 1800.0
+DURATION_S = 3600.0
+"""One hour: twice the development window (2012-01-08), and within every session's data."""
 DECIMATE = 4
 PAIR = "lidar-wheel_odometry"
+AXES = ("roll", "pitch", "yaw")
 
 MAX_ROTATION_ERROR_DEG = 0.5
 MAX_POSITION_ERROR_M = 0.20
 SESSIONS_REQUIRED = len(SESSIONS)
+
+SIGMA_K = 3.0
+ROTATION_FLOOR_DEG = 0.5
+FAIL_FACTOR = 2.0
+"""calibrex check's defaults: an axis fails beyond FAIL_FACTOR x max(SIGMA_K x std, floor)."""
+MIN_CONVERGED_SESSIONS = 3
 
 
 def check_command(bag: Path, output: Path, evidence: Path) -> list[str]:
@@ -122,6 +130,8 @@ def score_session(evidence: dict[str, Any], pair_record: dict[str, Any]) -> dict
 
     from scipy.spatial.transform import Rotation
 
+    from calibrex.check.estimators import rotation_errors_deg
+
     reference = reference_base_velodyne()
     converged = evidence.get("solver_status") == "converged"
     record: dict[str, Any] = {
@@ -133,20 +143,29 @@ def score_session(evidence: dict[str, Any], pair_record: dict[str, Any]) -> dict
     }
     quaternion = evidence.get("rotation_quat_xyzw")
     if not converged or quaternion is None:
-        return {**record, "accurate": False}
+        return {**record, "accurate": False, "beyond_fail_bound": []}
     estimate = Rotation.from_quat(quaternion)
     error = estimate * Rotation.from_matrix(reference[:3, :3]).inv()
     rotation_error = math.degrees(error.magnitude())
     lever = evidence.get("lever_m")
     lever_error = None if lever is None else abs(float(lever) - float(reference[0, 3]))
+    stds = {item["name"]: item["std_reported"] for item in evidence.get("parameters", [])}
+    errors = rotation_errors_deg(reference[:3, :3], estimate.as_matrix())
+    axis_errors = dict(zip(AXES, (float(value) for value in errors), strict=True))
+    bounds = {
+        name: FAIL_FACTOR * max(SIGMA_K * float(stds[name]), ROTATION_FLOOR_DEG) for name in AXES
+    }
     record.update(
         rotation_error_deg=rotation_error,
-        rotation_error_rotvec_deg=error.as_rotvec(degrees=True).tolist(),
+        axis_errors_deg=axis_errors,
+        fail_bounds_deg=bounds,
+        beyond_fail_bound=[name for name in AXES if abs(axis_errors[name]) > bounds[name]],
+        errors_in_stds={name: abs(axis_errors[name]) / float(stds[name]) for name in AXES},
         lever_m=lever,
         lever_error_m=lever_error,
         speed_scale=evidence.get("speed_scale"),
         time_offset_s=evidence.get("time_offset_s"),
-        stds={item["name"]: item["std_reported"] for item in evidence.get("parameters", [])},
+        stds=stds,
         accurate=rotation_error < MAX_ROTATION_ERROR_DEG
         and lever_error is not None
         and lever_error < MAX_POSITION_ERROR_M,
@@ -156,8 +175,11 @@ def score_session(evidence: dict[str, Any], pair_record: dict[str, Any]) -> dict
 
 def verdicts(scores: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
     accurate = [session for session, item in scores.items() if item.get("accurate")]
+    converged = [session for session, item in scores.items() if item.get("converged")]
     failed = [session for session, item in scores.items() if item.get("check_status") == "fail"]
+    beyond = [session for session, item in scores.items() if item.get("beyond_fail_bound")]
     judged = [session for session, item in scores.items() if item.get("judged_axes")]
+    honest = not failed and not beyond and len(converged) >= MIN_CONVERGED_SESSIONS
     return {
         "accuracy": {
             "verdict": "supported" if len(accurate) >= SESSIONS_REQUIRED else "refuted",
@@ -165,8 +187,10 @@ def verdicts(scores: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
             "required": SESSIONS_REQUIRED,
         },
         "check_honesty": {
-            "verdict": "supported" if not failed and len(scores) == len(SESSIONS) else "refuted",
+            "verdict": "supported" if honest else "refuted",
             "failed_sessions": failed,
+            "sessions_beyond_fail_bound": beyond,
+            "converged_sessions": converged,
             "sessions_with_judged_axes": judged,
         },
     }
