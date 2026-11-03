@@ -3051,8 +3051,9 @@ def _build_parser() -> argparse.ArgumentParser:
         default=[],
         metavar="FILE",
         help="candidate calibration: URDF, slac.check_frames YAML, Kalibr camchain-imucam, "
-        "RTK-SLAM calib.yaml, Hilti sensors list, or a FAST-LIO-family config (FAST-LIO, "
-        "Point-LIO, FAST-LIVO); repeatable; overrides bag /tf_static for the same child frame",
+        "RTK-SLAM calib.yaml, Hilti sensors list, a FAST-LIO-family config (FAST-LIO, "
+        "Point-LIO, FAST-LIVO) or FAST-LIVO camera file; repeatable; overrides bag "
+        "/tf_static for the same child frame",
     )
     check.add_argument(
         "--vehicle-frame",
