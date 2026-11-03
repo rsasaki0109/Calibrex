@@ -53,6 +53,10 @@ UNOBSERVED_EIGEN_RATIO = 0.01
 """A translation direction with less than this share of the largest normal information."""
 UNOBSERVED_AXIS_SHARE = 0.3
 """A translation axis is unobserved when an unobserved direction has this much of it."""
+FIRST_PASS_MARGIN_M = 0.25
+FIRST_PASS_GATE_M = 0.4
+REFINED_GATE_M = 0.15
+"""LiDAR crop around a board: generous in the first pass, then the inner-corner area only."""
 _BOARD_SPEC = re.compile(r"^\s*(\d+)\s*[xX]\s*(\d+)\s*[xX]\s*([0-9]*\.?[0-9]+)\s*$")
 
 
@@ -267,7 +271,8 @@ def extract_board_plane(
     """The board's plane among the LiDAR points around where the camera saw the board.
 
     Points are mapped into the camera frame with ``t_camera_lidar`` and then into the
-    board frame; those within ``margin_m`` of the squares and ``gate_m`` of the board
+    board frame; those within ``margin_m`` of the squares (a negative margin shrinks the
+    squares' area: minus one square is the inner-corner area) and ``gate_m`` of the board
     plane are candidates. The plane with most inliers within ``inlier_m`` (RANSAC) is
     refined by least squares to a fixed point, keeping the points within
     ``max(inlier_m, 3 sigma)`` of it (sigma from the median absolute residual). ``None``
@@ -473,11 +478,19 @@ def calibrate_board(
     rejected: list[tuple[str, str]] = []
     result: Any = None
     for index in range(max(1, passes)):
-        margin, gate = (0.25, 0.4) if index == 0 else (0.15, 0.15)
         observations, rejected = [], []
         for pose in poses:
             pose_board = pose.board or board
             assert pose_board is not None
+            # The first pass, from a rough start, crops generously around the squares to
+            # find the board at all. Later passes keep only the inner-corner area: the
+            # board hides what is behind it there, while a margin around it also holds
+            # the wall, floor or stand around the board, whose plane RANSAC can prefer.
+            margin, gate = (
+                (FIRST_PASS_MARGIN_M, FIRST_PASS_GATE_M)
+                if index == 0
+                else (-pose_board.square_m, REFINED_GATE_M)
+            )
             lidar = extract_board_plane(
                 pose.points_lidar, pose.view, pose_board, current, margin_m=margin, gate_m=gate
             )
@@ -575,7 +588,12 @@ def plane_residuals(
     if pose_board is None:
         raise ValueError("the pose has no board and none was given")
     lidar = extract_board_plane(
-        pose.points_lidar, pose.view, pose_board, transform, margin_m=0.15, gate_m=0.15
+        pose.points_lidar,
+        pose.view,
+        pose_board,
+        transform,
+        margin_m=-pose_board.square_m,
+        gate_m=REFINED_GATE_M,
     )
     if lidar is None:
         return None
