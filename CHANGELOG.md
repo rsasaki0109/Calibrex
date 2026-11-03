@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 0.6.1 - 2026-11-03
+
+Highlights:
+
+- **`calibrex check --tf` reads FAST-LIO-family configs** (FAST-LIO, FAST-LIO2, Point-LIO,
+  FAST-LIVO, FAST-LIVO2): the LiDAR-IMU extrinsic, and FAST-LIVO's camera-LiDAR one, straight
+  from the SLAM config, with no `--frame-map` for a Livox LiDAR and IMU sharing a header
+  frame. A Kalibr camchain may carry intrinsics only.
+- **Docs:** a real `calibrex check --html` overlay (FAST-LIVO `hku2`, Livox Avia and JPEG
+  camera), and images and links that were broken on the docs site now load there.
+- **Releases run from GitHub Actions:** the release workflow can create its tag by hand, a
+  `Publish release` workflow publishes the draft, and the actions moved to Node 24.
+
 - `calibrex check --tf` reads FAST-LIO-family configs (FAST-LIO, FAST-LIO2, Point-LIO,
   FAST-LIVO, FAST-LIVO2): `extrinsic_R`, `extrinsic_T` as `T_imu_lidar` and FAST-LIVO's
   `Rcl`, `Pcl` as `T_cam_lidar`, with `common.lid_topic`, `imu_topic` and `img_topic`

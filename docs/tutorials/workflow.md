@@ -33,7 +33,7 @@ chain for a ground vehicle [further down](#the-same-chain-on-a-ground-vehicle-ki
 ## 0. Install
 
 ```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.0/calibrex-0.6.0-py3-none-any.whl"
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.1/calibrex-0.6.1-py3-none-any.whl"
 calibrex --help        # the commands are grouped: Start here, Per-pair calibration, Evidence and CI, ...
 ```
 
