@@ -217,8 +217,22 @@ errors, and still no axis reported as observed failed the check rule. The larger
 earlier: from the axis permutation, the first pass's generous crop already takes wrong
 planes on these scenes, and a narrower crop around a misplaced board loses it. A first
 pass robust to that (the rotation from the normals alone, or several starts) would be the
-next development step; with no unseen board recordings with a reference at hand, it is
-not taken here.
+next development step.
+
+**A third attempt changed little, and is not merged either.** Scoring each RANSAC plane by
+its inliers inside the inner-corner area first (the wall around a board has none there),
+while still fitting on the whole crop, also fixes the synthetic wall-behind scene and leaves
+ACSC exactly as it was. On the spent KITTI recordings it gave the same estimate on four days
+and a worse one on 2011_09_26 (1.68 deg and 0.38 m instead of 1.56 deg and 0.22 m), although
+the worst board there now disagrees by 0.09 m instead of 0.5 m
+([records](../assets/kitti_board_camera_lidar/development_occlusion_scoring/summary.json);
+unmerged branch `feat/board-occlusion-scoring`, commit `ad6a1fa5`). So the wrongly taken
+planes were not what kept the estimate from KITTI's calibration. The method's own
+leave-one-board-out stds on these scenes are 0.3-2.1 deg: five to ten boards of one still
+shot, seen by a 64-beam LiDAR, hold about a degree of rotation information for this method,
+and the 1-2 deg disagreements are within that. Reaching 0.5 deg would need more and more
+varied board poses, not a better plane pick; with no unseen board recordings with a
+reference at hand, this line is closed here.
 
 ## Next
 
