@@ -205,6 +205,35 @@ LiDAR plane would need the board's own edges (or a board standing free of the wa
 plane fit around it. That would be development on these spent recordings again; it is not
 pursued further here.
 
+**A second development attempt made it worse, and is not merged.** Keeping only each
+board's inner-corner area after the first pass (where the board hides what is behind it)
+fixed a synthetic scene with a denser wall 12 cm behind every board, where the margin crop
+took the wall (z 14 cm off), and left the ACSC result about where it was (x 11.3 instead of
+13.3 cm). On the five spent KITTI recordings it made every day worse: 1.9-4.6 deg and
+0.06-0.81 m from KITTI's calibration, with boards up to 24 deg and 1.1 m off
+([records](../assets/kitti_board_camera_lidar/development_inner_crop/summary.json); code on
+the unmerged branch `feat/board-inner-crop`, commit `87bff4f7`). The stds grew with the
+errors, and still no axis reported as observed failed the check rule. The larger error is
+earlier: from the axis permutation, the first pass's generous crop already takes wrong
+planes on these scenes, and a narrower crop around a misplaced board loses it. A first
+pass robust to that (the rotation from the normals alone, or several starts) would be the
+next development step.
+
+**A third attempt changed little, and is not merged either.** Scoring each RANSAC plane by
+its inliers inside the inner-corner area first (the wall around a board has none there),
+while still fitting on the whole crop, also fixes the synthetic wall-behind scene and leaves
+ACSC exactly as it was. On the spent KITTI recordings it gave the same estimate on four days
+and a worse one on 2011_09_26 (1.68 deg and 0.38 m instead of 1.56 deg and 0.22 m), although
+the worst board there now disagrees by 0.09 m instead of 0.5 m
+([records](../assets/kitti_board_camera_lidar/development_occlusion_scoring/summary.json);
+unmerged branch `feat/board-occlusion-scoring`, commit `ad6a1fa5`). So the wrongly taken
+planes were not what kept the estimate from KITTI's calibration. The method's own
+leave-one-board-out stds on these scenes are 0.3-2.1 deg: five to ten boards of one still
+shot, seen by a 64-beam LiDAR, hold about a degree of rotation information for this method,
+and the 1-2 deg disagreements are within that. Reaching 0.5 deg would need more and more
+varied board poses, not a better plane pick; with no unseen board recordings with a
+reference at hand, this line is closed here.
+
 ## Next
 
 A real capture tilted up and down as well, to observe the vertical translation and all
