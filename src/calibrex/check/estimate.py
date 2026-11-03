@@ -37,7 +37,7 @@ from calibrex.check.frame_tree import StaticEdge, StaticFrameTree, normalize_fra
 from calibrex.check.hints import excitation_hints, pair_hint
 from calibrex.check.planner import PAIR_SLOTS, plan_pairs, slot_of
 from calibrex.check.progress import CheckProgress, as_progress
-from calibrex.check.roles import map_topics_to_frames
+from calibrex.check.roles import image_transport_base, map_topics_to_frames
 from calibrex.check.runner import (
     INVERTED_CONVENTION_PAIRS,
     CheckRunOptions,
@@ -806,7 +806,9 @@ def fast_lio_export(
             "camera:",
         ]
         if record.topics:
-            camera_block.append(f"    img_topic: {json.dumps(record.topics[0])}")
+            # FAST-LIVO names the raw topic; check maps a /compressed twin back to it
+            topic = image_transport_base(record.topics[0])
+            camera_block.append(f"    img_topic: {json.dumps(topic)}")
         camera_block += [
             "    Rcl: [" + ", ".join(_num(v) for v in t_cam_lidar[:3, :3].ravel()) + "]",
             "    Pcl: [" + ", ".join(_num(v) for v in t_cam_lidar[:3, 3]) + "]",
