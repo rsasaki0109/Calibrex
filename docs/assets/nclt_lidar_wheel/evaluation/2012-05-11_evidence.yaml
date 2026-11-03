@@ -1,0 +1,132 @@
+schema_version: slac.lidar_wheel_odometry/v0.1
+method: wheel_odometry_motion/v0.1
+solver_status: converged
+policy_status: inconclusive
+policy_reasons:
+- 'not constrained by the data, so not calibrated: roll, pitch, yaw, time_offset'
+calibrated_parameters:
+- lever
+- speed_scale
+rotation_quat_xyzw:
+- 0.7034371908359524
+- 0.7104916799252241
+- 0.019423034273276393
+- 0.0006610941507285702
+lever_m: -0.12413281304010503
+speed_scale: 0.9876819245483996
+time_offset_s: 0.08400000000000035
+parameters:
+- name: roll
+  unit: deg
+  value: 178.36456658750942
+  std_analytic: 0.24241976850238345
+  std_jackknife: 0.28187409789306694
+  std_reported: 0.28187409789306694
+  status: unobservable
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 116.51508751348592
+    detected: true
+- name: pitch
+  unit: deg
+  value: -1.5120028699800332
+  std_analytic: 0.14001674478272058
+  std_jackknife: 0.8248769332056746
+  std_reported: 0.8248769332056746
+  status: unobservable
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: -1278.0605089545716
+    detected: false
+- name: yaw
+  unit: deg
+  value: 90.59330658998005
+  std_analytic: 0.13564218947336376
+  std_jackknife: 0.1601445176298645
+  std_reported: 0.1601445176298645
+  status: unobservable
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 538.5666622240096
+    detected: true
+- name: lever
+  unit: m
+  value: -0.12413281304010503
+  std_analytic: 0.02437052419509947
+  std_jackknife: 0.05310324213034183
+  std_reported: 0.05310324213034183
+  status: estimated
+- name: speed_scale
+  unit: ratio
+  value: 0.9876819245483996
+  std_analytic: 0.003440085082370105
+  std_jackknife: 0.0024132197067403905
+  std_reported: 0.003440085082370105
+  status: estimated
+  known_bad_control:
+    amount: 0.01
+    unit: ratio
+    holdout_delta_chi2: 666.8522896909853
+    detected: true
+- name: time_offset
+  unit: s
+  value: 0.08400000000000035
+  std_analytic: 0.0
+  std_jackknife: 0.016044272633666923
+  std_reported: 0.016044272633666923
+  status: unobservable
+  known_bad_control:
+    amount: 0.02
+    unit: s
+    holdout_delta_chi2: 4324.015180819668
+    detected: true
+references: []
+motions: 29465
+train_motions: 19649
+holdout_motions: 9816
+jackknife_fits: 8
+train_median_normalized_residual: 3.2074555647289924
+holdout_median_normalized_residual: 3.1001310087126104
+options:
+  step_frames: 2
+  block_duration_s: 10.0
+  holdout_every: 3
+  jackknife_groups: 8
+  rotation_control_deg: 1.0
+  time_control_s: 0.02
+  scale_control: 0.01
+  detection_delta_chi2: 9.0
+  observable:
+    roll: 0.1
+    pitch: 0.1
+    yaw: 0.1
+    lever: 0.2
+    speed_scale: 0.005
+    time_offset: 0.005
+  time_offset_bound_s: 0.3
+limitations:
+- 'The vehicle frame is the wheel odometry''s: x along the reported speed, z about
+  the reported yaw rate; no side slip is assumed.'
+- Roll is seen only through the tilt of the turning axis and needs turns.
+- LiDAR sweeps are registered as rigid snapshots; motion within a sweep is not compensated.
+provenance:
+  generator: calibrex.check.estimators
+  generator_version: 0.6.1
+  git_commit: a2e297e8
+  command:
+  - calibrex
+  - check
+  - /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/nclt_audit/work/2012-05-11_bag
+  - lidar-wheel
+  - /wheel_odom
+  dataset_family: calibrex-check
+  sequence_ids:
+  - 2012-05-11_bag
+  wheel_source: '/wheel_odom (nav_msgs/msg/Odometry): linear.x speed, angular.z yaw
+    rate'
+  input_sha256: 01c351cded47684031942e5e472c4602e0f1ddeaf8896e30139d1a70f7c74177
+  dataset_license: user-provided
+  created_at: '2026-11-03T16:01:00.822624+00:00'

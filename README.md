@@ -408,7 +408,7 @@ standing on the [leaderboard](docs/benchmarks/sota_leaderboard.md).
 | INS ↔ LiDAR | `calibrex ins-lidar kitti` | KITTI raw + Boreas audit | refuted |
 | LiDAR ↔ LiDAR | `calibrex lidar-lidar ros2` | NTU VIRAL | refuted |
 | LiDAR ↔ vehicle | `calibrex lidar-vehicle kitti` | KITTI raw | **supported** (1) |
-| LiDAR ↔ wheel odometry | `calibrex lidar-wheel trajectory`, `kitti` | KITTI raw (OXTS stands in for wheels) | no_claim |
+| LiDAR ↔ wheel odometry | `calibrex check` / `estimate` (`lidar-wheel_odometry`), `calibrex lidar-wheel trajectory`, `kitti` | KITTI raw (OXTS stands in for wheels); NCLT (dev 2012-01-08; audit on five sessions) | refuted |
 
 Also native or adapter-backed: hand-eye `AX=XB` and robot-world `AX=YB`
 (13 native methods, benchmarked below against OpenCV), radar extrinsics,

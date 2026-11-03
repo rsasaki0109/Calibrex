@@ -1,0 +1,529 @@
+{
+  "bag": {
+    "input_digest_scope": "metadata.yaml in full; each storage file by name, size and first 64 MiB",
+    "input_sha256": "e483cd00775304d6530cbc1d85bf5ce780c5fe2b3a184a795737f1ace1079283",
+    "path": "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/nclt_audit/work/2013-02-23_bag",
+    "storage_identifier": "sqlite3",
+    "topic_count": 3
+  },
+  "candidate_sources": [
+    {
+      "frame_count": 1,
+      "kind": "bag_tf_static",
+      "notes": [
+        "read 1 tf_static message(s) from 1 topic(s)"
+      ],
+      "path": "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/nclt_audit/work/2013-02-23_bag",
+      "sha256": "bbc1a8ef159ca0feeeb6b9e7f423dfbdc9b24e59596d456aa0775585bc16534e"
+    }
+  ],
+  "closures": {
+    "assumptions": [
+      "edges are this run's per-pair estimates, not the candidate; derived pairs are excluded",
+      "loops are a fundamental cycle basis of a spanning forest that takes the best-observed estimates first; loops that share a member are correlated",
+      "the std of a closure axis is propagated to first order assuming independent members; members that share an input (the LiDAR odometry of the vehicle pairs) make it optimistic",
+      "an axis is judged only if every member observes everything entering it; translation needs every member to estimate it"
+    ],
+    "edges": [
+      {
+        "child_frame": "velodyne",
+        "pair": "lidar-wheel_odometry",
+        "parent_frame": "base_link",
+        "role": "independent"
+      }
+    ],
+    "loops": []
+  },
+  "evidence_dir": "2013-02-23_evidence",
+  "frame_tree": {
+    "edges": [
+      {
+        "source": "bag_tf_static",
+        "transform": {
+          "child_frame": "velodyne",
+          "parent_frame": "base_link",
+          "rotation_quat_xyzw": [
+            0.702730098681293,
+            0.7114202101992785,
+            -0.003992138132931054,
+            -0.005979612071233509
+          ],
+          "translation_m": [
+            0.002,
+            0.004,
+            0.957
+          ]
+        }
+      }
+    ],
+    "frames": [
+      "base_link",
+      "velodyne"
+    ],
+    "overrides": [],
+    "roots": [
+      "base_link"
+    ]
+  },
+  "options": {
+    "acceleration_unit": "mps2",
+    "camera_lidar_motion": "auto",
+    "detection_probe_deg": 1.0,
+    "focal_scale_floor": 0.005,
+    "gnss_lidar_deskew": "auto",
+    "imu_lidar_deskew": "auto",
+    "imu_lidar_translation": true,
+    "lidar_lidar_deskew": "auto",
+    "pairs": [
+      "lidar-wheel_odometry"
+    ],
+    "rigid_scan_rotation_floor_deg": 1.5,
+    "rotation_floor_deg": 0.5,
+    "sigma_k": 3.0,
+    "topic_kinds": {
+      "/wheel_odom": "wheel"
+    },
+    "translation_floor_m": 0.02
+  },
+  "overall_verdict": "pass",
+  "pairs": [
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "imu-lidar",
+      "reason": "no topic for: imu",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "velodyne"
+      ],
+      "notes": [],
+      "pair": "lidar-lidar",
+      "reason": "needs two distinct lidar sensors, found one",
+      "reason_code": "missing_topic",
+      "sensors": [
+        "velodyne"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/velodyne_points"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "camera-imu",
+      "reason": "no topic for: camera, imu",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "camera-focal",
+      "reason": "no topic for: camera, imu",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "camera-lidar",
+      "reason": "no topic for: camera",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "camera-camera",
+      "reason": "no topic for: camera",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "gnss-lidar",
+      "reason": "no topic for: gnss",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "gnss-imu",
+      "reason": "no topic for: gnss, imu",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "base_link",
+        "parent_frame": "velodyne",
+        "rotation_quat_xyzw": [
+          -0.702730098681293,
+          -0.7114202101992785,
+          0.003992138132931054,
+          -0.005979612071233509
+        ],
+        "translation_m": [
+          -0.006747804594378367,
+          0.011429772261664015,
+          0.9569184016619197
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "velodyne",
+        "base_link"
+      ],
+      "notes": [],
+      "pair": "lidar-vehicle",
+      "reason": "lidar-vehicle was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "velodyne",
+        "base_link"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/velodyne_points"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "imu-vehicle",
+      "reason": "no topic for: imu",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "ins-lidar",
+      "reason": "no topic for: ins",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [
+        {
+          "candidate_error": 0.4321761199938394,
+          "detectable_error": 0.9321761199938394,
+          "detection_probe": 1.0,
+          "detects_perturbation": true,
+          "estimate_std": 0.07767461077526912,
+          "name": "yaw",
+          "ratio": 0.8643522399876788,
+          "status": "pass",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        }
+      ],
+      "candidate_transform": {
+        "child_frame": "base_link",
+        "parent_frame": "velodyne",
+        "rotation_quat_xyzw": [
+          -0.702730098681293,
+          -0.7114202101992785,
+          0.003992138132931054,
+          -0.005979612071233509
+        ],
+        "translation_m": [
+          -0.006747804594378367,
+          0.011429772261664015,
+          0.9569184016619197
+        ]
+      },
+      "compared_transform": {
+        "child_frame": "velodyne",
+        "parent_frame": "base_link",
+        "rotation_quat_xyzw": [
+          0.7027300986812929,
+          0.7114202101992784,
+          -0.003992138132931053,
+          -0.005979612071233508
+        ],
+        "translation_m": [
+          0.0020000000000000026,
+          0.004000000000000001,
+          0.9570000000000005
+        ]
+      },
+      "coverage": "partial",
+      "estimator": "lidar_wheel_odometry",
+      "estimator_policy_reasons": [
+        "not constrained by the data, so not calibrated: roll, pitch, time_offset"
+      ],
+      "estimator_policy_status": "inconclusive",
+      "evidence": [
+        {
+          "path": "2013-02-23_evidence/lidar-wheel_odometry_velodyne_base_link.yaml",
+          "policy_status": "inconclusive",
+          "role": "estimate",
+          "schema_version": "slac.lidar_wheel_odometry/v0.1",
+          "sha256": "fd8f7456625523f81891eed2455e7310027573a7280c1fcc7b722f71c1c3e3db"
+        }
+      ],
+      "evidence_artifact": "2013-02-23_evidence/lidar-wheel_odometry_velodyne_base_link.yaml",
+      "frames": [
+        "velodyne",
+        "base_link"
+      ],
+      "notes": [
+        "wheel speed (linear.x) and yaw rate (angular.z) from /wheel_odom (nav_msgs/msg/Odometry); LiDAR odometry on /velodyne_points (LiDAR sweeps are registered as rigid snapshots; motion within a sweep is not compensated)",
+        "only the rotation is judged: the lever, speed scale and clock offset are reported in the evidence artifact, not compared with the candidate"
+      ],
+      "pair": "lidar-wheel_odometry",
+      "runtime_s": 1155.2571365149997,
+      "sensors": [
+        "velodyne",
+        "base_link"
+      ],
+      "status": "pass",
+      "time_offset": {
+        "estimate_s": 0.05800000000000033,
+        "note": "reported only; not judged",
+        "status": "unobservable",
+        "std_s": 0.03464191824942727
+      },
+      "topics": [
+        "/velodyne_points",
+        "/wheel_odom"
+      ],
+      "unchecked_axes": [
+        {
+          "name": "roll",
+          "reason": "not constrained by the data (reported std 0.2132 deg)",
+          "reason_code": "unobservable",
+          "std": 0.2132441422695842,
+          "unit": "deg"
+        },
+        {
+          "name": "pitch",
+          "reason": "not constrained by the data (reported std 0.8706 deg)",
+          "reason_code": "unobservable",
+          "std": 0.8706432893311107,
+          "unit": "deg"
+        }
+      ],
+      "verdict": "pass"
+    }
+  ],
+  "plan_only": false,
+  "provenance": {
+    "command": [
+      "calibrex",
+      "check",
+      "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/nclt_audit/work/2013-02-23_bag",
+      "--vehicle-frame",
+      "base_link",
+      "--topic-kind",
+      "/wheel_odom=wheel",
+      "--pairs",
+      "lidar-wheel_odometry",
+      "--no-cache",
+      "--output",
+      "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/nclt_audit/runs/2013-02-23_check.json",
+      "--evidence-dir",
+      "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/nclt_audit/runs/2013-02-23_evidence"
+    ],
+    "created_at": "2026-11-03T17:45:47.137443+00:00",
+    "generator": "calibrex check",
+    "generator_version": "0.6.1",
+    "git_commit": "a2e297e8",
+    "input_digest_scope": "metadata.yaml in full; each storage file by name, size and first 64 MiB",
+    "input_sha256": "e483cd00775304d6530cbc1d85bf5ce780c5fe2b3a184a795737f1ace1079283",
+    "notes": [
+      "full run: each wired pair's native estimator was run and the candidate judged against it (tolerance = max(sigma_k * std, floor); pass within 1x, fail beyond 2x)",
+      "0 bag topic(s) without a sensor role are not listed"
+    ]
+  },
+  "rotation_attribution": {
+    "alpha": 0.01,
+    "assumptions": [
+      "first order: each pair reads R_parent_child w (rotation) and R_parent_child u (translation) for a child frame turned by w and moved by u, -w and t_parent_child x w - u for a parent frame",
+      "the pairs' errors are independent; pairs that share an input make the tests optimistic",
+      "a bias shared by every pair through one frame (one estimator type) reads as that frame turned or moved",
+      "an axis std is used at least at the verdicts' rotation or translation floor over sigma_k",
+      "a direction of a frame's turn and shift that the pairs constrain worse than the floors (std above them) is not fitted; an own axis mostly along such directions is undetermined",
+      "informational: no verdict changes"
+    ],
+    "groups": [
+      {
+        "candidates": [
+          "base_link",
+          "velodyne"
+        ],
+        "frames": [
+          "base_link",
+          "velodyne"
+        ],
+        "hypotheses": [
+          {
+            "chi2": 1.1093356479670479e-31,
+            "dof": 0,
+            "frame": "base_link",
+            "p_value": 1.0,
+            "pairs": [
+              "lidar-wheel_odometry:base_link>velodyne"
+            ],
+            "rotation_deg": [
+              null,
+              null,
+              -0.4321761199938394
+            ],
+            "std_deg": [
+              null,
+              null,
+              0.16666666666666666
+            ]
+          },
+          {
+            "chi2": 1.1093356479670479e-31,
+            "dof": 0,
+            "frame": "velodyne",
+            "p_value": 1.0,
+            "pairs": [
+              "lidar-wheel_odometry:base_link>velodyne"
+            ],
+            "rotation_deg": [
+              null,
+              null,
+              -0.4321314390962542
+            ],
+            "std_deg": [
+              null,
+              null,
+              0.16664943569086835
+            ]
+          }
+        ],
+        "null_chi2": 6.723943152945464,
+        "null_p_value": 0.009512708061351082,
+        "observations": 1,
+        "pairs": [
+          "lidar-wheel_odometry:base_link>velodyne"
+        ],
+        "status": "ambiguous",
+        "summary": "base_link, velodyne each explain the pair errors alone; these pairs cannot tell which candidate is off",
+        "translation_observations": 0
+      }
+    ],
+    "sigma_floor_deg": 0.16666666666666666,
+    "sigma_floor_m": 0.006666666666666667
+  },
+  "schema_version": "slac.calibration_check/v0.1",
+  "summary": {
+    "pair_count": 12,
+    "partial_pairs": 1,
+    "runnable_count": 1,
+    "skipped_by_reason": {
+      "missing_topic": 10,
+      "not_selected": 1
+    },
+    "status_counts": {
+      "pass": 1,
+      "skipped": 11
+    }
+  },
+  "topics": [
+    {
+      "message_count": 1,
+      "message_type": "tf2_msgs/msg/TFMessage",
+      "notes": [],
+      "role": "tf_static",
+      "topic": "/tf_static"
+    },
+    {
+      "frame_source": "header",
+      "header_frame_id": "velodyne",
+      "mapped_frame": "velodyne",
+      "message_count": 38509,
+      "message_type": "sensor_msgs/msg/PointCloud2",
+      "notes": [],
+      "role": "lidar",
+      "topic": "/velodyne_points"
+    },
+    {
+      "frame_source": "header",
+      "header_frame_id": "base_link",
+      "mapped_frame": "base_link",
+      "message_count": 386970,
+      "message_type": "nav_msgs/msg/Odometry",
+      "notes": [
+        "kind 'wheel' set by --topic-kind"
+      ],
+      "odometry_kind": "wheel",
+      "role": "odometry",
+      "topic": "/wheel_odom"
+    }
+  ],
+  "vehicle_frame": "base_link"
+}

@@ -40,7 +40,8 @@ pre-registered audit marks `supported`. Five things follow from that:
 | `lidar-lidar` | refuted | NTU VIRAL (2/4): accurate, but does not beat scan-to-scan; cross-recording consistency 1.143 against 1.0 | [NTU VIRAL](benchmarks/ntu_viral_lidar_lidar.md) |
 | `ins-lidar` | refuted | KITTI + Boreas rotation v1 (6/8); one recording has no observable rotation | [INS-LiDAR rotation](benchmarks/ins_lidar_rotation_v1.md) |
 | `camera-lidar` (checkerboard) | refuted | KITTI calibration recordings (0/5 days): no estimate on any day (stereo time bound, board fragments) | [board camera-LiDAR](benchmarks/board_camera_lidar.md#result-both-claims-refuted-no-estimate-on-any-day) |
-| `camera`, `gnss-imu`, `imu-vehicle`, `lidar-wheel_odometry` | no claim | native methods exist; no audit yet | [estimate on real data](benchmarks/estimate_real_data.md) |
+| `lidar-wheel_odometry` | refuted | NCLT, 5 unseen sessions: accuracy 0/5 (roll and pitch 0.1-2.4 deg off; yaw within 0.43 deg); check honesty supported (never failed NCLT's calibration) | [LiDAR-wheel odometry](benchmarks/lidar_wheel_odometry.md#result-accuracy-refuted-05-sessions-check-honesty-supported) |
+| `camera`, `gnss-imu`, `imu-vehicle` | no claim | native methods exist; no audit yet | [estimate on real data](benchmarks/estimate_real_data.md) |
 
 ## How an audit is run
 
@@ -159,7 +160,7 @@ The camera-imu v3 audit did exactly this with the camera-camera runs.
 | KITTI raw | board-based `camera-lidar` evaluation (refuted) | the five calibration recordings 2011_09_26_0119, 2011_09_28_0225, 2011_09_29_0108, 2011_09_30_0072, 2011_10_03_0058 (extract archives: grey stereo images, Velodyne scans and OXTS read by the frozen harness; the cameras' timestamp files read again afterwards for the diagnosis) |
 | ACSC sample (Livox Horizon + checkerboard) | board-based `camera-lidar` development | the whole sample (21 board poses; [board camera-LiDAR](benchmarks/board_camera_lidar.md)) |
 | NCLT | `lidar-wheel_odometry` development | 2012-01-08 (from 60 s: 2, 10, 20 and 30 minutes; its ground truth read to find the converter's scan-period error) |
-| NCLT | `lidar-wheel_odometry` evaluation (pre-registered, not yet run) | 2012-02-02, 2012-05-11, 2012-08-04, 2012-11-04, 2013-02-23 ([pre-registration](benchmarks/nclt_lidar_wheel_preregistration.yaml); only archive sizes and ETags read) |
+| NCLT | `lidar-wheel_odometry` evaluation (refuted) | 2012-02-02, 2012-05-11, 2012-08-04, 2012-11-04, 2013-02-23 (one hour each from 60 s, read once by the frozen harness; [pre-registration](benchmarks/nclt_lidar_wheel_preregistration.yaml)) |
 
 The v2 camera-lidar runs also read the Velodyne and OXTS of the first 600 frames of its
 18 drives. A `lidar-vehicle` or `ins-lidar` audit on those drives must disclose that.

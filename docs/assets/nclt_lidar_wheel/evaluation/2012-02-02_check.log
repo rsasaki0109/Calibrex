@@ -1,0 +1,88 @@
+calibrex check (run)
+bag: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/nclt_audit/work/2012-02-02_bag (3 topics)
+
+candidate sources:
+  bag_tf_static: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/nclt_audit/work/2012-02-02_bag (1 frames) sha256=bbc1a8ef159c
+    note: read 1 tf_static message(s) from 1 topic(s)
+frame tree: 2 frames, 1 root(s) [base_link]
+
+topics:
+topic             role       header frame  tree frame
+----------------  ---------  ------------  ------------------
+/tf_static        tf_static  -             -
+/velodyne_points  lidar      velodyne      velodyne (header)
+/wheel_odom       odometry   base_link     base_link (header)
+
+pairs (vehicle frame 'base_link'):
+pair                  sensors               verdict       reason             |delta|/tolerance  unchecked         detectable
+--------------------  --------------------  ------------  -----------------  -----------------  ----------------  ----------
+imu-lidar             -                     skipped       missing_topic
+lidar-lidar           velodyne              skipped       missing_topic
+camera-imu            -                     skipped       missing_topic
+camera-focal          -                     skipped       missing_topic
+camera-lidar          -                     skipped       missing_topic
+camera-camera         -                     skipped       missing_topic
+gnss-lidar            -                     skipped       missing_topic
+gnss-imu              -                     skipped       missing_topic
+imu-vehicle           -                     skipped       missing_topic
+ins-lidar             -                     skipped       missing_topic
+lidar-wheel_odometry  velodyne / base_link  inconclusive  no_judgeable_axes  -                  roll, pitch, yaw  -
+  not selected: lidar-vehicle
+  lidar-wheel_odometry: no axis was constrained by the data: roll (not constrained by the data (reported std 0.2986 deg)); pitch (not constrained by the data (reported std 0.4467 deg)); yaw (not constrained by the data (reported std 0.1284 deg))
+  lidar-wheel_odometry: time offset 76.00 ms (unobservable; reported, not judged)
+  lidar-wheel_odometry: unchecked roll: not constrained by the data (reported std 0.2986 deg)
+  lidar-wheel_odometry: unchecked pitch: not constrained by the data (reported std 0.4467 deg)
+  lidar-wheel_odometry: unchecked yaw: not constrained by the data (reported std 0.1284 deg)
+
+closure of the estimates (independent estimates against each other):
+  lidar-wheel_odometry: unusable (no axis was constrained by the data: roll (not constrained by the data (reported std 0.2986 deg)); pitch (not constrained by the data (reported std 0.4467 deg)); yaw (not constrained by the data (reported std 0.1284 deg))); not in any loop
+  no loop: fewer than two independent estimates share a frame
+
+overall verdict: inconclusive
+WARNING: 1 pair(s) have partial coverage: unchecked axes were not judged, so a pass covers only the judged axes
+
+summary: 12 pair record(s), 1 runnable (inconclusive=1, skipped=11)
+
+next steps:
+  - imu-lidar: the bag lacks a topic for this pair; expected imu: sensor_msgs/msg/Imu
+  - lidar-lidar: needs a second distinct lidar sensor (found one); expected another sensor_msgs/msg/PointCloud2 or a Livox CustomMsg topic with its own frame_id
+  - camera-imu: the bag lacks a topic for this pair; expected camera: sensor_msgs/msg/Image or CompressedImage (plus a CameraInfo or a Kalibr camchain for its intrinsics); imu: sensor_msgs/msg/Imu
+  - camera-focal: the bag lacks a topic for this pair; expected camera: sensor_msgs/msg/Image or CompressedImage (plus a CameraInfo or a Kalibr camchain for its intrinsics); imu: sensor_msgs/msg/Imu
+  - camera-lidar: the bag lacks a topic for this pair; expected camera: sensor_msgs/msg/Image or CompressedImage (plus a CameraInfo or a Kalibr camchain for its intrinsics)
+  - camera-camera: the bag lacks a topic for this pair; expected camera: sensor_msgs/msg/Image or CompressedImage (plus a CameraInfo or a Kalibr camchain for its intrinsics)
+  - gnss-lidar: the bag lacks a topic for this pair; expected gnss: sensor_msgs/msg/NavSatFix
+  - gnss-imu: the bag lacks a topic for this pair; expected gnss: sensor_msgs/msg/NavSatFix; imu: sensor_msgs/msg/Imu
+  - imu-vehicle: the bag lacks a topic for this pair; expected imu: sensor_msgs/msg/Imu
+  - ins-lidar: the bag lacks a topic for this pair; expected ins: nav_msgs/msg/Odometry classified as ins (--topic-kind TOPIC=ins)
+artifact: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/nclt_audit/runs/2012-02-02_check.json
+check: 1 pair to run
+check: running lidar-wheel_odometry (velodyne / base_link) [pair 1/1]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [0s elapsed]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [1147/26741 msgs (4%), 30s elapsed, eta 11m11s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [2280/26741 msgs (9%), 1m00s elapsed, eta 10m45s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [3133/26741 msgs (12%), 1m30s elapsed, eta 11m19s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [4036/26741 msgs (15%), 2m00s elapsed, eta 11m16s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [5322/26741 msgs (20%), 2m30s elapsed, eta 10m04s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [6206/26741 msgs (23%), 3m00s elapsed, eta 9m56s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [7146/26741 msgs (27%), 3m30s elapsed, eta 9m36s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [8143/26741 msgs (30%), 4m00s elapsed, eta 9m09s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [9276/26741 msgs (35%), 4m30s elapsed, eta 8m29s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [10073/26741 msgs (38%), 5m00s elapsed, eta 8m17s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [10872/26741 msgs (41%), 5m30s elapsed, eta 8m02s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [11401/26741 msgs (43%), 6m00s elapsed, eta 8m05s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [12211/26741 msgs (46%), 6m30s elapsed, eta 7m44s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [13369/26741 msgs (50%), 7m00s elapsed, eta 7m00s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [14383/26741 msgs (54%), 7m30s elapsed, eta 6m27s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [15381/26741 msgs (58%), 8m00s elapsed, eta 5m55s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [17082/26741 msgs (64%), 8m30s elapsed, eta 4m49s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [19058/26741 msgs (71%), 9m00s elapsed, eta 3m38s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [20608/26741 msgs (77%), 9m30s elapsed, eta 2m50s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [21441/26741 msgs (80%), 10m00s elapsed, eta 2m28s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [22005/26741 msgs (82%), 10m30s elapsed, eta 2m16s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [22705/26741 msgs (85%), 11m00s elapsed, eta 1m57s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [23328/26741 msgs (87%), 11m31s elapsed, eta 1m41s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [24093/26741 msgs (90%), 12m01s elapsed, eta 1m19s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [24960/26741 msgs (93%), 12m31s elapsed, eta 54s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [25658/26741 msgs (96%), 13m01s elapsed, eta 33s]
+check:   vehicle pairs: LiDAR odometry on /velodyne_points [26441/26741 msgs (99%), 13m31s elapsed, eta 9s]
+check: lidar-wheel_odometry (velodyne / base_link) -> inconclusive (845 s) [pair 1/1 done]

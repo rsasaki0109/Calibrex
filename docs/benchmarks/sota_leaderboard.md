@@ -30,7 +30,7 @@ See [MID360 IMU-LiDAR Calibration](mid360_imu_lidar.md),
 and [Hilti 2022 Camera-IMU Rotation](hilti_camera_imu.md) for the scope of each claim
 and what it does not claim.
 
-Four pairs have only refuted audits:
+Five pairs have only refuted audits:
 
 - **`lidar-lidar`**: 2 of 4 gates
   ([NTU VIRAL LiDAR-LiDAR](ntu_viral_lidar_lidar.md#pre-registered-audit-refuted)).
@@ -57,7 +57,16 @@ Four pairs have only refuted audits:
   0.286 deg and all eight observed 1 deg controls pass. One KITTI recording has no
   observable rotation, failing the all-recordings and empty-control gates.
 
-Seven pairs now have an audit; supported pairs remain three. Every other target
+- **`lidar-wheel_odometry`**: NCLT audit **refuted**
+  ([LiDAR-wheel odometry](lidar_wheel_odometry.md#result-accuracy-refuted-05-sessions-check-honesty-supported)).
+  - On five unseen sessions of a Segway, no rotation was within 0.5 deg of NCLT's
+    calibration (0.74–2.79 deg, mostly roll and pitch; yaw within 0.43 deg).
+  - `check` never failed the calibration (the honesty claim held).
+  - Recorded on its page, not as a `slac.sota_audit_result`, so the generated tables
+    below still list the pair as `no_claim`. The board camera-LiDAR audit is recorded
+    the same way.
+
+Eight pairs now have an audit; supported pairs remain three. Every other target
 pair has a native method but no audited claim yet.
 
 | Pair | Standing | Supported | Refuted | Incomplete | Target |

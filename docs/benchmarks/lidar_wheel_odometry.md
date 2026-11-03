@@ -55,7 +55,8 @@ Verdict: `warn`.
 
 [Artifact](../assets/kitti_lidar_vehicle/lidar_wheel_proxy_dev_2011_09_26.yaml).
 
-No SOTA claim is made for lidar-wheel_odometry.
+No SOTA claim is made for lidar-wheel_odometry. Its first audit, on NCLT, is refuted
+(below).
 
 ## A wheeled robot: NCLT (development)
 
@@ -110,10 +111,58 @@ What the development runs show:
 
 [Development records](../assets/nclt_lidar_wheel/development/summary.json).
 
-The audit on five unseen sessions, one hour each, is
-[pre-registered](nclt_lidar_wheel_preregistration.yaml). It tests two claims:
+The audit on five unseen sessions, one hour each, was
+[pre-registered](nclt_lidar_wheel_preregistration.yaml). It tested two claims:
 
 - rotation within 0.5 deg and lever within 0.20 m on every session;
 - `check` never fails NCLT's calibration, and no axis is beyond check's fail bound.
 
 At 30 minutes the development session missed the 0.5 deg gate on its pitch.
+
+## Result: accuracy refuted (0/5 sessions), check honesty supported
+
+The [pre-registered](nclt_lidar_wheel_preregistration.yaml) audit ran once, on 2026-11-03.
+It ran from a worktree at the pre-registration commit (a2e297e8), whose `src/` and
+`tools/` equal `frozen_code_commit` (640a3389). Each session's window was one hour,
+starting 60 s after its first Velodyne packet.
+
+| Session | Turns/s | Rotation error | Roll / pitch / yaw error (std) | Lever error | Speed scale | Clock offset | check |
+| --- | ---: | ---: | --- | ---: | ---: | ---: | --- |
+| 2012-02-02 | 7.4 | 1.20 deg | 0.80 (0.30) / 0.90 (0.45) / 0.05 (0.13) deg | 0.11 m | 0.979 | 76 ms | inconclusive |
+| 2012-05-11 | 8.2 | 2.79 deg | -1.37 (0.28) / 2.43 (0.83) / 0.15 (0.16) deg | 0.13 m | 0.988 | 84 ms | inconclusive |
+| 2012-08-04 | 8.2 | 1.09 deg | 0.95 (0.30) / 0.52 (0.81) / 0.06 (0.16) deg | 0.19 m | 0.966 | 116 ms | inconclusive |
+| 2012-11-04 | 7.4 | 0.87 deg | -0.11 (0.36) / -0.86 (1.00) / -0.08 (0.11) deg | 0.01 m | 0.943 | 136 ms | inconclusive |
+| 2013-02-23 | 10.7 | 0.74 deg | -0.13 (0.21) / 0.58 (0.87) / 0.43 (0.08) deg | 0.21 m | 0.941 | 58 ms | pass (yaw only) |
+
+Every session converged.
+
+- **Accuracy: refuted, 0 of 5 sessions.**
+  - The rotation errors were 0.74–2.79 deg, nearly all in roll and pitch.
+  - Yaw was within 0.15 deg on four sessions and 0.43 deg on the fifth.
+  - The lever was within 0.20 m on four sessions and 0.21 m off on 2013-02-23.
+- **Check honesty: supported.**
+  - `check` never failed NCLT's calibration.
+  - No axis was beyond check's fail bound 2 x max(3 std, 0.5 deg).
+  - On four sessions no axis reached the 0.1 deg std the vehicle pairs need before
+    they judge, so `check` said inconclusive.
+  - On 2013-02-23 it judged yaw and passed it: 0.43 deg against the 0.5 deg floor.
+- **The reported stds are too small on this data.**
+  - The judged yaw was 5.6 of its stds off.
+  - Roll was 4.9 and 3.2 of its stds off on 2012-05-11 and 2012-08-04.
+  - The 0.5 deg floor, not the stds, kept these within check's tolerance.
+- **The head's spin rate differs between sessions** (7.4–10.7 turns per second).
+  Scans of one turn each followed it; fixed-length scans would not have.
+- **The reference has its limits.**
+  - NCLT gives one calibration for 13 months of sessions, with no stated uncertainty.
+  - A remount would show here as an error.
+  - The consistent yaw suggests no large one; roll and pitch are what this method and
+    the reference disagree on.
+
+For a wheeled robot like this one, then:
+
+- `lidar-wheel_odometry` measures the LiDAR's heading (yaw) to about half a degree.
+- It does not measure roll and pitch to better than 1–2.5 deg in an hour of driving.
+- `check` mostly stays inconclusive rather than giving a wrong verdict.
+
+[Run records](../assets/nclt_lidar_wheel/evaluation/summary.json): per session the check
+artifact, the evidence artifact, the score and the log. The five sessions are spent.
