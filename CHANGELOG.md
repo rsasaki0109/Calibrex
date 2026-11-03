@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- The pre-registered `lidar-wheel_odometry` audit on five unseen NCLT sessions ran once.
+  - **Accuracy refuted (0/5):** rotations 0.74-2.79 deg from NCLT's calibration, mostly
+    roll and pitch; yaw within 0.43 deg.
+  - **Check honesty supported:** `calibrex check` never failed NCLT's calibration. It
+    judged one axis (yaw, passed) on one session and was inconclusive on the rest.
+  - The reported stds were up to 5.6 times too small. The 0.5 deg floor kept the
+    verdicts honest.
+  - [LiDAR-wheel odometry](docs/benchmarks/lidar_wheel_odometry.md#result-accuracy-refuted-05-sessions-check-honesty-supported).
 - `lidar-wheel_odometry` on wheeled robots. The solver no longer assumes an upright LiDAR:
   the wheel yaw rate decides which way along the LiDAR's turning axis is up (the sensor's z
   is used only when the wheels never turn). An upside-down LiDAR, such as NCLT's HDL-32E on
