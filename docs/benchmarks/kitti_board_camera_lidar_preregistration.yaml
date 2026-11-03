@@ -1,0 +1,122 @@
+# Pre-registration of the board camera-LiDAR audit on KITTI's calibration recordings:
+# calibrex.evaluation.board_camera_lidar run once on recordings no Calibrex method has read,
+# scored against KITTI's own camera-LiDAR calibration of each day.
+# It is binding once committed; tools/kitti_board_camera_lidar_evaluate.py at
+# frozen_code_commit is the only code that reads the recordings, and it runs once.
+#
+# Written on 2026-11-03.  The checkerboard method was developed on synthetic boards and on
+# the ACSC sample (Livox Horizon, development data, spent: docs/benchmarks/
+# board_camera_lidar.md).  KITTI's raw data hold one calibration recording per day: the
+# vehicle stands still in front of a dozen checkerboards of different sizes, all in view
+# at once (KITTI calibrated with the single-shot method of Geiger et al., ICRA 2012).  Of
+# these recordings only the archives' sizes, ETags and central directories (file names
+# and sizes) have been read: no image, point cloud or OXTS record has been downloaded,
+# decoded or read.  The calibration archives (calib_cam_to_cam.txt, calib_velo_to_cam.txt)
+# were read by the KITTI camera-LiDAR pre-registrations v1 and v2 and are pinned by their
+# SHA-256 from there.
+#
+# What is new for these recordings and frozen here, developed on synthetic single shots
+# only (tests/unit/test_board_camera_lidar_multi.py, test_kitti_board_camera_lidar_evaluate.py):
+# find_boards (every board of an image: OpenCV's findChessboardCornersSBWithMeta with
+# CALIB_CB_LARGER, the found board painted over, repeat); a board per pose in
+# calibrate_board; each board's square size from KITTI's stereo pair (the boards' sizes
+# are not documented); and CameraModel.normalize iterating radial-tangential
+# undistortion to convergence (OpenCV's default five iterations left up to 4 px in the
+# corners of a lens like KITTI's).
+#
+# The reference is KITTI's calibration of each day, itself made from these recordings with
+# a target-based method: agreement says the two methods agree on the same data, not that
+# either is right; a disagreement beyond the gates is a failure of this method or a sign
+# of the reference's error, and is reported as a failure either way.
+claims:
+  kitti-board-camera-lidar-accuracy:
+    text: >-
+      On KITTI's five calibration recordings (2011_09_26_0119, 2011_09_28_0225,
+      2011_09_29_0108, 2011_09_30_0072, 2011_10_03_0058), which no Calibrex method had
+      read, the checkerboard camera-LiDAR calibration of tools/kitti_board_camera_lidar_evaluate.py
+      (every board of the still left grey image, square sizes from the stereo pair, the
+      Velodyne scans of the still interval), started from the axis permutation only,
+      converges on every day and its T_camera_lidar is within 0.5 deg of rotation and
+      0.20 m of position of that day's KITTI calibration (calib_velo_to_cam, the
+      unrectified left grey camera).
+    gates:
+      converged: the calibration's status is converged (at least 4 boards with a LiDAR plane)
+      max_rotation_error_deg: 0.5
+      max_position_error_m: 0.20
+      days_required: 5
+    source_of_gates: >-
+      The user's acceptance rule for a calibration in this repository (converged, rotation
+      error under 0.5 deg, position error under 0.20 m), fixed before any result and not
+      to be loosened after it.
+  kitti-board-camera-lidar-check-honesty:
+    text: >-
+      On every day where it converges, and on at least 3 days, no axis the calibration
+      reports as observed is beyond twice max(3 std, floor) of that day's KITTI
+      calibration, with floors of 0.5 deg and 0.02 m: calibrex check --board's fail rule,
+      applied to KITTI's calibration as the candidate.
+    gates:
+      sigma_k: 3.0
+      rotation_floor_deg: 0.5
+      translation_floor_m: 0.02
+      fail_factor: 2.0
+      min_converged_days: 3
+recordings:
+  evaluation:
+    '2011_09_26': {drive: '0119', archive: 2011_09_26_drive_0119_extract.zip, size_bytes: 142562751, etag: ad2c1f34039ae3ba760fb1db6b5bc4d6-17}
+    '2011_09_28': {drive: '0225', archive: 2011_09_28_drive_0225_extract.zip, size_bytes: 161910585, etag: ba54b08433f3bb7bb923c139a40f3878-20}
+    '2011_09_29': {drive: '0108', archive: 2011_09_29_drive_0108_extract.zip, size_bytes: 167792021, etag: b88f50b4f248380c6e6def107804c0eb-21}
+    '2011_09_30': {drive: '0072', archive: 2011_09_30_drive_0072_extract.zip, size_bytes: 96236911, etag: 52bcd08619a10ebbdf502678dca0955a-12}
+    '2011_10_03': {drive: '0058', archive: 2011_10_03_drive_0058_extract.zip, size_bytes: 308389763, etag: a0b3b1067d83b893e352dc5ac9bc298a-37}
+  members_from_central_directories: >-
+    Files per stream (image_00, image_01, velodyne_points, oxts): 2011_09_26_0119 17, 17,
+    32, 167; 2011_09_28_0225 20, 19, 35, 376; 2011_09_29_0108 20, 20, 36, 390;
+    2011_09_30_0072 11, 12, 21, 231; 2011_10_03_0058 35, 35, 67, 711.  The _sync.zip
+    archives of these drives hold no Velodyne scans, so the _extract.zip archives
+    (unrectified images, Velodyne scans as text) are used.
+  calibration_archive_sha256:
+    '2011_09_26': e0108cfd000cf802c14ed94fba38601185c792e5640abba015a34b7a85b812e0
+    '2011_09_28': 510b643c00adb7bc6b39616f1ed9b83cd0d689620d52ef5bc43ec019da6030d1
+    '2011_09_29': 260fb836916ac3cbbab7104e253531239a0191b87c411fa60b99178abbb8c40d
+    '2011_09_30': 2ed01563b616baec14f25659671bd9a77810bd87752d709d184fe304ff7258e3
+    '2011_10_03': 67f1f4dcfff4370f8ad1ccaf4fb013fca3f02abd650115f318ce9b1d0991a58c
+method:
+  inputs: >-
+    From calib_cam_to_cam.txt: K_00, D_00, K_01, D_01 (the unrectified grey cameras,
+    radial-tangential) and R_01, T_01 (their stereo extrinsic).  calib_velo_to_cam.txt is
+    read only after the day's estimate is written, to score it.
+  still_interval: the longest run of OXTS records with ground speed hypot(vf, vl) under 0.1 m/s
+  frame: >-
+    find_boards (minimum pattern 4 x 3 inner corners, at most 30 boards) on every image_00
+    frame in the still interval; the frame with the most boards, the earliest on a tie
+  square_size: >-
+    find_boards on the image_01 frame within 5 ms of it; for each left board, the right
+    board of as many corners and the corner order (eight turns and flips of its grid) that
+    triangulate with the smallest mean reprojection error, at most 1.0 px; the median
+    distance between neighbouring triangulated corners.  A left board without one is left
+    out.
+  pose: PnP (IPPE, Levenberg-Marquardt) on the undistorted left corners with that square size
+  lidar: the 20 Velodyne scans of the still interval nearest the frame's time, accumulated
+  calibration: >-
+    calibrate_board with a board per pose and the default bounds (translation std 0.02 m,
+    rotation std 0.3 deg), started from the axis permutation (Velodyne x forward, y left,
+    z up into the camera's optical axes) with zero translation
+  never_an_input: KITTI's camera-LiDAR calibration (calib_velo_to_cam.txt)
+run_recipe:
+  command: >-
+    python tools/kitti_board_camera_lidar_evaluate.py --work-dir WORK --output-dir RUNS,
+    from a checkout whose src/ and tools/ equal frozen_code_commit, run once.  Each day's
+    extract archive is fetched with If-Match on its pinned ETag and its size checked, the
+    calibration archive's SHA-256 checked; a mismatch stops the run.  RUNS/DAY_estimate.json,
+    DAY_score.json and summary.json are the results.
+  frozen_code_commit_note: >-
+    The commit that adds this file adds this file, its test and docs, not code.
+invalidates:
+  - a change to src/ or tools/ after frozen_code_commit before the run is done
+  - reading any image, point cloud or OXTS record of the five recordings before the run
+  - running the harness on them more than once, or changing a gate after the run
+analysis_plan: >-
+  Report per day the boards found and used, their square sizes and stereo errors, the
+  per-axis errors, stds and observed flags, and both verdicts, in
+  docs/benchmarks/board_camera_lidar.md, whatever they are, and record the five
+  recordings as spent in docs/sota_handoff.md.
+frozen_code_commit: ee6bc9e3b61dc8b550d3cf81cd082e4bcbb13f76

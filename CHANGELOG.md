@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- `calibrex.evaluation.board_camera_lidar.find_boards` returns every checkerboard of one image
+  (a single shot of boards on walls), and a board pose may carry its own board size.
+  `CameraModel.normalize` iterates radial-tangential undistortion to convergence: OpenCV's
+  default five iterations left up to 4 px in the image corners of a strong barrel lens such
+  as KITTI's. The board camera-LiDAR audit on KITTI's five calibration recordings is
+  pre-registered (`docs/benchmarks/kitti_board_camera_lidar_preregistration.yaml`) and not
+  run yet.
 - `calibrex check --board COLSxROWSxSQUARE_M` judges camera-lidar from a checkerboard
   recording: all six axes by the usual rule, the translation included, which edge alignment
   leaves unchecked. The check artifact's options record `board`, and the unchecked

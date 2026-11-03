@@ -112,6 +112,29 @@ x 13.27 cm and z 15.22 cm with the same stds. Without a prior that connects the 
 the pair is `partial` and no frame is exported; with a rough `--tf` prior, the axes the
 boards do not observe are filled from it and marked NOT MEASURED, as for the other pairs.
 
+## Pre-registered: KITTI's calibration recordings
+
+KITTI's raw data hold one calibration recording per day, the vehicle standing still in
+front of a dozen checkerboards of different sizes, all in view at once. Their reference is
+KITTI's own calibration of each day (`calib_velo_to_cam`), itself made from these recordings
+with a target-based method. The audit is pre-registered in
+[`kitti_board_camera_lidar_preregistration.yaml`](kitti_board_camera_lidar_preregistration.yaml)
+before any image, point cloud or OXTS record of the five recordings is read (only the
+archives' file lists were):
+
+- **Claim 1 (accuracy):** on all five days the calibration converges and lands within
+  0.5 deg and 0.20 m of KITTI's calibration.
+- **Claim 2 (honest stds):** on every day it converges (at least three), no axis it reports
+  as observed fails `calibrex check --board`'s rule against KITTI's calibration.
+
+For these recordings `find_boards` returns every board of the still left grey image, each
+board's square size comes from KITTI's stereo pair (the sizes are not documented), and
+radial-tangential undistortion now iterates to convergence (five iterations left up to
+4 px in the corners of a lens like KITTI's). The harness,
+`tools/kitti_board_camera_lidar_evaluate.py`, starts from the axis permutation only and reads
+KITTI's camera-LiDAR calibration only to score the estimate. The results will be recorded
+here, whatever they are.
+
 ## Next
 
 A real capture tilted up and down as well, to observe the vertical translation and all
