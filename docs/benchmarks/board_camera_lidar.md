@@ -18,8 +18,10 @@ Per board pose:
    frame is its normal and offset.
 2. **LiDAR.** The scan is mapped into the board frame the camera saw, through the current
    extrinsic. Points within a margin of the squares and of the board plane are candidates;
-   RANSAC (2 cm) picks the plane with most inliers and a least-squares fit refines it. A
-   plane turned more than 25 deg from the camera's board is rejected.
+   RANSAC (2 cm) finds the plane, and least squares refines it to a fixed point, keeping
+   the points within 3 robust sigmas of it (at least 2 cm): a Livox board's points spread
+   over several centimetres at a distance. A plane turned more than 25 deg from the
+   camera's board is rejected.
 
 All poses together go to the Zhang–Pless plane solver of
 `calibrex.solvers.planar_board_lidar_camera_solver` (rotation from the normals, then
@@ -56,7 +58,7 @@ are not redistributed here) holds 21 static board poses.
 | Prior | the axis permutation only (identity rotation between the LiDAR and optical axes, zero translation) |
 
 The camera found the board in all 21 images (reprojection 0.04–0.32 px), and the LiDAR plane
-in all 21 (0.5–1.1 cm plane RMS).
+in all 21 (0.5–1.9 cm plane RMS).
 
 Reproduce with the extracted sample (needs `opencv-python-headless`):
 
@@ -66,12 +68,12 @@ python tools/board_camera_lidar_acsc.py ACSC/sample --output acsc_board.json
 
 | Axis (camera frame) | Value | Jackknife std | Observed |
 | --- | --- | --- | --- |
-| roll (about x) | 2.18 deg from the prior | 0.33 deg | no (std over 0.3 deg) |
-| pitch (about y) | −0.36 deg from the prior | 0.29 deg | yes |
-| yaw (about z) | −0.49 deg from the prior | 0.49 deg | no (std over 0.3 deg) |
-| x | 14.3 cm | 1.7 cm | yes |
+| roll (about x) | 2.22 deg from the prior | 0.35 deg | no (std over 0.3 deg) |
+| pitch (about y) | −0.25 deg from the prior | 0.299 deg | yes, just within the bound |
+| yaw (about z) | −0.62 deg from the prior | 0.41 deg | no (std over 0.3 deg) |
+| x | 13.3 cm | 1.6 cm | yes |
 | y | −0.7 cm (the prior's 0, kept) | — | **no**: the board normals have almost no vertical component |
-| z | 15.0 cm | 0.8 cm | yes |
+| z | 15.2 cm | 0.8 cm | yes |
 
 What this shows:
 
@@ -80,13 +82,18 @@ What this shows:
   y axis. With the y translation free, it drifted by tens of centimetres between solves and
   pulled the next crop off the board; holding it at the prior and reporting it as not
   observed is what keeps the other axes stable.
-- **The plane offsets disagree more for far boards.** Residuals are about 1–3 cm at 3–4 m
-  and up to 10 cm at 9–12 m, larger than the LiDAR plane noise. A small focal-length or
+- **The plane offsets disagree more for far boards.** Residuals are within 4 cm at
+  3–4.4 m, up to 7 cm at 6–7 m and up to 9 cm at 9–12 m. A small focal-length or
   distortion error in the sample's intrinsics would do this; the distance weighting limits
   its effect, and boards within about 6 m are better.
 - **Rotation is limited by the LiDAR plane normals.** A Livox plane fit on a 0.64 x 0.48 m
-  board disagrees with the camera's by 0.4–3.7 deg per pose, so two rotation axes stay
-  just above the 0.3 deg bound with 21 poses.
+  board disagrees with the camera's by 0.3–3.1 deg per pose, so with 21 poses two rotation
+  axes stay above the 0.3 deg bound and the third is just within it.
+- **A fixed RANSAC band made the plane depend on the point order.** The board's Livox
+  points spread over 4–6 cm at 6–7 m. With the first version's 2 cm band, a different
+  slice was kept for each RANSAC sample: reordering a pose's points moved its plane by up
+  to 3 deg and 10 cm. The fixed-point refinement removed that (the plane now moves by
+  less than 0.001 deg and 0.1 mm under reordering), and the table is from it.
 
 **For a capture:** tilt the board up and down as well as left and right, keep it within
 about 6 m, hold it still, and use a dozen or more poses.

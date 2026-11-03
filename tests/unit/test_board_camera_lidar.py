@@ -119,6 +119,29 @@ def test_the_board_plane_is_found_among_wall_and_floor() -> None:
     assert found.rms_m < 0.005
 
 
+def test_a_noisy_board_plane_does_not_depend_on_the_point_order() -> None:
+    """Range noise wider than the RANSAC band must not leave the plane to the sample drawn."""
+
+    rotation, translation = _board_pose(15.0, -10.0, (0.1, 0.0, 3.0))
+    rng = np.random.default_rng(6)
+    view = detect_board(_render(rotation, translation), BOARD, CAMERA)
+    assert view is not None
+    camera_points = _scan(rotation, translation, rng) @ TRUE[:3, :3].T + TRUE[:3, 3]
+    board = np.abs((camera_points - translation) @ rotation[:, 2]) < 0.01
+    camera_points[board] += rotation[:, 2] * rng.normal(0.0, 0.02, (int(board.sum()), 1))
+    points = (camera_points - TRUE[:3, 3]) @ TRUE[:3, :3]
+
+    planes = []
+    for seed in range(4):
+        order = np.random.default_rng(seed).permutation(len(points))
+        found = extract_board_plane(points[order], view, BOARD, TRUE, margin_m=0.15, gate_m=0.15)
+        assert found is not None
+        normal = np.asarray(found.plane.normal)
+        sign = 1.0 if normal @ np.ones(3) > 0 else -1.0
+        planes.append(np.append(sign * normal, sign * found.plane.offset_m))
+    np.testing.assert_allclose(planes, [planes[0]] * len(planes), atol=1e-6)
+
+
 def _poses(angles, rng, *, range_bias_m=0.0) -> list[BoardPose]:
     poses = []
     for index, (yaw, pitch) in enumerate(angles):

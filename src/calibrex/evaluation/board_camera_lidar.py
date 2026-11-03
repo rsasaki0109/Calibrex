@@ -181,6 +181,7 @@ def extract_board_plane(
     max_normal_deg: float = 25.0,
     min_inliers: int = 30,
     iterations: int = 300,
+    refinements: int = 20,
     seed: int = 0,
 ) -> LidarBoardPlane | None:
     """The board's plane among the LiDAR points around where the camera saw the board.
@@ -188,8 +189,10 @@ def extract_board_plane(
     Points are mapped into the camera frame with ``t_camera_lidar`` and then into the
     board frame; those within ``margin_m`` of the squares and ``gate_m`` of the board
     plane are candidates. The plane with most inliers within ``inlier_m`` (RANSAC) is
-    refined by a least-squares fit. ``None`` when too few points fit, or when the plane
-    turns more than ``max_normal_deg`` away from the board the camera saw.
+    refined by least squares to a fixed point, keeping the points within
+    ``max(inlier_m, 3 sigma)`` of it (sigma from the median absolute residual). ``None``
+    when too few points fit, or when the plane turns more than ``max_normal_deg`` away
+    from the board the camera saw.
     """
 
     points = np.asarray(points_lidar, dtype=np.float64).reshape(-1, 3)
@@ -221,7 +224,24 @@ def extract_board_plane(
     if best is None or best_count < min_inliers:
         return None
     normal, origin = best
-    inliers = candidates[np.abs((candidates - origin) @ normal) < inlier_m]
+    # The board's points can spread wider than inlier_m (range noise of a few cm at
+    # distance): a fixed band would keep a different slice of them for each RANSAC
+    # sample. Refine to a fixed point instead, the band widened to 3 robust sigmas of
+    # the residuals, so the plane depends on the points and not on their order.
+    selected = np.abs((candidates - origin) @ normal) < inlier_m
+    for _ in range(refinements):
+        inliers = candidates[selected]
+        centroid = inliers.mean(axis=0)
+        _, singular, vt = np.linalg.svd(inliers - centroid, full_matrices=False)
+        normal = vt[2]
+        residual = (candidates - centroid) @ normal
+        kept = residual[selected]
+        sigma = 1.4826 * float(np.median(np.abs(kept - np.median(kept))))
+        updated = np.abs(residual) < max(inlier_m, 3.0 * sigma)
+        if np.array_equal(updated, selected) or np.count_nonzero(updated) < min_inliers:
+            break
+        selected = updated
+    inliers = candidates[selected]
     centroid = inliers.mean(axis=0)
     _, singular, vt = np.linalg.svd(inliers - centroid, full_matrices=False)
     normal = vt[2]
