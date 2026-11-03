@@ -6,7 +6,6 @@ import re
 from pathlib import Path
 
 import yaml
-
 from tools import kitti_board_camera_lidar_evaluate as harness
 
 ROOT = Path(__file__).resolve().parents[2]
