@@ -25,7 +25,7 @@ from calibrex.evaluation.board_camera_lidar import (
     Checkerboard,
     calibrate_board,
     detect_board,
-    extract_board_plane,
+    plane_residuals,
 )
 from calibrex.evaluation.visual_rotation import CameraModel
 
@@ -92,22 +92,16 @@ def main(argv: list[str] | None = None) -> int:
         )
         residuals = []
         for pose in poses:
-            lidar = extract_board_plane(
-                pose.points_lidar, pose.view, board, transform, margin_m=0.15, gate_m=0.15
-            )
-            if lidar is None:
+            found = plane_residuals(pose, board, transform)
+            if found is None:
                 continue
-            normal = transform[:3, :3] @ np.asarray(lidar.plane.normal)
-            offset = lidar.plane.offset_m - float(normal @ transform[:3, 3])
-            camera_normal = np.asarray(pose.view.plane.normal)
-            if normal @ camera_normal < 0:
-                normal, offset = -normal, -offset
+            lidar, normal_deg, offset_m = found
             residuals.append(
                 {
                     "pose": pose.pose_id,
                     "distance_m": float(np.linalg.norm(pose.view.translation)),
-                    "normal_deg": float(np.degrees(np.arccos(min(1.0, normal @ camera_normal)))),
-                    "offset_m": float(offset - pose.view.plane.offset_m),
+                    "normal_deg": normal_deg,
+                    "offset_m": offset_m,
                     "lidar_inliers": lidar.inliers,
                     "lidar_rms_m": lidar.rms_m,
                     "reprojection_px": pose.view.reprojection_px,

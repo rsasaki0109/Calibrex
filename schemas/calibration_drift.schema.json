@@ -997,6 +997,19 @@
           "title": "Acceleration Unit",
           "type": "string"
         },
+        "board": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "camera-lidar measured from a checkerboard held still at several poses (COLUMNSxROWSxSQUARE_M: inner corners and square size) instead of edge alignment",
+          "title": "Board"
+        },
         "camera": {
           "anyOf": [
             {

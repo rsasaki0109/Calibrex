@@ -164,6 +164,8 @@ class RunControls:
     camera_lidar_start_agreement_deg: float | None = None
     camera_lidar_overlay: bool = False
     """Draw one scan on its image under the candidate and the estimate (``check --html``)."""
+    board: str | None = None
+    """camera-lidar from a checkerboard (``COLUMNSxROWSxSQUARE_M``) instead of edge alignment."""
     edge_preparation_cache: EdgePreparationCache | None = field(
         default=None, repr=False, compare=False
     )
@@ -2436,6 +2438,8 @@ def camera_lidar_axis_estimates(
 def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
     """``T_camera_lidar`` rotation by aligning LiDAR depth edges with image edges."""
 
+    if ctx.controls.board is not None:
+        return run_camera_lidar_board(ctx)
     from calibrex.core.camera_lidar_edge import load_camera_lidar_edge
     from calibrex.evaluation.camera_lidar_edge import (
         CameraLidarRunInputs,
@@ -2595,6 +2599,162 @@ def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
         compared=candidate,
         notes=tuple(notes),
         images=images,
+    )
+
+
+BOARD_AXIS_PERMUTATION = np.array(
+    [[0.0, -1.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0], [1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]]
+)
+"""``T_camera_lidar`` of a LiDAR (x forward, y left, z up) looking where the optical frame does."""
+
+
+def run_camera_lidar_board(ctx: PairContext) -> EstimatorRun:
+    """``T_camera_lidar``, all six axes, from a checkerboard held still at several poses."""
+
+    from calibrex import __version__
+    from calibrex.core.board_camera_lidar import load_board_camera_lidar
+    from calibrex.core.provenance import git_commit
+    from calibrex.evaluation.board_camera_lidar import Checkerboard, calibrate_board
+    from calibrex.evaluation.board_camera_lidar_bag import (
+        BoardCaptureOptions,
+        board_artifact,
+        read_board_poses,
+    )
+
+    assert ctx.controls.board is not None
+    board = Checkerboard.parse(ctx.controls.board)
+    image_topic = require_image_topic(ctx, ctx.sensor_topics.get("camera", ()))
+    lidar_topic = _require_lidar_topic(ctx, ctx.sensor_topics.get("lidar", ()))
+    camera_frame, lidar_frame = ctx.pair.frames[0], ctx.pair.frames[1]
+    model, intrinsics_source, _key = resolve_camera_intrinsics(ctx, image_topic, camera_frame)
+    tree = ctx.controls.frame_tree
+    from_tree = tree is not None and tree.connected(camera_frame, lidar_frame)
+    start = np.asarray(ctx.candidate if from_tree else BOARD_AXIS_PERMUTATION, dtype=np.float64)
+    options = BoardCaptureOptions(max_seconds=ctx.controls.max_duration_s)
+    camera: dict[str, object] = {
+        "fx": model.fx,
+        "fy": model.fy,
+        "cx": model.cx,
+        "cy": model.cy,
+        "distortion_model": model.distortion_model,
+        "distortion": list(model.distortion),
+    }
+    command = ("calibrex", "estimate", str(ctx.bag), "--board", ctx.controls.board)
+    ctx.controls.progress(
+        f"camera-lidar (board {ctx.controls.board}): {image_topic} + {lidar_topic} "
+        f"(intrinsics: {intrinsics_source})"
+    )
+
+    def compute() -> Any:
+        capture = read_board_poses(
+            ctx.bag, image_topic, lidar_topic, board, model, options, progress=ctx.controls.progress
+        )
+        result = calibrate_board(capture.poses, board, start)
+        return board_artifact(
+            result,
+            board,
+            start,
+            camera_frame=camera_frame,
+            lidar_frame=lidar_frame,
+            poses=capture.poses,
+            capture=capture,
+            camera=camera,
+            options={**options.__dict__, "start": "the --tf prior" if from_tree else "axes"},
+            provenance={
+                "generator": "calibrex.check (board camera-lidar)",
+                "generator_version": __version__,
+                "git_commit": git_commit(),
+                "command": list(command),
+                "image_topic": image_topic,
+                "lidar_topic": lidar_topic,
+                "intrinsics_source": intrinsics_source,
+                "input_sha256": _digest_or_topic(ctx, image_topic, lidar_topic),
+            },
+        )
+
+    artifact, cached = cached_artifact(
+        ctx.controls.cache,
+        ctx.controls.bag_sha256,
+        "board_camera_lidar",
+        {
+            "image_topic": image_topic,
+            "lidar_topic": lidar_topic,
+            "board": ctx.controls.board,
+            "camera": camera,
+            "start": [round(float(v), 9) for v in start.ravel()],
+            "options": options.__dict__,
+            **image_decoder_key(ctx, image_topic),
+        },
+        loader=load_board_camera_lidar,
+        compute=compute,
+        rebase=lambda hit: hit,
+    )
+    solved = artifact.transform is not None
+    estimate = (
+        transform_matrix(artifact.transform.translation_m, artifact.transform.rotation_quat_xyzw)
+        if artifact.transform is not None
+        else start
+    )
+    errors = rotation_errors_deg(start[:3, :3], estimate[:3, :3])
+    by_name = {axis.name: axis for axis in artifact.axes}
+    estimates: list[AxisEstimate] = []
+    names: tuple[CheckAxisName, ...] = ("roll", "pitch", "yaw", "x", "y", "z")
+    for index, name in enumerate(names):
+        unit: Literal["deg", "m"] = "deg" if index < 3 else "m"
+        error = errors[index] if index < 3 else float(start[index - 3, 3] - estimate[index - 3, 3])
+        axis = by_name.get(name)
+        if axis is None:
+            estimates.append(
+                AxisEstimate(
+                    name,
+                    unit,
+                    0.0,
+                    math.inf,
+                    False,
+                    "the estimator produced no estimate: " + "; ".join(artifact.policy_reasons),
+                    "no_estimate",
+                )
+            )
+            continue
+        std = axis.std if axis.std is not None else math.inf
+        estimates.append(
+            AxisEstimate(
+                name,
+                unit,
+                error,
+                std,
+                axis.observed,
+                None if axis.observed else axis.reason,
+                None if axis.observed else "unobservable",
+            )
+        )
+    used = sum(1 for pose in artifact.poses if pose.used)
+    notes = [
+        f"intrinsics: {intrinsics_source}",
+        f"board {ctx.controls.board}: {used} of {len(artifact.poses)} still pose(s) used "
+        f"({artifact.images_with_board or 0} of {artifact.images_searched or 0} searched "
+        "image(s) showed the board); the camera frame must be the optical frame (z forward)",
+        "started from the --tf prior"
+        if from_tree
+        else "started from the LiDAR axes x forward, y left, z up (no --tf prior connects the "
+        "frames); unobserved translation keeps the start's value",
+    ]
+    return EstimatorRun(
+        estimator=f"{artifact.method} (camera-lidar)",
+        artifacts=(
+            EvidenceArtifact(
+                "board_planes",
+                artifact,
+                artifact.policy_status,
+                cached if ctx.controls.cache is not None else None,
+            ),
+        ),
+        solved=solved,
+        policy_status=artifact.policy_status,
+        policy_reasons=tuple(artifact.policy_reasons),
+        estimates=tuple(estimates),
+        compared=start,
+        notes=tuple(notes),
     )
 
 

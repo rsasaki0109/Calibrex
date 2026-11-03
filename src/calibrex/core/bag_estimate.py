@@ -61,7 +61,7 @@ EstimateExportKind = Literal[
     "kalibr_camchain",
     "fast_lio_config",
 ]
-EstimateFill = Literal["prior", "placeholder_identity"]
+EstimateFill = Literal["prior", "placeholder_identity", "board_axes"]
 
 
 class EstimateAxis(StrictModel):
@@ -115,7 +115,8 @@ class EstimatePairRecord(StrictModel):
     fill: EstimateFill | None = Field(
         default=None,
         description="where the non-observed axes of 'transform' come from: the --tf prior "
-        "(rough, user supplied) or the identity placeholder",
+        "(rough, user supplied), the identity placeholder, or (camera-lidar with --board and "
+        "no prior) the LiDAR's axes x forward, y left, z up mapped into the optical frame",
     )
     axes: list[EstimateAxis] = Field(default_factory=list)
     time_offset: CheckTimeOffset | None = None
@@ -194,6 +195,11 @@ class EstimateOptions(StrictModel):
         description="experimental: withhold camera-lidar rotation axes on which evidenced "
         "optima from different search starts differ by more than this (deg); absent keeps "
         "the ordinary rule",
+    )
+    board: str | None = Field(
+        default=None,
+        description="camera-lidar measured from a checkerboard held still at several poses "
+        "(COLUMNSxROWSxSQUARE_M: inner corners and square size) instead of edge alignment",
     )
     topic_kinds: dict[str, str] = Field(default_factory=dict)
     frame_map: dict[str, str] = Field(default_factory=dict)

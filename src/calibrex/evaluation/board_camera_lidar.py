@@ -473,3 +473,27 @@ def calibrate_board(
         f"{len(observations)} board poses; jackknife over {count} leave-one-out solves",
         tuple((float(d[0]), float(d[1]), float(d[2])) for d in unobserved),
     )
+
+
+def plane_residuals(
+    pose: BoardPose, board: Checkerboard, transform_camera_lidar: FloatArray
+) -> tuple[LidarBoardPlane, float, float] | None:
+    """The LiDAR plane of ``pose`` under ``transform_camera_lidar`` and its disagreement.
+
+    Returns ``(plane, normal angle in deg, LiDAR offset minus camera offset in m)``, both
+    in the camera frame, or ``None`` when no LiDAR plane is found near the board.
+    """
+
+    transform = np.asarray(transform_camera_lidar, dtype=np.float64)
+    lidar = extract_board_plane(
+        pose.points_lidar, pose.view, board, transform, margin_m=0.15, gate_m=0.15
+    )
+    if lidar is None:
+        return None
+    normal = transform[:3, :3] @ np.asarray(lidar.plane.normal)
+    offset = lidar.plane.offset_m - float(normal @ transform[:3, 3])
+    camera_normal = np.asarray(pose.view.plane.normal)
+    if normal @ camera_normal < 0:
+        normal, offset = -normal, -offset
+    angle = math.degrees(math.acos(min(1.0, float(normal @ camera_normal))))
+    return lidar, angle, offset - pose.view.plane.offset_m

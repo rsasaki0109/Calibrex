@@ -262,6 +262,10 @@ supplies that axis (the YAML marks it `NOT MEASURED`), otherwise it is omitted a
 under `next steps`. Rotation-only estimators (camera-IMU, the vehicle pairs) therefore need a
 rough lever arm from `--tf`; lidar-lidar registration and camera-lidar edge alignment (rotation only) also start from a `--tf` prior, and
 camera-IMU and camera-LiDAR need the camera intrinsics (a `CameraInfo` topic or a Kalibr camchain).
+For the camera-LiDAR translation, record a checkerboard held still at a dozen poses and run
+`calibrex estimate BAG --board 7x5x0.08` (inner corners and square size): all six axes, each
+with its std and whether the poses observed it
+([camera-LiDAR from a checkerboard](docs/benchmarks/board_camera_lidar.md), development).
 
 Real-data results, with the splits, exact commands and the failures (Hilti camera-IMU, Koide
 imu-lidar, KITTI vehicle pairs, RTK-SLAM GNSS pairs):

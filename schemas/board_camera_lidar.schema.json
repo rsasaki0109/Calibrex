@@ -1,0 +1,547 @@
+{
+  "$defs": {
+    "BoardCameraLidarAxis": {
+      "additionalProperties": false,
+      "description": "One axis of ``T_camera_lidar``.",
+      "properties": {
+        "name": {
+          "enum": [
+            "roll",
+            "pitch",
+            "yaw",
+            "x",
+            "y",
+            "z"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "observed": {
+          "title": "Observed",
+          "type": "boolean"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "std": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "leave-one-pose-out (jackknife) standard deviation",
+          "title": "Std"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "m"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "description": "rotations: the rotation vector of T_camera_lidar about the camera's axes; translations: the camera-frame translation",
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "unit",
+        "value",
+        "observed",
+        "reason"
+      ],
+      "title": "BoardCameraLidarAxis",
+      "type": "object"
+    },
+    "BoardCameraLidarPose": {
+      "additionalProperties": false,
+      "description": "One still board pose found in the recording.",
+      "properties": {
+        "detections": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detections"
+        },
+        "distance_m": {
+          "description": "the board's distance from the camera",
+          "minimum": 0.0,
+          "title": "Distance M",
+          "type": "number"
+        },
+        "end_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End S"
+        },
+        "lidar_points": {
+          "minimum": 0,
+          "title": "Lidar Points",
+          "type": "integer"
+        },
+        "normal_residual_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "angle between the camera's board normal and the LiDAR's, mapped with the estimate",
+          "title": "Normal Residual Deg"
+        },
+        "offset_residual_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the LiDAR plane's offset minus the camera's, in the camera frame, mapped with the estimate",
+          "title": "Offset Residual M"
+        },
+        "pose_id": {
+          "title": "Pose Id",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "reprojection_px": {
+          "minimum": 0.0,
+          "title": "Reprojection Px",
+          "type": "number"
+        },
+        "scans": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scans"
+        },
+        "start_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start S"
+        },
+        "used": {
+          "title": "Used",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "pose_id",
+        "lidar_points",
+        "distance_m",
+        "reprojection_px",
+        "used"
+      ],
+      "title": "BoardCameraLidarPose",
+      "type": "object"
+    },
+    "BoardCameraLidarProvenance": {
+      "additionalProperties": false,
+      "description": "Inputs and generator lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "image_topic": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image Topic"
+        },
+        "input_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Sha256"
+        },
+        "intrinsics_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Intrinsics Source"
+        },
+        "lidar_topic": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lidar Topic"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version"
+      ],
+      "title": "BoardCameraLidarProvenance",
+      "type": "object"
+    },
+    "BoardCameraLidarTransform": {
+      "additionalProperties": false,
+      "description": "``T_camera_lidar`` as translation and quaternion.",
+      "properties": {
+        "child_frame": {
+          "title": "Child Frame",
+          "type": "string"
+        },
+        "parent_frame": {
+          "title": "Parent Frame",
+          "type": "string"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent_frame",
+        "child_frame",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "BoardCameraLidarTransform",
+      "type": "object"
+    },
+    "BoardSpec": {
+      "additionalProperties": false,
+      "description": "The checkerboard: inner corners and square size.",
+      "properties": {
+        "columns": {
+          "minimum": 2,
+          "title": "Columns",
+          "type": "integer"
+        },
+        "rows": {
+          "minimum": 2,
+          "title": "Rows",
+          "type": "integer"
+        },
+        "square_m": {
+          "exclusiveMinimum": 0.0,
+          "title": "Square M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "columns",
+        "rows",
+        "square_m"
+      ],
+      "title": "BoardSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "``T_camera_lidar`` from checkerboard planes, with per-axis observability.",
+  "properties": {
+    "axes": {
+      "items": {
+        "$ref": "#/$defs/BoardCameraLidarAxis"
+      },
+      "title": "Axes",
+      "type": "array"
+    },
+    "board": {
+      "$ref": "#/$defs/BoardSpec"
+    },
+    "camera": {
+      "additionalProperties": true,
+      "title": "Camera",
+      "type": "object"
+    },
+    "images": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Images"
+    },
+    "images_searched": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Images Searched"
+    },
+    "images_with_board": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Images With Board"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "method": {
+      "const": "planar_board/v0.1",
+      "default": "planar_board/v0.1",
+      "title": "Method",
+      "type": "string"
+    },
+    "normal_singular_values": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "singular values of the weighted camera-frame board normals",
+      "title": "Normal Singular Values"
+    },
+    "options": {
+      "additionalProperties": true,
+      "title": "Options",
+      "type": "object"
+    },
+    "plane_normal_rmse_deg": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Plane Normal Rmse Deg"
+    },
+    "plane_offset_rmse_m": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Plane Offset Rmse M"
+    },
+    "policy_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Policy Reasons",
+      "type": "array"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "warn",
+        "inconclusive"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "poses": {
+      "items": {
+        "$ref": "#/$defs/BoardCameraLidarPose"
+      },
+      "title": "Poses",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/BoardCameraLidarProvenance"
+    },
+    "schema_version": {
+      "const": "slac.board_camera_lidar/v0.1",
+      "default": "slac.board_camera_lidar/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "solver_status": {
+      "description": "converged, insufficient_poses, or the plane solver's own status",
+      "title": "Solver Status",
+      "type": "string"
+    },
+    "start_transform": {
+      "$ref": "#/$defs/BoardCameraLidarTransform"
+    },
+    "transform": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BoardCameraLidarTransform"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "unobserved_directions": {
+      "description": "camera-frame translation directions the board normals did not fix; the translation along them is the start's",
+      "items": {
+        "items": {
+          "type": "number"
+        },
+        "type": "array"
+      },
+      "title": "Unobserved Directions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "solver_status",
+    "policy_status",
+    "policy_reasons",
+    "board",
+    "start_transform",
+    "provenance"
+  ],
+  "title": "BoardCameraLidarArtifact",
+  "type": "object"
+}

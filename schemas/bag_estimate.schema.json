@@ -871,6 +871,19 @@
           "title": "Acceleration Unit",
           "type": "string"
         },
+        "board": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "camera-lidar measured from a checkerboard held still at several poses (COLUMNSxROWSxSQUARE_M: inner corners and square size) instead of edge alignment",
+          "title": "Board"
+        },
         "camera": {
           "anyOf": [
             {
@@ -1096,7 +1109,8 @@
             {
               "enum": [
                 "prior",
-                "placeholder_identity"
+                "placeholder_identity",
+                "board_axes"
               ],
               "type": "string"
             },
@@ -1105,7 +1119,7 @@
             }
           ],
           "default": null,
-          "description": "where the non-observed axes of 'transform' come from: the --tf prior (rough, user supplied) or the identity placeholder",
+          "description": "where the non-observed axes of 'transform' come from: the --tf prior (rough, user supplied), the identity placeholder, or (camera-lidar with --board and no prior) the LiDAR's axes x forward, y left, z up mapped into the optical frame",
           "title": "Fill"
         },
         "frames": {
