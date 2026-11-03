@@ -87,11 +87,15 @@ class CameraModel:
                 [(points[:, 0, 0] - self.cx) / self.fx, (points[:, 0, 1] - self.cy) / self.fy]
             )
         cv2 = _opencv()
-        coeffs = np.asarray(self.distortion, dtype=np.float64)
+        coeffs: FloatArray = np.asarray(self.distortion, dtype=np.float64)
         if self.distortion_model == "equidistant":
             result = cv2.fisheye.undistortPoints(points, matrix, coeffs)
         else:
-            result = cv2.undistortPoints(points, matrix, coeffs)
+            # cv2.undistortPoints stops after 5 fixed-point iterations: with a strong
+            # barrel distortion (KITTI's cameras, k1 = -0.37) that leaves up to 4 px of
+            # error in the image corners. Iterate to convergence instead.
+            criteria = (cv2.TERM_CRITERIA_COUNT | cv2.TERM_CRITERIA_EPS, 100, 1e-12)
+            result = cv2.undistortPointsIter(points, matrix, coeffs, None, None, criteria)
         return np.asarray(result, dtype=np.float64).reshape(-1, 2)
 
 

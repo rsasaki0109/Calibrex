@@ -124,24 +124,16 @@ class BoardView:
         )
 
 
-def detect_board(
-    gray: NDArray[np.uint8], board: Checkerboard, camera: CameraModel
+def board_view(
+    pixels: NDArray[np.floating], board: Checkerboard, camera: CameraModel
 ) -> BoardView | None:
-    """The board's pose from its inner corners, or ``None`` when they are not all found."""
+    """The board's pose from its inner corners in OpenCV's order (PnP on undistorted corners)."""
 
     cv2 = _opencv()
-    image = np.ascontiguousarray(gray, dtype=np.uint8)
-    pattern = (board.columns, board.rows)
-    found, corners = cv2.findChessboardCornersSB(image, pattern)
-    if not found:
-        found, corners = cv2.findChessboardCorners(image, pattern)
-        if not found:
-            return None
-        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 50, 1e-3)
-        corners = cv2.cornerSubPix(image, corners, (5, 5), (-1, -1), criteria)
-    pixels = np.asarray(corners, dtype=np.float64).reshape(-1, 2)
-    normalized = camera.normalize(pixels)
+    normalized = camera.normalize(np.asarray(pixels, dtype=np.float64).reshape(-1, 2))
     objects = board.object_points()
+    if len(normalized) != len(objects):
+        raise ValueError(f"{len(normalized)} corners for a {board.columns}x{board.rows} board")
     ok, rvec, tvec = cv2.solvePnP(
         objects, normalized.reshape(-1, 1, 2), np.eye(3), None, flags=cv2.SOLVEPNP_IPPE
     )
@@ -158,6 +150,84 @@ def detect_board(
         float(np.sqrt(np.mean(np.sum(residual**2, axis=1)))) * 0.5 * (camera.fx + camera.fy)
     )
     return BoardView(np.asarray(rotation, dtype=np.float64), translation, reprojection)
+
+
+def detect_board(
+    gray: NDArray[np.uint8], board: Checkerboard, camera: CameraModel
+) -> BoardView | None:
+    """The board's pose from its inner corners, or ``None`` when they are not all found."""
+
+    cv2 = _opencv()
+    image = np.ascontiguousarray(gray, dtype=np.uint8)
+    pattern = (board.columns, board.rows)
+    found, corners = cv2.findChessboardCornersSB(image, pattern)
+    if not found:
+        found, corners = cv2.findChessboardCorners(image, pattern)
+        if not found:
+            return None
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 50, 1e-3)
+        corners = cv2.cornerSubPix(image, corners, (5, 5), (-1, -1), criteria)
+    return board_view(np.asarray(corners, dtype=np.float64).reshape(-1, 2), board, camera)
+
+
+@dataclass(frozen=True)
+class BoardCorners:
+    """One board found in an image: its inner-corner grid, columns fastest."""
+
+    columns: int
+    rows: int
+    pixels: FloatArray
+    """``(rows * columns, 2)`` pixel coordinates in OpenCV's order (columns fastest)."""
+
+    @property
+    def grid(self) -> FloatArray:
+        return self.pixels.reshape(self.rows, self.columns, 2)
+
+    def board(self, square_m: float) -> Checkerboard:
+        return Checkerboard(self.columns, self.rows, square_m)
+
+
+def find_boards(
+    gray: NDArray[np.uint8],
+    *,
+    min_pattern: tuple[int, int] = (4, 3),
+    max_boards: int = 30,
+) -> list[BoardCorners]:
+    """Every checkerboard in one image, of any size at least ``min_pattern`` inner corners.
+
+    For a scene with several boards in view at once (boards on walls, a single shot).
+    ``findChessboardCornersSBWithMeta`` with ``CALIB_CB_LARGER`` finds one board and its
+    full grid; the board and one square around it are then painted over with the image's
+    median grey and the search repeats, until no board is found or ``max_boards``. The
+    grid can come out turned by 90 deg relative to how the board was printed; its own
+    corner order is kept, which describes the same plane.
+    """
+
+    cv2 = _opencv()
+    work = np.ascontiguousarray(gray, dtype=np.uint8).copy()
+    fill = int(np.median(work))
+    flags = cv2.CALIB_CB_LARGER | cv2.CALIB_CB_EXHAUSTIVE | cv2.CALIB_CB_ACCURACY
+    found: list[BoardCorners] = []
+    for _ in range(max_boards):
+        ok, corners, meta = cv2.findChessboardCornersSBWithMeta(work, min_pattern, flags)
+        if not ok or corners is None or meta is None:
+            break
+        rows, columns = (int(v) for v in np.asarray(meta).shape[:2])
+        pixels = np.asarray(corners, dtype=np.float64).reshape(-1, 2)
+        if len(pixels) != rows * columns:
+            break
+        found.append(BoardCorners(columns, rows, pixels))
+        # paint the board and one square around it over, through the grid's homography
+        units = np.array([[c, r] for r in range(rows) for c in range(columns)], np.float64)
+        homography, _ = cv2.findHomography(units, pixels)
+        if homography is None:
+            break
+        outline = np.array(
+            [[-1.5, -1.5], [columns + 0.5, -1.5], [columns + 0.5, rows + 0.5], [-1.5, rows + 0.5]]
+        )
+        polygon = cv2.perspectiveTransform(outline.reshape(-1, 1, 2), homography).reshape(-1, 2)
+        cv2.fillConvexPoly(work, np.round(polygon).astype(np.int32), fill)
+    return found
 
 
 @dataclass(frozen=True)
@@ -266,6 +336,8 @@ class BoardPose:
     pose_id: str
     view: BoardView
     points_lidar: NDArray[np.floating]
+    board: Checkerboard | None = None
+    """This pose's board, when the poses do not all share the calibration's board."""
 
 
 @dataclass(frozen=True)
@@ -368,7 +440,7 @@ def _axis_values(matrix: FloatArray, reference: FloatArray) -> FloatArray:
 
 def calibrate_board(
     poses: Sequence[BoardPose],
-    board: Checkerboard,
+    board: Checkerboard | None,
     initial_camera_lidar: FloatArray,
     *,
     passes: int = 3,
@@ -383,6 +455,8 @@ def calibrate_board(
     is within ``translation_bound_m`` or ``rotation_bound_deg``.
     """
 
+    if board is None and any(pose.board is None for pose in poses):
+        raise ValueError("every pose needs a board when the calibration has none")
     current = np.asarray(initial_camera_lidar, dtype=np.float64)
     prior = current.copy()
     observations: list[PlanarBoardObservation] = []
@@ -392,8 +466,10 @@ def calibrate_board(
         margin, gate = (0.25, 0.4) if index == 0 else (0.15, 0.15)
         observations, rejected = [], []
         for pose in poses:
+            pose_board = pose.board or board
+            assert pose_board is not None
             lidar = extract_board_plane(
-                pose.points_lidar, pose.view, board, current, margin_m=margin, gate_m=gate
+                pose.points_lidar, pose.view, pose_board, current, margin_m=margin, gate_m=gate
             )
             if lidar is None:
                 rejected.append((pose.pose_id, "no LiDAR plane near the board the camera saw"))
@@ -476,7 +552,7 @@ def calibrate_board(
 
 
 def plane_residuals(
-    pose: BoardPose, board: Checkerboard, transform_camera_lidar: FloatArray
+    pose: BoardPose, board: Checkerboard | None, transform_camera_lidar: FloatArray
 ) -> tuple[LidarBoardPlane, float, float] | None:
     """The LiDAR plane of ``pose`` under ``transform_camera_lidar`` and its disagreement.
 
@@ -485,8 +561,11 @@ def plane_residuals(
     """
 
     transform = np.asarray(transform_camera_lidar, dtype=np.float64)
+    pose_board = pose.board or board
+    if pose_board is None:
+        raise ValueError("the pose has no board and none was given")
     lidar = extract_board_plane(
-        pose.points_lidar, pose.view, board, transform, margin_m=0.15, gate_m=0.15
+        pose.points_lidar, pose.view, pose_board, transform, margin_m=0.15, gate_m=0.15
     )
     if lidar is None:
         return None
