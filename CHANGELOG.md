@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Add `calibrex.evaluation.board_camera_lidar`: `T_camera_lidar` from a checkerboard held at
+  several poses. The camera's board plane comes from its corners (PnP on undistorted
+  corners), the LiDAR's from a RANSAC plane cropped around the board the camera saw, and
+  the Zhang-Pless plane solver combines them, weighted by `(1 m / distance)^2`. Translation
+  directions the board normals do not fix are kept at the prior and reported as not
+  observed; every axis gets a jackknife std. On the ACSC sample (development data, boards
+  turned left and right only) x, z and pitch are observed (1.7 cm, 0.8 cm, 0.29 deg) and
+  the vertical translation is not ([board camera-LiDAR](docs/benchmarks/board_camera_lidar.md)).
+  Library only; a bag front end and `calibrex estimate --board` come next.
 - `calibrex estimate` writes `fast_lio_extrinsics.yaml` when an IMU-LiDAR edge is exported:
   `mapping.extrinsic_R`/`extrinsic_T` (the LiDAR in the IMU frame) for FAST-LIO, FAST-LIO2,
   Point-LIO and FAST-LIVO, FAST-LIVO's `camera.Rcl`/`Pcl` when a camera is exported too,

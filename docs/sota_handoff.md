@@ -155,6 +155,7 @@ The camera-imu v3 audit did exactly this with the camera-camera runs.
 | NTU VIRAL | `lidar-lidar` | rtp_01, spms_01, tnp_02 (evaluation), tnp_01 (development) |
 | FAST-LIVO (Hugging Face MCAP) | `camera-lidar`, `imu-lidar`, `camera-imu` (tool validation, no audit) | hku1, hku2 (`calibrex check` runs recorded in the [check tutorial](tutorials/calibrex_check.md)), and the two halves of hku2 |
 | Newer College 2021 | `camera-camera`, `camera-lidar`, `imu-lidar`, `camera-imu`, `camera-focal` (tool validation, no audit) | collection 3 `math-easy` part 1 (`calibrex check` run recorded in the [check tutorial](tutorials/calibrex_check.md)) |
+| ACSC sample (Livox Horizon + checkerboard) | board-based `camera-lidar` development | the whole sample (21 board poses; [board camera-LiDAR](benchmarks/board_camera_lidar.md)) |
 
 The v2 camera-lidar runs also read the Velodyne and OXTS of the first 600 frames of its
 18 drives. A `lidar-vehicle` or `ins-lidar` audit on those drives must disclose that.
