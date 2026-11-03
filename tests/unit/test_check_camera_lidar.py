@@ -459,9 +459,7 @@ def test_check_moves_scans_to_the_image_time_with_the_odometry(
     assert artifact.options is not None and artifact.options.camera_lidar_motion == "auto"
 
 
-def test_scans_as_recorded_on_the_moving_rig_are_flagged(
-    moving_bag: Path, tmp_path: Path
-) -> None:
+def test_scans_as_recorded_on_the_moving_rig_are_flagged(moving_bag: Path, tmp_path: Path) -> None:
     artifact = _run(moving_bag, tmp_path, camera_lidar_motion="none")
     (record,) = [p for p in artifact.pairs if p.pair == "camera-lidar"]
     assert record.verdict in {"warn", "fail"}
@@ -716,3 +714,21 @@ def test_drift_unwraps_rotation_vectors_across_a_half_turn() -> None:
         "b": pair(Rotation.from_rotvec([0.02, 0.02, 0.03])),
     }
     assert _unwrapped_rotvecs(small) == {}  # type: ignore[arg-type]
+
+
+def test_estimate_progress_reports_the_estimate_not_a_verdict(
+    good_bag: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The check verdict against the placeholder candidate read "fail" for a good estimate."""
+
+    out = tmp_path / "out"
+    code = main(
+        ["estimate", str(good_bag), "--output", str(out), "--pairs", "camera-lidar", "--no-cache"]
+    )
+
+    assert code == 0
+    artifact = json.loads((out / "bag_estimate.json").read_text())
+    (pair,) = [p for p in artifact["pairs"] if p["pair"] == "camera-lidar"]
+    finished = [line for line in capsys.readouterr().err.splitlines() if " -> " in line]
+    assert len(finished) == 1
+    assert f" -> {pair['status']} (" in finished[0]
