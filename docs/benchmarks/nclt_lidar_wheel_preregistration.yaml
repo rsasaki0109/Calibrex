@@ -1,0 +1,125 @@
+# Pre-registration of the lidar-wheel_odometry audit on unseen NCLT sessions:
+# calibrex check --pairs lidar-wheel_odometry run once on one hour of each of five sessions
+# no Calibrex method has read, its estimate scored against NCLT's own LiDAR calibration.
+# It is binding once committed; tools/nclt_lidar_wheel_audit.py at frozen_code_commit is the
+# only code that reads these sessions, and it runs once.
+#
+# Written on 2026-11-03.  lidar-wheel_odometry has no claim (docs/sota_handoff.md): until
+# now it ran only on KITTI, with OXTS standing in for wheels.  NCLT (University of
+# Michigan North Campus Long-Term dataset, Carlevaris-Bianco, Ushani and Eustice, IJRR 2016,
+# Open Database License) records a Segway with a Velodyne HDL-32E mounted upside down,
+# wheel encoders, a FOG and an IMU.  Development used session 2012-01-08 only (spent):
+#   * the solver took up to be along the sensor's z and turned an upside-down LiDAR by
+#     180 deg: the wheel yaw rate now decides which way is up;
+#   * the 2 m/s speed gate kept almost none of a robot driving at 1-1.5 m/s: calibrex
+#     check and estimate now keep motions from 0.5 m/s (the frozen KITTI benchmarks
+#     keep 2 m/s);
+#   * the HDL-32E turns at about 7.4 Hz: tools/nclt_to_rosbag2.py writes one scan per
+#     turn (fixed 100 ms scans made the LiDAR odometry a third too fast).
+# On 2012-01-08 from 60 s, the estimate's rotation was 1.38, 0.76 and 0.60 deg from NCLT's
+# calibration for 10, 20 and 30 minutes (mostly pitch: 1.13, 0.74 and 0.60 deg, with
+# stds 0.77, 0.27 and 0.19 deg; yaw within 0.1 deg), the lever within 0.015 m and the speed
+# scale 0.97-0.98; calibrex check said inconclusive (no axis with a std of 0.1 deg or
+# less, the vehicle pairs' observability rule).  So the accuracy gate below was missed on
+# the development session at 30 minutes, by the pitch.
+#
+# Of the five sessions only the archives' sizes and ETags (HEAD requests) have been read,
+# and the session list with lengths from the NCLT paper's Table 1.
+#
+# The reference is NCLT's Table 4 (x_body,vel), estimated by the dataset's authors in a
+# SLAM problem with odometry factors and LiDAR scan-matching factors: not independent of
+# the data this method uses, and with no stated uncertainty.  One calibration is given
+# for all sessions; a remount between sessions would show here as an error.  A
+# disagreement beyond the gates is reported as a failure either way.
+claims:
+  nclt-lidar-wheel-accuracy:
+    text: >-
+      On one hour of each of NCLT's sessions 2012-02-02, 2012-05-11, 2012-08-04,
+      2012-11-04 and 2013-02-23, which no Calibrex method had read, calibrex check's
+      lidar-wheel_odometry estimator (LiDAR odometry of the raw Velodyne hits against
+      NCLT's 100 Hz wheel/FOG odometry, tools/nclt_to_rosbag2.py) converges on every
+      session, its rotation of base_link -> velodyne is within 0.5 deg of NCLT's
+      calibration, and its lever (the LiDAR's offset ahead of the turning axle) within
+      0.20 m of NCLT's (0.002 m).
+    gates:
+      converged: the evidence artifact's solver_status is converged
+      max_rotation_error_deg: 0.5
+      max_position_error_m: 0.20
+      sessions_required: 5
+    source_of_gates: >-
+      The user's acceptance rule for a calibration in this repository (converged, rotation
+      error under 0.5 deg, position error under 0.20 m), fixed before any result and not
+      to be loosened after it.  lidar-wheel estimates no translation but the lever, so the
+      position gate applies to the lever.
+  nclt-lidar-wheel-check-honesty:
+    text: >-
+      calibrex check, with NCLT's calibration as the candidate, does not fail
+      lidar-wheel_odometry on any of the five sessions; and on every session where the
+      estimator converges, and on at least 3, no rotation axis's error against NCLT's
+      calibration is beyond check's fail bound 2 x max(3 std, 0.5 deg) with the std the
+      estimator reports, whether or not check judged that axis.
+    gates:
+      sigma_k: 3.0
+      rotation_floor_deg: 0.5
+      fail_factor: 2.0
+      min_converged_sessions: 3
+sessions:
+  development_spent: ['2012-01-08']
+  selection: >-
+    From the NCLT paper's Table 1, before reading any data: in February, May and August
+    2012, November 2012 and February 2013, the first session of the month at least 4 km
+    long (2012-02-02 6.2 km, 2012-05-11 6.0 km, 2012-08-04 5.5 km, 2012-11-04 4.8 km,
+    2013-02-23 5.2 km): five sessions over 13 months.
+  evaluation:
+    '2012-02-02':
+      sensor: {archive: sensor_data/2012-02-02_sen.tar.gz, size_bytes: 124485782, etag: f5ac6cee5a59aefda93b8c992ca986b1-15}
+      velodyne: {archive: velodyne_data/2012-02-02_vel.tar.gz, size_bytes: 18540266768, etag: 4587eb8e8bbcd6cfa81d14776e3576e6-2211}
+    '2012-05-11':
+      sensor: {archive: sensor_data/2012-05-11_sen.tar.gz, size_bytes: 108371461, etag: 2cbeca60df2ba3b594e09f8493ec5ffb-13}
+      velodyne: {archive: velodyne_data/2012-05-11_vel.tar.gz, size_bytes: 16110380065, etag: 2a6319a48627dadcd1712c56e0ebab4f-1921}
+    '2012-08-04':
+      sensor: {archive: sensor_data/2012-08-04_sen.tar.gz, size_bytes: 101652700, etag: d47f951b004c9688d132a7e094b84a35-13}
+      velodyne: {archive: velodyne_data/2012-08-04_vel.tar.gz, size_bytes: 15755320735, etag: 8bf1feda8a224b8b76b91beb3f63603a-1879}
+    '2012-11-04':
+      sensor: {archive: sensor_data/2012-11-04_sen.tar.gz, size_bytes: 101352381, etag: bf8b0a1ade72e50889510d5ac0d5f217-13}
+      velodyne: {archive: velodyne_data/2012-11-04_vel.tar.gz, size_bytes: 14963938140, etag: e039ccb001059fbb209a1109bbd778fe-1784}
+    '2013-02-23':
+      sensor: {archive: sensor_data/2013-02-23_sen.tar.gz, size_bytes: 100961203, etag: 31a54a49ccfef4748ec2dddb7551cf71-13}
+      velodyne: {archive: velodyne_data/2013-02-23_vel.tar.gz, size_bytes: 17174854426, etag: 5990494ddb54faa32d3ce83616582023-2048}
+method:
+  window: >-
+    From 60 s after the session's first Velodyne packet, 3600 s (or to the end of the
+    data if shorter)
+  conversion: >-
+    tools/nclt_to_rosbag2.py: /velodyne_points from velodyne_hits.bin in the sensor frame,
+    one scan per turn of the head, every 4th hit; /wheel_odom from odometry_mu_100hz.csv
+    (forward speed and yaw rate in base_link, REP-103); /tf_static base_link -> velodyne
+    from NCLT's Table 4
+  estimate: >-
+    calibrex check BAG --vehicle-frame base_link --topic-kind /wheel_odom=wheel --pairs
+    lidar-wheel_odometry --no-cache, with the package's defaults (speed gate 0.5 m/s)
+  scoring: >-
+    The evidence artifact's rotation_quat_xyzw and lever_m against Table 4; per-axis
+    errors by calibrex.check.estimators.rotation_errors_deg, as check computes them
+  never_an_input: >-
+    NCLT's calibration: it is the check's candidate (in /tf_static) and the scoring
+    reference; the lidar-wheel estimator reads only the LiDAR scans and the odometry
+run_recipe:
+  command: >-
+    python tools/nclt_lidar_wheel_audit.py --work-dir WORK --output-dir RUNS, from a
+    checkout whose src/ and tools/ equal frozen_code_commit, run once.  Each archive's size
+    and ETag are checked by a HEAD request and fetched with If-Match on its ETag; a
+    mismatch stops the session.  RUNS/SESSION_check.json, SESSION_evidence/,
+    SESSION_score.json and summary.json are the results.
+  frozen_code_commit_note: >-
+    The commit that adds this file adds this file, its test and docs, not code.
+invalidates:
+  - a change to src/ or tools/ after frozen_code_commit before the run is done
+  - reading any data of the five sessions before the run
+  - running the harness on them more than once, or changing a gate after the run
+analysis_plan: >-
+  Report per session the window, scans and motions, the per-axis errors and stds, the
+  lever, speed scale and clock offset, check's verdict and both claims' verdicts, in
+  docs/benchmarks/lidar_wheel_odometry.md, whatever they are, and record the five
+  sessions as spent in docs/sota_handoff.md.
+frozen_code_commit: 640a338910c0c3e94e0fd70673d4dd345074d4f5

@@ -158,6 +158,8 @@ The camera-imu v3 audit did exactly this with the camera-camera runs.
 | Newer College 2021 | `camera-camera`, `camera-lidar`, `imu-lidar`, `camera-imu`, `camera-focal` (tool validation, no audit) | collection 3 `math-easy` part 1 (`calibrex check` run recorded in the [check tutorial](tutorials/calibrex_check.md)) |
 | KITTI raw | board-based `camera-lidar` evaluation (refuted) | the five calibration recordings 2011_09_26_0119, 2011_09_28_0225, 2011_09_29_0108, 2011_09_30_0072, 2011_10_03_0058 (extract archives: grey stereo images, Velodyne scans and OXTS read by the frozen harness; the cameras' timestamp files read again afterwards for the diagnosis) |
 | ACSC sample (Livox Horizon + checkerboard) | board-based `camera-lidar` development | the whole sample (21 board poses; [board camera-LiDAR](benchmarks/board_camera_lidar.md)) |
+| NCLT | `lidar-wheel_odometry` development | 2012-01-08 (from 60 s: 2, 10, 20 and 30 minutes; its ground truth read to find the converter's scan-period error) |
+| NCLT | `lidar-wheel_odometry` evaluation (pre-registered, not yet run) | 2012-02-02, 2012-05-11, 2012-08-04, 2012-11-04, 2013-02-23 ([pre-registration](benchmarks/nclt_lidar_wheel_preregistration.yaml); only archive sizes and ETags read) |
 
 The v2 camera-lidar runs also read the Velodyne and OXTS of the first 600 frames of its
 18 drives. A `lidar-vehicle` or `ins-lidar` audit on those drives must disclose that.
