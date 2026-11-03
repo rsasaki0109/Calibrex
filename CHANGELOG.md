@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- `calibrex check --tf` reads FAST-LIO-family configs (FAST-LIO, FAST-LIO2, Point-LIO,
+  FAST-LIVO, FAST-LIVO2): `extrinsic_R`, `extrinsic_T` as `T_imu_lidar` and FAST-LIVO's
+  `Rcl`, `Pcl` as `T_cam_lidar`, with `common.lid_topic`, `imu_topic` and `img_topic`
+  mapping the topics to the config's frames (a Livox LiDAR and its IMU sharing one header
+  frame need no `--frame-map`). A Kalibr camchain may now carry intrinsics only (no
+  `T_cam_imu`), for cameras whose extrinsics come from another source. New candidate
+  source kind `fast_lio_config` (schema widening).
 - The release workflow can also be started by hand (`workflow_dispatch` with a `tag`
   input) on `main`: it creates the annotated tag on the commit it runs on after the
   same release smoke and version check, then the draft release as a tag push does.

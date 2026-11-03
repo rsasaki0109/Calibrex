@@ -24,7 +24,8 @@ from calibrex.core.calibration_check import (
 
 TF_FLAG_HINT = (
     "pass the calibration with --tf FILE (URDF, Kalibr camchain-imucam, RTK-SLAM "
-    "calib.yaml, or slac.check_frames YAML; --write-frames-template FILE writes a "
+    "calib.yaml, a FAST-LIO/FAST-LIVO config, or slac.check_frames YAML; "
+    "--write-frames-template FILE writes a "
     "starter YAML for this bag); with no calibration at all, calibrex estimate BAG "
     "--output DIR estimates one from the bag"
 )

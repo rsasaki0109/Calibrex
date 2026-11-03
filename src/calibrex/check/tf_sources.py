@@ -133,8 +133,9 @@ def load_tf_file(path: str | Path) -> LoadedSource:
     """Read a candidate calibration file, detecting its format.
 
     Supported: URDF (fixed joints), ``slac.check_frames/v0.1`` YAML, Kalibr
-    camchain-imucam YAML, RTK-SLAM ``calib.yaml``, and the Hilti
-    ``lidar_calibration.yaml`` sensor list.
+    camchain-imucam YAML, RTK-SLAM ``calib.yaml``, the Hilti
+    ``lidar_calibration.yaml`` sensor list, and FAST-LIO-family configs
+    (FAST-LIO, FAST-LIO2, Point-LIO, FAST-LIVO, FAST-LIVO2).
     """
 
     file_path = Path(path)
@@ -166,9 +167,12 @@ def load_tf_file(path: str | Path) -> LoadedSource:
         return _load_rtk_slam_calib(file_path, payload, digest)
     if any(_CAM_KEY.match(key) for key in keys):
         return _load_kalibr_camchain(file_path, payload, digest)
+    if _fast_lio_section(payload) is not None:
+        return _load_fast_lio_config(file_path, payload, digest)
     msg = (
         f"{file_path}: unrecognized calibration format (expected URDF, slac.check_frames, "
-        "Kalibr camchain-imucam, RTK-SLAM calib.yaml, or a Hilti sensors list)"
+        "Kalibr camchain-imucam, RTK-SLAM calib.yaml, a Hilti sensors list, or a "
+        "FAST-LIO-family config)"
     )
     raise DatasetError(msg)
 
@@ -417,7 +421,8 @@ def _camchain_edges(
         if not _CAM_KEY.match(str(key)) or not isinstance(entry, dict):
             continue
         if "T_cam_imu" not in entry:
-            notes.append(f"{key}: no T_cam_imu; ignored")
+            if "intrinsics" not in entry:
+                notes.append(f"{key}: no T_cam_imu; ignored")
             continue
         t_cam_imu = _matrix_to_se3(entry["T_cam_imu"], f"{path} {key}.T_cam_imu")
         frame, topic = _camera_frame_name(str(key), entry)
@@ -438,20 +443,157 @@ def _camchain_edges(
 
 def _load_kalibr_camchain(path: Path, payload: dict[str, Any], digest: str) -> LoadedSource:
     edges, topic_frames, notes = _camchain_edges(path, payload, "kalibr_camchain")
-    if not edges:
-        msg = f"{path}: no camN.T_cam_imu entries found"
+    intrinsics_only = [
+        str(key)
+        for key, entry in payload.items()
+        if _CAM_KEY.match(str(key))
+        and isinstance(entry, dict)
+        and "T_cam_imu" not in entry
+        and "intrinsics" in entry
+    ]
+    if not edges and not intrinsics_only:
+        msg = f"{path}: no camN.T_cam_imu or camN.intrinsics entries found"
         raise DatasetError(msg)
+    for key in intrinsics_only:
+        frame, topic = _camera_frame_name(key, payload[key])
+        if topic is not None:
+            topic_frames[topic] = frame
     notes.insert(
         0,
         f"Kalibr T_cam_imu inverted to T_{IMU_FRAME_NAME}_cam; the IMU frame is named "
         f"'{IMU_FRAME_NAME}' and camera frames take their rostopic as name",
     )
+    if intrinsics_only:
+        notes.append(
+            "intrinsics only (no T_cam_imu), the extrinsics come from another source: "
+            + ", ".join(intrinsics_only)
+        )
     return LoadedSource(
         kind="kalibr_camchain",
         path=path,
         sha256=digest,
         edges=tuple(edges),
         hints=FrameHints(topic_frames=topic_frames, role_frames={"imu": IMU_FRAME_NAME}),
+        notes=tuple(notes),
+    )
+
+
+# -------------------------------------------------------------------- FAST-LIO
+
+
+FAST_LIO_LIDAR_FRAME = "lidar"
+
+
+def _fast_lio_section(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """The mapping that holds ``extrinsic_T`` and ``extrinsic_R``, if any.
+
+    FAST-LIO, FAST-LIO2, Point-LIO and FAST-LIVO keep them under ``mapping``,
+    FAST-LIVO2 under ``extrin_calib``.
+    """
+
+    for name in ("mapping", "extrin_calib"):
+        section = payload.get(name)
+        if isinstance(section, dict) and "extrinsic_T" in section and "extrinsic_R" in section:
+            return section
+    return None
+
+
+def _mapping(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _rotation_translation_se3(rotation: Any, translation: Any, where: str) -> SE3:
+    """``[R | t]`` from a row-major list of 9 and a list of 3, checked like a matrix."""
+
+    try:
+        values = [float(item) for item in rotation]
+        offset = [float(item) for item in translation]
+    except (TypeError, ValueError) as exc:
+        msg = f"{where}: expected 9 rotation and 3 translation numbers"
+        raise DatasetError(msg) from exc
+    if len(values) != 9 or len(offset) != 3:
+        msg = f"{where}: expected 9 rotation and 3 translation numbers"
+        raise DatasetError(msg)
+    rows = [[*values[3 * i : 3 * i + 3], offset[i]] for i in range(3)]
+    return _matrix_to_se3([*rows, [0.0, 0.0, 0.0, 1.0]], where)
+
+
+def _load_fast_lio_config(path: Path, payload: dict[str, Any], digest: str) -> LoadedSource:
+    """LiDAR-IMU (and FAST-LIVO camera-LiDAR) extrinsics of a FAST-LIO-family config.
+
+    ``extrinsic_R``, ``extrinsic_T`` are the LiDAR's pose in the IMU frame
+    (``p_imu = R p_lidar + T``): ``T_imu_lidar``. FAST-LIVO's ``Rcl``, ``Pcl`` map
+    LiDAR points into the camera (``p_cam = Rcl p_lidar + Pcl``): ``T_cam_lidar``.
+    """
+
+    section = _fast_lio_section(payload)
+    assert section is not None
+    t_imu_lidar = _rotation_translation_se3(
+        section["extrinsic_R"], section["extrinsic_T"], f"{path} extrinsic_R/extrinsic_T"
+    )
+    edges = [
+        StaticEdge(
+            parent=IMU_FRAME_NAME,
+            child=FAST_LIO_LIDAR_FRAME,
+            transform=t_imu_lidar,
+            source="fast_lio_config",
+        )
+    ]
+    common = _mapping(payload.get("common"))
+    topic_frames: dict[str, str] = {}
+    for key, frame in (("lid_topic", FAST_LIO_LIDAR_FRAME), ("imu_topic", IMU_FRAME_NAME)):
+        topic = common.get(key)
+        if isinstance(topic, str) and topic.strip():
+            topic_frames[topic.strip()] = frame
+    notes = [
+        f"extrinsic_R/extrinsic_T read as T_{IMU_FRAME_NAME}_{FAST_LIO_LIDAR_FRAME} (the LiDAR "
+        f"in the IMU frame); the frames are named '{IMU_FRAME_NAME}' and "
+        f"'{FAST_LIO_LIDAR_FRAME}' and common.lid_topic/imu_topic map the topics to them"
+    ]
+    if section.get("extrinsic_est_en") is True:
+        notes.append(
+            "extrinsic_est_en is true: FAST-LIO refines the extrinsic online, so the file "
+            "holds its initial value, not the one it ran with"
+        )
+    camera = _mapping(payload.get("camera"))
+    holder = next((part for part in (section, camera) if "Rcl" in part and "Pcl" in part), None)
+    if holder is not None:
+        t_cam_lidar = _rotation_translation_se3(holder["Rcl"], holder["Pcl"], f"{path} Rcl/Pcl")
+        image_topic = next(
+            (
+                value.strip()
+                for value in (camera.get("img_topic"), common.get("img_topic"))
+                if isinstance(value, str) and value.strip()
+            ),
+            None,
+        )
+        camera_frame = normalize_frame_id(image_topic) if image_topic else "camera"
+        if image_topic:
+            topic_frames[image_topic] = camera_frame
+        edges.append(
+            StaticEdge(
+                parent=FAST_LIO_LIDAR_FRAME,
+                child=camera_frame,
+                transform=t_cam_lidar.inverse(),
+                source="fast_lio_config",
+            )
+        )
+        notes.append(
+            f"Rcl/Pcl read as T_cam_{FAST_LIO_LIDAR_FRAME} and inverted; the camera frame is "
+            f"named '{camera_frame}'"
+            + ("" if image_topic else " (no img_topic in the file)")
+            + ". Intrinsics are not read from FAST-LIVO's camera file: give a Kalibr "
+            "camchain with the camera's intrinsics and rostopic, or record CameraInfo"
+        )
+    return LoadedSource(
+        kind="fast_lio_config",
+        path=path,
+        sha256=digest,
+        edges=tuple(edges),
+        hints=FrameHints(
+            topic_frames=topic_frames,
+            role_frames={"imu": IMU_FRAME_NAME, "lidar": FAST_LIO_LIDAR_FRAME},
+        ),
         notes=tuple(notes),
     )
 

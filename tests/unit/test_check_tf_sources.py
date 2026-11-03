@@ -426,3 +426,192 @@ def test_merge_hints_later_wins(tmp_path: Path) -> None:
     hints = merge_hints([first, second])
 
     assert set(hints.topic_frames) == {"/a", "/b"}
+
+
+# ------------------------------------------------------------------- FAST-LIO
+
+# FAST-LIVO's config/avia.yaml, as used for the hku1/hku2 recordings.
+FAST_LIVO_AVIA = """\
+common:
+    lid_topic:  "/livox/lidar"
+    imu_topic:  "/livox/imu"
+mapping:
+    extrinsic_T: [ 0.04165, 0.02326, -0.0284 ]
+    extrinsic_R: [ 1, 0, 0,
+                   0, 1, 0,
+                   0, 0, 1]
+camera:
+    img_topic: /left_camera/image
+    Rcl: [0.00162756,-0.999991,0.00390957,
+         -0.0126748,-0.00392989,-0.999912,
+          0.999918,0.00157786,-0.012681]
+    Pcl: [0.0409257, 0.0318424, -0.0927219]
+"""
+
+
+def _write(path: Path, text: str) -> Path:
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def test_fast_lio_extrinsic_is_the_lidar_in_the_imu_frame(tmp_path: Path) -> None:
+    rotation = [0, -1, 0, 1, 0, 0, 0, 0, 1]  # the LiDAR turned +90 deg about z in the IMU
+    path = _write(
+        tmp_path / "mid360.yaml",
+        yaml.safe_dump(
+            {
+                "common": {"lid_topic": "/livox/lidar", "imu_topic": "/livox/imu"},
+                "mapping": {
+                    "extrinsic_est_en": True,
+                    "extrinsic_T": [-0.011, -0.02329, 0.04412],
+                    "extrinsic_R": rotation,
+                },
+            }
+        ),
+    )
+
+    source = load_tf_file(path)
+
+    assert source.kind == "fast_lio_config"
+    (edge,) = source.edges
+    assert (edge.parent, edge.child) == ("imu", "lidar")
+    assert edge.transform.translation_m == pytest.approx((-0.011, -0.02329, 0.04412))
+    assert edge.transform.rotation_quat_xyzw == pytest.approx((0, 0, SQRT_HALF, SQRT_HALF))
+    assert source.hints.topic_frames == {"/livox/lidar": "lidar", "/livox/imu": "imu"}
+    assert source.hints.role_frames == {"imu": "imu", "lidar": "lidar"}
+    assert any("extrinsic_est_en is true" in note for note in source.notes)
+
+
+def test_fast_livo_camera_matches_the_hand_built_camchain(tmp_path: Path) -> None:
+    """The FAST-LIVO hku1/hku2 candidate, built by hand earlier, read from avia.yaml."""
+
+    source = load_tf_file(_write(tmp_path / "avia.yaml", FAST_LIVO_AVIA))
+    tree, _ = merge_sources(None, [source])
+
+    assert source.hints.topic_frames["/left_camera/image"] == "left_camera/image"
+    t_imu_cam = tree.lookup("imu", "left_camera/image")
+    assert t_imu_cam is not None
+    # docs: T_cam_imu = [Rcl|Pcl] * inv([I|extrinsic_T]), its translation as written there
+    t_cam_imu = t_imu_cam.inverse()
+    assert t_cam_imu.translation_m == pytest.approx(
+        (0.064228735414406, 0.004064213659206686, -0.13476534186780031), abs=1e-6
+    )
+    t_cam_lidar = tree.lookup("left_camera/image", "lidar")
+    assert t_cam_lidar is not None
+    assert t_cam_lidar.translation_m == pytest.approx((0.0409257, 0.0318424, -0.0927219))
+
+
+def test_fast_livo2_keeps_its_extrinsics_under_extrin_calib(tmp_path: Path) -> None:
+    path = _write(
+        tmp_path / "avia2.yaml",
+        yaml.safe_dump(
+            {
+                "common": {"img_topic": "/left_camera/image", "lid_topic": "/livox/lidar"},
+                "extrin_calib": {
+                    "extrinsic_T": [0.04165, 0.02326, -0.0284],
+                    "extrinsic_R": [1, 0, 0, 0, 1, 0, 0, 0, 1],
+                    "Rcl": [0, -1, 0, 0, 0, -1, 1, 0, 0],
+                    "Pcl": [0.0, 0.0, 0.0],
+                },
+            }
+        ),
+    )
+
+    source = load_tf_file(path)
+
+    assert [(edge.parent, edge.child) for edge in source.edges] == [
+        ("imu", "lidar"),
+        ("lidar", "left_camera/image"),
+    ]
+    # the camera looks along the LiDAR's x axis: its z axis is the LiDAR's x
+    t_lidar_cam = source.edges[1].transform
+    assert t_lidar_cam.rotation_quat_xyzw == pytest.approx((-0.5, 0.5, -0.5, 0.5))
+
+
+def test_fast_lio_rejects_a_matrix_that_is_not_a_rotation(tmp_path: Path) -> None:
+    path = _write(
+        tmp_path / "bad.yaml",
+        yaml.safe_dump(
+            {"mapping": {"extrinsic_T": [0, 0, 0], "extrinsic_R": [1, 0, 0, 0, 1, 0, 0, 0, -1]}}
+        ),
+    )
+    with pytest.raises(DatasetError, match="reflection"):
+        load_tf_file(path)
+    path.write_text(
+        yaml.safe_dump({"mapping": {"extrinsic_T": [0, 0], "extrinsic_R": [1, 0, 0]}}),
+        encoding="utf-8",
+    )
+    with pytest.raises(DatasetError, match="9 rotation and 3 translation"):
+        load_tf_file(path)
+
+
+def test_a_camchain_may_carry_intrinsics_only(tmp_path: Path) -> None:
+    path = _write(
+        tmp_path / "intrinsics.yaml",
+        yaml.safe_dump(
+            {
+                "cam0": {
+                    "camera_model": "pinhole",
+                    "intrinsics": [863.6, 863.1, 622.2, 534.5],
+                    "distortion_model": "radtan",
+                    "distortion_coeffs": [-0.094, 0.095, -0.008, 0.0001],
+                    "resolution": [1280, 1024],
+                    "rostopic": "/left_camera/image",
+                }
+            }
+        ),
+    )
+
+    source = load_tf_file(path)
+
+    assert source.kind == "kalibr_camchain"
+    assert source.edges == ()
+    assert source.hints.topic_frames == {"/left_camera/image": "left_camera/image"}
+    assert any("intrinsics only" in note for note in source.notes)
+    tree, _ = merge_sources(
+        None, [load_tf_file(_write(tmp_path / "a.yaml", FAST_LIVO_AVIA)), source]
+    )
+    assert "left_camera/image" in tree
+    path.write_text(yaml.safe_dump({"cam0": {"rostopic": "/x"}}), encoding="utf-8")
+    with pytest.raises(DatasetError, match=r"no camN\.T_cam_imu or camN\.intrinsics"):
+        load_tf_file(path)
+
+
+def test_livox_topics_map_to_the_config_frames_without_frame_map(tmp_path: Path) -> None:
+    """The LiDAR and its IMU share the header frame livox_frame, which is not in the tree."""
+
+    from calibrex.check.roles import map_topics_to_frames
+    from calibrex.core.calibration_check import CheckTopicRecord
+
+    source = load_tf_file(_write(tmp_path / "avia.yaml", FAST_LIVO_AVIA))
+    tree, _ = merge_sources(None, [source])
+    records = [
+        CheckTopicRecord(
+            topic="/livox/lidar",
+            message_type="livox_ros_driver/msg/CustomMsg",
+            message_count=10,
+            role="lidar",
+        ),
+        CheckTopicRecord(
+            topic="/livox/imu", message_type="sensor_msgs/msg/Imu", message_count=10, role="imu"
+        ),
+        CheckTopicRecord(
+            topic="/left_camera/image/compressed",
+            message_type="sensor_msgs/msg/CompressedImage",
+            message_count=10,
+            role="camera",
+        ),
+    ]
+    header_frames = {
+        "/livox/lidar": "livox_frame",
+        "/livox/imu": "livox_frame",
+        "/left_camera/image/compressed": "",
+    }
+
+    mapped = map_topics_to_frames(records, header_frames, tree, merge_hints([source]))
+
+    assert [(r.mapped_frame, r.frame_source) for r in mapped] == [
+        ("lidar", "source_topic_hint"),
+        ("imu", "source_topic_hint"),
+        ("left_camera/image", "source_topic_hint"),
+    ]
