@@ -134,8 +134,9 @@ def load_tf_file(path: str | Path) -> LoadedSource:
 
     Supported: URDF (fixed joints), ``slac.check_frames/v0.1`` YAML, Kalibr
     camchain-imucam YAML, RTK-SLAM ``calib.yaml``, the Hilti
-    ``lidar_calibration.yaml`` sensor list, and FAST-LIO-family configs
-    (FAST-LIO, FAST-LIO2, Point-LIO, FAST-LIVO, FAST-LIVO2).
+    ``lidar_calibration.yaml`` sensor list, FAST-LIO-family configs
+    (FAST-LIO, FAST-LIO2, Point-LIO, FAST-LIVO, FAST-LIVO2), and the vikit
+    ``Pinhole`` camera file FAST-LIVO reads its intrinsics from.
     """
 
     file_path = Path(path)
@@ -169,10 +170,12 @@ def load_tf_file(path: str | Path) -> LoadedSource:
         return _load_kalibr_camchain(file_path, payload, digest)
     if _fast_lio_section(payload) is not None:
         return _load_fast_lio_config(file_path, payload, digest)
+    if "cam_model" in payload and "cam_fx" in payload:
+        return _load_vikit_camera(file_path, payload, digest)
     msg = (
         f"{file_path}: unrecognized calibration format (expected URDF, slac.check_frames, "
-        "Kalibr camchain-imucam, RTK-SLAM calib.yaml, a Hilti sensors list, or a "
-        "FAST-LIO-family config)"
+        "Kalibr camchain-imucam, RTK-SLAM calib.yaml, a Hilti sensors list, a "
+        "FAST-LIO-family config, or a FAST-LIVO camera file)"
     )
     raise DatasetError(msg)
 
@@ -582,8 +585,8 @@ def _load_fast_lio_config(path: Path, payload: dict[str, Any], digest: str) -> L
             f"Rcl/Pcl read as T_cam_{FAST_LIO_LIDAR_FRAME} and inverted; the camera frame is "
             f"named '{camera_frame}'"
             + ("" if image_topic else " (no img_topic in the file)")
-            + ". Intrinsics are not read from FAST-LIVO's camera file: give a Kalibr "
-            "camchain with the camera's intrinsics and rostopic, or record CameraInfo"
+            + ". Its intrinsics come from FAST-LIVO's camera file (another --tf), a Kalibr "
+            "camchain with the camera's intrinsics and rostopic, or CameraInfo"
         )
     return LoadedSource(
         kind="fast_lio_config",
@@ -596,6 +599,94 @@ def _load_fast_lio_config(path: Path, payload: dict[str, Any], digest: str) -> L
         ),
         notes=tuple(notes),
     )
+
+
+# ------------------------------------------------------- FAST-LIVO camera (vikit)
+
+
+def vikit_camera_entry(path: Path) -> dict[str, Any]:
+    """A Kalibr-style camera entry (and its ``resolution``) of a vikit ``Pinhole`` file.
+
+    FAST-LIVO reads ``cam_fx``, ``cam_fy``, ``cam_cx``, ``cam_cy`` and the radial-
+    tangential ``cam_d0`` to ``cam_d3`` (``cam_d4`` if given) for an image of
+    ``cam_width`` x ``cam_height`` pixels.
+    """
+
+    payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        msg = f"{path}: expected a YAML mapping"
+        raise DatasetError(msg)
+    model = str(payload.get("cam_model", ""))
+    if model.lower() != "pinhole":
+        msg = f"{path}: cam_model {model!r} is not supported (only Pinhole)"
+        raise DatasetError(msg)
+    try:
+        intrinsics = [float(payload[key]) for key in ("cam_fx", "cam_fy", "cam_cx", "cam_cy")]
+        resolution = [int(payload["cam_width"]), int(payload["cam_height"])]
+        coeffs = [float(payload.get(f"cam_d{i}", 0.0)) for i in range(4)]
+        if "cam_d4" in payload:
+            coeffs.append(float(payload["cam_d4"]))
+    except (KeyError, TypeError, ValueError) as exc:
+        msg = (
+            f"{path}: a Pinhole camera needs numeric cam_width, cam_height, cam_fx, cam_fy, "
+            "cam_cx and cam_cy"
+        )
+        raise DatasetError(msg) from exc
+    if min(resolution) <= 0 or min(intrinsics[:2]) <= 0.0:
+        msg = f"{path}: cam_width, cam_height, cam_fx and cam_fy must be positive"
+        raise DatasetError(msg)
+    return {
+        "camera_model": "pinhole",
+        "intrinsics": intrinsics,
+        "distortion_model": "radtan",
+        "distortion_coeffs": coeffs,
+        "resolution": resolution,
+    }
+
+
+def scale_camera_entry(
+    entry: dict[str, Any], width: int, height: int
+) -> tuple[dict[str, Any], float]:
+    """``(entry for a width x height image, scale)``: pixel units scale with the image.
+
+    ``fx``, ``fy`` scale by ``k = width / resolution[0]``; principal points keep their
+    place relative to pixel centres, ``c' = k (c + 0.5) - 0.5``. The distortion acts on
+    normalized coordinates and is kept. Raises :class:`ValueError` when the image
+    does not keep the calibrated aspect ratio.
+    """
+
+    calibrated_width, calibrated_height = (int(value) for value in entry["resolution"])
+    if width * calibrated_height != height * calibrated_width:
+        msg = (
+            f"the images are {width}x{height} but the intrinsics are for "
+            f"{calibrated_width}x{calibrated_height}, another aspect ratio"
+        )
+        raise ValueError(msg)
+    scale = width / calibrated_width
+    fx, fy, cx, cy = (float(value) for value in entry["intrinsics"])
+    scaled = dict(entry)
+    scaled["intrinsics"] = [
+        scale * fx,
+        scale * fy,
+        scale * (cx + 0.5) - 0.5,
+        scale * (cy + 0.5) - 0.5,
+    ]
+    scaled["resolution"] = [width, height]
+    return scaled, scale
+
+
+def _load_vikit_camera(path: Path, payload: dict[str, Any], digest: str) -> LoadedSource:
+    entry = vikit_camera_entry(path)
+    width, height = entry["resolution"]
+    notes = [
+        f"FAST-LIVO camera intrinsics for {width}x{height} (radtan); they apply to the camera "
+        "frame of a FAST-LIVO config given with --tf, scaled to the recorded image size"
+    ]
+    if "scale" in payload:
+        notes.append(
+            f"scale {payload['scale']} is FAST-LIVO's own processing scale and is not applied"
+        )
+    return LoadedSource(kind="vikit_camera", path=path, sha256=digest, edges=(), notes=tuple(notes))
 
 
 # --------------------------------------------------------------------- RTK-SLAM
