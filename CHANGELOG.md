@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- `calibrex estimate`'s progress report says what each pair's estimate is (estimated,
+  partial or failed) instead of a check verdict against the placeholder candidate, which
+  read `fail` for a good estimate.
 - `find_boards(pattern=(COLUMNS, ROWS))` finds only boards of that pattern (no fragments of
   `CALIB_CB_LARGER`). The KITTI board harness has a development variant (`--still-stereo`):
   run once on the spent calibration recordings after the audit, it converged on all five

@@ -23,7 +23,7 @@ import math
 import warnings
 from collections import deque
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
@@ -273,6 +273,15 @@ def _withdrawn(axes: Sequence[EstimateAxis], reason: str | None) -> list[Estimat
         )
         for axis in axes
     ]
+
+
+def outcome_status(outcome: EstimatorRun) -> Literal["estimated", "partial", "failed"]:
+    """What an estimator run is for ``calibrex estimate``: the pair record's status."""
+
+    observed = [item for item in outcome.estimates if item.estimated]
+    if not outcome.solved or outcome.policy_status == "fail" or not observed:
+        return "failed"
+    return "estimated" if len(observed) == len(outcome.estimates) else "partial"
 
 
 def _pair_record(
@@ -1090,7 +1099,8 @@ def build_bag_estimate(
     progress(f"estimate: {len([r for r in gated if r.status == 'planned'])} pair(s) to estimate")
     pairs_run, memo = _run_pairs(
         gated,
-        run,
+        # the progress report says what the estimate is, not a verdict on the placeholder
+        replace(run, finished_label=outcome_status),
         bag=bag_path,
         topics=topics,
         topic_types={c.topic: c.message_type for c, _ in connections},
