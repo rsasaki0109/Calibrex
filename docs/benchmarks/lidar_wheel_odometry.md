@@ -166,3 +166,50 @@ For a wheeled robot like this one, then:
 
 [Run records](../assets/nclt_lidar_wheel/evaluation/summary.json): per session the check
 artifact, the evidence artifact, the score and the log. The five sessions are spent.
+
+## Development after the audit: the stds hold within a recording, the vehicle frame moves between recordings
+
+Why did errors reach 5.6 reported stds? The six spent sessions (2012-01-08 and the five
+evaluation sessions) served as development data. Each session's hour, and each of its two
+halves, was fitted separately (`calibrex.evaluation.lidar_wheel` with check's options; the
+full-hour fits reproduce the audit's numbers).
+
+- **Within a recording, the stds are honest.** The two halves of a session differ by
+  their stds' expected amount:
+
+  | Axis | Half difference / its expected std (six sessions) | RMS |
+  | --- | --- | ---: |
+  | roll | 1.77, 0.28, 0.05, -0.57, -0.71, 0.40 | 0.84 |
+  | pitch | 1.27, 0.36, 0.62, 2.03, 0.13, 0.39 | 1.03 |
+  | yaw | -0.37, 0.12, 0.48, 0.95, -0.28, -0.84 | 0.59 |
+
+- **Between recordings, the estimate moves by more than the stds.** This is measured
+  without the reference: it is the spread of the six full-hour estimates around their
+  mean.
+
+  | Axis | Spread (SD) | RMS reported std | Excess | Mean error vs NCLT |
+  | --- | ---: | ---: | ---: | ---: |
+  | roll | 0.85 deg | 0.31 deg | 0.80 deg | -0.05 deg |
+  | pitch | 1.06 deg | 0.74 deg | 0.76 deg | +0.64 deg |
+  | yaw | 0.17 deg | 0.12 deg | 0.12 deg | +0.11 deg |
+
+What this means:
+
+- Each session holds its own roll and pitch through the hour: 2012-05-11's halves agree
+  at -1.28 and -1.31 deg of roll; 2012-08-04's at +0.82 and +1.05 deg.
+- What changes between sessions is the vehicle frame the method measures against. That
+  frame is the ground and the motion, not the chassis. A Segway's chassis tilt against
+  the ground can change with tyre pressure, load and balancing, and the LiDAR mount can
+  move over 13 months.
+- On average, NCLT's single calibration agrees on roll (mean -0.05 deg).
+
+So the stds are not wrong, and inflating them would not be honest. They describe how well
+one recording fixes its own vehicle frame, and they do that correctly. A chassis
+calibration checked against one recording of a robot like this one can differ by about
+0.8 deg in roll and pitch for reasons that are not the LiDAR mount.
+
+[Records](../assets/nclt_lidar_wheel/development_halves/halves.json) (per-session capture
+and fit JSONs; the scripts as text).
+
+The converter also resumes a cut-off transfer of the 15–19 GB Velodyne archives, with a
+Range request pinned by If-Match; a proxy tunnel dropped one after 4 GB.

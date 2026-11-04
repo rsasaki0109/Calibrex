@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- NCLT `lidar-wheel_odometry` development on the six spent sessions.
+  - Within a session, the reported stds are honest: the two halves differ by RMS
+    0.84 / 1.03 / 0.59 of their stds in roll / pitch / yaw.
+  - Between sessions, roll and pitch move by about 0.8 deg more than the stds. That is
+    the robot's vehicle frame changing between recordings, not a std error, so the stds
+    are unchanged.
+  - `tools/nclt_to_rosbag2.py` resumes a cut-off archive transfer with a Range request
+    pinned by If-Match.
+  - [LiDAR-wheel odometry](docs/benchmarks/lidar_wheel_odometry.md#development-after-the-audit-the-stds-hold-within-a-recording-the-vehicle-frame-moves-between-recordings).
 - The pre-registered `lidar-wheel_odometry` audit on five unseen NCLT sessions ran once.
   - **Accuracy refuted (0/5):** rotations 0.74-2.79 deg from NCLT's calibration, mostly
     roll and pitch; yaw within 0.43 deg.
