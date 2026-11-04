@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import math
 import struct
+from typing import ClassVar
 
 import numpy as np
 import pytest
@@ -101,3 +102,57 @@ def test_revolutions_are_whole_turns_of_the_head() -> None:
         assert len([p for _t, p in turn if len(p)]) in (97, 98)
     period_us = 360.0 / 3.7 * 1500
     assert np.diff([turn[0][0] for turn in turns]) == pytest.approx(period_us, abs=1500)
+
+
+class _FakeCurl:
+    """A curl that sends ``data`` from its Range start and stops after ``cut`` bytes."""
+
+    calls: ClassVar[list[list[str]]] = []
+    data: ClassVar[bytes] = b""
+    cut: ClassVar[int] = 0
+
+    def __init__(self, command: list[str], stdout: object = None) -> None:
+        type(self).calls.append(command)
+        start = int(command[command.index("-r") + 1].rstrip("-")) if "-r" in command else 0
+        self._cut = len(type(self).data) if len(type(self).calls) > 1 else type(self).cut
+        self.stdout = io.BufferedReader(io.BytesIO(type(self).data[start : self._cut]))
+        self._code = 0 if self._cut == len(type(self).data) else 56
+
+    def wait(self) -> int:
+        return self._code
+
+    def poll(self) -> int:
+        return self._code
+
+    def kill(self) -> None:
+        pass
+
+
+def test_a_cut_off_transfer_resumes_where_it_stopped(monkeypatch: pytest.MonkeyPatch) -> None:
+    import gzip
+    import tarfile
+
+    from tools import nclt_to_rosbag2 as converter
+
+    payload = np.random.default_rng(3).integers(0, 256, 300_000, dtype=np.uint8).tobytes()
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w") as archive:
+        info = tarfile.TarInfo("2012-01-08/velodyne_hits.bin")
+        info.size = len(payload)
+        archive.addfile(info, io.BytesIO(payload))
+    _FakeCurl.data = gzip.compress(buffer.getvalue())
+    _FakeCurl.cut = len(_FakeCurl.data) // 3
+    _FakeCurl.calls = []
+    monkeypatch.setattr(converter.subprocess, "Popen", _FakeCurl)
+    monkeypatch.setattr(converter.time, "sleep", lambda _s: None)
+
+    download, archive = converter.velodyne_stream("2012-01-08", "abc-1")
+    member = next(iter(archive))
+    stream = archive.extractfile(member)
+    assert stream is not None and stream.read() == payload
+    download.close()
+
+    assert len(_FakeCurl.calls) == 2 and download.failures == 1
+    resumed = _FakeCurl.calls[1]
+    assert resumed[resumed.index("-r") + 1] == f"{_FakeCurl.cut}-"
+    assert 'If-Match: "abc-1"' in resumed

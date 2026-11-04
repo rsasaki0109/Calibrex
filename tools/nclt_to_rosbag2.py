@@ -34,9 +34,10 @@ import struct
 import subprocess
 import sys
 import tarfile
+import time
 from collections.abc import Iterable, Iterator
 from pathlib import Path
-from typing import IO
+from typing import IO, Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -188,13 +189,61 @@ def _if_match(etag: str | None) -> list[str]:
     return [] if etag is None else ["-H", f'If-Match: "{etag}"']
 
 
+class ResumableDownload(io.RawIOBase):
+    """A curl download read as a stream; a transfer cut off midway resumes where it stopped.
+
+    A velodyne archive is 15-19 GB, and a long transfer can be dropped (a proxy tunnel
+    closed after 4 GB, for one). curl then exits non-zero before the end; the download
+    restarts with a Range request from the bytes already read, so the gzip stream reading
+    it sees one unbroken sequence of bytes. With ``etag``, every request carries If-Match,
+    so a resumed transfer cannot splice in a changed archive.
+    """
+
+    def __init__(self, url: str, etag: str | None = None, *, attempts: int = 8) -> None:
+        super().__init__()
+        self.url, self.etag, self.attempts = url, etag, attempts
+        self.offset = 0
+        self.failures = 0
+        self._process: subprocess.Popen[bytes] | None = None
+        self._start()
+
+    def _start(self) -> None:
+        command = ["curl", "-sSf", *_if_match(self.etag)]
+        if self.offset:
+            command += ["-r", f"{self.offset}-"]
+        self._process = subprocess.Popen([*command, self.url], stdout=subprocess.PIPE)
+
+    def readable(self) -> bool:
+        return True
+
+    def readinto(self, buffer: Any) -> int:
+        while True:
+            assert self._process is not None and self._process.stdout is not None
+            count = self._process.stdout.readinto(buffer)
+            if count:
+                self.offset += count
+                return count
+            code = self._process.wait()
+            if code == 0:
+                return 0
+            self.failures += 1
+            if self.failures > self.attempts:
+                raise OSError(f"{self.url}: transfer failed {self.failures} times (curl {code})")
+            time.sleep(min(2.0**self.failures, 60.0))
+            self._start()
+
+    def close(self) -> None:
+        if self._process is not None and self._process.poll() is None:
+            self._process.kill()
+            self._process.wait()
+        super().close()
+
+
 def velodyne_stream(
     session: str, etag: str | None = None
-) -> tuple[subprocess.Popen[bytes], tarfile.TarFile]:
-    url = f"{S3}/velodyne_data/{session}_vel.tar.gz"
-    process = subprocess.Popen(["curl", "-sSf", *_if_match(etag), url], stdout=subprocess.PIPE)
-    assert process.stdout is not None
-    return process, tarfile.open(fileobj=process.stdout, mode="r|gz")
+) -> tuple[ResumableDownload, tarfile.TarFile]:
+    download = ResumableDownload(f"{S3}/velodyne_data/{session}_vel.tar.gz", etag)
+    return download, tarfile.open(fileobj=io.BufferedReader(download), mode="r|gz")
 
 
 def convert(
@@ -214,8 +263,9 @@ def convert(
     sensor = work / f"{session}_sen.tar.gz"
     if not sensor.exists():
         url = f"{S3}/sensor_data/{session}_sen.tar.gz"
+        retry = ["--retry", "8", "--retry-all-errors", "-C", "-"]
         subprocess.run(
-            ["curl", "-sSf", *_if_match(sensor_etag), "-o", str(sensor), url], check=True
+            ["curl", "-sSf", *retry, *_if_match(sensor_etag), "-o", str(sensor), url], check=True
         )
     odometry = read_odometry(sensor, session)
     utime, position, quaternion, twist = odometry_twist(odometry)
@@ -232,7 +282,7 @@ def convert(
             )
         ]  # type: ignore[list-item]
     )
-    process, archive = velodyne_stream(session, velodyne_etag)
+    download, archive = velodyne_stream(session, velodyne_etag)
     scans = points_written = 0
     first: int | None = None
     window: tuple[int, int] | None = None
@@ -283,8 +333,7 @@ def convert(
                     ),
                 )
     finally:
-        process.kill()
-        process.wait()
+        download.close()
     return {
         "session": session,
         "start_s": start_s,
