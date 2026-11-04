@@ -1,0 +1,53 @@
+"""Halves and full hour of each captured session: estimate, stds and errors per axis."""
+import json, sys, time
+from pathlib import Path
+import numpy as np
+W = Path(sys.argv[1]); tracks = Path(sys.argv[2]); sessions = sys.argv[3:]
+sys.path.insert(0, str(W)); sys.path.insert(0, str(W / "src"))
+from scipy.spatial.transform import Rotation
+from calibrex.check.estimators import rotation_errors_deg
+from calibrex.evaluation.lidar_wheel import LidarWheelRunOptions, evaluate_lidar_wheel
+from calibrex.solvers.lidar_wheel_solver import CHECK_MIN_SPEED_MPS, LidarWheelOptions, WheelOdometry
+from calibrex.solvers.vehicle_frame_solver import motions_from_poses
+from tools.nclt_to_rosbag2 import reference_base_velodyne
+
+REF = reference_base_velodyne()
+OPTS = LidarWheelRunOptions(solver=LidarWheelOptions(min_speed_mps=CHECK_MIN_SPEED_MPS))
+
+def load(session):
+    z = np.load(tracks / f"{session}.npz")
+    motions = []
+    for k, (a, b) in enumerate(z["segments"]):
+        motions += motions_from_poses(z["times"][a:b], list(z["poses"][a:b]), step=OPTS.step_frames,
+                                      block_duration_s=OPTS.block_duration_s, block_offset=k * 100_000)
+    wheel = WheelOdometry(z["wheel_times"], z["wheel_linear"][:, 0], z["wheel_angular"][:, 2])
+    return motions, wheel, float(z["times"][0])
+
+def fit(motions, wheel):
+    ev = evaluate_lidar_wheel(motions, wheel, OPTS)
+    r = ev.result
+    if r.rotation is None:
+        return None
+    err = rotation_errors_deg(REF[:3, :3], r.rotation)
+    std = {rec.name: rec.std_reported for rec in ev.records}
+    return {"rotation": Rotation.from_matrix(r.rotation).as_quat().tolist(),
+            "errors": dict(zip(("roll", "pitch", "yaw"), err)),
+            "stds": {k: std[k] for k in ("roll", "pitch", "yaw")},
+            "std_analytic": {rec.name: rec.std_analytic for rec in ev.records if rec.name in ("roll", "pitch", "yaw")},
+            "lever": r.lever_m, "scale": r.speed_scale, "offset": r.time_offset_s, "motions": len(motions)}
+
+out = {}
+for session in sessions:
+    t0 = time.time()
+    motions, wheel, start = load(session)
+    half = start + 1800.0
+    first = [m for m in motions if m.end_s <= half]
+    second = [m for m in motions if m.start_s >= half]
+    out[session] = {"full": fit(motions, wheel), "first": fit(first, wheel), "second": fit(second, wheel)}
+    f, a, b = out[session]["full"], out[session]["first"], out[session]["second"]
+    def fmt(x): return " ".join(f"{k} {x['errors'][k]:+.2f}({x['stds'][k]:.2f})" for k in ("roll", "pitch", "yaw"))
+    print(session, round(time.time() - t0), "s")
+    print("  full  ", fmt(f)); print("  first ", fmt(a)); print("  second", fmt(b))
+    print("  halves differ:", {k: round(a["errors"][k] - b["errors"][k], 2) for k in ("roll", "pitch", "yaw")},
+          "expected std of diff:", {k: round(float(np.hypot(a["stds"][k], b["stds"][k])), 2) for k in ("roll", "pitch", "yaw")}, flush=True)
+(tracks / "halves.json").write_text(json.dumps(out, indent=1, default=float))

@@ -1,0 +1,32 @@
+"""Development capture on spent NCLT sessions: LiDAR odometry and wheel twist, one hour each."""
+import json, shutil, sys, time
+from pathlib import Path
+import numpy as np
+W = Path(sys.argv[1]); out = Path(sys.argv[2]); work = Path(sys.argv[3])
+sys.path.insert(0, str(W)); sys.path.insert(0, str(W / "src"))
+from tools.nclt_to_rosbag2 import convert
+from tools.nclt_lidar_wheel_audit import SESSIONS
+from calibrex.check import vehicle_inputs
+SPENT = ["2012-01-08", *SESSIONS]
+for session in SPENT:
+    target = out / f"{session}.npz"
+    if target.exists():
+        continue
+    t0 = time.time()
+    bag = work / f"{session}_bag"
+    if bag.exists():
+        shutil.rmtree(bag)
+    etags = None if session not in SESSIONS else (SESSIONS[session][1], SESSIONS[session][3])
+    info = convert(session, bag, work, start_s=60.0, duration_s=3600.0, decimate=4, etags=etags)
+    track = vehicle_inputs.read_lidar_odometry(bag, "/velodyne_points")
+    twist = vehicle_inputs.read_twist_track(bag, "/wheel_odom", "nav_msgs/msg/Odometry")
+    np.savez_compressed(
+        target,
+        times=np.asarray(track.times_s), poses=np.asarray(track.poses),
+        segments=np.asarray(track.segments),
+        wheel_times=twist.times_s, wheel_linear=twist.linear_mps, wheel_angular=twist.angular_rps,
+    )
+    (out / f"{session}.json").write_text(json.dumps({**info, "seconds": time.time() - t0}, indent=1, default=float))
+    shutil.rmtree(bag)
+    (work / f"{session}_sen.tar.gz").unlink(missing_ok=True)
+    print(session, "done", round(time.time() - t0), flush=True)
