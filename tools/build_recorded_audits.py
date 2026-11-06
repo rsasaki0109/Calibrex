@@ -231,8 +231,14 @@ def build(spec: Recorded) -> dict[str, Any]:
         audit = audit_sota_claim(protocol_path.relative_to(ROOT) if inside else protocol_path)
     finally:
         os.chdir(cwd)
+    # the result depends only on the inputs pinned in source_sha256, not on the checkout:
+    # no build time and no commit, so a rebuild on any later commit is byte-identical
     audit = audit.model_copy(
-        update={"provenance": audit.provenance.model_copy(update={"created_at": "recorded"})}
+        update={
+            "provenance": audit.provenance.model_copy(
+                update={"created_at": "recorded", "git_commit": None}
+            )
+        }
     )
     audit_path = spec.output / f"{spec.protocol_id}_sota_audit.yaml"
     audit.save(audit_path)
