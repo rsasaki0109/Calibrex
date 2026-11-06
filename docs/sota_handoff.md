@@ -109,12 +109,14 @@ calibrex sota leaderboard \
   docs/assets/hilti2022_camera_imu_v3/hilti_camera_imu_v3_sota_audit.yaml \
   docs/assets/kitti_camera_lidar/evaluation/kitti_camera_lidar_sota_audit.yaml \
   docs/assets/kitti_camera_lidar_v2/evaluation/kitti_camera_lidar_v2_sota_audit.yaml \
+  docs/assets/kitti_board_camera_lidar/audit/kitti-board-camera-lidar-v1_sota_audit.yaml \
   docs/assets/mid360_imu_lidar_extrinsic_sota_audit.yaml \
   docs/assets/mid360_imu_lidar_extrinsic_v2_sota_audit.yaml \
   docs/assets/mid360_imu_lidar_sota_audit.yaml \
   docs/assets/ntu_viral_lidar_lidar_sota_audit.yaml \
   docs/assets/kitti_lidar_vehicle_sota_audit.yaml \
   docs/assets/ins_lidar_sota_readiness/evaluation/audit/ins_lidar_sota_audit.yaml \
+  docs/assets/nclt_lidar_wheel/audit/nclt-lidar-wheel-odometry-v1_sota_audit.yaml \
   --output docs/assets/sota_leaderboard.json \
   --target-pair camera-lidar --target-pair lidar-lidar --target-pair imu-lidar \
   --target-pair camera-imu --target-pair camera --target-pair camera-camera \

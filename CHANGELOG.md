@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- The leaderboard lists the board camera-LiDAR audit (refuted, 0 of 5 gates) and the NCLT
+  `lidar-wheel_odometry` audit (refuted, 4 of 6). Before, they were recorded only on their
+  pages. `tools/build_recorded_audits.py` builds their `slac.sota_audit_result` records
+  from the committed run records and pre-registrations; nothing is re-run, and a test
+  checks that a fresh build matches the committed records.
 - NCLT `lidar-wheel_odometry` development on the six spent sessions.
   - Within a session, the reported stds are honest: the two halves differ by RMS
     0.84 / 1.03 / 0.59 of their stds in roll / pitch / yaw.

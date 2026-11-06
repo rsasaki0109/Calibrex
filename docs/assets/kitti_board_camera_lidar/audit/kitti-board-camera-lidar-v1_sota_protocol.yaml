@@ -1,0 +1,96 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: kitti-board-camera-lidar-v1
+scope:
+  modalities:
+  - camera
+  - lidar
+  quantities:
+  - rotation
+  - translation
+  category: target_board_camera_lidar
+claim_text: On KITTI's five calibration recordings, the checkerboard camera-LiDAR
+  calibration converges on every day and its T_camera_lidar is within 0.5 deg of rotation
+  and 0.20 m of position of that day's KITTI calibration; and on every converged day,
+  and on at least three, no observed axis is beyond twice max(3 std, floor).
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: accuracy-converged
+  phase: audit
+  description: the calibration converges on every day
+  dataset_family: kitti_raw
+  independent_rig: true
+  rig_id: kitti-platform
+  evidence_path: kitti-board-camera-lidar-v1_rotation_reference_difference_deg.yaml
+  evidence_sha256: 18b4002de3bb338fb47322f53deec1a11858ce642055caf91bb81fc0df4986ee
+  method_id: calibrex_board_camera_lidar
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: accuracy-rotation
+  phase: audit
+  description: rotation within 0.5 deg of that day's KITTI calibration on every day
+  dataset_family: kitti_raw
+  independent_rig: true
+  rig_id: kitti-platform
+  evidence_path: kitti-board-camera-lidar-v1_rotation_reference_difference_deg.yaml
+  evidence_sha256: 18b4002de3bb338fb47322f53deec1a11858ce642055caf91bb81fc0df4986ee
+  method_id: calibrex_board_camera_lidar
+  metric: rotation_reference_difference_deg
+  statistic: metric_maximum
+  comparison: less_than
+  threshold: 0.5
+  required: true
+- requirement_id: accuracy-position
+  phase: audit
+  description: position within 0.20 m of that day's KITTI calibration on every day
+  dataset_family: kitti_raw
+  independent_rig: true
+  rig_id: kitti-platform
+  evidence_path: kitti-board-camera-lidar-v1_position_reference_difference_m.yaml
+  evidence_sha256: b4780cdcadb1a3703b747b8d99a045da2654cb90aaed921c2e0be24425fdf3b3
+  method_id: calibrex_board_camera_lidar
+  metric: position_reference_difference_m
+  statistic: metric_maximum
+  comparison: less_than
+  threshold: 0.2
+  required: true
+- requirement_id: honesty-fail-bound
+  phase: audit
+  description: no observed axis beyond 2 x max(3 std, floor)
+  dataset_family: kitti_raw
+  independent_rig: true
+  rig_id: kitti-platform
+  evidence_path: kitti-board-camera-lidar-v1_observed_axes_beyond_check_fail_bound.yaml
+  evidence_sha256: 93ead56ee14630237cbd4750ded9d514e53c19c5e10a9b0a67dd32d580a6bd47
+  method_id: calibrex_board_camera_lidar
+  metric: observed_axes_beyond_check_fail_bound
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: honesty-converged-days
+  phase: audit
+  description: the calibration converges on at least 3 of the 5 days
+  dataset_family: kitti_raw
+  independent_rig: true
+  rig_id: kitti-platform
+  evidence_path: kitti-board-camera-lidar-v1_observed_axes_beyond_check_fail_bound.yaml
+  evidence_sha256: 93ead56ee14630237cbd4750ded9d514e53c19c5e10a9b0a67dd32d580a6bd47
+  method_id: calibrex_board_camera_lidar
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.4
+  required: true
+provenance:
+  generator: tools.build_recorded_audits
+  generator_version: 0.6.1
+  git_commit: ee6bc9e3b61dc8b550d3cf81cd082e4bcbb13f76
+  command:
+  - python
+  - tools/build_recorded_audits.py
+  source_sha256:
+    docs/assets/kitti_board_camera_lidar/summary.json: 3a7581ce731a5fc7e706a61d5169384cfc865fe6f2f10a1c4897e2faf1f7e8e6
+    docs/benchmarks/kitti_board_camera_lidar_preregistration.yaml: cdfe7d191bdf9292c780a4eb06b66160907f4c6143c6db6696f5132574a5890b
+  created_at: recorded

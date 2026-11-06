@@ -1,0 +1,87 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: nclt-lidar-wheel-odometry-v1-audit
+protocol_id: nclt-lidar-wheel-odometry-v1
+scope:
+  modalities:
+  - lidar
+  - wheel_odometry
+  quantities:
+  - rotation
+  - lever_arm
+  category: targetless_lidar_wheel_odometry
+claim_text: On one hour of each of NCLT's sessions 2012-02-02, 2012-05-11, 2012-08-04,
+  2012-11-04 and 2013-02-23, calibrex check's lidar-wheel_odometry estimator converges,
+  its rotation is within 0.5 deg and its lever within 0.20 m of NCLT's calibration
+  on every session; and check does not fail NCLT's calibration, with no rotation axis
+  beyond check's fail bound, on at least three converged sessions.
+verdict: refuted
+achieved_dataset_families:
+- nclt
+achieved_independent_rig_count: 1
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: accuracy-converged
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/nclt_lidar_wheel/audit/nclt-lidar-wheel-odometry-v1_rotation_reference_difference_deg.yaml
+  evidence_sha256: f4387834c4e1bfafd90e8182aa0131dba478e16235d855dc9a6143390b7794f8
+- requirement_id: accuracy-rotation
+  required: true
+  status: contradicted
+  observed_value: 2.792276303872258
+  threshold: 0.5
+  reason: observed 2.79227630387 does not meet less_than 0.5
+  evidence_path: docs/assets/nclt_lidar_wheel/audit/nclt-lidar-wheel-odometry-v1_rotation_reference_difference_deg.yaml
+  evidence_sha256: f4387834c4e1bfafd90e8182aa0131dba478e16235d855dc9a6143390b7794f8
+- requirement_id: accuracy-lever
+  required: true
+  status: contradicted
+  observed_value: 0.2101611628333202
+  threshold: 0.2
+  reason: observed 0.210161162833 does not meet less_than 0.2
+  evidence_path: docs/assets/nclt_lidar_wheel/audit/nclt-lidar-wheel-odometry-v1_lever_reference_difference_m.yaml
+  evidence_sha256: 16a606e6dc2a0d4b6b1e4e1c9c6741eefe1b9b4db8df55e6eed56ab59e263731
+- requirement_id: honesty-no-fail
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/nclt_lidar_wheel/audit/nclt-lidar-wheel-odometry-v1_check_failed_reference.yaml
+  evidence_sha256: dfb4892921e04454d33afd29a9fe2851a76f5af536ee1e76a951b5b1d9d93bd4
+- requirement_id: honesty-fail-bound
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/nclt_lidar_wheel/audit/nclt-lidar-wheel-odometry-v1_axes_beyond_check_fail_bound.yaml
+  evidence_sha256: c5a292d3f10ba1aaa4075168c92655b066ce4ef274e3f30cd6309bfe6ef23538
+- requirement_id: honesty-converged-sessions
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.4
+  reason: observed 0 meets less_equal 0.4
+  evidence_path: docs/assets/nclt_lidar_wheel/audit/nclt-lidar-wheel-odometry-v1_axes_beyond_check_fail_bound.yaml
+  evidence_sha256: c5a292d3f10ba1aaa4075168c92655b066ce4ef274e3f30cd6309bfe6ef23538
+summary: At least one frozen required numerical or integrity gate is contradicted;
+  the declared SOTA claim is not supported.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.6.1
+  git_commit: 7617325e
+  command: []
+  source_sha256:
+    protocol: 47ee7cbfcf433c2eadf5c875419bcc1b5a33d285a658864cb54a284ee1d357e1
+    accuracy-converged: f4387834c4e1bfafd90e8182aa0131dba478e16235d855dc9a6143390b7794f8
+    accuracy-rotation: f4387834c4e1bfafd90e8182aa0131dba478e16235d855dc9a6143390b7794f8
+    accuracy-lever: 16a606e6dc2a0d4b6b1e4e1c9c6741eefe1b9b4db8df55e6eed56ab59e263731
+    honesty-no-fail: dfb4892921e04454d33afd29a9fe2851a76f5af536ee1e76a951b5b1d9d93bd4
+    honesty-fail-bound: c5a292d3f10ba1aaa4075168c92655b066ce4ef274e3f30cd6309bfe6ef23538
+    honesty-converged-sessions: c5a292d3f10ba1aaa4075168c92655b066ce4ef274e3f30cd6309bfe6ef23538
+  created_at: recorded
