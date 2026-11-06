@@ -4,7 +4,7 @@
   "height": 540,
   "width": 960
  },
- "calibrex_version": "0.5.1",
+ "calibrex_version": "0.6.1",
  "check_command": [
   "calibrex",
   "check",
@@ -25,8 +25,8 @@
   "never"
  ],
  "check_command_note": "shown for the first step; --tf and --output differ per step",
- "check_generator_version": "0.5.1",
- "check_git_commit": "e8473bf",
+ "check_generator_version": "0.6.1",
+ "check_git_commit": "3cc789fb",
  "dataset_license": "KITTI raw data, CC BY-NC-SA 3.0: non-commercial use only; the GIFs contain a KITTI camera image and must stay non-commercial",
  "drives": [
   "0005",
@@ -42,15 +42,15 @@
  ],
  "gifs": {
   "docs/assets/calibrex-check-rig.gif": {
-   "sha256": "3f6fb99bb464e2a0807f6acf4bfe310faedad6a1972899b4089a7d71ec03c2b1",
-   "size_bytes": 586499
+   "sha256": "e898f13caaa56d438bba4644b5c6eda3f9ccf9c12036dfe2c9a6f5817328cdd0",
+   "size_bytes": 586496
   },
   "docs/assets/calibrex-check-yaw-sweep.gif": {
    "sha256": "63238e3e7ed49259bc91de41ca523e6f966d023421cdd11d7e9c3ca84bb27522",
    "size_bytes": 902799
   }
  },
- "git_commit": "e8473bf0d48320e55ff16e362baf41a18bca61bb",
+ "git_commit": "391ad0c49d249728af8b4794e918caee3146516b",
  "overlay": {
   "drive": "2011_09_26_drive_0005_sync",
   "image_index": 100,
@@ -64,7 +64,7 @@
   "projection": "pixel = P_rect_02 R_rect_00 T_cam<-velo inv(T_base<-velo) T_base<-velo(delta) p, T_base<-velo(delta) = [Rz(delta) R | t]"
  },
  "perturbation": "R' = Rz(yaw) * R about the parent (imu_link=base_link) z axis; translation unchanged (tools/make_check_frames_perturbation.py)",
- "pooled_bag_input_sha256": "45dbf62664538af0e159f9023f9a9ed093c309a17421f54e8d6fc1bbedab49bc",
+ "pooled_bag_input_sha256": "8964af17a66002fa7ca50d924346a38b8260f366dfaed85a7587c6cebaac0a7c",
  "rig_rotation_exaggeration": 8,
  "schema": "calibrex.check_sweep_gifs/v0",
  "steps": {
@@ -97,31 +97,31 @@
   ],
   "count": 25,
   "summary_sha256": {
-   "step_+0.00.json": "e02ea14e56ee15a7d3f6fa601db15e8f84777343af240dbefbee7b2f366ca557",
-   "step_+0.25.json": "aa3b8fa56a37dd9432af37740504d05a5ee0356ed60af245c6b21fbb87c53294",
-   "step_+0.50.json": "5b42f4541f3f5aa9e242462b5860cc8c2c04593587a142ea467b598d91c46bbd",
-   "step_+0.75.json": "c839f40cb4c90cefd55c899c659f5367297173de2e738af2dc35b4e17ddac334",
-   "step_+1.00.json": "9c20f090d1a31567d21bb8fcf3672066e9c20ac6fa3d36ff7173b0f6b84cb042",
-   "step_+1.25.json": "b1c189357f1c4e9e1dfb96f523b9988e737d55f26c25003dfc756c98fe69c94b",
-   "step_+1.50.json": "3dd68485f33ffbc7940ec7a3dc9a9e16ef0222a499bfb6ddc048db75649b26ef",
-   "step_+1.75.json": "da4d27437bf518e550b4a6bde04f11dc2f043b3ba935ad43072fd8a14a1396bd",
-   "step_+2.00.json": "2aac8cdcbc98a89df13f0404aa547ce1fc1d7bdee314837c8b4c71924757d878",
-   "step_+2.25.json": "9dcd8d168ae20c0484152a6405bafb45cf461c15049c6537348124ecdc6f84b8",
-   "step_+2.50.json": "78ab2ef927f2883a5ebbd10c6b6d4ea193e806b851130780d13fbf411c7c829b",
-   "step_+2.75.json": "9bf53988171dd071d61a2663df0d069c33e4ed762e4dc65da7eab988da507d83",
-   "step_+3.00.json": "a15be2c63c0b372d6c79b98e3d73e6ac076d0fe7afd16fb9fbe66ca297ad5b4e",
-   "step_-0.25.json": "8fc96b853c65a1981f3639a38b45bf7fdd1b65f6b1957e14729ccade106c9a69",
-   "step_-0.50.json": "7c3f1c03376419e69fada4d047ecd8b6929d39c1940c791f229de3835f7bba7c",
-   "step_-0.75.json": "88f5a3271c47c2ff0b5bdce658dd1336becfda5f5050b718ee5a2905c444a2ad",
-   "step_-1.00.json": "e936c2ddc40c929c48f2aec2524f9ffc06605d6389d27468da87377257e3395d",
-   "step_-1.25.json": "4ac5271cdb94edfb9e1c67259ded63b5cdb0d79e76b4a5cd9455604ddd205df6",
-   "step_-1.50.json": "2467770f6c19e78ea9c048bcf4304aebb0eae30b194c5d732124d849709167ff",
-   "step_-1.75.json": "5de2c36e5afbac0174bc519469877d8a3fdc62fa8a6b6ebea27ff8661a3378eb",
-   "step_-2.00.json": "7f0e6ee5f19520627486963d1a179221995704ec0d6f88b5bf5c24f4bb76fc5d",
-   "step_-2.25.json": "e4684539f193e785e507289fd5cd19f41ab9de6ba59ab647c09bceb4cc1ce243",
-   "step_-2.50.json": "930e639d51a79d4aa6cdd47462faf544ca54cc0de8def02de98c26a3e1901bb2",
-   "step_-2.75.json": "14759fa6778c28c33d70aed0dc80612c51625d03da3a52c0ad9d6d409baba3a5",
-   "step_-3.00.json": "6f567ccec87e7d7d6f3a574f987708b83bfe11a84a87bd3aff8ae930d65cb70a"
+   "step_+0.00.json": "5a89241350b05c8f34d57f72a5744699da3c649fa7ae94a92d921b5e2afab917",
+   "step_+0.25.json": "1c904894ff7e4944df01bc549fea429e3d59e5c36f389beadf5b54a79bd1adc7",
+   "step_+0.50.json": "426630cf2d4c6f12967f55d55eede4d6b9855ad75548644af7282057495a2bb3",
+   "step_+0.75.json": "53576aa46496630f3fcc63f3491cb8cba48c8b87f71a83cd66d7b1abbdb9fa8b",
+   "step_+1.00.json": "991ebf9bee7e19bdef7578e72952e2435a73200ea5ff56e2a3c5529c1729bc66",
+   "step_+1.25.json": "753de8a4cad37aa29463b49966652ffb09e6482b8c81d400ac267b7ab21e8949",
+   "step_+1.50.json": "afd7c198be9d238fecc1c02b5b88aeba2a8aaa5eda9908eb0b3ae468e6b656db",
+   "step_+1.75.json": "df64825fd5a2cb05645768571ed17e8e2609ec2a3865dd8472d7c4fb842e3e12",
+   "step_+2.00.json": "c0b17651b1dee61179479edf93badb92241c38c585a0731d302648278f59315a",
+   "step_+2.25.json": "b23275fa0148b40e43924370e0959f5682412f7f782fcd899a86d17bcfc170f3",
+   "step_+2.50.json": "37b200c072acea5663c8c7f01967bc955599b10608c68735866d60ab0b50217d",
+   "step_+2.75.json": "ec88523bc66bb70360783a66194f183525116d01f920d42f9cf0997049efbbad",
+   "step_+3.00.json": "98c267fe7b136dd905db0198f98d4cf6fc30a9f149c0a0e051961e73573e53bf",
+   "step_-0.25.json": "ac96ddbc6b55166898f9fee4465ab8feeda4bc336d68800ffdde1335716f47da",
+   "step_-0.50.json": "694c03e97268fe47c5cbc4a3494841f355ea773dcbcfe23c4e17c139042669d9",
+   "step_-0.75.json": "f07fab999f6b242981bf250f05591cf43d3a2ed55bc6f326145ed5a9b1b87266",
+   "step_-1.00.json": "45e3c88ada926d9454c7f02b6be21ff6de34e84f64facc712f4b32e16f21bb3b",
+   "step_-1.25.json": "7623944a85a39a0cfe328fec4000cfb0b78a5f94eeae9a6ce1c362803e620a7c",
+   "step_-1.50.json": "514f4dce2a250196c5aa39c175fe34b092b718df32c4c1e8d1a97f747c1610b3",
+   "step_-1.75.json": "6ac95a089182534580e9bfde0a4c62f33e9ab6e8d87a6aa4b981d1e98cf97607",
+   "step_-2.00.json": "1aeeef9373bbeef2df3759c889b5965cd2ddbcb27fdcf1afb0504dca1536d4df",
+   "step_-2.25.json": "4964fd5baaad1d40e98bc236b7b5703348126b0e5936e2ccb5030bdaf6e36714",
+   "step_-2.50.json": "598901be2984de94995db31c84de20b1a997e7e9b566a48c4b13fa464525c468",
+   "step_-2.75.json": "820e514360b009222452cdec15b37c8fed50a02c2c13ec06bd2f284bc066f558",
+   "step_-3.00.json": "de54f442fb2fdb0c651f3e25411c750dd3161cb1ebbbd20906b6d3bbabdd3a55"
   }
  }
 }

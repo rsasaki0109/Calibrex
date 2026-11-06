@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- The README's `calibrex check` demo, its hero image, the yaw-sweep and story runs and the
+  rig GIF were re-run on the pooled KITTI development drives with the current check
+  (lidar-wheel_odometry's 0.5 m/s gate). The verdicts are unchanged; lidar-wheel_odometry's
+  pitch moved from 0.505 to 0.503 of the tolerance (vendor 0.496 to 0.494).
+  `tools/check_tf_injection_demo.py` no longer calls `python -m calibrex`, which the package
+  does not provide.
 - NCLT `lidar-wheel_odometry` development on the six spent sessions.
   - Within a session, the reported stds are honest: the two halves differ by RMS
     0.84 / 1.03 / 0.59 of their stds in roll / pitch / yaw.

@@ -791,7 +791,7 @@ difference is exactly 0 on 0005, 0022 and 0015.
 
 | Bag | `lidar-vehicle` | `imu-vehicle` | `ins-lidar` | `lidar-wheel_odometry` |
 | --- | --- | --- | --- | --- |
-| 5 drives pooled | pass, partial: pitch 0.50/0.50, yaw 0.31; roll unchecked | inconclusive | pass, partial: roll 0.11, pitch 0.06; yaw, x, y, z unchecked | pass, partial: pitch 0.50/0.50, yaw 0.31; roll unchecked |
+| 5 drives pooled | pass, partial: pitch 0.50/0.50, yaw 0.31; roll unchecked | inconclusive | pass, partial: roll 0.11, pitch 0.06; yaw, x, y, z unchecked | pass, partial: pitch 0.49/0.50, yaw 0.31; roll unchecked |
 | 0005 (15 s) | inconclusive | pass, partial: pitch 0.18; roll, yaw unchecked (yaw control not detected) | inconclusive | pass, partial: pitch 0.27, yaw 0.50/0.50 |
 | 0009 (44 s) | pass, partial: yaw 0.26 | inconclusive | inconclusive | pass, partial: yaw 0.26 |
 | 0014 | pass, partial: pitch 0.34, yaw 0.17 | pass, partial: pitch 0.47, yaw 0.05 | inconclusive | pass, partial: pitch 0.34, yaw 0.17 |
