@@ -1,0 +1,91 @@
+# Pre-registration of the camera-focal check audit on unseen TUM-VI room sequences:
+# calibrex check --pairs camera-imu,camera-focal run once on five sequences no Calibrex
+# method has read, with Kalibr's camchain as the candidate and with its focal lengths
+# turned 3 % long and 3 % short.
+# It is binding once committed; tools/tumvi_camera_focal_audit.py at frozen_code_commit is
+# the only code that reads these sequences, and it runs once.
+#
+# Written on 2026-11-06.  camera-focal has no claim (docs/sota_handoff.md); it was
+# developed on Hilti 2022 (spent).  TUM-VI (Schubert et al., IROS 2018; CC BY 4.0) is a
+# hand-held rig with two 190 deg fisheye cameras (equidistant model, 512 x 512) and a BMI160
+# IMU, calibrated with Kalibr.  No TUM-VI recording had been read by any Calibrex method.
+#
+# Development, room1 only (spent):
+#   Kalibr's camchain: cam0 pass (fx scale 0.9996, fy 1.0113); cam1 inconclusive (the
+#     estimator failed its own held-out check).
+#   focal 3 % long (true scale 0.971): cam0 fail (fx 0.977 judged fail; fy 0.993 within its
+#     tolerance); cam1 inconclusive (optical-axis control 0.989).
+#   focal 3 % short (true scale 1.031): cam0 fail (fx 1.031); cam1 inconclusive (held-out).
+# fx tracks the injected error; fy reads about 1 % high at Kalibr's value and does not
+# separate the 3 % errors as cleanly; cam1 is often inconclusive.  So no accuracy claim is
+# made: only check's honesty on the correct focal lengths and its detection of 3 % errors.
+#
+# Of the five sequences only the bags' sizes and ETags (HEAD requests) and the first 11
+# bytes of room2 (the rosbag format header, fetched to test If-Match) have been read.
+# The reference is Kalibr's camchain from TUM-VI's own calibration recording
+# (dataset-calib-cam1_512_16 export, dso/camchain.yaml), not from any sequence.  The
+# dataset calibration is reference evidence, not ground truth.
+claims:
+  tumvi-camera-focal-check-honesty:
+    text: >-
+      On TUM-VI's room2-room6 (both cameras, ten cases), calibrex check with Kalibr's
+      camchain as the candidate does not fail camera-focal on any case, and judges at least
+      one focal length on at least 25 % of the cases.
+    gates:
+      max_kalibr_fails: 0
+      min_kalibr_judged_fraction: 0.25
+  tumvi-camera-focal-check-detection:
+    text: >-
+      With Kalibr's focal lengths turned 3 % long and 3 % short (twenty cases), calibrex
+      check passes camera-focal on none and fails it on at least 25 %.
+    gates:
+      max_perturbed_passes: 0
+      min_perturbed_fail_fraction: 0.25
+  source_of_gates: >-
+    The fractions are the development rates divided by 1.5 and rounded down to the next
+    0.25 (room1: one of two Kalibr cases judged, two of four perturbed cases failed), the
+    rule of the earlier check pre-registrations; a pass or fail of the correct or of a
+    3 %-wrong focal length is a plain honesty/detection rule.  Fixed before any of these
+    sequences was read and not to be changed after the run.
+sessions:
+  development_spent: [room1]
+  evaluation:
+    room2: {bag: calibrated/512_16/dataset-room2_512_16.bag, size_bytes: 3035570964, etag: b4ef2314-56a11992ff3a9}
+    room3: {bag: calibrated/512_16/dataset-room3_512_16.bag, size_bytes: 2971328666, etag: b11ae09a-56a119e3a1b83}
+    room4: {bag: calibrated/512_16/dataset-room4_512_16.bag, size_bytes: 2346890121, etag: 8be2b389-56a11a2682bd9}
+    room5: {bag: calibrated/512_16/dataset-room5_512_16.bag, size_bytes: 2998956689, etag: b2c07291-56a11a591bcf8}
+    room6: {bag: calibrated/512_16/dataset-room6_512_16.bag, size_bytes: 2776625052, etag: a57fef9c-56a11a948d850}
+reference:
+  camchain: docs/assets/tumvi_camera_focal/camchain.yaml
+  camchain_sha256: 3a0c0285f4d0a3a1678053b2e5912e3e250e78ac09bd009f6d7d8bba669d5703
+  source: >-
+    https://cdn2.vision.in.tum.de/tumvi/exported/euroc/512_16/dataset-calib-cam1_512_16.tar
+    (306227200 bytes, ETag 1240a800-56a1263481f6b), member
+    dataset-calib-cam1_512_16/dso/camchain.yaml
+method:
+  check: >-
+    calibrex check BAG --tf CANDIDATE --pairs camera-imu,camera-focal --no-cache --fail-on
+    never, with the package's defaults (camera-focal tolerance max(3 std, 0.5 %), fail
+    beyond twice the tolerance); camera-imu runs because camera-focal reads its rotation
+  candidates: >-
+    Kalibr's camchain, and copies with fx and fy of both cameras multiplied by 1.03 and by
+    0.97 (principal points, distortion and T_cam_imu unchanged)
+  case: one (sequence, camera, candidate); a case's verdict is camera-focal's pair status
+  judged: >-
+    a focal length counts as judged only when the pair's status is pass, warn or fail; an
+    inconclusive pair judged nothing
+run_recipe:
+  command: >-
+    python tools/tumvi_camera_focal_audit.py --camchain docs/assets/tumvi_camera_focal/camchain.yaml
+    --work-dir WORK --output-dir RUNS, from a checkout whose src/ and tools/ equal
+    frozen_code_commit, run once.  Each bag is fetched with If-Match on its ETag and its
+    size checked.  RUNS/SEQ_VARIANT.json, SEQ_score.json and summary.json are the results.
+invalidates:
+  - a change to src/ or tools/ after frozen_code_commit before the run is done
+  - reading any data of the five sequences before the run beyond what is listed above
+  - running the harness on them more than once, or changing a gate after the run
+analysis_plan: >-
+  Report per case the verdict, the judged focal lengths with their scale, std and tolerance,
+  and both claims' verdicts, in docs/benchmarks/hilti_camera_imu.md (the camera-focal page),
+  whatever they are; record the five sequences as spent in docs/sota_handoff.md.
+frozen_code_commit: b9eee4297dd1b549c2ba34fac78c60b866ff630d

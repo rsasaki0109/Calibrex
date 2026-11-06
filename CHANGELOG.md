@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `camera-focal` on TUM-VI (fisheye, Kalibr reference), room1 development:
+  - fx tracks a 3 % focal error; fy reads 1 % high and is noisier;
+  - cam1 is often inconclusive;
+  - an audit of check's honesty and its detection of 3 % focal errors on room2–room6 is
+    pre-registered (`docs/benchmarks/tumvi_camera_focal_preregistration.yaml`).
 - NCLT `lidar-wheel_odometry` development on the six spent sessions.
   - Within a session, the reported stds are honest: the two halves differ by RMS
     0.84 / 1.03 / 0.59 of their stds in roll / pitch / yaw.
