@@ -39,7 +39,10 @@ Five pairs have only refuted audits:
   - Accuracy against Kalibr held: every scored pair was within 0.33 deg.
   - A 1 deg turn of a camera was flagged in only 70 percent of the trials and named
     in 48 percent.
-- **`camera-lidar`**: two refuted audits of `calibrex check`'s per-axis verdicts.
+- **`camera-lidar`**: two refuted audits of `calibrex check`'s per-axis verdicts, and a
+  refuted checkerboard audit
+  ([KITTI calibration recordings, 0 of 5 gates](board_camera_lidar.md#result-both-claims-refuted-no-estimate-on-any-day):
+  no estimate on any day).
   - **v2: 8 of 9 gates**
     ([KITTI camera-LiDAR check audit v2](kitti_camera_lidar_v2_check.md#results-refuted-8-of-9-gates)).
     - On 15 scored drives of KITTI's other four days, each checked against its own day's
@@ -62,9 +65,8 @@ Five pairs have only refuted audits:
   - On five unseen sessions of a Segway, no rotation was within 0.5 deg of NCLT's
     calibration (0.74–2.79 deg, mostly roll and pitch; yaw within 0.43 deg).
   - `check` never failed the calibration (the honesty claim held).
-  - Recorded on its page, not as a `slac.sota_audit_result`, so the generated tables
-    below still list the pair as `no_claim`. The board camera-LiDAR audit is recorded
-    the same way.
+  - Its `slac.sota_audit_result` (4 of 6 gates) was built from the committed run records
+    by `tools/build_recorded_audits.py`, as was the board camera-LiDAR audit's (0 of 5).
 
 Eight pairs now have an audit; supported pairs remain three. Every other target
 pair has a native method but no audited claim yet.
@@ -74,14 +76,14 @@ pair has a native method but no audited claim yet.
 | `camera` | no_claim | 0 | 0 | 0 | yes |
 | `camera-camera` | refuted | 0 | 1 | 0 | yes |
 | `camera-imu` | supported | 1 | 2 | 0 | yes |
-| `camera-lidar` | refuted | 0 | 2 | 0 | yes |
+| `camera-lidar` | refuted | 0 | 3 | 0 | yes |
 | `gnss-imu` | no_claim | 0 | 0 | 0 | yes |
 | `imu-lidar` | supported | 2 | 1 | 0 | yes |
 | `imu-vehicle` | no_claim | 0 | 0 | 0 | yes |
 | `ins-lidar` | refuted | 0 | 1 | 0 | yes |
 | `lidar-lidar` | refuted | 0 | 1 | 0 | yes |
 | `lidar-vehicle` | supported | 1 | 0 | 0 | yes |
-| `lidar-wheel_odometry` | no_claim | 0 | 0 | 0 | yes |
+| `lidar-wheel_odometry` | refuted | 0 | 1 | 0 | yes |
 
 | Pair | Category | Quantities | Verdict | Gates (achieved/total) | Protocol |
 | --- | --- | --- | --- | --- | --- |
@@ -89,6 +91,7 @@ pair has a native method but no audited claim yet.
 | `camera-imu` | targetless_camera_imu | rotation, time_offset | refuted | 6/7 | `hilti-camera-imu-v1` |
 | `camera-imu` | targetless_camera_imu | rotation, time_offset | refuted | 5/7 | `hilti-camera-imu-v2` |
 | `camera-imu` | targetless_camera_imu | rotation, time_offset | supported | 7/7 | `hilti-camera-imu-v3` |
+| `camera-lidar` | target_board_camera_lidar | rotation, translation | refuted | 0/5 | `kitti-board-camera-lidar-v1` |
 | `camera-lidar` | targetless_camera_lidar_check | rotation | refuted | 5/9 | `kitti-camera-lidar-check-v1` |
 | `camera-lidar` | targetless_camera_lidar_check | rotation | refuted | 8/9 | `kitti-camera-lidar-check-v2` |
 | `imu-lidar` | targetless_imu_lidar | rotation, translation, time_offset | refuted | 0/8 | `mid360-imu-lidar-extrinsic-vs-li-init-v1` |
@@ -97,6 +100,7 @@ pair has a native method but no audited claim yet.
 | `ins-lidar` | trajectory_hand_eye_per_axis | rotation | refuted | 6/8 | `ins-lidar-rotation-kitti-boreas-v1` |
 | `lidar-lidar` | targetless_lidar_lidar | rotation, translation | refuted | 2/4 | `ntu-lidar-lidar-v1` |
 | `lidar-vehicle` | targetless_lidar_vehicle | rotation | supported | 3/3 | `kitti-lidar-vehicle-v1` |
+| `lidar-wheel_odometry` | targetless_lidar_wheel_odometry | rotation, lever_arm | refuted | 4/6 | `nclt-lidar-wheel-odometry-v1` |
 
 The machine-readable version is
 [`sota_leaderboard.json`](../assets/sota_leaderboard.json)
