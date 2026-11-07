@@ -1,0 +1,57 @@
+schema_version: slac.camera_focal_scale/v0.1
+method: gyro_rate_ratio/v0.1
+policy_status: warn
+policy_reasons:
+- 'the optical-axis ratio 0.9914 differs from 1 by 3.4 std: something besides the
+  focal length scales the rotations'
+rate_ratio:
+- 0.9760993866251375
+- 0.9862308058219944
+- 0.9913545884130693
+rate_ratio_std:
+- 0.0028154993321858977
+- 0.0025512005505429376
+- 0.0025212904465738775
+holdout_rate_ratio:
+- 0.9851805172512266
+- 0.9800992868432535
+- 0.9885433790119913
+fx_used_px: 196.15564078497272
+fy_used_px: 196.1474716263615
+fx_estimate_px: 193.45473567789332
+fy_estimate_px: 191.459426742563
+fx_std_px: 0.5004323787627251
+fy_std_px: 0.5522530753739731
+intervals: 1358
+options:
+  frame_stride: 2
+  holdout_every: 3
+  jackknife_groups: 8
+  outlier_mad: 5.0
+  min_rate_rps: 0.05
+  max_holdout_sigma: 3.0
+  max_optical_axis_deviation_sigma: 3.0
+  observable_ratio_std: 0.005
+limitations:
+- The ratio also absorbs anything else that scales tracked rotations, such as distortion
+  errors or tracking attenuation; the optical-axis ratio is the check.
+- Only fx and fy are checked; the principal point and distortion are taken as given.
+provenance:
+  generator: calibrex.evaluation.camera_focal
+  generator_version: 0.6.1
+  git_commit: a48efac3
+  command:
+  - calibrex
+  - check
+  - /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/tumvi_audit/work/dataset-room2_512_16.bag
+  - camera-focal
+  - /cam1/image_raw
+  - /imu0
+  dataset_family: calibrex-check
+  sequence_ids:
+  - dataset-room2_512_16.bag
+  image_topic: /cam1/image_raw
+  rotation_artifact_sha256: 3a5f1e3eb2566f6c94519ad57d39450a745c11f019370a67d0a3f09817cca720
+  input_sha256: e07e7ce95f6a8c6bf21be7d9d97141fda69ac84402e8f09906116343beb399b6
+  dataset_license: user-provided
+  created_at: '2026-11-06T23:37:06.121277+00:00'

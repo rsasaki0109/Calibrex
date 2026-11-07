@@ -425,9 +425,106 @@ BOARD = Recorded(
 )
 
 
+# ----------------------------------------------------------------------------- TUM-VI
+
+
+TUMVI_DIR = ROOT / "docs/assets/tumvi_camera_focal/evaluation"
+TUMVI_SCORES = TUMVI_DIR / "summary.json"
+TUMVI_PREREG = ROOT / "docs/benchmarks/tumvi_camera_focal_preregistration.yaml"
+
+
+def _tumvi_rows() -> dict[str, dict[str, Value]]:
+    scores = json.loads(TUMVI_SCORES.read_text(encoding="utf-8"))["scores"]
+    rows: dict[str, dict[str, Value]] = {
+        "kalibr_check_failed": {},
+        "kalibr_focal_judged": {},
+        "perturbed_check_passed": {},
+        "perturbed_check_failed": {},
+    }
+    for sequence, variants in scores.items():
+        for variant in ("kalibr", "plus3", "minus3"):
+            for camera in ("cam0", "cam1"):
+                case = variants.get(variant, {}).get(camera)
+                key = f"{sequence}/{camera}" + ("" if variant == "kalibr" else f"/{variant}")
+                metrics = (
+                    ("kalibr_check_failed", "kalibr_focal_judged")
+                    if variant == "kalibr"
+                    else ("perturbed_check_passed", "perturbed_check_failed")
+                )
+                for metric in metrics:
+                    if case is None:
+                        rows[metric][key] = variants.get("error") or "no camera-focal record"
+                        continue
+                    value = {
+                        "kalibr_check_failed": case["status"] == "fail",
+                        "kalibr_focal_judged": bool(case["judged_axes"]),
+                        "perturbed_check_passed": case["status"] == "pass",
+                        "perturbed_check_failed": case["status"] == "fail",
+                    }[metric]
+                    rows[metric][key] = float(value)
+    return rows
+
+
+def _tumvi_gates(prereg: dict[str, Any]) -> list[Gate]:
+    honesty = prereg["claims"]["tumvi-camera-focal-check-honesty"]["gates"]
+    detection = prereg["claims"]["tumvi-camera-focal-check-detection"]["gates"]
+    return [
+        Gate("honesty-no-fail", "kalibr_check_failed", "metric_maximum", "less_equal",
+             float(honesty["max_kalibr_fails"]), "check never fails Kalibr's focal lengths"),
+        Gate("honesty-judged", "kalibr_focal_judged", "metric_mean", "greater_equal",
+             float(honesty["min_kalibr_judged_fraction"]),
+             "check judges a focal length on at least 25 % of the Kalibr cases"),
+        Gate("detection-no-pass", "perturbed_check_passed", "metric_maximum", "less_equal",
+             float(detection["max_perturbed_passes"]),
+             "check passes none of the 3 %-wrong focal lengths"),
+        Gate("detection-fail", "perturbed_check_failed", "metric_mean", "greater_equal",
+             float(detection["min_perturbed_fail_fraction"]),
+             "check fails at least 25 % of the 3 %-wrong focal lengths"),
+        Gate("completion", "kalibr_check_failed", "failure_rate", "less_equal", 0.0,
+             "every case produced a camera-focal record"),
+    ]  # fmt: skip
+
+
+TUMVI = Recorded(
+    protocol_id="tumvi-camera-focal-check-v1",
+    title="TUM-VI rooms, camera-focal check",
+    method=BenchmarkMethodDefinition(
+        method_id="calibrex_camera_focal_check",
+        label="calibrex check camera-focal (camera angular rates against the gyro)",
+        implementation="calibrex_native",
+        tool_name="calibrex",
+    ),
+    scope={
+        "modalities": ["camera"],
+        "quantities": ["intrinsics"],
+        "category": "targetless_camera_focal_check",
+    },
+    claim=(
+        "On TUM-VI's room2-room6 (both fisheye cameras), calibrex check never fails "
+        "camera-focal with Kalibr's camchain and judges a focal length on at least 25 % of "
+        "the cases; with the focal lengths 3 % long or short it passes none and fails at "
+        "least 25 %."
+    ),
+    family="tum_vi",
+    rig="tumvi-handheld",
+    license="CC BY 4.0",
+    preregistration=TUMVI_PREREG,
+    scores=TUMVI_SCORES,
+    metrics={
+        "kalibr_check_failed": ("ratio", "check failed Kalibr's focal lengths (1 = yes)"),
+        "kalibr_focal_judged": ("ratio", "check judged a focal length (1 = yes)"),
+        "perturbed_check_passed": ("ratio", "check passed a 3 %-wrong focal length (1 = yes)"),
+        "perturbed_check_failed": ("ratio", "check failed a 3 %-wrong focal length (1 = yes)"),
+    },
+    rows=_tumvi_rows,
+    gates=_tumvi_gates,
+    output=ROOT / "docs/assets/tumvi_camera_focal/audit",
+)
+
+
 def main(argv: list[str] | None = None) -> int:
     argparse.ArgumentParser(description=__doc__.splitlines()[0]).parse_args(argv)
-    for spec in (BOARD, NCLT):
+    for spec in (BOARD, NCLT, TUMVI):
         print(json.dumps(build(spec)))
     return 0
 

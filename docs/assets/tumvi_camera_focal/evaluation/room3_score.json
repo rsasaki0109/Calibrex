@@ -1,0 +1,70 @@
+{
+ "kalibr": {
+  "cam0": {
+   "status": "pass",
+   "reason_code": null,
+   "judged_axes": [
+    "fx",
+    "fy"
+   ],
+   "axes": {
+    "fx": {
+     "scale": 1.0020207534972017,
+     "scale_error": 0.002020753497201655,
+     "scale_std": 0.0025119617626101582,
+     "tolerance": 0.007535885287830475,
+     "status": "pass"
+    },
+    "fy": {
+     "scale": 1.002335478780013,
+     "scale_error": 0.002335478780012945,
+     "scale_std": 0.004347505137049703,
+     "tolerance": 0.013042515411149109,
+     "status": "pass"
+    }
+   }
+  },
+  "cam1": {
+   "status": "inconclusive",
+   "reason_code": "estimator_failed",
+   "judged_axes": [],
+   "axes": {
+    "fx": {
+     "scale": 1.0005595926661566,
+     "scale_error": 0.000559592666156572,
+     "scale_std": 0.0009053642485781977,
+     "tolerance": 0.005,
+     "status": "pass"
+    }
+   }
+  }
+ },
+ "plus3": {
+  "cam0": {
+   "status": "skipped",
+   "reason_code": "missing_dependency",
+   "judged_axes": [],
+   "axes": {}
+  },
+  "cam1": {
+   "status": "inconclusive",
+   "reason_code": "no_judgeable_axes",
+   "judged_axes": [],
+   "axes": {}
+  }
+ },
+ "minus3": {
+  "cam0": {
+   "status": "inconclusive",
+   "reason_code": "no_judgeable_axes",
+   "judged_axes": [],
+   "axes": {}
+  },
+  "cam1": {
+   "status": "inconclusive",
+   "reason_code": "no_judgeable_axes",
+   "judged_axes": [],
+   "axes": {}
+  }
+ }
+}

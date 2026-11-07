@@ -1,0 +1,74 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: tumvi-camera-focal-check-v1-audit
+protocol_id: tumvi-camera-focal-check-v1
+scope:
+  modalities:
+  - camera
+  quantities:
+  - intrinsics
+  category: targetless_camera_focal_check
+claim_text: On TUM-VI's room2-room6 (both fisheye cameras), calibrex check never fails
+  camera-focal with Kalibr's camchain and judges a focal length on at least 25 % of
+  the cases; with the focal lengths 3 % long or short it passes none and fails at
+  least 25 %.
+verdict: supported
+achieved_dataset_families:
+- tum_vi
+achieved_independent_rig_count: 1
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: honesty-no-fail
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/tumvi_camera_focal/audit/tumvi-camera-focal-check-v1_kalibr_check_failed.yaml
+  evidence_sha256: 33e67e93cc3bdc4cf65fb9a22191e6c52c6ee8cb280ebb20f3bc52c76320a76a
+- requirement_id: honesty-judged
+  required: true
+  status: achieved
+  observed_value: 0.6
+  threshold: 0.25
+  reason: observed 0.6 meets greater_equal 0.25
+  evidence_path: docs/assets/tumvi_camera_focal/audit/tumvi-camera-focal-check-v1_kalibr_focal_judged.yaml
+  evidence_sha256: 4f591608178a7b2e41186c479f91e20cf30c69bd2fa2800cf47cb94078a4e4d8
+- requirement_id: detection-no-pass
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/tumvi_camera_focal/audit/tumvi-camera-focal-check-v1_perturbed_check_passed.yaml
+  evidence_sha256: d241cde1195002aa757ea35a3df07e8ae592257a796125b8295ca71f2fd0ce63
+- requirement_id: detection-fail
+  required: true
+  status: achieved
+  observed_value: 0.3
+  threshold: 0.25
+  reason: observed 0.3 meets greater_equal 0.25
+  evidence_path: docs/assets/tumvi_camera_focal/audit/tumvi-camera-focal-check-v1_perturbed_check_failed.yaml
+  evidence_sha256: 28c962606640079f8554c6253baa997a99ca2245dbc3edda451af3fd894956dd
+- requirement_id: completion
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/tumvi_camera_focal/audit/tumvi-camera-focal-check-v1_kalibr_check_failed.yaml
+  evidence_sha256: 33e67e93cc3bdc4cf65fb9a22191e6c52c6ee8cb280ebb20f3bc52c76320a76a
+summary: Every frozen required gate and declared dataset/rig coverage criterion is
+  achieved.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.6.1
+  command: []
+  source_sha256:
+    protocol: 4687ccb422866d42f1d97df2f950ca1f21d2eeaf06d91a2139166c0c6efbe699
+    honesty-no-fail: 33e67e93cc3bdc4cf65fb9a22191e6c52c6ee8cb280ebb20f3bc52c76320a76a
+    honesty-judged: 4f591608178a7b2e41186c479f91e20cf30c69bd2fa2800cf47cb94078a4e4d8
+    detection-no-pass: d241cde1195002aa757ea35a3df07e8ae592257a796125b8295ca71f2fd0ce63
+    detection-fail: 28c962606640079f8554c6253baa997a99ca2245dbc3edda451af3fd894956dd
+    completion: 33e67e93cc3bdc4cf65fb9a22191e6c52c6ee8cb280ebb20f3bc52c76320a76a
+  created_at: recorded

@@ -1,0 +1,108 @@
+{
+ "kalibr": {
+  "cam0": {
+   "status": "pass",
+   "reason_code": null,
+   "judged_axes": [
+    "fx",
+    "fy"
+   ],
+   "axes": {
+    "fx": {
+     "scale": 0.9995897748224095,
+     "scale_error": -0.00041022517759048416,
+     "scale_std": 0.0009834395600360898,
+     "tolerance": 0.005,
+     "status": "pass"
+    },
+    "fy": {
+     "scale": 0.9963923812995269,
+     "scale_error": -0.003607618700473103,
+     "scale_std": 0.0035299190152328374,
+     "tolerance": 0.010589757045698513,
+     "status": "pass"
+    }
+   }
+  },
+  "cam1": {
+   "status": "inconclusive",
+   "reason_code": "estimator_failed",
+   "judged_axes": [],
+   "axes": {
+    "fx": {
+     "scale": 0.9999603075313327,
+     "scale_error": -3.9692468667307246e-05,
+     "scale_std": 0.0011402599690699393,
+     "tolerance": 0.005,
+     "status": "pass"
+    }
+   }
+  }
+ },
+ "plus3": {
+  "cam0": {
+   "status": "inconclusive",
+   "reason_code": "no_judgeable_axes",
+   "judged_axes": [],
+   "axes": {}
+  },
+  "cam1": {
+   "status": "fail",
+   "reason_code": null,
+   "judged_axes": [
+    "fx"
+   ],
+   "axes": {
+    "fx": {
+     "scale": 0.9753126293447942,
+     "scale_error": -0.024687370655205765,
+     "scale_std": 0.003451574021962025,
+     "tolerance": 0.010354722065886075,
+     "status": "fail"
+    }
+   }
+  }
+ },
+ "minus3": {
+  "cam0": {
+   "status": "fail",
+   "reason_code": null,
+   "judged_axes": [
+    "fx"
+   ],
+   "axes": {
+    "fx": {
+     "scale": 1.0325077520526063,
+     "scale_error": 0.032507752052606254,
+     "scale_std": 0.0012875056308826332,
+     "tolerance": 0.005,
+     "status": "fail"
+    }
+   }
+  },
+  "cam1": {
+   "status": "fail",
+   "reason_code": null,
+   "judged_axes": [
+    "fx",
+    "fy"
+   ],
+   "axes": {
+    "fx": {
+     "scale": 1.0299731597605788,
+     "scale_error": 0.029973159760578794,
+     "scale_std": 0.0032806476230680566,
+     "tolerance": 0.00984194286920417,
+     "status": "fail"
+    },
+    "fy": {
+     "scale": 1.0307926844651774,
+     "scale_error": 0.030792684465177356,
+     "scale_std": 0.0034059184715453765,
+     "tolerance": 0.01021775541463613,
+     "status": "fail"
+    }
+   }
+  }
+ }
+}

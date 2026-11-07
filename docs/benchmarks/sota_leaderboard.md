@@ -6,7 +6,7 @@ standing per sensor pair, and the target pairs that have no audited claim yet.
 
 ## Current standings
 
-As of 2026-10-22, **three pairs have supported SOTA claims**:
+As of 2026-11-07, **four pairs have supported SOTA claims**:
 
 - **`imu-lidar`** (Livox MID360, against LI-Init):
   - rotation and clock offset;
@@ -24,6 +24,13 @@ As of 2026-10-22, **three pairs have supported SOTA claims**:
     ([refuted](hilti_camera_imu.md#pre-registered-audit-refuted)) and v2
     ([refuted](hilti_camera_sota.md#camera-imu-v2-refuted-5-of-7-gates)) required
     every axis constrained; both stay listed.
+
+- **`camera`** (focal lengths; TUM-VI fisheye, against Kalibr): check's honesty and
+  detection on five unseen room sequences
+  ([result](hilti_camera_imu.md#result-camera-focal-check-honesty-and-detection-supported)).
+  - Check never failed Kalibr's focal lengths, judging 6 of 10 cases.
+  - With the focal lengths 3 % off it passed none of 20 cases and failed 6 (warn on 3).
+  - Half the perturbed cases were inconclusive; no accuracy is claimed.
 
 See [MID360 IMU-LiDAR Calibration](mid360_imu_lidar.md),
 [KITTI LiDAR-Vehicle Rotation](kitti_lidar_vehicle.md#pre-registered-audit-supported)
@@ -68,12 +75,12 @@ Five pairs have only refuted audits:
   - Its `slac.sota_audit_result` (4 of 6 gates) was built from the committed run records
     by `tools/build_recorded_audits.py`, as was the board camera-LiDAR audit's (0 of 5).
 
-Eight pairs now have an audit; supported pairs remain three. Every other target
+Nine pairs now have an audit; four are supported. Every other target
 pair has a native method but no audited claim yet.
 
 | Pair | Standing | Supported | Refuted | Incomplete | Target |
 | --- | --- | ---: | ---: | ---: | --- |
-| `camera` | no_claim | 0 | 0 | 0 | yes |
+| `camera` | supported | 1 | 0 | 0 | yes |
 | `camera-camera` | refuted | 0 | 1 | 0 | yes |
 | `camera-imu` | supported | 1 | 2 | 0 | yes |
 | `camera-lidar` | refuted | 0 | 3 | 0 | yes |
@@ -87,6 +94,7 @@ pair has a native method but no audited claim yet.
 
 | Pair | Category | Quantities | Verdict | Gates (achieved/total) | Protocol |
 | --- | --- | --- | --- | --- | --- |
+| `camera` | targetless_camera_focal_check | intrinsics | supported | 5/5 | `tumvi-camera-focal-check-v1` |
 | `camera-camera` | targetless_camera_camera | rotation | refuted | 4/6 | `hilti-camera-camera-v1` |
 | `camera-imu` | targetless_camera_imu | rotation, time_offset | refuted | 6/7 | `hilti-camera-imu-v1` |
 | `camera-imu` | targetless_camera_imu | rotation, time_offset | refuted | 5/7 | `hilti-camera-imu-v2` |

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- The pre-registered camera-focal check audit on TUM-VI room2–room6 ran once. Both claims
+  are supported, so the `camera` pair now has a supported claim.
+  - **Honesty:** check never failed Kalibr's focal lengths, and judged 6 of 10 cases.
+  - **Detection:** with focal lengths 3 % off it passed none of 20 cases and failed 6
+    (warn on 3).
+  - Half the perturbed cases were inconclusive, and no accuracy is claimed.
+  - `tools/build_recorded_audits.py` builds its leaderboard record.
 - `camera-focal` on TUM-VI (fisheye, Kalibr reference), room1 development:
   - fx tracks a 3 % focal error; fy reads 1 % high and is noisier;
   - cam1 is often inconclusive;

@@ -1,0 +1,95 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: tumvi-camera-focal-check-v1
+scope:
+  modalities:
+  - camera
+  quantities:
+  - intrinsics
+  category: targetless_camera_focal_check
+claim_text: On TUM-VI's room2-room6 (both fisheye cameras), calibrex check never fails
+  camera-focal with Kalibr's camchain and judges a focal length on at least 25 % of
+  the cases; with the focal lengths 3 % long or short it passes none and fails at
+  least 25 %.
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: honesty-no-fail
+  phase: audit
+  description: check never fails Kalibr's focal lengths
+  dataset_family: tum_vi
+  independent_rig: true
+  rig_id: tumvi-handheld
+  evidence_path: tumvi-camera-focal-check-v1_kalibr_check_failed.yaml
+  evidence_sha256: 33e67e93cc3bdc4cf65fb9a22191e6c52c6ee8cb280ebb20f3bc52c76320a76a
+  method_id: calibrex_camera_focal_check
+  metric: kalibr_check_failed
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: honesty-judged
+  phase: audit
+  description: check judges a focal length on at least 25 % of the Kalibr cases
+  dataset_family: tum_vi
+  independent_rig: true
+  rig_id: tumvi-handheld
+  evidence_path: tumvi-camera-focal-check-v1_kalibr_focal_judged.yaml
+  evidence_sha256: 4f591608178a7b2e41186c479f91e20cf30c69bd2fa2800cf47cb94078a4e4d8
+  method_id: calibrex_camera_focal_check
+  metric: kalibr_focal_judged
+  statistic: metric_mean
+  comparison: greater_equal
+  threshold: 0.25
+  required: true
+- requirement_id: detection-no-pass
+  phase: audit
+  description: check passes none of the 3 %-wrong focal lengths
+  dataset_family: tum_vi
+  independent_rig: true
+  rig_id: tumvi-handheld
+  evidence_path: tumvi-camera-focal-check-v1_perturbed_check_passed.yaml
+  evidence_sha256: d241cde1195002aa757ea35a3df07e8ae592257a796125b8295ca71f2fd0ce63
+  method_id: calibrex_camera_focal_check
+  metric: perturbed_check_passed
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: detection-fail
+  phase: audit
+  description: check fails at least 25 % of the 3 %-wrong focal lengths
+  dataset_family: tum_vi
+  independent_rig: true
+  rig_id: tumvi-handheld
+  evidence_path: tumvi-camera-focal-check-v1_perturbed_check_failed.yaml
+  evidence_sha256: 28c962606640079f8554c6253baa997a99ca2245dbc3edda451af3fd894956dd
+  method_id: calibrex_camera_focal_check
+  metric: perturbed_check_failed
+  statistic: metric_mean
+  comparison: greater_equal
+  threshold: 0.25
+  required: true
+- requirement_id: completion
+  phase: audit
+  description: every case produced a camera-focal record
+  dataset_family: tum_vi
+  independent_rig: true
+  rig_id: tumvi-handheld
+  evidence_path: tumvi-camera-focal-check-v1_kalibr_check_failed.yaml
+  evidence_sha256: 33e67e93cc3bdc4cf65fb9a22191e6c52c6ee8cb280ebb20f3bc52c76320a76a
+  method_id: calibrex_camera_focal_check
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+provenance:
+  generator: tools.build_recorded_audits
+  generator_version: 0.6.1
+  git_commit: b9eee4297dd1b549c2ba34fac78c60b866ff630d
+  command:
+  - python
+  - tools/build_recorded_audits.py
+  source_sha256:
+    docs/assets/tumvi_camera_focal/evaluation/summary.json: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    docs/benchmarks/tumvi_camera_focal_preregistration.yaml: 4019b782fa9b9235446ef31d06ec900044e615f212e578c098bc701a37246805
+  created_at: recorded
