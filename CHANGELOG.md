@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `calibrex drift`: when roll or pitch of a vehicle-frame pair (`lidar-vehicle`,
+  `lidar-wheel_odometry`, `imu-vehicle`) drifts, the next steps say that the chassis
+  attitude (tyres, load, suspension, balancing) can move the vehicle frame as well as the
+  sensor mount, and suggest comparing a sensor-to-sensor pair first. NCLT's six spent
+  sessions, put through drift's rule, show roll drifting by 2.3 deg between sessions while
+  each session's halves agree.
 - The pre-registered camera-focal check audit on TUM-VI room2–room6 ran once. Both claims
   are supported, so the `camera` pair now has a supported claim.
   - **Honesty:** check never failed Kalibr's focal lengths, and judged 6 of 10 cases.

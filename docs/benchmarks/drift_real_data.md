@@ -40,6 +40,26 @@ False-alarm behaviour, stated plainly:
 * On RTK-SLAM the four recordings agree to 0.18 deg, within the reported stds (std 0.05 to 0.08
   deg), so there the 0.5 deg floor is a policy choice, not a rescue.
 
+### A vehicle frame that moves: NCLT's Segway over 13 months
+
+The [NCLT lidar-wheel analysis](lidar_wheel_odometry.md#development-after-the-audit-the-stds-hold-within-a-recording-the-vehicle-frame-moves-between-recordings)
+fitted one hour of each of six sessions (all spent). Its full-hour estimates and stds were
+put through drift's rule (`compare_pair`; the bags themselves are gone). This is the test
+`test_vehicle_frame_pairs_name_the_chassis_when_roll_or_pitch_drift`.
+
+| Axis | Sessions | Result | Largest difference | Min detectable |
+| --- | ---: | --- | ---: | ---: |
+| roll | 6 | **drift** (chi-square p 4e-8) | 2.33 deg | 1.06 deg |
+| pitch | 6 | stable (p 0.095) | 3.29 deg | 1.40 deg |
+| yaw | 6 | **drift** (p 0.001) | 0.51 deg | 0.5 deg |
+
+Drift names 2012-05-11 and 2013-02-23. Within each session the two halves agree within
+their stds, so the change is between recordings. But the vehicle frame of
+`lidar-wheel_odometry` (and of `lidar-vehicle`, `imu-vehicle`) is set by each recording's
+ground plane and direction of travel. A roll or pitch change there can be the chassis
+attitude (tyres, load, balancing) as well as the sensor mount. For such a pair, the next
+steps now say so and suggest comparing a sensor-to-sensor pair of the same sensor first.
+
 ## Known-bad control: a remounted IMU
 
 `tools/rotate_imu_in_bag.py` copies a bag and rotates every IMU `angular_velocity` and

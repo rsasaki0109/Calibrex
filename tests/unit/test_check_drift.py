@@ -22,6 +22,7 @@ from calibrex.check.drift import (
     build_calibration_drift,
     compare_pair,
     format_drift_text,
+    next_steps,
     worst_drift_verdict,
 )
 from calibrex.check.estimators import (
@@ -431,3 +432,44 @@ def test_drift_artifact_reports_a_clock_offset_change(tmp_path: Path, bags: list
     assert main([*args, "--html", str(html_path), "--time-offset-floor-ms", "20"]) == 0
     assert "time_offset" in html_path.read_text(encoding="utf-8")
     assert validate_file(out / ARTIFACT_NAME).kind == "calibration-drift"
+
+
+def test_vehicle_frame_pairs_name_the_chassis_when_roll_or_pitch_drift() -> None:
+    """NCLT's six sessions (spent): lidar-wheel roll and yaw drift between recordings."""
+
+    root = Path(__file__).resolve().parents[2]
+    fits = json.loads(
+        (root / "docs/assets/nclt_lidar_wheel/development_halves/halves.json").read_text()
+    )
+    bags = list(fits)
+    axes = [
+        (
+            axis,
+            "deg",
+            [
+                Observation(
+                    b, fits[b]["full"]["errors"][axis], fits[b]["full"]["stds"][axis], "observed"
+                )
+                for b in bags
+            ],
+        )
+        for axis in ("roll", "pitch", "yaw")
+    ]
+    options = DriftOptions()
+    wheel = compare_pair("lidar-wheel_odometry", "base_link", "velodyne", axes, bags, options)
+    assert {a.name: a.status for a in wheel.axes} == {
+        "roll": "drift",
+        "pitch": "stable",
+        "yaw": "drift",
+    }
+    steps = next_steps([wheel])
+    assert any("chassis attitude" in s and "a roll change" in s for s in steps)
+    # the same numbers on a sensor-to-sensor pair carry no chassis note
+    lidar_imu = compare_pair("imu-lidar", "imu", "velodyne", axes, bags, options)
+    assert not any("chassis" in s for s in next_steps([lidar_imu]))
+    # a yaw-only change is not the chassis attitude
+    yaw_only = compare_pair(
+        "lidar-wheel_odometry", "base_link", "velodyne", axes[2:], bags, options
+    )
+    assert yaw_only.verdict == "drift"
+    assert not any("chassis" in s for s in next_steps([yaw_only]))
