@@ -23,6 +23,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +49,7 @@ VARIANTS: dict[str, str | None] = {"kalibr": None, "rx2": "roll", "ry2": "pitch"
 """Each candidate and the check axis its error lies on (camera x, y, z: roll, pitch, yaw)."""
 AXIS_VECTORS = {"roll": (1.0, 0.0, 0.0), "pitch": (0.0, 1.0, 0.0), "yaw": (0.0, 0.0, 1.0)}
 PAIRS = "camera-imu"
+DOWNLOAD_ATTEMPTS = 20
 
 MAX_KALIBR_FAILS = 0
 MIN_KALIBR_JUDGED_FRACTION = 0.5
@@ -106,15 +108,26 @@ def check_command(bag: Path, candidate: Path, output: Path) -> list[str]:
 
 
 def download(session: str, target: Path) -> None:
+    """Fetch the pinned bag, resuming a cut-off transfer from the bytes already on disk.
+
+    curl's own ``--retry`` restarts a transfer from where that call began, so a bag longer
+    than what one connection carries would never finish; each call here resumes instead.
+    """
+
     size, etag = SESSIONS[session]
     url = f"{BAGS}/dataset-{session}_512_16.bag"
-    subprocess.run(
-        ["curl", "-sSf", "--retry", "8", "--retry-all-errors", "-C", "-",
-         "-H", f'If-Match: "{etag}"', "-o", str(target), url],
-        check=True,
-    )  # fmt: skip
-    if target.stat().st_size != size:
-        raise SystemExit(f"{url}: {target.stat().st_size} bytes, pinned {size}")
+    for attempt in range(DOWNLOAD_ATTEMPTS):
+        if target.exists() and target.stat().st_size >= size:
+            break
+        if attempt:
+            time.sleep(min(60, 5 * attempt))
+        subprocess.run(
+            ["curl", "-sSf", "-C", "-", "-H", f'If-Match: "{etag}"', "-o", str(target), url],
+            check=False,
+        )  # fmt: skip
+    got = target.stat().st_size if target.exists() else 0
+    if got != size:
+        raise SystemExit(f"{url}: {got} bytes, pinned {size}")
 
 
 def imu_records(artifact: dict[str, Any]) -> dict[str, dict[str, Any]]:

@@ -123,3 +123,36 @@ def test_honesty_fails_on_a_false_fail_nothing_judged_or_a_missing_sequence() ->
     missing = {**good, sessions[0]: {"error": "x", **{name: {} for name in harness.VARIANTS}}}
     assert harness.verdicts(missing)["honesty"]["verdict"] == "refuted"
     assert harness.verdicts(missing)["detection"]["verdict"] == "refuted"
+
+
+def test_a_cut_off_download_resumes_from_the_bytes_on_disk(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    size = 1000
+    monkeypatch.setitem(harness.SESSIONS, "corridor1", (size, "abc-1"))
+    monkeypatch.setattr(harness.time, "sleep", lambda _s: None)
+    calls: list[list[str]] = []
+
+    def fake_curl(command: list[str], check: bool) -> None:
+        calls.append(command)
+        target = Path(command[command.index("-o") + 1])
+        have = target.stat().st_size if target.exists() else 0
+        with target.open("ab") as stream:  # each call carries at most 400 bytes
+            stream.write(b"x" * min(400, size - have))
+
+    monkeypatch.setattr(harness.subprocess, "run", fake_curl)
+    target = tmp_path / "bag"
+    harness.download("corridor1", target)
+
+    assert target.stat().st_size == size and len(calls) == 3
+    assert all("-C" in c and 'If-Match: "abc-1"' in c and "--retry" not in c for c in calls)
+
+
+def test_a_download_that_never_completes_is_refused(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setitem(harness.SESSIONS, "corridor1", (1000, "abc-1"))
+    monkeypatch.setattr(harness.time, "sleep", lambda _s: None)
+    monkeypatch.setattr(harness.subprocess, "run", lambda command, check: None)
+    with pytest.raises(SystemExit, match="0 bytes, pinned 1000"):
+        harness.download("corridor1", tmp_path / "bag")
