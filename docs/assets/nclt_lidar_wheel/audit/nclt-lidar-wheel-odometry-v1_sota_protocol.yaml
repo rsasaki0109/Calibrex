@@ -1,0 +1,111 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: nclt-lidar-wheel-odometry-v1
+scope:
+  modalities:
+  - lidar
+  - wheel_odometry
+  quantities:
+  - rotation
+  - lever_arm
+  category: targetless_lidar_wheel_odometry
+claim_text: On one hour of each of NCLT's sessions 2012-02-02, 2012-05-11, 2012-08-04,
+  2012-11-04 and 2013-02-23, calibrex check's lidar-wheel_odometry estimator converges,
+  its rotation is within 0.5 deg and its lever within 0.20 m of NCLT's calibration
+  on every session; and check does not fail NCLT's calibration, with no rotation axis
+  beyond check's fail bound, on at least three converged sessions.
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: accuracy-converged
+  phase: audit
+  description: the estimator converges on every session
+  dataset_family: nclt
+  independent_rig: true
+  rig_id: nclt-segway
+  evidence_path: nclt-lidar-wheel-odometry-v1_rotation_reference_difference_deg.yaml
+  evidence_sha256: f4387834c4e1bfafd90e8182aa0131dba478e16235d855dc9a6143390b7794f8
+  method_id: calibrex_lidar_wheel_odometry
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: accuracy-rotation
+  phase: audit
+  description: rotation within 0.5 deg of NCLT's calibration on every session
+  dataset_family: nclt
+  independent_rig: true
+  rig_id: nclt-segway
+  evidence_path: nclt-lidar-wheel-odometry-v1_rotation_reference_difference_deg.yaml
+  evidence_sha256: f4387834c4e1bfafd90e8182aa0131dba478e16235d855dc9a6143390b7794f8
+  method_id: calibrex_lidar_wheel_odometry
+  metric: rotation_reference_difference_deg
+  statistic: metric_maximum
+  comparison: less_than
+  threshold: 0.5
+  required: true
+- requirement_id: accuracy-lever
+  phase: audit
+  description: lever within 0.20 m of NCLT's on every session
+  dataset_family: nclt
+  independent_rig: true
+  rig_id: nclt-segway
+  evidence_path: nclt-lidar-wheel-odometry-v1_lever_reference_difference_m.yaml
+  evidence_sha256: 16a606e6dc2a0d4b6b1e4e1c9c6741eefe1b9b4db8df55e6eed56ab59e263731
+  method_id: calibrex_lidar_wheel_odometry
+  metric: lever_reference_difference_m
+  statistic: metric_maximum
+  comparison: less_than
+  threshold: 0.2
+  required: true
+- requirement_id: honesty-no-fail
+  phase: audit
+  description: calibrex check does not fail NCLT's calibration on any session
+  dataset_family: nclt
+  independent_rig: true
+  rig_id: nclt-segway
+  evidence_path: nclt-lidar-wheel-odometry-v1_check_failed_reference.yaml
+  evidence_sha256: dfb4892921e04454d33afd29a9fe2851a76f5af536ee1e76a951b5b1d9d93bd4
+  method_id: calibrex_lidar_wheel_odometry
+  metric: check_failed_reference
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: honesty-fail-bound
+  phase: audit
+  description: no rotation axis beyond 2 x max(3 std, 0.5 deg)
+  dataset_family: nclt
+  independent_rig: true
+  rig_id: nclt-segway
+  evidence_path: nclt-lidar-wheel-odometry-v1_axes_beyond_check_fail_bound.yaml
+  evidence_sha256: c5a292d3f10ba1aaa4075168c92655b066ce4ef274e3f30cd6309bfe6ef23538
+  method_id: calibrex_lidar_wheel_odometry
+  metric: axes_beyond_check_fail_bound
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: honesty-converged-sessions
+  phase: audit
+  description: the estimator converges on at least 3 of the 5 sessions
+  dataset_family: nclt
+  independent_rig: true
+  rig_id: nclt-segway
+  evidence_path: nclt-lidar-wheel-odometry-v1_axes_beyond_check_fail_bound.yaml
+  evidence_sha256: c5a292d3f10ba1aaa4075168c92655b066ce4ef274e3f30cd6309bfe6ef23538
+  method_id: calibrex_lidar_wheel_odometry
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.4
+  required: true
+provenance:
+  generator: tools.build_recorded_audits
+  generator_version: 0.6.1
+  git_commit: 640a338910c0c3e94e0fd70673d4dd345074d4f5
+  command:
+  - python
+  - tools/build_recorded_audits.py
+  source_sha256:
+    docs/assets/nclt_lidar_wheel/evaluation/summary.json: e2317c8bc4b807957208241197ab94645442d432cb4da333ca6c5074779056f6
+    docs/benchmarks/nclt_lidar_wheel_preregistration.yaml: b8ce3bb92cfd3bc0746eb8db71dcc74e78ca266b53537728d49973dda27bb01e
+  created_at: recorded
