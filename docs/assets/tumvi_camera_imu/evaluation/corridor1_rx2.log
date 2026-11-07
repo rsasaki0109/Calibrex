@@ -1,0 +1,72 @@
+calibrex check (run)
+bag: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/imu-work/dataset-corridor1_512_16.bag (4 topics)
+
+candidate sources:
+  kalibr_camchain: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/imu-audit/runs/candidates/camchain_rx2.yaml (2 frames) sha256=8f81f2f70054
+    note: Kalibr T_cam_imu inverted to T_imu_cam; the IMU frame is named 'imu' and camera frames take their rostopic as name
+frame tree: 3 frames, 1 root(s) [imu]
+
+topics:
+topic            role    header frame  tree frame
+---------------  ------  ------------  ----------------------------------
+/cam0/image_raw  camera  1544000       cam0/image_raw (source_topic_hint)
+/cam1/image_raw  camera  1544000       cam1/image_raw (source_topic_hint)
+/imu0            imu     -             imu (role_default)
+
+pairs (no --vehicle-frame: vehicle pairs are skipped):
+pair                  sensors               verdict  reason            |delta|/tolerance                                                   unchecked  detectable
+--------------------  --------------------  -------  ----------------  ------------------------------------------------------------------  ---------  ---------------------------------------------
+imu-lidar             -                     skipped  missing_topic
+lidar-lidar           -                     skipped  missing_topic
+camera-imu            cam0/image_raw / imu  fail                       roll 2.06/0.5 deg [fail]; pitch 0.0861/0.5 deg; yaw 0.0938/0.5 deg  -          roll 2.56 deg; pitch 0.586 deg; yaw 0.594 deg
+camera-imu            cam1/image_raw / imu  fail                       roll 1.9/0.5 deg [fail]; pitch 0.181/0.5 deg; yaw 0.0268/0.5 deg    -          roll 2.4 deg; pitch 0.681 deg; yaw 0.527 deg
+camera-lidar          -                     skipped  missing_topic
+gnss-lidar            -                     skipped  missing_topic
+gnss-imu              -                     skipped  missing_topic
+lidar-vehicle         -                     skipped  missing_topic
+imu-vehicle           -                     skipped  no_vehicle_frame
+ins-lidar             -                     skipped  missing_topic
+lidar-wheel_odometry  -                     skipped  missing_topic
+  not selected: camera-focal, camera-camera
+  camera-imu: time offset 0.33 ms (estimated; reported, not judged)
+  camera-imu: time offset 0.04 ms (estimated; reported, not judged)
+
+closure of the estimates (independent estimates against each other):
+  no loop: fewer than two independent estimates share a frame
+
+which frame's rotation the pair errors point to (informational):
+  cam0/image_raw, cam1/image_raw, imu: attributed
+    imu alone explains the pair errors: its candidate is turned by roll -1.98 ± 0.12, pitch +0.10 ± 0.12, yaw -0.15 ± 0.12 deg about its own axes (chi2 0.8 on 3 dof, p 0.84; nothing off: chi2 284.6 on 6 axes)
+
+overall verdict: fail
+
+summary: 14 pair record(s), 2 runnable (fail=2, skipped=12)
+
+next steps:
+  - imu-lidar: the bag lacks a topic for this pair; expected lidar: sensor_msgs/msg/PointCloud2 or a Livox CustomMsg
+  - lidar-lidar: the bag lacks a topic for this pair; expected lidar: sensor_msgs/msg/PointCloud2 or a Livox CustomMsg
+  - camera-lidar: the bag lacks a topic for this pair; expected lidar: sensor_msgs/msg/PointCloud2 or a Livox CustomMsg
+  - gnss-lidar: the bag lacks a topic for this pair; expected gnss: sensor_msgs/msg/NavSatFix; lidar: sensor_msgs/msg/PointCloud2 or a Livox CustomMsg
+  - gnss-imu: the bag lacks a topic for this pair; expected gnss: sensor_msgs/msg/NavSatFix
+  - lidar-vehicle: the bag lacks a topic for this pair; expected lidar: sensor_msgs/msg/PointCloud2 or a Livox CustomMsg
+  - vehicle pairs are opt-in for ground vehicles: add --vehicle-frame base_link (use your vehicle frame name)
+  - ins-lidar: the bag lacks a topic for this pair; expected ins: nav_msgs/msg/Odometry classified as ins (--topic-kind TOPIC=ins); lidar: sensor_msgs/msg/PointCloud2 or a Livox CustomMsg
+  - lidar-wheel_odometry: the bag lacks a topic for this pair; expected lidar: sensor_msgs/msg/PointCloud2 or a Livox CustomMsg; wheel: nav_msgs/msg/Odometry or TwistStamped classified as wheel (--topic-kind TOPIC=wheel)
+artifact: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/imu-audit/runs/corridor1_rx2.json
+check: 2 pairs to run
+check: running camera-imu (cam0/image_raw / imu) [pair 1/2]
+check:   camera-imu: /cam0/image_raw + /imu0 (intrinsics: camchain_rx2.yaml cam0) [0s elapsed]
+check:   camera-imu: /cam0/image_raw + /imu0 (intrinsics: camchain_rx2.yaml cam0) [1035/5990 msgs (17%), 30s elapsed, eta 2m24s]
+check:   camera-imu: /cam0/image_raw + /imu0 (intrinsics: camchain_rx2.yaml cam0) [2141/5990 msgs (36%), 1m00s elapsed, eta 1m48s]
+check:   camera-imu: /cam0/image_raw + /imu0 (intrinsics: camchain_rx2.yaml cam0) [3603/5990 msgs (60%), 1m30s elapsed, eta 1m00s]
+check:   camera-imu: /cam0/image_raw + /imu0 (intrinsics: camchain_rx2.yaml cam0) [4421/5990 msgs (74%), 2m00s elapsed, eta 43s]
+check:   camera-imu: /cam0/image_raw + /imu0 (intrinsics: camchain_rx2.yaml cam0) [5335/5990 msgs (89%), 2m30s elapsed, eta 18s]
+check: camera-imu (cam0/image_raw / imu) -> fail (179 s) [pair 1/2 done]
+check: running camera-imu (cam1/image_raw / imu) [pair 2/2]
+check:   camera-imu: /cam1/image_raw + /imu0 (intrinsics: camchain_rx2.yaml cam1) [0s elapsed]
+check:   camera-imu: /cam1/image_raw + /imu0 (intrinsics: camchain_rx2.yaml cam1) [1421/5990 msgs (24%), 30s elapsed, eta 1m37s]
+check:   camera-imu: /cam1/image_raw + /imu0 (intrinsics: camchain_rx2.yaml cam1) [2395/5990 msgs (40%), 1m00s elapsed, eta 1m30s]
+check:   camera-imu: /cam1/image_raw + /imu0 (intrinsics: camchain_rx2.yaml cam1) [3687/5990 msgs (62%), 1m30s elapsed, eta 56s]
+check:   camera-imu: /cam1/image_raw + /imu0 (intrinsics: camchain_rx2.yaml cam1) [4445/5990 msgs (74%), 2m00s elapsed, eta 42s]
+check:   camera-imu: /cam1/image_raw + /imu0 (intrinsics: camchain_rx2.yaml cam1) [5355/5990 msgs (89%), 2m31s elapsed, eta 18s]
+check: camera-imu (cam1/image_raw / imu) -> fail (179 s) [pair 2/2 done]

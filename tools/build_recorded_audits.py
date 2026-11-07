@@ -522,9 +522,109 @@ TUMVI = Recorded(
 )
 
 
+# ----------------------------------------------------------------------------- TUM-VI camera-imu
+
+
+TUMVI_IMU_DIR = ROOT / "docs/assets/tumvi_camera_imu/evaluation"
+TUMVI_IMU_SCORES = TUMVI_IMU_DIR / "summary.json"
+TUMVI_IMU_PREREG = ROOT / "docs/benchmarks/tumvi_camera_imu_preregistration.yaml"
+TUMVI_IMU_TURNS = {"rx2": "roll", "ry2": "pitch", "rz2": "yaw"}
+
+
+def _tumvi_imu_rows() -> dict[str, dict[str, Value]]:
+    scores = json.loads(TUMVI_IMU_SCORES.read_text(encoding="utf-8"))["scores"]
+    rows: dict[str, dict[str, Value]] = {
+        "kalibr_check_failed": {},
+        "kalibr_rotation_judged": {},
+        "turned_check_passed": {},
+        "turned_axis_failed": {},
+    }
+    for sequence, variants in scores.items():
+        for variant in ("kalibr", *TUMVI_IMU_TURNS):
+            for camera in ("cam0", "cam1"):
+                case = variants.get(variant, {}).get(camera)
+                key = f"{sequence}/{camera}" + ("" if variant == "kalibr" else f"/{variant}")
+                metrics = (
+                    ("kalibr_check_failed", "kalibr_rotation_judged")
+                    if variant == "kalibr"
+                    else ("turned_check_passed", "turned_axis_failed")
+                )
+                for metric in metrics:
+                    if case is None:
+                        rows[metric][key] = variants.get("error") or "no camera-imu record"
+                        continue
+                    axis = case["axes"].get(TUMVI_IMU_TURNS.get(variant, ""), {})
+                    value = {
+                        "kalibr_check_failed": case["status"] == "fail",
+                        "kalibr_rotation_judged": bool(case["judged_axes"]),
+                        "turned_check_passed": case["status"] == "pass",
+                        "turned_axis_failed": case["status"] == "fail"
+                        and axis.get("status") == "fail",
+                    }[metric]
+                    rows[metric][key] = float(value)
+    return rows
+
+
+def _tumvi_imu_gates(prereg: dict[str, Any]) -> list[Gate]:
+    honesty = prereg["claims"]["tumvi-camera-imu-check-honesty"]["gates"]
+    detection = prereg["claims"]["tumvi-camera-imu-check-detection"]["gates"]
+    return [
+        Gate("honesty-no-fail", "kalibr_check_failed", "metric_maximum", "less_equal",
+             float(honesty["max_kalibr_fails"]), "check never fails Kalibr's T_cam_imu"),
+        Gate("honesty-judged", "kalibr_rotation_judged", "metric_mean", "greater_equal",
+             float(honesty["min_kalibr_judged_fraction"]),
+             "check judges a rotation axis on at least 50 % of the Kalibr cases"),
+        Gate("detection-no-pass", "turned_check_passed", "metric_maximum", "less_equal",
+             float(detection["max_perturbed_passes"]),
+             "check passes none of the 2 deg-turned T_cam_imu"),
+        Gate("detection-fail", "turned_axis_failed", "metric_mean", "greater_equal",
+             float(detection["min_perturbed_detected_fraction"]),
+             "check fails at least 50 % of the turned cases on the turned axis"),
+        Gate("completion", "kalibr_check_failed", "failure_rate", "less_equal", 0.0,
+             "every case produced a camera-imu record"),
+    ]  # fmt: skip
+
+
+TUMVI_IMU = Recorded(
+    protocol_id="tumvi-camera-imu-check-v1",
+    title="TUM-VI corridors, camera-imu check",
+    method=BenchmarkMethodDefinition(
+        method_id="calibrex_camera_imu_check",
+        label="calibrex check camera-imu (camera rotations against the gyro)",
+        implementation="calibrex_native",
+        tool_name="calibrex",
+    ),
+    scope={
+        "modalities": ["camera", "imu"],
+        "quantities": ["rotation"],
+        "category": "targetless_camera_imu_check",
+    },
+    claim=(
+        "On TUM-VI's corridor1-corridor5 (both fisheye cameras), calibrex check never fails "
+        "camera-imu with Kalibr's camchain and judges a rotation axis on at least 50 % of "
+        "the cases; with T_cam_imu turned 2 deg about a camera axis it passes none and "
+        "fails at least 50 % on the turned axis."
+    ),
+    family="tum_vi",
+    rig="tumvi-handheld",
+    license="CC BY 4.0",
+    preregistration=TUMVI_IMU_PREREG,
+    scores=TUMVI_IMU_SCORES,
+    metrics={
+        "kalibr_check_failed": ("ratio", "check failed Kalibr's T_cam_imu (1 = yes)"),
+        "kalibr_rotation_judged": ("ratio", "check judged a rotation axis (1 = yes)"),
+        "turned_check_passed": ("ratio", "check passed a 2 deg-turned T_cam_imu (1 = yes)"),
+        "turned_axis_failed": ("ratio", "check failed the turned axis (1 = yes)"),
+    },
+    rows=_tumvi_imu_rows,
+    gates=_tumvi_imu_gates,
+    output=ROOT / "docs/assets/tumvi_camera_imu/audit",
+)
+
+
 def main(argv: list[str] | None = None) -> int:
     argparse.ArgumentParser(description=__doc__.splitlines()[0]).parse_args(argv)
-    for spec in (BOARD, NCLT, TUMVI):
+    for spec in (BOARD, NCLT, TUMVI, TUMVI_IMU):
         print(json.dumps(build(spec)))
     return 0
 

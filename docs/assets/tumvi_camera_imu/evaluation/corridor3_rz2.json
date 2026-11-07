@@ -1,0 +1,753 @@
+{
+  "bag": {
+    "input_digest_scope": "metadata.yaml in full; each storage file by name, size and first 64 MiB",
+    "input_sha256": "58dc1c55799b56ff2f2ff53dc6c0d282e7ca97c49add0c51cc94084544a082ae",
+    "path": "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/imu-work/dataset-corridor3_512_16.bag",
+    "storage_identifier": "rosbag1",
+    "topic_count": 4
+  },
+  "candidate_sources": [
+    {
+      "frame_count": 2,
+      "kind": "kalibr_camchain",
+      "notes": [
+        "Kalibr T_cam_imu inverted to T_imu_cam; the IMU frame is named 'imu' and camera frames take their rostopic as name"
+      ],
+      "path": "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/imu-audit/runs/candidates/camchain_rz2.yaml",
+      "sha256": "803077c643199d72b6a28afeaa5d116787171a21b111d52f2606993f2f758679"
+    }
+  ],
+  "closures": {
+    "assumptions": [
+      "edges are this run's per-pair estimates, not the candidate; derived pairs are excluded",
+      "loops are a fundamental cycle basis of a spanning forest that takes the best-observed estimates first; loops that share a member are correlated",
+      "the std of a closure axis is propagated to first order assuming independent members; members that share an input (the LiDAR odometry of the vehicle pairs) make it optimistic",
+      "an axis is judged only if every member observes everything entering it; translation needs every member to estimate it"
+    ],
+    "edges": [
+      {
+        "child_frame": "imu",
+        "pair": "camera-imu",
+        "parent_frame": "cam0/image_raw",
+        "role": "independent"
+      },
+      {
+        "child_frame": "imu",
+        "pair": "camera-imu",
+        "parent_frame": "cam1/image_raw",
+        "role": "independent"
+      }
+    ],
+    "loops": []
+  },
+  "evidence_dir": "corridor3_rz2_evidence",
+  "frame_tree": {
+    "edges": [
+      {
+        "source": "kalibr_camchain",
+        "transform": {
+          "child_frame": "cam0/image_raw",
+          "parent_frame": "imu",
+          "rotation_quat_xyzw": [
+            0.0012275379839149876,
+            0.694923785399212,
+            -0.7187975488188378,
+            -0.020236339811304422
+          ],
+          "translation_m": [
+            0.04557483564969805,
+            -0.0711618018379971,
+            -0.04468125411714439
+          ]
+        }
+      },
+      {
+        "source": "kalibr_camchain",
+        "transform": {
+          "child_frame": "cam1/image_raw",
+          "parent_frame": "imu",
+          "rotation_quat_xyzw": [
+            -0.001075294893637052,
+            -0.7115998735440179,
+            0.7022948958965949,
+            0.020157949067810516
+          ],
+          "translation_m": [
+            -0.05545633914259544,
+            -0.06925002164224774,
+            -0.047452864807513394
+          ]
+        }
+      }
+    ],
+    "frames": [
+      "cam0/image_raw",
+      "cam1/image_raw",
+      "imu"
+    ],
+    "overrides": [],
+    "roots": [
+      "imu"
+    ]
+  },
+  "options": {
+    "acceleration_unit": "mps2",
+    "camera_lidar_motion": "auto",
+    "detection_probe_deg": 1.0,
+    "focal_scale_floor": 0.005,
+    "gnss_lidar_deskew": "auto",
+    "imu_lidar_deskew": "auto",
+    "imu_lidar_translation": true,
+    "lidar_lidar_deskew": "auto",
+    "pairs": [
+      "camera-imu"
+    ],
+    "rigid_scan_rotation_floor_deg": 1.5,
+    "rotation_floor_deg": 0.5,
+    "sigma_k": 3.0,
+    "topic_kinds": {},
+    "translation_floor_m": 0.02
+  },
+  "overall_verdict": "fail",
+  "pairs": [
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "imu-lidar",
+      "reason": "no topic for: lidar",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "lidar-lidar",
+      "reason": "no topic for: lidar",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [
+        {
+          "candidate_error": -0.3167897551808613,
+          "detectable_error": 0.8167897551808613,
+          "detection_probe": 1.0,
+          "detects_perturbation": true,
+          "estimate_std": 0.051040878255281086,
+          "name": "roll",
+          "ratio": 0.6335795103617226,
+          "status": "pass",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        },
+        {
+          "candidate_error": 0.16729086101882365,
+          "detectable_error": 0.6672908610188236,
+          "detection_probe": 1.0,
+          "detects_perturbation": true,
+          "estimate_std": 0.11609089044891298,
+          "name": "pitch",
+          "ratio": 0.3345817220376473,
+          "status": "pass",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        },
+        {
+          "candidate_error": 1.9950882088465058,
+          "detectable_error": 2.495088208846506,
+          "detection_probe": 1.0,
+          "detects_perturbation": false,
+          "estimate_std": 0.0423784015102116,
+          "name": "yaw",
+          "ratio": 3.9901764176930117,
+          "status": "fail",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        }
+      ],
+      "candidate_transform": {
+        "child_frame": "imu",
+        "parent_frame": "cam0/image_raw",
+        "rotation_quat_xyzw": [
+          -0.0012275379839149876,
+          -0.694923785399212,
+          0.7187975488188378,
+          -0.020236339811304422
+        ],
+        "translation_m": [
+          0.04890682554608085,
+          -0.04576428691356994,
+          -0.06819996050662971
+        ]
+      },
+      "compared_transform": {
+        "child_frame": "imu",
+        "parent_frame": "cam0/image_raw",
+        "rotation_quat_xyzw": [
+          -0.0012275379839149865,
+          -0.6949237853992118,
+          0.7187975488188377,
+          -0.02023633981130442
+        ],
+        "translation_m": [
+          0.04890682554608085,
+          -0.04576428691356994,
+          -0.06819996050662971
+        ]
+      },
+      "coverage": "full",
+      "estimator": "angular_rate_alignment/v0.1 (camera)",
+      "estimator_policy_reasons": [
+        "every rotation axis is estimated and held-out windows detect every control"
+      ],
+      "estimator_policy_status": "pass",
+      "evidence": [
+        {
+          "path": "corridor3_rz2_evidence/camera-imu_cam0-image_raw_imu.yaml",
+          "policy_status": "pass",
+          "role": "rotation",
+          "schema_version": "slac.imu_lidar_rotation/v0.1",
+          "sha256": "f63cb86dc78abfa9474280b97db4c2f9cc181e66b888c012df78c715fb88bfbb"
+        }
+      ],
+      "evidence_artifact": "corridor3_rz2_evidence/camera-imu_cam0-image_raw_imu.yaml",
+      "frames": [
+        "cam0/image_raw",
+        "imu"
+      ],
+      "notes": [
+        "intrinsics: camchain_rz2.yaml cam0",
+        "tracking every 2. image (20.0 Hz), about 10 Hz"
+      ],
+      "pair": "camera-imu",
+      "runtime_s": 204.88020985100047,
+      "sensors": [
+        "cam0/image_raw",
+        "imu"
+      ],
+      "status": "fail",
+      "time_offset": {
+        "estimate_s": 0.0001215101673672402,
+        "note": "reported only; not judged",
+        "status": "estimated",
+        "std_s": 0.00012313412015330436
+      },
+      "topics": [
+        "/cam0/image_raw",
+        "/imu0"
+      ],
+      "unchecked_axes": [],
+      "verdict": "fail"
+    },
+    {
+      "axes": [
+        {
+          "candidate_error": -0.37288782420027233,
+          "detectable_error": 0.8728878242002723,
+          "detection_probe": 1.0,
+          "detects_perturbation": true,
+          "estimate_std": 0.049774207449505524,
+          "name": "roll",
+          "ratio": 0.7457756484005447,
+          "status": "pass",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        },
+        {
+          "candidate_error": 0.13471298810690763,
+          "detectable_error": 0.6347129881069076,
+          "detection_probe": 1.0,
+          "detects_perturbation": true,
+          "estimate_std": 0.07536007730188582,
+          "name": "pitch",
+          "ratio": 0.26942597621381525,
+          "status": "pass",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        },
+        {
+          "candidate_error": 1.9874326790889212,
+          "detectable_error": 2.487432679088921,
+          "detection_probe": 1.0,
+          "detects_perturbation": false,
+          "estimate_std": 0.046114163282123505,
+          "name": "yaw",
+          "ratio": 3.9748653581778424,
+          "status": "fail",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        }
+      ],
+      "candidate_transform": {
+        "child_frame": "imu",
+        "parent_frame": "cam1/image_raw",
+        "rotation_quat_xyzw": [
+          0.001075294893637052,
+          0.7115998735440179,
+          -0.7022948958965949,
+          0.020157949067810516
+        ],
+        "translation_m": [
+          -0.052054749226966825,
+          -0.04797764916018765,
+          -0.07149261284195751
+        ]
+      },
+      "compared_transform": {
+        "child_frame": "imu",
+        "parent_frame": "cam1/image_raw",
+        "rotation_quat_xyzw": [
+          0.0010752948936370505,
+          0.7115998735440179,
+          -0.7022948958965948,
+          0.020157949067810512
+        ],
+        "translation_m": [
+          -0.052054749226966825,
+          -0.04797764916018765,
+          -0.07149261284195751
+        ]
+      },
+      "coverage": "full",
+      "estimator": "angular_rate_alignment/v0.1 (camera)",
+      "estimator_policy_reasons": [
+        "every rotation axis is estimated and held-out windows detect every control"
+      ],
+      "estimator_policy_status": "pass",
+      "evidence": [
+        {
+          "path": "corridor3_rz2_evidence/camera-imu_cam1-image_raw_imu.yaml",
+          "policy_status": "pass",
+          "role": "rotation",
+          "schema_version": "slac.imu_lidar_rotation/v0.1",
+          "sha256": "cf95188f6134ad63dfbca036356f8db2179bae756dffa9494ce399be070d521e"
+        }
+      ],
+      "evidence_artifact": "corridor3_rz2_evidence/camera-imu_cam1-image_raw_imu.yaml",
+      "frames": [
+        "cam1/image_raw",
+        "imu"
+      ],
+      "notes": [
+        "intrinsics: camchain_rz2.yaml cam1",
+        "tracking every 2. image (20.0 Hz), about 10 Hz"
+      ],
+      "pair": "camera-imu",
+      "runtime_s": 206.7417612529989,
+      "sensors": [
+        "cam1/image_raw",
+        "imu"
+      ],
+      "status": "fail",
+      "time_offset": {
+        "estimate_s": 0.0003540255328905581,
+        "note": "reported only; not judged",
+        "status": "estimated",
+        "std_s": 0.00020089767838847204
+      },
+      "topics": [
+        "/cam1/image_raw",
+        "/imu0"
+      ],
+      "unchecked_axes": [],
+      "verdict": "fail"
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "imu",
+        "parent_frame": "cam0/image_raw",
+        "rotation_quat_xyzw": [
+          -0.0012275379839149876,
+          -0.694923785399212,
+          0.7187975488188378,
+          -0.020236339811304422
+        ],
+        "translation_m": [
+          0.04890682554608085,
+          -0.04576428691356994,
+          -0.06819996050662971
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "cam0/image_raw",
+        "imu"
+      ],
+      "notes": [],
+      "pair": "camera-focal",
+      "reason": "camera-focal was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "cam0/image_raw",
+        "imu"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/cam0/image_raw",
+        "/imu0"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "imu",
+        "parent_frame": "cam1/image_raw",
+        "rotation_quat_xyzw": [
+          0.001075294893637052,
+          0.7115998735440179,
+          -0.7022948958965949,
+          0.020157949067810516
+        ],
+        "translation_m": [
+          -0.052054749226966825,
+          -0.04797764916018765,
+          -0.07149261284195751
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "cam1/image_raw",
+        "imu"
+      ],
+      "notes": [],
+      "pair": "camera-focal",
+      "reason": "camera-focal was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "cam1/image_raw",
+        "imu"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/cam1/image_raw",
+        "/imu0"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "camera-lidar",
+      "reason": "no topic for: lidar",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "cam1/image_raw",
+        "parent_frame": "cam0/image_raw",
+        "rotation_quat_xyzw": [
+          0.023451832704934172,
+          0.00048111290544956874,
+          0.0004038740942667006,
+          -0.9997247706038237
+        ],
+        "translation_m": [
+          0.10093394074109352,
+          0.005472081855063461,
+          0.0010153501325632364
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "cam0/image_raw",
+        "cam1/image_raw"
+      ],
+      "notes": [],
+      "pair": "camera-camera",
+      "reason": "camera-camera was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "cam0/image_raw",
+        "cam1/image_raw"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/cam0/image_raw",
+        "/cam1/image_raw"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "gnss-lidar",
+      "reason": "no topic for: gnss, lidar",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "gnss-imu",
+      "reason": "no topic for: gnss",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "lidar-vehicle",
+      "reason": "no topic for: lidar",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "imu-vehicle",
+      "reason": "vehicle pairs assume ground-vehicle motion and are opt-in: pass --vehicle-frame <frame> to check them on a ground vehicle",
+      "reason_code": "no_vehicle_frame",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "ins-lidar",
+      "reason": "no topic for: ins, lidar",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "lidar-wheel_odometry",
+      "reason": "no topic for: lidar, wheel",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    }
+  ],
+  "plan_only": false,
+  "provenance": {
+    "command": [
+      "calibrex",
+      "check",
+      "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/imu-work/dataset-corridor3_512_16.bag",
+      "--tf",
+      "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/imu-audit/runs/candidates/camchain_rz2.yaml",
+      "--pairs",
+      "camera-imu",
+      "--no-cache",
+      "--fail-on",
+      "never",
+      "--output",
+      "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/imu-audit/runs/corridor3_rz2.json"
+    ],
+    "created_at": "2026-11-07T05:37:20.816168+00:00",
+    "generator": "calibrex check",
+    "generator_version": "0.6.1",
+    "git_commit": "fa426478",
+    "input_digest_scope": "metadata.yaml in full; each storage file by name, size and first 64 MiB",
+    "input_sha256": "58dc1c55799b56ff2f2ff53dc6c0d282e7ca97c49add0c51cc94084544a082ae",
+    "notes": [
+      "full run: each wired pair's native estimator was run and the candidate judged against it (tolerance = max(sigma_k * std, floor); pass within 1x, fail beyond 2x)",
+      "1 bag topic(s) without a sensor role are not listed"
+    ]
+  },
+  "rotation_attribution": {
+    "alpha": 0.01,
+    "assumptions": [
+      "first order: each pair reads R_parent_child w (rotation) and R_parent_child u (translation) for a child frame turned by w and moved by u, -w and t_parent_child x w - u for a parent frame",
+      "the pairs' errors are independent; pairs that share an input make the tests optimistic",
+      "a bias shared by every pair through one frame (one estimator type) reads as that frame turned or moved",
+      "an axis std is used at least at the verdicts' rotation or translation floor over sigma_k",
+      "a direction of a frame's turn and shift that the pairs constrain worse than the floors (std above them) is not fitted; an own axis mostly along such directions is undetermined",
+      "informational: no verdict changes"
+    ],
+    "groups": [
+      {
+        "candidates": [],
+        "frame": "imu",
+        "frames": [
+          "cam0/image_raw",
+          "cam1/image_raw",
+          "imu"
+        ],
+        "hypotheses": [
+          {
+            "chi2": 0.13162684416637163,
+            "dof": 3,
+            "frame": "imu",
+            "p_value": 0.9877890153343809,
+            "pairs": [
+              "camera-imu:cam0/image_raw>imu",
+              "camera-imu:cam1/image_raw>imu"
+            ],
+            "rotation_deg": [
+              0.28063582755782795,
+              -2.0020162297569892,
+              -0.13873231363428654
+            ],
+            "std_deg": [
+              0.11785113019775789,
+              0.11785113019775792,
+              0.1178511301977579
+            ]
+          },
+          {
+            "chi2": 147.8549366104344,
+            "dof": 3,
+            "frame": "cam0/image_raw",
+            "p_value": 7.646707839035846e-32,
+            "pairs": [
+              "camera-imu:cam0/image_raw>imu"
+            ],
+            "rotation_deg": [
+              0.31678975518086133,
+              -0.16729086101882376,
+              -1.9950882088465063
+            ],
+            "std_deg": [
+              0.16666666666666666,
+              0.16666666666666666,
+              0.16666666666666666
+            ]
+          },
+          {
+            "chi2": 147.91388192086788,
+            "dof": 3,
+            "frame": "cam1/image_raw",
+            "p_value": 7.426087994713007e-32,
+            "pairs": [
+              "camera-imu:cam1/image_raw>imu"
+            ],
+            "rotation_deg": [
+              0.37288782420026606,
+              -0.13471298810690785,
+              -1.9874326790889212
+            ],
+            "std_deg": [
+              0.16666666666666666,
+              0.16666666666666666,
+              0.16666666666666666
+            ]
+          }
+        ],
+        "null_chi2": 295.76881853130226,
+        "null_p_value": 6.596371958687592e-61,
+        "observations": 6,
+        "pairs": [
+          "camera-imu:cam0/image_raw>imu",
+          "camera-imu:cam1/image_raw>imu"
+        ],
+        "status": "attributed",
+        "summary": "imu alone explains the pair errors: its candidate is turned by roll +0.28 \u00b1 0.12, pitch -2.00 \u00b1 0.12, yaw -0.14 \u00b1 0.12 deg about its own axes (chi2 0.1 on 3 dof, p 0.99; nothing off: chi2 295.8 on 6 axes)",
+        "translation_observations": 0
+      }
+    ],
+    "sigma_floor_deg": 0.16666666666666666,
+    "sigma_floor_m": 0.006666666666666667
+  },
+  "schema_version": "slac.calibration_check/v0.1",
+  "summary": {
+    "pair_count": 14,
+    "partial_pairs": 0,
+    "runnable_count": 2,
+    "skipped_by_reason": {
+      "missing_topic": 8,
+      "no_vehicle_frame": 1,
+      "not_selected": 3
+    },
+    "status_counts": {
+      "fail": 2,
+      "skipped": 12
+    }
+  },
+  "topics": [
+    {
+      "frame_source": "source_topic_hint",
+      "header_frame_id": "1749192",
+      "mapped_frame": "cam0/image_raw",
+      "message_count": 5802,
+      "message_type": "sensor_msgs/msg/Image",
+      "notes": [],
+      "role": "camera",
+      "topic": "/cam0/image_raw"
+    },
+    {
+      "frame_source": "source_topic_hint",
+      "header_frame_id": "1749192",
+      "mapped_frame": "cam1/image_raw",
+      "message_count": 5802,
+      "message_type": "sensor_msgs/msg/Image",
+      "notes": [],
+      "role": "camera",
+      "topic": "/cam1/image_raw"
+    },
+    {
+      "frame_source": "role_default",
+      "mapped_frame": "imu",
+      "message_count": 57844,
+      "message_type": "sensor_msgs/msg/Imu",
+      "notes": [],
+      "role": "imu",
+      "topic": "/imu0"
+    }
+  ]
+}

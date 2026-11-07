@@ -24,6 +24,10 @@ As of 2026-11-07, **four pairs have supported SOTA claims**:
     ([refuted](hilti_camera_imu.md#pre-registered-audit-refuted)) and v2
     ([refuted](hilti_camera_sota.md#camera-imu-v2-refuted-5-of-7-gates)) required
     every axis constrained; both stay listed.
+  - A `calibrex check` audit on TUM-VI (fisheye cameras, a second dataset family)
+    ([refuted, 4 of 5 gates](hilti_camera_imu.md#result-camera-imu-check-honesty-supported-detection-refuted)):
+    check never failed Kalibr's T_cam_imu on five unseen corridors, but passed 4 of 30
+    T_cam_imu turned 2 deg about pitch, each time with pitch left unchecked.
 
 - **`camera`** (focal lengths; TUM-VI fisheye, against Kalibr): check's honesty and
   detection on five unseen room sequences
@@ -82,7 +86,7 @@ pair has a native method but no audited claim yet.
 | --- | --- | ---: | ---: | ---: | --- |
 | `camera` | supported | 1 | 0 | 0 | yes |
 | `camera-camera` | refuted | 0 | 1 | 0 | yes |
-| `camera-imu` | supported | 1 | 2 | 0 | yes |
+| `camera-imu` | supported | 1 | 3 | 0 | yes |
 | `camera-lidar` | refuted | 0 | 3 | 0 | yes |
 | `gnss-imu` | no_claim | 0 | 0 | 0 | yes |
 | `imu-lidar` | supported | 2 | 1 | 0 | yes |
@@ -99,6 +103,7 @@ pair has a native method but no audited claim yet.
 | `camera-imu` | targetless_camera_imu | rotation, time_offset | refuted | 6/7 | `hilti-camera-imu-v1` |
 | `camera-imu` | targetless_camera_imu | rotation, time_offset | refuted | 5/7 | `hilti-camera-imu-v2` |
 | `camera-imu` | targetless_camera_imu | rotation, time_offset | supported | 7/7 | `hilti-camera-imu-v3` |
+| `camera-imu` | targetless_camera_imu_check | rotation | refuted | 4/5 | `tumvi-camera-imu-check-v1` |
 | `camera-lidar` | target_board_camera_lidar | rotation, translation | refuted | 0/5 | `kitti-board-camera-lidar-v1` |
 | `camera-lidar` | targetless_camera_lidar_check | rotation | refuted | 5/9 | `kitti-camera-lidar-check-v1` |
 | `camera-lidar` | targetless_camera_lidar_check | rotation | refuted | 8/9 | `kitti-camera-lidar-check-v2` |

@@ -148,6 +148,28 @@ What this means for a user:
 [audit record](../assets/tumvi_camera_focal/audit/tumvi-camera-focal-check-v1_sota_audit.yaml).
 The five sequences are spent.
 
+### Rays beyond 90 deg on a fisheye: an incidence cap, tried and not adopted
+
+The tracker turns pixels into perspective rays (tan of the incidence angle). On TUM-VI's
+190 deg lenses the image corners lie about 114 deg off the optical axis, and a ray
+beyond 90 deg flips sign. A cap that drops features beyond a given incidence angle was
+tried on room1 (spent) only, with the same three candidates:
+
+| Cap | Kalibr: judged / fails | 3 %-wrong: fail / pass (of 4) | cam0 fx scale at Kalibr's value |
+| --- | --- | --- | --- |
+| none (current) | 1 of 2 / 0 | 2 / 0 | 0.9996 |
+| 80 deg | 2 of 2 / 0 (cam0 warn, fy 1.009) | 1 / 0 | 1.0023 |
+| 65 deg | 1 of 2 / 0 | 3 / 0 | 1.0024 (inconclusive) |
+| 50 deg | 1 of 2 / 0 | 0 / 0 | 1.0074 |
+
+- **No cap is better on every count.** Detection goes 2, 1, 3, 0 of 4 as the cap
+  tightens.
+- **The scale drifts from 1 as the cap tightens.** The wide-angle rays are not what makes
+  cam1 inconclusive.
+- **fy is judged less often** with any cap.
+- **Not merged.** The default is unchanged. The code is on branch
+  `research/fisheye-focal`.
+
 ## Development results
 
 Only exp21 and exp07 were used, for development. exp01-exp04 are held back,
@@ -565,6 +587,77 @@ not judge; the reason follows it.
 - Its clock-offset and relative bounds (0.75 ms, 0.75 deg per axis) are looser than v1's
   (0.5 ms, 0.5 deg for the whole rotation). They come from the larger development set,
   by the rule stated before the runs.
+
+## TUM-VI: camera-imu check on a second dataset family
+
+The Hilti audits above are accuracy audits of the estimator. On TUM-VI (two 190 deg
+fisheye cameras and a BMI160 IMU, calibrated with Kalibr) the question is what
+`calibrex check --pairs camera-imu` says about a correct and a wrong T_cam_imu.
+
+Development, all on spent sequences:
+
+- **Kalibr's camchain, room1–room6, both cameras (12 cases): all pass.** Every case is
+  judged on roll, pitch and yaw. The largest error is 0.39 deg (room6 cam1 roll); the
+  tolerance is 0.5–0.67 deg. These runs came from the camera-focal audit, which runs
+  camera-imu with it.
+- **T_cam_imu turned 2 deg about the camera's x, y or z axis, room1 (6 cases): all
+  fail, on the turned axis.** The errors read 1.90–2.15 deg.
+- **The estimate does not depend on the candidate.** A turned candidate's error is the
+  turn plus the estimate's difference from Kalibr: room1 cam0 roll reads 0.01 deg for
+  Kalibr and 2.01 deg turned.
+
+Honesty and detection on the unseen corridor1–corridor5 are
+[pre-registered](tumvi_camera_imu_preregistration.yaml).
+[Development records](../assets/tumvi_camera_imu/development/room1_rx2.json).
+
+### Result: camera-imu check honesty supported, detection refuted
+
+The [pre-registered](tumvi_camera_imu_preregistration.yaml) audit ran once on 2026-11-07,
+from a worktree at the pre-registration commit (fa426478), whose `src/` and `tools/` equal
+`frozen_code_commit` (db74694a). Each case is one sequence, one camera and one candidate;
+the cell is camera-imu's verdict, with the turned axis's error in deg (for Kalibr, the
+largest judged error).
+
+| Sequence | Camera | Kalibr | turned about x (roll) | about y (pitch) | about z (yaw) |
+| --- | --- | --- | --- | --- | --- |
+| corridor1 | cam0 | pass (max 0.10 yaw) | fail (roll 2.06) | fail (pitch 2.08) | fail (yaw 1.90) |
+| corridor1 | cam1 | pass (max 0.18 pitch) | fail (roll 1.90) | fail (pitch 2.18) | fail (yaw 2.02) |
+| corridor2 | cam0 | pass (max 0.29 roll) | fail (roll 1.71) | fail (pitch 1.86) | fail (yaw 2.04) |
+| corridor2 | cam1 | pass (max 0.27 roll), pitch unchecked | fail (roll 1.73) | **pass** (pitch unchecked) | fail (yaw 2.11) |
+| corridor3 | cam0 | pass (max 0.31 roll) | fail (roll 1.69) | fail (pitch 2.17) | fail (yaw 2.00) |
+| corridor3 | cam1 | pass (max 0.37 roll) | fail (roll 1.63) | fail (pitch 2.14) | fail (yaw 1.99) |
+| corridor4 | cam0 | pass (max 0.42 roll), pitch unchecked | fail (roll 1.58) | **pass** (pitch unchecked) | fail (yaw 1.89) |
+| corridor4 | cam1 | pass (max 0.44 roll), pitch unchecked | fail (roll 1.56) | **pass** (pitch unchecked) | fail (yaw 1.95) |
+| corridor5 | cam0 | pass (max 0.30 roll) | fail (roll 1.70) | fail (pitch 1.81) | fail (yaw 1.94) |
+| corridor5 | cam1 | pass (max 0.30 roll), pitch unchecked | fail (roll 1.70) | **pass** (pitch unchecked) | fail (yaw 1.92) |
+
+- **Honesty: supported.**
+  - Check never failed Kalibr's T_cam_imu.
+  - It judged rotation axes on 10 of 10 cases (gate 50 %), all three axes on 6.
+- **Detection: refuted.**
+  - Check passed 4 of the 30 turned cases (gate: none). All four are the pitch turn on a
+    case where pitch was not judged:
+    - corridor2 cam1 and corridor4 cam0: the estimator's 1 deg known-bad control on
+      pitch was not detected on held-out windows;
+    - corridor4 cam1 and corridor5 cam1: pitch was not constrained by the data.
+  - Check printed `pass (partial: roll, yaw only)` and a partial-coverage warning on each.
+  - The other 26 (87 %, gate 50 %) failed on the turned axis. Every turned axis that
+    was judged failed (26 of 26), at 1.56–2.18 deg.
+- **The estimate reads roll 0.27–0.44 deg below Kalibr's** on every corridor case on both
+  cameras. This is within the 0.5 deg tolerance, and room6 read the same (0.33, 0.39).
+  No accuracy is claimed.
+
+What this means for a user:
+
+- `calibrex check` did not flag a correct camera-IMU rotation on these fisheye recordings.
+- A 2 deg error on an axis it judges is flagged on that axis.
+- A `pass` with unchecked axes vouches only for the judged axes. Check says so in the
+  verdict (`partial`) and in a warning, but with `--fail-on fail` (the default) it still
+  exits 0. A 2 deg error on an unchecked axis passes.
+
+[Run records](../assets/tumvi_camera_imu/evaluation/summary.json);
+[audit record](../assets/tumvi_camera_imu/audit/tumvi-camera-imu-check-v1_sota_audit.yaml).
+The five sequences are spent.
 
 ## Next steps
 
