@@ -55,8 +55,8 @@ def convert(drives: list[Path], bag: Path) -> None:
 
     command = [
         sys.executable,
-        "-m",
-        "calibrex",
+        "-c",
+        "import sys; from calibrex.cli.main import main; sys.exit(main())",
         "convert",
         "kitti-raw",
         *map(str, drives),

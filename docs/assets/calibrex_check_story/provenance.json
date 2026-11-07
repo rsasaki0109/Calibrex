@@ -1,5 +1,5 @@
 {
- "calibrex_version": "0.5.1",
+ "calibrex_version": "0.6.1",
  "check_command_note": "--tf and --output differ per act; frames files are in the work dir",
  "check_commands": {
   "act1": [
@@ -41,8 +41,8 @@
    "never"
   ]
  },
- "check_generator_version": "0.5.1",
- "check_git_commit": "dac4f06",
+ "check_generator_version": "0.6.1",
+ "check_git_commit": "3e186c85",
  "dataset_license": "KITTI raw data, CC BY-NC-SA 3.0: non-commercial use only; the GIF contains a KITTI camera image and must stay non-commercial",
  "drives": [
   "0005",
@@ -63,7 +63,7 @@
   "python tools/check_story_run.py --bag <pooled KITTI dev bag> --work-dir <dir>",
   "python tools/check_story_gif.py render --drive-dir <KITTI drive 0005> --image-index 60"
  ],
- "git_commit": "dac4f0675874338cb3c5b309a2faed28b6857043",
+ "git_commit": "391ad0c49d249728af8b4794e918caee3146516b",
  "output": "docs/assets/calibrex-check-story.gif",
  "overlay": {
   "crop_px": [
@@ -89,7 +89,7 @@
    333
   ]
  },
- "pooled_bag_input_sha256": "45dbf62664538af0e159f9023f9a9ed093c309a17421f54e8d6fc1bbedab49bc",
+ "pooled_bag_input_sha256": "8964af17a66002fa7ca50d924346a38b8260f366dfaed85a7587c6cebaac0a7c",
  "run_tool": "tools/check_story_run.py",
  "schema": "calibrex.check_story_gif/v0",
  "story": {
@@ -108,8 +108,8 @@
   "overlay_note": "the overlay at act 3 is the pure vendor projection; the lidar-vehicle frame is not the camera-LiDAR calibration and is never deployed here"
  },
  "summaries_sha256": {
-  "act1_deployed_wrong.json": "db7e1f4513965023390f02e2a110ffa696efcb24aba5ab0fc8c5757a5b783fba",
-  "act3_recheck_vendor.json": "b27a143fb2a762f9b5d8edc05ebf5d119bfd6f5fdc9c263b73cad3a88e33ca12",
-  "run_manifest.json": "880a69ba88ed15b7354f42626f850022ad0ffdb7624d58cab63154f2779a886e"
+  "act1_deployed_wrong.json": "fd0514dfe773df9072233260ed57ed1180b8ffce0762e6c63a5414f63d635f96",
+  "act3_recheck_vendor.json": "65d804c273908955352f08524de4bd6d74340fcdb170745c0b619801955e1a98",
+  "run_manifest.json": "ea9c2fe3023f4ac77ca60e0ddab459efc745ee2dc8e27d408692894f8f99f398"
  }
 }

@@ -145,7 +145,10 @@ def render_hero(root: Path = ROOT) -> str:
     vendor, injected = summary["variants"]["vendor"], summary["variants"]["yaw1"]
     inj_deg = float(injected["yaw_injected_deg"])
     yaw = injected["pairs"]["lidar-vehicle"]["axes"]["yaw"]
-    drives = ", ".join(d.split("_drive_")[1].split("_")[0] for d in summary["drives"])
+    # full drive names ("2011_09_26_drive_0005_sync") or, from a pre-converted bag, "0005"
+    drives = ", ".join(
+        d.split("_drive_")[1].split("_")[0] if "_drive_" in d else d for d in summary["drives"]
+    )
     sources = {(DEMO_DIR / name).as_posix(): _sha256(demo / name) for name in SOURCES}
     provenance = json.dumps(
         {

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- The README's `calibrex check` demo, its hero image, the yaw-sweep and story runs and the
+  rig GIF were re-run on the pooled KITTI development drives with the current check
+  (lidar-wheel_odometry's 0.5 m/s gate). The verdicts are unchanged; lidar-wheel_odometry's
+  pitch moved from 0.505 to 0.503 of the tolerance (vendor 0.496 to 0.494).
+  `tools/check_tf_injection_demo.py` no longer calls `python -m calibrex`, which the package
+  does not provide.
 - The leaderboard lists the board camera-LiDAR audit (refuted, 0 of 5 gates) and the NCLT
   `lidar-wheel_odometry` audit (refuted, 4 of 6). Before, they were recorded only on their
   pages. `tools/build_recorded_audits.py` builds their `slac.sota_audit_result` records
