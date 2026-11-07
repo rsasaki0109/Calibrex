@@ -1,0 +1,97 @@
+# Pre-registration of the camera-imu check audit on unseen TUM-VI corridor sequences:
+# calibrex check --pairs camera-imu run once on five sequences no Calibrex method has
+# read, with Kalibr's camchain as the candidate and with its T_cam_imu turned 2 deg about
+# the camera's x, y and z axes.
+# It is binding once committed; tools/tumvi_camera_imu_audit.py at frozen_code_commit is
+# the only code that reads these sequences, and it runs once.
+#
+# Written on 2026-11-07.  camera-imu's claim so far rests on one dataset family (Hilti
+# 2022, docs/sota_handoff.md).  TUM-VI (Schubert et al., IROS 2018; CC BY 4.0) is a
+# hand-held rig with two 190 deg fisheye cameras (equidistant model, 512 x 512) and a
+# BMI160 IMU, calibrated with Kalibr.  room1-room6 are spent: camera-imu ran on all six
+# with Kalibr's camchain (the camera-focal development and audit,
+# tumvi_camera_focal_preregistration.yaml).
+#
+# Development (spent):
+#   Kalibr's camchain, room1-room6, both cameras (12 cases): camera-imu passed all 12,
+#     every case judged on roll, pitch and yaw; the largest error 0.39 deg (room6 cam1
+#     roll), tolerance 0.5-0.67 deg.
+#   T_cam_imu turned 2 deg about x, y, z, room1 (6 cases): all 6 failed, each on the
+#     turned axis (errors 1.90-2.15 deg).
+# check's camera-imu estimate does not depend on the candidate: a candidate's error is
+# its turn composed with the estimate's difference from Kalibr (room1 roll: 0.01 deg for
+# Kalibr, 2.01 deg turned).  The detection claim therefore tests that the estimate stays
+# within about 1 deg of Kalibr on the turned axis and that check reports the failure on
+# that axis.  The dataset calibration is reference evidence, not ground truth.
+#
+# Of the five sequences only the bags' sizes and ETags (HEAD requests) have been read.
+# The reference is the camchain already pinned by the camera-focal audit (TUM-VI's own
+# calibration recording, not a sequence).
+claims:
+  tumvi-camera-imu-check-honesty:
+    text: >-
+      On TUM-VI's corridor1-corridor5 (both cameras, ten cases), calibrex check with
+      Kalibr's camchain as the candidate does not fail camera-imu on any case, and judges
+      at least one rotation axis on at least 50 % of the cases.
+    gates:
+      max_kalibr_fails: 0
+      min_kalibr_judged_fraction: 0.5
+  tumvi-camera-imu-check-detection:
+    text: >-
+      With Kalibr's T_cam_imu turned 2 deg about the camera's x, y or z axis (thirty
+      cases), calibrex check passes camera-imu on none, and fails it on the turned axis
+      (roll, pitch, yaw) on at least 50 %.
+    gates:
+      max_perturbed_passes: 0
+      min_perturbed_detected_fraction: 0.5
+  source_of_gates: >-
+    The fractions are the development rates divided by 1.5 and rounded down to the next
+    0.25 (room1-room6: 12 of 12 Kalibr cases judged; room1: 6 of 6 turned cases
+    failed on the turned axis), the rule of the earlier check pre-registrations; a fail
+    of the correct or a pass of a 2 deg-wrong rotation is a plain honesty/detection
+    rule.  Fixed before any of these sequences was read and not to be changed after the
+    run.
+sessions:
+  development_spent: [room1, room2, room3, room4, room5, room6]
+  evaluation:
+    corridor1: {bag: calibrated/512_16/dataset-corridor1_512_16.bag, size_bytes: 6305344038, etag: 177d3ea26-56a0fcb5fca46}
+    corridor2: {bag: calibrated/512_16/dataset-corridor2_512_16.bag, size_bytes: 7128726908, etag: 1a8e7bd7c-56a0fd84cbc47}
+    corridor3: {bag: calibrated/512_16/dataset-corridor3_512_16.bag, size_bytes: 6107616861, etag: 16c0ad65d-56a0fe89c410d}
+    corridor4: {bag: calibrated/512_16/dataset-corridor4_512_16.bag, size_bytes: 2029099748, etag: 78f19ae4-56a0ff42e9514}
+    corridor5: {bag: calibrated/512_16/dataset-corridor5_512_16.bag, size_bytes: 6225138858, etag: 1730c14aa-56a0ffad65f07}
+reference:
+  camchain: docs/assets/tumvi_camera_focal/camchain.yaml
+  camchain_sha256: 3a0c0285f4d0a3a1678053b2e5912e3e250e78ac09bd009f6d7d8bba669d5703
+  source: >-
+    https://cdn2.vision.in.tum.de/tumvi/exported/euroc/512_16/dataset-calib-cam1_512_16.tar
+    (306227200 bytes, ETag 1240a800-56a1263481f6b), member
+    dataset-calib-cam1_512_16/dso/camchain.yaml
+method:
+  check: >-
+    calibrex check BAG --tf CANDIDATE --pairs camera-imu --no-cache --fail-on never, with
+    the package's defaults (rotation tolerance max(3 std, 0.5 deg) per axis, fail beyond
+    twice the tolerance)
+  candidates: >-
+    Kalibr's camchain, and three copies with both cameras' T_cam_imu turned 2 deg about
+    the camera's x (roll), y (pitch) or z (yaw) axis: R' = R_delta R, t' = R_delta t
+    (intrinsics and distortion unchanged)
+  case: one (sequence, camera, candidate); a case's verdict is camera-imu's pair status
+  judged: >-
+    a rotation axis counts as judged only when the pair's status is pass, warn or fail; an
+    inconclusive pair judged nothing
+  detected: a turned case whose pair fails with the turned axis's own status fail
+run_recipe:
+  command: >-
+    python tools/tumvi_camera_imu_audit.py --camchain docs/assets/tumvi_camera_focal/camchain.yaml
+    --work-dir WORK --output-dir RUNS, from a checkout whose src/ and tools/ equal
+    frozen_code_commit, run once.  Each bag is fetched with If-Match on its ETag and its
+    size checked.  RUNS/SEQ_VARIANT.json, SEQ_score.json and summary.json are the results.
+invalidates:
+  - a change to src/ or tools/ after frozen_code_commit before the run is done
+  - reading any data of the five sequences before the run beyond what is listed above
+  - running the harness on them more than once, or changing a gate after the run
+analysis_plan: >-
+  Report per case the verdict and the per-axis error, std and tolerance, and both claims'
+  verdicts, in docs/benchmarks/hilti_camera_imu.md (the camera-imu page), whatever they
+  are; record the five sequences as spent in docs/sota_handoff.md.
+frozen_code_commit: 12fbbe2a0116dd66ae4651a5837a7bdb5b6e9619
