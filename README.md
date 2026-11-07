@@ -326,7 +326,7 @@ pair                  verdict                           |delta|/tolerance       
 lidar-vehicle         fail (partial: pitch, yaw only)   pitch 0.505/0.5 deg [warn]; yaw 1.31/0.5 deg [fail]  roll
 imu-vehicle           inconclusive                      -                                                    roll, pitch, yaw
 ins-lidar             pass (partial: roll, pitch only)  roll 0.114/0.5 deg; pitch 0.0567/0.5 deg             yaw, x, y, z
-lidar-wheel_odometry  fail (partial: pitch, yaw only)   pitch 0.505/0.5 deg [warn]; yaw 1.31/0.5 deg [fail]  roll
+lidar-wheel_odometry  fail (partial: pitch, yaw only)   pitch 0.503/0.5 deg [warn]; yaw 1.31/0.5 deg [fail]  roll
 overall verdict: fail                                    (velo_link yaw +1 deg)
 ```
 

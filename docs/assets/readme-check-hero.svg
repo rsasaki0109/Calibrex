@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="576" viewBox="0 0 960 576" role="img" aria-labelledby="title description">
 <title id="title">calibrex check catches a 1 degree yaw error in a deployed tf</title>
 <desc id="description">On pooled KITTI development drives, the vendor tf is overall inconclusive; with velo_link yaw +1 deg the overall verdict is fail (yaw 1.31 deg against a 0.5 deg tolerance).</desc>
-<metadata id="calibrex-provenance">{&quot;artifact&quot;:&quot;calibrex.readme-check-hero&quot;,&quot;calibrex_version&quot;:&quot;0.4.1&quot;,&quot;demo_git_commit&quot;:&quot;c04944b&quot;,&quot;demo_schema&quot;:&quot;calibrex.check_tf_injection_demo/v0&quot;,&quot;generator&quot;:&quot;tools/generate_readme_check_hero.py&quot;,&quot;generator_version&quot;:&quot;1&quot;,&quot;sources&quot;:{&quot;docs/assets/calibrex_check_demo/summary.json&quot;:&quot;87543ddf00f5d7dcd8b914515893efea37262532381aa7a924c41282f249c69b&quot;,&quot;docs/assets/calibrex_check_demo/summary.md&quot;:&quot;4268eee9a4af8f24c920bd46faafd12912db9e2035a6a766830381e9f8e65040&quot;,&quot;docs/assets/calibrex_check_demo/terminal_summary.txt&quot;:&quot;488be4e30e4d7f98c2f4b9793cf95baf06ae5a0313377f50730541c5d8a09790&quot;}}</metadata>
+<metadata id="calibrex-provenance">{&quot;artifact&quot;:&quot;calibrex.readme-check-hero&quot;,&quot;calibrex_version&quot;:&quot;0.6.1&quot;,&quot;demo_git_commit&quot;:&quot;3cc789fb&quot;,&quot;demo_schema&quot;:&quot;calibrex.check_tf_injection_demo/v0&quot;,&quot;generator&quot;:&quot;tools/generate_readme_check_hero.py&quot;,&quot;generator_version&quot;:&quot;1&quot;,&quot;sources&quot;:{&quot;docs/assets/calibrex_check_demo/summary.json&quot;:&quot;5107428db3b868367f8ec5dff3a1330db921c0ab05492d0797d5168bcd8ea38a&quot;,&quot;docs/assets/calibrex_check_demo/summary.md&quot;:&quot;4ff2c45f83799d801e038c3a32f4a56fe79156d55eb87fd0cd1d751a5c94cf57&quot;,&quot;docs/assets/calibrex_check_demo/terminal_summary.txt&quot;:&quot;c32c3472db81f36e9917cdf6c5ee84d994cf49c5d858df8bc91f0b23f62f0048&quot;}}</metadata>
 <style>
     :root { --win:#f6f8fa; --bar:#e4e8ec; --edge:#d0d7de; --fg:#1f2328; --mute:#57606a;
       --track:#d8dee4; --tick:#57606a; --pass:#1a7f37; --warn:#9a6700; --fail:#cf222e;
@@ -43,9 +43,9 @@
 <rect x="214" y="108" width="62" height="22" rx="11" class="pass"/><text x="245.0" y="124" class="pill-text">PASS</text>
 <text x="284" y="124" class="s mute">&#9680; partial</text>
 <rect x="0" y="140" width="260" height="8" rx="4" fill="var(--track)"/>
-<rect x="0" y="140" width="85.9" height="8" rx="4" class="pass"/>
+<rect x="0" y="140" width="85.7" height="8" rx="4" class="pass"/>
 <rect x="86.7" y="136" width="2" height="16" fill="var(--tick)"/>
-<text x="270" y="149" class="s">pitch 0.496/0.5&#176;</text>
+<text x="270" y="149" class="s">pitch 0.494/0.5&#176;</text>
 <text x="0" y="186" class="t">ins-lidar</text>
 <rect x="214" y="170" width="62" height="22" rx="11" class="pass"/><text x="245.0" y="186" class="pill-text">PASS</text>
 <text x="284" y="186" class="s mute">&#9680; partial</text>
@@ -75,7 +75,7 @@
 <rect x="214" y="108" width="62" height="22" rx="11" class="fail"/><text x="245.0" y="124" class="pill-text">FAIL</text>
 <text x="284" y="124" class="s mute">&#9680; partial</text>
 <rect x="0" y="140" width="260" height="8" rx="4" fill="var(--track)"/>
-<rect x="0" y="140" width="226.9" height="8" rx="4" class="fail"/>
+<rect x="0" y="140" width="227.6" height="8" rx="4" class="fail"/>
 <rect x="86.7" y="136" width="2" height="16" fill="var(--tick)"/>
 <text x="270" y="149" class="s">yaw 1.31/0.5&#176;</text>
 <text x="0" y="186" class="t">ins-lidar</text>

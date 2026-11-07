@@ -1,28 +1,28 @@
 {
  "bag": {
   "input_digest_scope": "metadata.yaml in full; each storage file by name, size and first 64 MiB",
-  "input_sha256": "45dbf62664538af0e159f9023f9a9ed093c309a17421f54e8d6fc1bbedab49bc",
+  "input_sha256": "8964af17a66002fa7ca50d924346a38b8260f366dfaed85a7587c6cebaac0a7c",
   "name": "bag_pool5",
   "topic_count": 6
  },
  "drives": [
-  "2011_09_26_drive_0005_sync",
-  "2011_09_26_drive_0009_sync",
-  "2011_09_26_drive_0014_sync",
-  "2011_09_26_drive_0015_sync",
-  "2011_09_26_drive_0022_sync"
+  "0005",
+  "0009",
+  "0014",
+  "0015",
+  "0022"
  ],
  "frame": "velo_link",
  "generator": "calibrex check",
- "generator_version": "0.4.1",
- "git_commit": "c04944b",
+ "generator_version": "0.6.1",
+ "git_commit": "3cc789fb",
  "schema": "calibrex.check_tf_injection_demo/v0",
  "variants": {
   "vendor": {
    "closure": {
     "assumptions": [
      "edges are this run's per-pair estimates, not the candidate; derived pairs are excluded",
-     "loops are a fundamental cycle basis; loops that share a member are correlated",
+     "loops are a fundamental cycle basis of a spanning forest that takes the best-observed estimates first; loops that share a member are correlated",
      "the std of a closure axis is propagated to first order assuming independent members; members that share an input (the LiDAR odometry of the vehicle pairs) make it optimistic",
      "an axis is judged only if every member observes everything entering it; translation needs every member to estimate it"
     ],
@@ -57,26 +57,26 @@
      {
       "axes": [
        {
-        "candidate_error": -0.00026843368100353763,
-        "detectable_error": 0.5002684336810035,
+        "candidate_error": -0.0014484919857597467,
+        "detectable_error": 0.5014484919857597,
         "detection_probe": 1.0,
         "detects_perturbation": true,
-        "estimate_std": 0.05851812295668918,
+        "estimate_std": 0.059320533993462564,
         "name": "pitch",
-        "ratio": 0.0005368673620070753,
+        "ratio": 0.0028969839715194934,
         "status": "pass",
         "tolerance": 0.5,
         "tolerance_source": "floor",
         "unit": "deg"
        },
        {
-        "candidate_error": 0.004112767187568741,
-        "detectable_error": 0.5041127671875687,
+        "candidate_error": 3.688273211146256e-05,
+        "detectable_error": 0.5000368827321114,
         "detection_probe": 1.0,
         "detects_perturbation": true,
-        "estimate_std": 0.07452839294653675,
+        "estimate_std": 0.0762931784144524,
         "name": "yaw",
-        "ratio": 0.008225534375137481,
+        "ratio": 7.376546422292512e-05,
         "status": "pass",
         "tolerance": 0.5,
         "tolerance_source": "floor",
@@ -113,7 +113,7 @@
         "name": "roll",
         "reason": "lidar-wheel_odometry does not observe its roll, which enters this axis with weight 1.00",
         "reason_code": "unobservable",
-        "std": 2.977480919936043e-06,
+        "std": 1.3467217401910248e-06,
         "unit": "deg"
        }
       ],
@@ -133,7 +133,7 @@
     "--pairs",
     "lidar-vehicle,imu-vehicle,ins-lidar,lidar-wheel_odometry,imu-lidar"
    ],
-   "created_at": "2026-10-01T16:16:01.458147+00:00",
+   "created_at": "2026-11-06T22:46:43.064958+00:00",
    "overall_verdict": "inconclusive",
    "pairs": {
     "imu-vehicle": {
@@ -190,12 +190,12 @@
     "lidar-wheel_odometry": {
      "axes": {
       "pitch": {
-       "candidate_error_deg": -0.4958,
+       "candidate_error_deg": -0.4944,
        "status": "pass",
        "tolerance_deg": 0.5
       },
       "yaw": {
-       "candidate_error_deg": 0.3089,
+       "candidate_error_deg": 0.3133,
        "status": "pass",
        "tolerance_deg": 0.5
       }
@@ -213,7 +213,7 @@
    "closure": {
     "assumptions": [
      "edges are this run's per-pair estimates, not the candidate; derived pairs are excluded",
-     "loops are a fundamental cycle basis; loops that share a member are correlated",
+     "loops are a fundamental cycle basis of a spanning forest that takes the best-observed estimates first; loops that share a member are correlated",
      "the std of a closure axis is propagated to first order assuming independent members; members that share an input (the LiDAR odometry of the vehicle pairs) make it optimistic",
      "an axis is judged only if every member observes everything entering it; translation needs every member to estimate it"
     ],
@@ -248,26 +248,26 @@
      {
       "axes": [
        {
-        "candidate_error": -0.0002684336810033885,
-        "detectable_error": 0.5002684336810034,
+        "candidate_error": -0.0014484919857597467,
+        "detectable_error": 0.5014484919857597,
         "detection_probe": 1.0,
         "detects_perturbation": true,
-        "estimate_std": 0.05851812295668918,
+        "estimate_std": 0.05932053399346256,
         "name": "pitch",
-        "ratio": 0.000536867362006777,
+        "ratio": 0.0028969839715194934,
         "status": "pass",
         "tolerance": 0.5,
         "tolerance_source": "floor",
         "unit": "deg"
        },
        {
-        "candidate_error": 0.00411276718756884,
-        "detectable_error": 0.5041127671875688,
+        "candidate_error": 3.688273211112373e-05,
+        "detectable_error": 0.5000368827321111,
         "detection_probe": 1.0,
         "detects_perturbation": true,
-        "estimate_std": 0.07452839294653675,
+        "estimate_std": 0.0762931784144524,
         "name": "yaw",
-        "ratio": 0.00822553437513768,
+        "ratio": 7.376546422224746e-05,
         "status": "pass",
         "tolerance": 0.5,
         "tolerance_source": "floor",
@@ -304,7 +304,7 @@
         "name": "roll",
         "reason": "lidar-wheel_odometry does not observe its roll, which enters this axis with weight 1.00",
         "reason_code": "unobservable",
-        "std": 2.9774809199362164e-06,
+        "std": 1.346721740191116e-06,
         "unit": "deg"
        }
       ],
@@ -326,7 +326,7 @@
     "--tf",
     ".../frames_yaw1.yaml"
    ],
-   "created_at": "2026-10-01T16:16:02.555435+00:00",
+   "created_at": "2026-11-06T22:46:44.095605+00:00",
    "overall_verdict": "fail",
    "pairs": {
     "imu-vehicle": {
@@ -383,12 +383,12 @@
     "lidar-wheel_odometry": {
      "axes": {
       "pitch": {
-       "candidate_error_deg": -0.5049,
+       "candidate_error_deg": -0.503,
        "status": "warn",
        "tolerance_deg": 0.5
       },
       "yaw": {
-       "candidate_error_deg": 1.3089,
+       "candidate_error_deg": 1.3132,
        "status": "fail",
        "tolerance_deg": 0.5
       }
@@ -406,7 +406,7 @@
    "closure": {
     "assumptions": [
      "edges are this run's per-pair estimates, not the candidate; derived pairs are excluded",
-     "loops are a fundamental cycle basis; loops that share a member are correlated",
+     "loops are a fundamental cycle basis of a spanning forest that takes the best-observed estimates first; loops that share a member are correlated",
      "the std of a closure axis is propagated to first order assuming independent members; members that share an input (the LiDAR odometry of the vehicle pairs) make it optimistic",
      "an axis is judged only if every member observes everything entering it; translation needs every member to estimate it"
     ],
@@ -441,26 +441,26 @@
      {
       "axes": [
        {
-        "candidate_error": -0.00026843368100342254,
-        "detectable_error": 0.5002684336810034,
+        "candidate_error": -0.0014484919857598484,
+        "detectable_error": 0.5014484919857598,
         "detection_probe": 1.0,
         "detects_perturbation": true,
-        "estimate_std": 0.05851812295668918,
+        "estimate_std": 0.059320533993462564,
         "name": "pitch",
-        "ratio": 0.0005368673620068451,
+        "ratio": 0.002896983971519697,
         "status": "pass",
         "tolerance": 0.5,
         "tolerance_source": "floor",
         "unit": "deg"
        },
        {
-        "candidate_error": 0.004112767187568119,
-        "detectable_error": 0.5041127671875681,
+        "candidate_error": 3.688273211256986e-05,
+        "detectable_error": 0.5000368827321126,
         "detection_probe": 1.0,
         "detects_perturbation": true,
-        "estimate_std": 0.07452839294653675,
+        "estimate_std": 0.07629317841445242,
         "name": "yaw",
-        "ratio": 0.008225534375136238,
+        "ratio": 7.376546422513972e-05,
         "status": "pass",
         "tolerance": 0.5,
         "tolerance_source": "floor",
@@ -497,7 +497,7 @@
         "name": "roll",
         "reason": "lidar-wheel_odometry does not observe its roll, which enters this axis with weight 1.00",
         "reason_code": "unobservable",
-        "std": 2.977480919935464e-06,
+        "std": 1.3467217401911305e-06,
         "unit": "deg"
        }
       ],
@@ -519,7 +519,7 @@
     "--tf",
     ".../frames_yaw3.yaml"
    ],
-   "created_at": "2026-10-01T16:16:03.606959+00:00",
+   "created_at": "2026-11-06T22:46:45.104336+00:00",
    "overall_verdict": "fail",
    "pairs": {
     "imu-vehicle": {
@@ -576,12 +576,12 @@
     "lidar-wheel_odometry": {
      "axes": {
       "pitch": {
-       "candidate_error_deg": -0.523,
+       "candidate_error_deg": -0.5201,
        "status": "warn",
        "tolerance_deg": 0.5
       },
       "yaw": {
-       "candidate_error_deg": 3.3088,
+       "candidate_error_deg": 3.3132,
        "status": "fail",
        "tolerance_deg": 0.5
       }

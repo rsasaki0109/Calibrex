@@ -109,12 +109,14 @@ calibrex sota leaderboard \
   docs/assets/hilti2022_camera_imu_v3/hilti_camera_imu_v3_sota_audit.yaml \
   docs/assets/kitti_camera_lidar/evaluation/kitti_camera_lidar_sota_audit.yaml \
   docs/assets/kitti_camera_lidar_v2/evaluation/kitti_camera_lidar_v2_sota_audit.yaml \
+  docs/assets/kitti_board_camera_lidar/audit/kitti-board-camera-lidar-v1_sota_audit.yaml \
   docs/assets/mid360_imu_lidar_extrinsic_sota_audit.yaml \
   docs/assets/mid360_imu_lidar_extrinsic_v2_sota_audit.yaml \
   docs/assets/mid360_imu_lidar_sota_audit.yaml \
   docs/assets/ntu_viral_lidar_lidar_sota_audit.yaml \
   docs/assets/kitti_lidar_vehicle_sota_audit.yaml \
   docs/assets/ins_lidar_sota_readiness/evaluation/audit/ins_lidar_sota_audit.yaml \
+  docs/assets/nclt_lidar_wheel/audit/nclt-lidar-wheel-odometry-v1_sota_audit.yaml \
   --output docs/assets/sota_leaderboard.json \
   --target-pair camera-lidar --target-pair lidar-lidar --target-pair imu-lidar \
   --target-pair camera-imu --target-pair camera --target-pair camera-camera \
@@ -200,10 +202,13 @@ The [training-only initialization work](research/camera_lidar_training_initializ
 reproduces all twelve archived audit verdicts from their stored scores and adds
 an opt-in, per-fold training-only initialization mode to the camera–LiDAR profile
 probe. It removes the pooled conditional-start dependency; synthetic tests are
-not real-data accuracy evidence. All fourteen snapshot metadata files remain,
-but their local NPZ arrays are absent in this workspace. Restore and hash-check
-them before the fixed fourteen-input paired comparison. No new evaluation data,
-audit verdict, threshold or estimator default changes; capture remains 2/55.
+not real-data accuracy evidence. The fixed fourteen-input paired comparison has since
+been run on reacquired, separately identified captures (the original NPZ arrays were
+not recoverable): no overall improvement, and the research mode stays off by default
+([status](research/camera_lidar_training_initialization.md)). What remains open is
+research, not a pending run: why independently fitted folds select distant basins. No
+new evaluation data, audit verdict, threshold or estimator default changes; capture
+remains 2/55.
 
 Follow-up recovery reacquired the two spent raw archives and matched their member
 inventories/CRCs and calibration SHA-256 pins. All fourteen native captures
