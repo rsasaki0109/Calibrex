@@ -31,6 +31,7 @@ orientations.  OpenCV (``pip install calibrex[opencv]``) is needed only here.
 from __future__ import annotations
 
 import importlib
+import math
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Literal, TypeAlias
@@ -74,6 +75,31 @@ class CameraModel:
         fx, fy, cx, cy = (float(value) for value in camera["intrinsics"])
         coeffs = tuple(float(value) for value in camera.get("distortion_coeffs", ()))
         return cls(fx, fy, cx, cy, model, coeffs)  # type: ignore[arg-type]
+
+    def incidence_rad(self, pixels: FloatArray) -> FloatArray:
+        """Angle of each pixel's ray from the optical axis, in radians.
+
+        An equidistant (fisheye) lens maps the angle ``theta`` to a distorted angle
+        ``theta (1 + k1 theta^2 + k2 theta^4 + k3 theta^6 + k4 theta^8)`` at radius
+        ``f theta_d``; a fisheye wider than 180 deg sees rays beyond 90 deg, which
+        ``normalize`` (perspective coordinates, ``tan theta``) cannot represent.
+        """
+
+        points = np.asarray(pixels, dtype=np.float64).reshape(-1, 2)
+        x = (points[:, 0] - self.cx) / self.fx
+        y = (points[:, 1] - self.cy) / self.fy
+        radius = np.hypot(x, y)
+        if self.distortion_model != "equidistant":
+            undistorted = self.normalize(points)
+            return np.arctan(np.hypot(undistorted[:, 0], undistorted[:, 1]))
+        k = (*self.distortion, 0.0, 0.0, 0.0, 0.0)[:4]
+        theta = radius.copy()
+        for _ in range(10):  # Newton on theta_d(theta) = radius
+            t2 = theta * theta
+            value = theta * (1 + t2 * (k[0] + t2 * (k[1] + t2 * (k[2] + t2 * k[3])))) - radius
+            slope = 1 + t2 * (3 * k[0] + t2 * (5 * k[1] + t2 * (7 * k[2] + t2 * 9 * k[3])))
+            theta = theta - value / slope
+        return theta
 
     def normalize(self, pixels: FloatArray) -> FloatArray:
         """Undistorted normalized image coordinates ``(N, 2)`` of pixel coordinates."""
@@ -124,6 +150,8 @@ class VisualRotationOptions:
     window_duration_s: float = 10.0
     min_window_frames: int = 20
     seed: int = 0
+    max_incidence_deg: float | None = None
+    """Track only features whose ray is within this angle of the optical axis (None: all)."""
 
 
 @dataclass
@@ -311,10 +339,21 @@ def track_camera_rotations(
         else None
     )
 
+    limit = None if opts.max_incidence_deg is None else math.radians(opts.max_incidence_deg)
+
+    def within(points: Any) -> NDArray[np.bool_]:
+        if limit is None or points is None:
+            return np.ones(0 if points is None else len(points), dtype=bool)
+        return np.asarray(camera.incidence_rad(points.reshape(-1, 2)) <= limit)
+
     def detect(image: NDArray[np.uint8]) -> Any:
-        return cv2.goodFeaturesToTrack(
+        found = cv2.goodFeaturesToTrack(
             image, opts.max_features, opts.feature_quality, opts.min_feature_distance_px
         )
+        if found is None or limit is None:
+            return found
+        kept = found[within(found)]
+        return kept if len(kept) else None
 
     for time_s, raw in frames:
         image = raw if clahe is None else clahe.apply(raw)
@@ -337,6 +376,8 @@ def track_camera_rotations(
                 maxLevel=opts.lk_levels,
             )
             good = status.ravel() == 1
+            if limit is not None:
+                good &= within(features) & within(tracked)
             features, tracked = features[good], tracked[good]
             result = relative_rotation(
                 camera.normalize(features.reshape(-1, 2)),
