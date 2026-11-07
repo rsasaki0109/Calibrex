@@ -79,7 +79,7 @@
 </p>
 
 ```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.1/calibrex-0.6.1-py3-none-any.whl"
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.2/calibrex-0.6.2-py3-none-any.whl"
 
 calibrex estimate my_bag/ --output est/ --html est.html    # 1. no calibration yet: measure it, export frames.yaml / static transforms / URDF
 calibrex check other_bag/ --tf est/frames.yaml --html check.html   # 2. is the deployed calibration still right on another recording?
@@ -500,7 +500,7 @@ bundle:
 
 ```bash
 python -m pip install \
-  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.1/calibrex-0.6.1-py3-none-any.whl"
+  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.2/calibrex-0.6.2-py3-none-any.whl"
 
 calibrex demo kitti-lidar-camera-evidence \
   --output-dir outputs/kitti-lidar-camera-evidence \
@@ -550,7 +550,7 @@ Run the same evidence gates on every calibration change:
 
 ```yaml
 - uses: actions/checkout@v5
-- uses: rsasaki0109/Calibrex@v0.6.1
+- uses: rsasaki0109/Calibrex@v0.6.2
   with:
     candidate: calibration/candidate.yaml
     baseline: calibration/baseline.yaml
@@ -809,11 +809,11 @@ not silently ranked together.
 ## Install
 
 The supported no-source install is the versioned wheel attached to the
-[v0.6.1 GitHub Release](https://github.com/rsasaki0109/Calibrex/releases/tag/v0.6.1):
+[v0.6.2 GitHub Release](https://github.com/rsasaki0109/Calibrex/releases/tag/v0.6.2):
 
 ```bash
 python -m pip install \
-  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.1/calibrex-0.6.1-py3-none-any.whl"
+  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.2/calibrex-0.6.2-py3-none-any.whl"
 ```
 
 Development checkouts and optional backends remain explicit:

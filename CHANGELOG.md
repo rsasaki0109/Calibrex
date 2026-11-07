@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+## 0.6.2 - 2026-11-07
+
+Highlights:
+
+- **Checkerboard camera-LiDAR:** `calibrex estimate --board COLSxROWSxSQUARE_M` measures
+  `T_camera_lidar` from a board held in front of the rig, and `calibrex check --board`
+  judges a deployed one with it. Its pre-registered KITTI audit was refuted (0 of 5 gates);
+  see the board page before relying on it.
+- **Wheeled robots:** `lidar-wheel_odometry` no longer assumes an upright LiDAR, and its
+  check runs from 0.5 m/s. `tools/nclt_to_rosbag2.py` converts NCLT sessions.
+- **FAST-LIO users:** `calibrex estimate` writes `fast_lio_extrinsics.yaml` (`extrinsic_R`,
+  `extrinsic_T`, FAST-LIVO's `Rcl`, `Pcl`), and `check --tf` reads FAST-LIVO's camera file.
+- **`calibrex drift`** says when a vehicle-frame pair's roll or pitch change can be the
+  chassis attitude rather than the sensor mount.
+- **Audits:**
+  - the `camera` (focal length) pair has its first supported claim (TUM-VI);
+  - a TUM-VI `camera-imu` check audit: honesty supported, detection refuted;
+  - the NCLT `lidar-wheel_odometry` audit: accuracy refuted, check honesty supported.
+  - All are on the leaderboard.
+
+- The pre-registered `calibrex check --pairs camera-imu` audit on TUM-VI corridor1–corridor5
+  ran once.
+  - **Honesty supported:** check never failed Kalibr's T_cam_imu (10 of 10 judged).
+  - **Detection refuted:** with T_cam_imu turned 2 deg about a camera axis, check passed
+    4 of 30 cases. Each was a pitch turn where pitch was unchecked: a `pass (partial)`
+    covers only the judged axes. Every judged turned axis failed (26 of 26).
+- A cap on the incidence angle of fisheye features was tried for `camera-focal` on TUM-VI
+  room1. It was not adopted: no consistent gain, and the focal scale drifted from 1 as the
+  cap tightened.
 - `calibrex drift`: when roll or pitch of a vehicle-frame pair (`lidar-vehicle`,
   `lidar-wheel_odometry`, `imu-vehicle`) drifts, the next steps say that the chassis
   attitude (tyres, load, suspension, balancing) can move the vehicle frame as well as the
