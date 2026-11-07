@@ -1,0 +1,98 @@
+# Pre-registration of the camera-imu check v2 audit on unseen TUM-VI sequences:
+# calibrex check --pairs camera-imu --fail-on partial run once on five sequences no Calibrex
+# method has read, with Kalibr's camchain as the candidate and with its T_cam_imu turned
+# 2 deg about the camera's x, y and z axes.
+# It is binding once committed; tools/tumvi_camera_imu_v2_audit.py at frozen_code_commit is
+# the only code that reads these sequences, and it runs once.
+#
+# Written on 2026-11-07.  v1 (tumvi_camera_imu_preregistration.yaml, corridor1-corridor5)
+# was refuted: check never failed Kalibr's T_cam_imu and failed every judged turned axis,
+# but it passed 4 of 30 turned cases as `pass (partial)`, each a pitch turn where pitch was
+# unchecked.  A partial pass vouches for the judged axes only, yet exits 0 by default.
+# calibrex check --fail-on partial (this commit's parent) exits 1 on it.  v2 claims what a
+# user running with that option gets; v1 stays refuted and listed.
+#
+# Development (spent: room1-room6, corridor1-corridor5), scored by v2's rule:
+#   Kalibr's camchain, 22 cases (12 rooms, 10 corridors): no fail; a full-coverage pass
+#     (exit 0 under --fail-on partial) on 18 (all 12 rooms, 6 of 10 corridors).  The other
+#     4 passed with pitch unchecked and would exit 1.
+#   T_cam_imu turned 2 deg, 36 cases (room1: 6, corridors: 30): none would exit 0; 32 failed
+#     on the turned axis (room1 6 of 6, corridors 26 of 30).
+#   room1 was also run through this harness (cache shared across the four candidates) to
+#     test it end to end; its records are committed with it.
+# check's camera-imu estimate does not depend on the candidate, so the four candidates of a
+# sequence share one estimator cache: the turned runs reuse the Kalibr run's estimate, as a
+# user re-checking a recording would.  The dataset calibration is reference evidence, not
+# ground truth.
+#
+# Of the five sequences only the bags' sizes and ETags (HEAD requests) have been read.  They
+# are the five smallest calibrated 512_16 sequences no Calibrex method has read (the
+# outdoors and the other magistrale sequences are 11-31 GB), chosen by size alone.  The
+# reference is the camchain pinned by the camera-focal audit.
+claims:
+  tumvi-camera-imu-check-v2-honesty:
+    text: >-
+      On TUM-VI's slides1-slides3, magistrale3 and magistrale5 (both cameras, ten cases),
+      calibrex check with Kalibr's camchain as the candidate does not fail camera-imu on any
+      case, and passes it with full coverage (exit 0 under --fail-on partial) on at least
+      50 % of the cases.
+    gates:
+      max_kalibr_fails: 0
+      min_kalibr_full_pass_fraction: 0.5
+  tumvi-camera-imu-check-v2-detection:
+    text: >-
+      With Kalibr's T_cam_imu turned 2 deg about the camera's x, y or z axis (thirty cases),
+      calibrex check --fail-on partial flags every case (no full-coverage pass), and fails
+      camera-imu on the turned axis on at least 50 %.
+    gates:
+      max_turned_unflagged: 0
+      min_turned_detected_fraction: 0.5
+  source_of_gates: >-
+    The fractions are the development rates divided by 1.5 and rounded down to the next
+    0.25 (18 of 22 Kalibr cases full passes; 32 of 36 turned cases failed on the turned
+    axis), the rule of the earlier check pre-registrations; a fail of the correct or an
+    unflagged 2 deg-wrong rotation is a plain honesty/detection rule.  Fixed before any of
+    these sequences was read and not to be changed after the run.
+sessions:
+  development_spent: [room1, room2, room3, room4, room5, room6, corridor1, corridor2, corridor3, corridor4, corridor5]
+  evaluation:
+    slides2: {bag: calibrated/512_16/dataset-slides2_512_16.bag, size_bytes: 5167095556, etag: 133fb9f04-56a11b425b78a}
+    slides1: {bag: calibrated/512_16/dataset-slides1_512_16.bag, size_bytes: 5876912463, etag: 15e4a914f-56a11af7075fa}
+    slides3: {bag: calibrated/512_16/dataset-slides3_512_16.bag, size_bytes: 7614358916, etag: 1c5d9e584-56a11be871d86}
+    magistrale5: {bag: calibrated/512_16/dataset-magistrale5_512_16.bag, size_bytes: 9392089416, etag: 22fcfe948-56a10633639d7}
+    magistrale3: {bag: calibrated/512_16/dataset-magistrale3_512_16.bag, size_bytes: 10214128670, etag: 260cf3c1e-56a103e156263}
+reference:
+  camchain: docs/assets/tumvi_camera_focal/camchain.yaml
+  camchain_sha256: 3a0c0285f4d0a3a1678053b2e5912e3e250e78ac09bd009f6d7d8bba669d5703
+method:
+  check: >-
+    calibrex check BAG --tf CANDIDATE --pairs camera-imu --cache-dir WORK/cache-SEQ
+    --fail-on partial, with the package's defaults (rotation tolerance max(3 std, 0.5 deg)
+    per axis, fail beyond twice the tolerance)
+  candidates: >-
+    Kalibr's camchain, and three copies with both cameras' T_cam_imu turned 2 deg about the
+    camera's x (roll), y (pitch) or z (yaw) axis: R' = R_delta R, t' = R_delta t (the v1
+    candidates, written by the same function)
+  case: one (sequence, camera, candidate), scored from camera-imu's pair record
+  flagged: >-
+    the pair would make check exit 1 under --fail-on partial
+    (calibrex.check.verdict.check_exit_status of its status and coverage): anything but a
+    full-coverage pass
+  full_pass: status pass with coverage full
+  detected: a turned case whose pair fails with the turned axis's own status fail
+run_recipe:
+  command: >-
+    python tools/tumvi_camera_imu_v2_audit.py --camchain docs/assets/tumvi_camera_focal/camchain.yaml
+    --work-dir WORK --output-dir RUNS, from a checkout whose src/ and tools/ equal
+    frozen_code_commit, run once.  Each bag is fetched with If-Match on its ETag, resumed
+    from the bytes on disk, and its size checked.  RUNS/SEQ_VARIANT.json, SEQ_score.json
+    and summary.json are the results.
+invalidates:
+  - a change to src/ or tools/ after frozen_code_commit before the run is done
+  - reading any data of the five sequences before the run beyond what is listed above
+  - running the harness on them more than once, or changing a gate after the run
+analysis_plan: >-
+  Report per case the verdict, coverage and per-axis error, and both claims' verdicts, in
+  docs/benchmarks/hilti_camera_imu.md (the camera-imu page), whatever they are; record the
+  five sequences as spent in docs/sota_handoff.md.
+frozen_code_commit: 317339c1d50f19b9ef2f4b360d3a9c21a2a3b91e

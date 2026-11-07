@@ -659,6 +659,23 @@ What this means for a user:
 [audit record](../assets/tumvi_camera_imu/audit/tumvi-camera-imu-check-v1_sota_audit.yaml).
 The five sequences are spent.
 
+### v2: the same check with `--fail-on partial`, pre-registered
+
+`calibrex check --fail-on partial` exits 1 on a pass that left axes unchecked. v2 asks what a
+user running with it gets. A case is *flagged* when its camera-imu pair would make the run
+exit 1.
+
+On the spent rooms and corridors, scored this way:
+
+- Kalibr's camchain was never failed. It passed with full coverage on 18 of 22 cases; the
+  other 4 left pitch unchecked and would exit 1.
+- No turned case would exit 0. 32 of 36 failed on the turned axis.
+
+Honesty (no fail; full passes on at least 50 %) and detection (no turned case unflagged;
+at least 50 % failed on the turned axis) are
+[pre-registered](tumvi_camera_imu_v2_preregistration.yaml) on the five smallest unseen
+sequences: slides1–slides3, magistrale3 and magistrale5. v1 stays refuted.
+
 ## Next steps
 
 - Understand the side-camera errors.
