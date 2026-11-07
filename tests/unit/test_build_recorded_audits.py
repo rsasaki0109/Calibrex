@@ -9,6 +9,8 @@ import pytest
 import yaml
 from tools import build_recorded_audits as builder
 
+from calibrex.evaluation import sota_audit
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -17,9 +19,17 @@ ROOT = Path(__file__).resolve().parents[2]
     [builder.BOARD, builder.NCLT, builder.TUMVI, builder.TUMVI_IMU],
     ids=lambda s: s.protocol_id,
 )
-def test_a_fresh_build_equals_the_committed_records(spec, tmp_path: Path) -> None:
-    built = builder.build(dataclasses.replace(spec, output=tmp_path))
+def test_a_fresh_build_equals_the_committed_records(
+    spec, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     committed = sorted(spec.output.glob("*.yaml"))
+    # build at the package version the records name, so a release bump does not change them
+    recorded = {yaml.safe_load(p.read_text())["provenance"]["generator_version"] for p in committed}
+    assert len(recorded) == 1
+    version = recorded.pop()
+    monkeypatch.setattr(builder, "__version__", version)
+    monkeypatch.setattr(sota_audit, "__version__", version)
+    built = builder.build(dataclasses.replace(spec, output=tmp_path))
     assert [path.name for path in committed] == sorted(p.name for p in tmp_path.glob("*.yaml"))
     here = spec.output.relative_to(ROOT).as_posix()
     for path in committed:
