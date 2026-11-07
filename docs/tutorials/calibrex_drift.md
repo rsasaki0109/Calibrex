@@ -58,6 +58,14 @@ Give the bags in recording order. The flags of `calibrex estimate` apply
    the clock offset of the pair together. When only the clock offset differs the next steps
    say so (check the time synchronisation of that recording), because re-calibrating the
    extrinsic would not help.
+6. **Vehicle-frame pairs.** `lidar-vehicle`, `lidar-wheel_odometry` and `imu-vehicle`
+   measure against a vehicle frame that each recording sets by its ground plane and
+   direction of travel. When their roll or pitch drifts, the next steps add that the
+   chassis attitude (tyre pressure, load, suspension or balancing) can move it as well as
+   the sensor mount. Compare a sensor-to-sensor pair of the same sensor (such as
+   `imu-lidar`) before re-mounting. On NCLT's Segway, roll moved 2.3 deg between sessions
+   while each session's halves agreed
+   ([example](../benchmarks/drift_real_data.md#a-vehicle-frame-that-moves-nclts-segway-over-13-months)).
 
 ## Reading the output
 

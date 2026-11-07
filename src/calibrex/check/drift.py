@@ -88,6 +88,11 @@ TIME_OFFSET_SKIPPED: dict[str, str] = {
     "lidar-wheel_odometry": "the wheel-odometry time offset is quantised to the odometry "
     "sample lattice (and is a proxy on INS-derived twists); it is not a clock-offset measurement",
 }
+#: Pairs whose parent is the vehicle frame that each recording defines by its ground plane and
+#: direction of travel, not a sensor: their roll and pitch can change with the chassis attitude.
+VEHICLE_FRAME_PAIRS: frozenset[str] = frozenset(
+    {"lidar-vehicle", "lidar-wheel_odometry", "imu-vehicle"}
+)
 _MIN_STD = 1e-9
 
 
@@ -685,6 +690,15 @@ def next_steps(pairs: Sequence[DriftPairRecord]) -> list[str]:
                 f"{pair.pair}: no axis was observed in two bags; use longer or more exciting "
                 "recordings (raise --max-duration-s, rotate and translate the rig) or leave it "
                 "out with --pairs"
+            )
+        tilted = [a.name for a in pair.axes if a.status == "drift" and a.name in ("roll", "pitch")]
+        if pair.verdict == "drift" and pair.pair in VEHICLE_FRAME_PAIRS and tilted:
+            steps.append(
+                f"{pair.pair}: the vehicle frame is set by each recording's ground plane and "
+                f"direction of travel, so a {' and '.join(tilted)} change can be the chassis "
+                "attitude (tyre pressure, load, suspension or balancing), not the sensor mount; "
+                "before re-mounting, compare a sensor-to-sensor pair of the same sensor "
+                "(e.g. imu-lidar), which does not see the chassis"
             )
     if not steps and pairs:
         floors = [
