@@ -20,7 +20,7 @@ from calibrex.check.estimators import (
     PairContext,
 )
 from calibrex.check.runner import CheckRunOptions, build_calibration_check, format_check_table
-from calibrex.check.verdict import AxisEstimate
+from calibrex.check.verdict import AxisEstimate, check_exit_status
 from calibrex.cli.main import main
 from calibrex.core.calibration_check import CalibrationCheckArtifact, CheckTimeOffset
 from calibrex.core.validation import validate_file
@@ -348,6 +348,35 @@ def test_partial_coverage_is_recorded_and_printed(
     assert artifact.overall_verdict == "pass" and artifact.summary.partial_pairs == 1
     table = format_check_table(artifact)
     assert "pass (partial: roll, pitch only)" in table and "WARNING: 1 pair(s)" in table
+    assert "--fail-on partial" in table
+
+    args = ["check", str(bag), "--pairs", "lidar-lidar", "--evidence-dir", str(tmp_path / "e2")]
+    assert main(args) == 0  # a partial pass is a pass by default
+    assert main([*args, "--fail-on", "inconclusive"]) == 0
+    assert main([*args, "--fail-on", "partial"]) == 1  # but it vouches for roll and pitch only
+
+
+@pytest.mark.parametrize(
+    ("overall", "partial", "fail_on", "status"),
+    [
+        ("pass", 0, "partial", 0),
+        ("pass", 1, "partial", 1),
+        ("pass", 1, "inconclusive", 0),
+        ("inconclusive", 0, "partial", 1),
+        ("warn", 0, "inconclusive", 1),
+        ("warn", 1, "fail", 0),
+        ("fail", 0, "fail", 1),
+        ("fail", 2, "never", 0),
+        (None, 1, "partial", 0),
+    ],
+)
+def test_exit_status_levels(overall: str | None, partial: int, fail_on: str, status: int) -> None:
+    assert check_exit_status(overall, partial, fail_on) == status
+
+
+def test_exit_status_rejects_an_unknown_level() -> None:
+    with pytest.raises(ValueError, match="--fail-on"):
+        check_exit_status("pass", 0, "sometimes")
 
 
 def test_cli_topic_kind_classifies_a_twist_topic_and_is_recorded(
