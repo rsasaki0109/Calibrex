@@ -82,6 +82,72 @@ A synthetic test tracks with a focal length 3 % too long and recovers the
 
 Artifacts: `docs/assets/hilti2022_camera_imu/focal_cam*_exp21.yaml`.
 
+### TUM-VI room1 (development) and a pre-registered audit
+
+TUM-VI is a hand-held rig with two 190 deg fisheye cameras (equidistant, 512 x 512) and a
+BMI160 IMU, calibrated with Kalibr. `calibrex check --tf camchain.yaml --pairs
+camera-imu,camera-focal` on room1 (spent), with Kalibr's camchain and with its focal
+lengths turned 3 % long or short:
+
+| Candidate | cam0 | cam1 |
+| --- | --- | --- |
+| Kalibr | pass: fx scale 0.9996, fy 1.0113 | inconclusive: the estimator failed its own held-out check |
+| focal 3 % long (true scale 0.971) | fail: fx 0.977 fail; fy 0.993 within tolerance | inconclusive: optical-axis control 0.989 |
+| focal 3 % short (true scale 1.031) | fail: fx 1.031 fail | inconclusive: held-out check |
+
+- **fx tracks the injected error.**
+- **fy does not.** It reads about 1 % high at Kalibr's value and does not separate the
+  3 % errors cleanly.
+- **cam1 is often inconclusive.**
+- **What is claimed.** No accuracy claim is made. Check's honesty on the correct focal
+  lengths and its detection of 3 % errors are
+  [pre-registered](tumvi_camera_focal_preregistration.yaml) on room2–room6.
+
+[Development records](../assets/tumvi_camera_focal/development/room1_kalibr.json).
+
+### Result: camera-focal check honesty and detection supported
+
+The [pre-registered](tumvi_camera_focal_preregistration.yaml) audit ran once on 2026-11-07,
+from a worktree at the pre-registration commit (a48efac3), whose `src/` and `tools/` equal
+`frozen_code_commit` (b9eee429). Each case is one sequence, one camera and one candidate;
+the cell is camera-focal's verdict, with the fx (and fy) scale where judged.
+
+| Sequence | Kalibr cam0 | Kalibr cam1 | 3 % long cam0 | 3 % long cam1 | 3 % short cam0 | 3 % short cam1 |
+| --- | --- | --- | --- | --- | --- | --- |
+| room2 | pass (fx 0.9996) | inconclusive | inconclusive | inconclusive | warn (1.017, 1.028) | inconclusive |
+| room3 | pass (1.002, 1.002) | inconclusive | skipped | inconclusive | inconclusive | inconclusive |
+| room4 | pass (fx 1.000) | pass (1.002, 1.004) | inconclusive | inconclusive | **fail** (1.032, 1.039) | **fail** (1.028, 1.034) |
+| room5 | pass (1.000, 0.996) | inconclusive | inconclusive | **fail** (fx 0.975) | **fail** (fx 1.033) | **fail** (1.030, 1.031) |
+| room6 | pass (fx 0.995) | inconclusive | **fail** (fx 0.982) | warn (fx 0.988) | inconclusive | warn (fx 1.015) |
+
+A 3 % long focal length reads as a scale of 0.971; a 3 % short one as 1.031.
+
+- **Honesty: supported.**
+  - Check never failed Kalibr's focal lengths.
+  - It judged a focal length on 6 of 10 cases (gate 25 %).
+- **Detection: supported.**
+  - Check passed none of the 20 cases with a 3 %-wrong focal length.
+  - It failed 6 (30 %, gate 25 %) and warned on 3 more.
+- **The detection is partial.**
+  - Half of the perturbed cases came out inconclusive or skipped.
+  - In several the estimated scale moved by only half the injected error (1.015–1.017,
+    0.982–0.988).
+- **cam1 is often inconclusive.** Its estimator failed its own held-out or optical-axis
+  checks on 4 of 5 sequences even with Kalibr's values.
+- **No accuracy is claimed.** fx agrees with Kalibr within 0.5 % where judged; fy is
+  noisier.
+
+What this means for a user:
+
+- On a fisheye camera like TUM-VI's, `calibrex check` does not flag a correct focal
+  length.
+- It does not pass one that is 3 % off.
+- About half the time it says inconclusive rather than fail.
+
+[Run records](../assets/tumvi_camera_focal/evaluation/summary.json);
+[audit record](../assets/tumvi_camera_focal/audit/tumvi-camera-focal-check-v1_sota_audit.yaml).
+The five sequences are spent.
+
 ## Development results
 
 Only exp21 and exp07 were used, for development. exp01-exp04 are held back,

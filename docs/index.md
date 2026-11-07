@@ -174,7 +174,8 @@ pre-registered audit marks `supported`. Refuted audits are listed too.
 | `camera-lidar` | <span class="cx-pill refuted">refuted</span> | KITTI check verdicts: v2 8/9 gates on 18 unseen drives of four days (no calibration flagged; one turned-run axis 1.503 deg off, gate 1.5), v1 5/9 |
 | `ins-lidar` | <span class="cx-pill refuted">refuted</span> | [KITTI + Boreas, 6/8 gates](benchmarks/ins_lidar_rotation_v1.md): estimated axes agree, but one recording has no observable rotation |
 | `lidar-wheel_odometry` | <span class="cx-pill refuted">refuted</span> | [NCLT, five unseen sessions](benchmarks/lidar_wheel_odometry.md#result-accuracy-refuted-05-sessions-check-honesty-supported): yaw within 0.43 deg, roll and pitch up to 2.4 deg off (gate 0.5); check never failed the calibration |
-| `camera`, `gnss-imu`, `imu-vehicle` | <span class="cx-pill no_claim">no_claim</span> | Native method, no audited claim yet |
+| `camera` | <span class="cx-pill supported">supported</span> | [TUM-VI focal lengths, five unseen sequences](benchmarks/hilti_camera_imu.md#result-camera-focal-check-honesty-and-detection-supported): check never failed Kalibr's values and passed none of the 3 %-wrong ones (half inconclusive; no accuracy claim) |
+| `gnss-imu`, `imu-vehicle` | <span class="cx-pill no_claim">no_claim</span> | Native method, no audited claim yet |
 
 [Full leaderboard and protocols :material-arrow-right:](benchmarks/sota_leaderboard.md){ .md-button }
 

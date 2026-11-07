@@ -1,0 +1,131 @@
+{
+ "kalibr": {
+  "cam0": {
+   "status": "pass",
+   "reason_code": null,
+   "judged_axes": [
+    "fx"
+   ],
+   "axes": {
+    "fx": {
+     "scale": 1.0003039034713868,
+     "scale_error": 0.0003039034713867572,
+     "scale_std": 0.0013924223727354182,
+     "tolerance": 0.005,
+     "status": "pass"
+    }
+   }
+  },
+  "cam1": {
+   "status": "pass",
+   "reason_code": null,
+   "judged_axes": [
+    "fx",
+    "fy"
+   ],
+   "axes": {
+    "fx": {
+     "scale": 1.0016089878271506,
+     "scale_error": 0.0016089878271505764,
+     "scale_std": 0.0019392774800270434,
+     "tolerance": 0.00581783244008113,
+     "status": "pass"
+    },
+    "fy": {
+     "scale": 1.0044315038711968,
+     "scale_error": 0.00443150387119684,
+     "scale_std": 0.0033757221000460633,
+     "tolerance": 0.01012716630013819,
+     "status": "pass"
+    }
+   }
+  }
+ },
+ "plus3": {
+  "cam0": {
+   "status": "inconclusive",
+   "reason_code": "estimator_failed",
+   "judged_axes": [],
+   "axes": {
+    "fy": {
+     "scale": 0.9738210607444515,
+     "scale_error": -0.026178939255548483,
+     "scale_std": 0.0033729065169363576,
+     "tolerance": 0.010118719550809074,
+     "status": "fail"
+    }
+   }
+  },
+  "cam1": {
+   "status": "inconclusive",
+   "reason_code": "estimator_failed",
+   "judged_axes": [],
+   "axes": {
+    "fx": {
+     "scale": 0.972588224529303,
+     "scale_error": -0.027411775470696953,
+     "scale_std": 0.002567094123319576,
+     "tolerance": 0.007701282369958729,
+     "status": "fail"
+    },
+    "fy": {
+     "scale": 0.9841183380424905,
+     "scale_error": -0.015881661957509507,
+     "scale_std": 0.0030678566863832947,
+     "tolerance": 0.009203570059149884,
+     "status": "warn"
+    }
+   }
+  }
+ },
+ "minus3": {
+  "cam0": {
+   "status": "fail",
+   "reason_code": null,
+   "judged_axes": [
+    "fx",
+    "fy"
+   ],
+   "axes": {
+    "fx": {
+     "scale": 1.0320103813139072,
+     "scale_error": 0.03201038131390721,
+     "scale_std": 0.003763001819425869,
+     "tolerance": 0.011289005458277606,
+     "status": "fail"
+    },
+    "fy": {
+     "scale": 1.0384500390813913,
+     "scale_error": 0.03845003908139133,
+     "scale_std": 0.0028103390670243217,
+     "tolerance": 0.008431017201072965,
+     "status": "fail"
+    }
+   }
+  },
+  "cam1": {
+   "status": "fail",
+   "reason_code": null,
+   "judged_axes": [
+    "fx",
+    "fy"
+   ],
+   "axes": {
+    "fx": {
+     "scale": 1.0283443204103093,
+     "scale_error": 0.02834432041030932,
+     "scale_std": 0.002898933425491944,
+     "tolerance": 0.008696800276475833,
+     "status": "fail"
+    },
+    "fy": {
+     "scale": 1.0336775328016512,
+     "scale_error": 0.0336775328016512,
+     "scale_std": 0.0029611752487230408,
+     "tolerance": 0.008883525746169123,
+     "status": "fail"
+    }
+   }
+  }
+ }
+}

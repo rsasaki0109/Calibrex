@@ -1,0 +1,56 @@
+schema_version: slac.camera_focal_scale/v0.1
+method: gyro_rate_ratio/v0.1
+policy_status: inconclusive
+policy_reasons:
+- the x or y ratio std exceeds the bound
+rate_ratio:
+- 1.0148864969143572
+- 1.0003039034713868
+- 0.9955392561755879
+rate_ratio_std:
+- 0.007475383757893901
+- 0.0013924223727354182
+- 0.007449626362704892
+holdout_rate_ratio:
+- 1.0040120353929682
+- 1.0018274178411308
+- 0.9982974830306117
+fx_used_px: 190.97847715128717
+fy_used_px: 190.9733070521226
+fx_estimate_px: 191.0365161734536
+fy_estimate_px: 193.81623059827862
+fx_std_px: 0.26592270429639214
+fy_std_px: 1.4275987577287221
+intervals: 1069
+options:
+  frame_stride: 2
+  holdout_every: 3
+  jackknife_groups: 8
+  outlier_mad: 5.0
+  min_rate_rps: 0.05
+  max_holdout_sigma: 3.0
+  max_optical_axis_deviation_sigma: 3.0
+  observable_ratio_std: 0.005
+limitations:
+- The ratio also absorbs anything else that scales tracked rotations, such as distortion
+  errors or tracking attenuation; the optical-axis ratio is the check.
+- Only fx and fy are checked; the principal point and distortion are taken as given.
+provenance:
+  generator: calibrex.evaluation.camera_focal
+  generator_version: 0.6.1
+  git_commit: a48efac3
+  command:
+  - calibrex
+  - check
+  - /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/tumvi_audit/work/dataset-room4_512_16.bag
+  - camera-focal
+  - /cam0/image_raw
+  - /imu0
+  dataset_family: calibrex-check
+  sequence_ids:
+  - dataset-room4_512_16.bag
+  image_topic: /cam0/image_raw
+  rotation_artifact_sha256: b6d65186b85bd4516f77c89589d66c468fd8efba749b6e4474db11ac7e834f23
+  input_sha256: 77919cf6fc374cd2e4bfed440d73d6bd8cdbc3700d4404b93fd3b20a67780760
+  dataset_license: user-provided
+  created_at: '2026-11-07T00:18:28.443065+00:00'

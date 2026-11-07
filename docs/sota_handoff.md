@@ -41,7 +41,8 @@ pre-registered audit marks `supported`. Five things follow from that:
 | `ins-lidar` | refuted | KITTI + Boreas rotation v1 (6/8); one recording has no observable rotation | [INS-LiDAR rotation](benchmarks/ins_lidar_rotation_v1.md) |
 | `camera-lidar` (checkerboard) | refuted | KITTI calibration recordings (0/5 days): no estimate on any day (stereo time bound, board fragments) | [board camera-LiDAR](benchmarks/board_camera_lidar.md#result-both-claims-refuted-no-estimate-on-any-day) |
 | `lidar-wheel_odometry` | refuted | NCLT, 5 unseen sessions: accuracy 0/5 (roll and pitch 0.1-2.4 deg off; yaw within 0.43 deg); check honesty supported (never failed NCLT's calibration) | [LiDAR-wheel odometry](benchmarks/lidar_wheel_odometry.md#result-accuracy-refuted-05-sessions-check-honesty-supported) |
-| `camera`, `gnss-imu`, `imu-vehicle` | no claim | native methods exist; no audit yet | [estimate on real data](benchmarks/estimate_real_data.md) |
+| `camera` (focal) | supported | TUM-VI check honesty and detection (5/5): never failed Kalibr's focal lengths (6/10 judged); passed none of 20 3 %-wrong cases, failed 6; half inconclusive, no accuracy claim | [camera-focal](benchmarks/hilti_camera_imu.md#result-camera-focal-check-honesty-and-detection-supported) |
+| `gnss-imu`, `imu-vehicle` | no claim | native methods exist; no audit yet | [estimate on real data](benchmarks/estimate_real_data.md) |
 
 ## How an audit is run
 
@@ -117,6 +118,7 @@ calibrex sota leaderboard \
   docs/assets/kitti_lidar_vehicle_sota_audit.yaml \
   docs/assets/ins_lidar_sota_readiness/evaluation/audit/ins_lidar_sota_audit.yaml \
   docs/assets/nclt_lidar_wheel/audit/nclt-lidar-wheel-odometry-v1_sota_audit.yaml \
+  docs/assets/tumvi_camera_focal/audit/tumvi-camera-focal-check-v1_sota_audit.yaml \
   --output docs/assets/sota_leaderboard.json \
   --target-pair camera-lidar --target-pair lidar-lidar --target-pair imu-lidar \
   --target-pair camera-imu --target-pair camera --target-pair camera-camera \
@@ -161,6 +163,8 @@ The camera-imu v3 audit did exactly this with the camera-camera runs.
 | Newer College 2021 | `camera-camera`, `camera-lidar`, `imu-lidar`, `camera-imu`, `camera-focal` (tool validation, no audit) | collection 3 `math-easy` part 1 (`calibrex check` run recorded in the [check tutorial](tutorials/calibrex_check.md)) |
 | KITTI raw | board-based `camera-lidar` evaluation (refuted) | the five calibration recordings 2011_09_26_0119, 2011_09_28_0225, 2011_09_29_0108, 2011_09_30_0072, 2011_10_03_0058 (extract archives: grey stereo images, Velodyne scans and OXTS read by the frozen harness; the cameras' timestamp files read again afterwards for the diagnosis) |
 | ACSC sample (Livox Horizon + checkerboard) | board-based `camera-lidar` development | the whole sample (21 board poses; [board camera-LiDAR](benchmarks/board_camera_lidar.md)) |
+| TUM-VI | `camera-focal` (and `camera-imu`, run with it) development | room1 (512_16 calibrated bag) |
+| TUM-VI | `camera-focal` evaluation (supported; `camera-imu` ran with it) | room2, room3, room4, room5, room6 (read once by the frozen harness; [pre-registration](benchmarks/tumvi_camera_focal_preregistration.yaml)) |
 | NCLT | `lidar-wheel_odometry` development | 2012-01-08 (from 60 s: 2, 10, 20 and 30 minutes; its ground truth read to find the converter's scan-period error) |
 | NCLT | `lidar-wheel_odometry` evaluation (refuted) | 2012-02-02, 2012-05-11, 2012-08-04, 2012-11-04, 2013-02-23 (one hour each from 60 s, read once by the frozen harness; [pre-registration](benchmarks/nclt_lidar_wheel_preregistration.yaml)); afterwards development data for the [within- and between-session analysis](benchmarks/lidar_wheel_odometry.md#development-after-the-audit-the-stds-hold-within-a-recording-the-vehicle-frame-moves-between-recordings) |
 

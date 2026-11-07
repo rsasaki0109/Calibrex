@@ -1,0 +1,81 @@
+calibrex check (run)
+bag: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/tumvi_audit/work/dataset-room6_512_16.bag (4 topics)
+
+candidate sources:
+  kalibr_camchain: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/tumvi_audit/runs/candidates/camchain_minus3.yaml (2 frames) sha256=1e8a7e32296e
+    note: Kalibr T_cam_imu inverted to T_imu_cam; the IMU frame is named 'imu' and camera frames take their rostopic as name
+frame tree: 3 frames, 1 root(s) [imu]
+
+topics:
+topic            role    header frame  tree frame
+---------------  ------  ------------  ----------------------------------
+/cam0/image_raw  camera  1534877       cam0/image_raw (source_topic_hint)
+/cam1/image_raw  camera  1534877       cam1/image_raw (source_topic_hint)
+/imu0            imu     -             imu (role_default)
+
+pairs (no --vehicle-frame: vehicle pairs are skipped):
+pair                  sensors               verdict                  reason             |delta|/tolerance                                                      unchecked  detectable
+--------------------  --------------------  -----------------------  -----------------  ---------------------------------------------------------------------  ---------  ---------------------------------------------
+imu-lidar             -                     skipped                  missing_topic
+lidar-lidar           -                     skipped                  missing_topic
+camera-imu            cam0/image_raw / imu  warn                                        roll 0.509/0.5 deg [warn]; pitch 0.0854/0.516 deg; yaw 0.0221/0.5 deg  -          roll 1.01 deg; pitch 0.601 deg; yaw 0.522 deg
+camera-imu            cam1/image_raw / imu  warn                                        roll 0.575/0.5 deg [warn]; pitch 0.353/0.725 deg; yaw 0.106/0.507 deg  -          roll 1.08 deg; pitch 1.08 deg; yaw 0.613 deg
+camera-focal          cam0/image_raw / imu  inconclusive             no_judgeable_axes  -                                                                      fx, fy     -
+camera-focal          cam1/image_raw / imu  warn (partial: fx only)                     fx scale 1.0150 (|s-1| 1.5 %/1.4 %) [warn]                             fy         fx 2.9 %
+camera-lidar          -                     skipped                  missing_topic
+gnss-lidar            -                     skipped                  missing_topic
+gnss-imu              -                     skipped                  missing_topic
+lidar-vehicle         -                     skipped                  missing_topic
+imu-vehicle           -                     skipped                  no_vehicle_frame
+ins-lidar             -                     skipped                  missing_topic
+lidar-wheel_odometry  -                     skipped                  missing_topic
+  not selected: camera-camera
+  camera-imu: time offset 0.59 ms (estimated; reported, not judged)
+  camera-imu: time offset 0.23 ms (estimated; reported, not judged)
+  camera-focal: no focal length was constrained by the data: fx (the y-axis ratio std 0.0066 exceeds the bound 0.005); fy (the x-axis ratio std 0.0078 exceeds the bound 0.005)
+  camera-focal: unchecked fx: the y-axis ratio std 0.0066 exceeds the bound 0.005
+  camera-focal: unchecked fy: the x-axis ratio std 0.0078 exceeds the bound 0.005
+  camera-focal: optical-axis control ratio 1.0001 (must be 1)
+  camera-focal: unchecked fy: the x-axis ratio std 0.0072 exceeds the bound 0.005
+  camera-focal: optical-axis control ratio 1.0020 (must be 1)
+
+closure of the estimates (independent estimates against each other):
+  no loop: fewer than two independent estimates share a frame
+
+which frame's rotation the pair errors point to (informational):
+  cam0/image_raw, cam1/image_raw, imu: ambiguous
+    imu, cam1/image_raw each explain the pair errors alone; these pairs cannot tell which candidate is off
+
+overall verdict: warn
+WARNING: 2 pair(s) have partial coverage: unchecked axes were not judged, so a pass covers only the judged axes
+
+summary: 14 pair record(s), 4 runnable (inconclusive=1, skipped=10, warn=3)
+
+next steps:
+  - imu-lidar: the bag lacks a topic for this pair; expected lidar: sensor_msgs/msg/PointCloud2 or a Livox CustomMsg
+  - lidar-lidar: the bag lacks a topic for this pair; expected lidar: sensor_msgs/msg/PointCloud2 or a Livox CustomMsg
+  - camera-lidar: the bag lacks a topic for this pair; expected lidar: sensor_msgs/msg/PointCloud2 or a Livox CustomMsg
+  - gnss-lidar: the bag lacks a topic for this pair; expected gnss: sensor_msgs/msg/NavSatFix; lidar: sensor_msgs/msg/PointCloud2 or a Livox CustomMsg
+  - gnss-imu: the bag lacks a topic for this pair; expected gnss: sensor_msgs/msg/NavSatFix
+  - lidar-vehicle: the bag lacks a topic for this pair; expected lidar: sensor_msgs/msg/PointCloud2 or a Livox CustomMsg
+  - vehicle pairs are opt-in for ground vehicles: add --vehicle-frame base_link (use your vehicle frame name)
+  - ins-lidar: the bag lacks a topic for this pair; expected ins: nav_msgs/msg/Odometry classified as ins (--topic-kind TOPIC=ins); lidar: sensor_msgs/msg/PointCloud2 or a Livox CustomMsg
+  - lidar-wheel_odometry: the bag lacks a topic for this pair; expected lidar: sensor_msgs/msg/PointCloud2 or a Livox CustomMsg; wheel: nav_msgs/msg/Odometry or TwistStamped classified as wheel (--topic-kind TOPIC=wheel)
+artifact: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/tumvi_audit/runs/room6_minus3.json
+check: 4 pairs to run
+check: running camera-imu (cam0/image_raw / imu) [pair 1/4]
+check:   camera-imu: /cam0/image_raw + /imu0 (intrinsics: camchain_minus3.yaml cam0) [0s elapsed]
+check:   camera-imu: /cam0/image_raw + /imu0 (intrinsics: camchain_minus3.yaml cam0) [2269/2636 msgs (86%), 30s elapsed, eta 5s]
+check: camera-imu (cam0/image_raw / imu) -> warn (37 s) [pair 1/4 done]
+check: running camera-imu (cam1/image_raw / imu) [pair 2/4]
+check:   camera-imu: /cam1/image_raw + /imu0 (intrinsics: camchain_minus3.yaml cam1) [0s elapsed]
+check:   camera-imu: /cam1/image_raw + /imu0 (intrinsics: camchain_minus3.yaml cam1) [2357/2636 msgs (89%), 30s elapsed, eta 4s]
+check: camera-imu (cam1/image_raw / imu) -> warn (35 s) [pair 2/4 done]
+check: running camera-focal (cam0/image_raw / imu) [pair 3/4]
+check:   camera-focal: /cam0/image_raw + /imu0 (intrinsics: camchain_minus3.yaml cam0) [0s elapsed]
+check:   camera-focal: /cam0/image_raw + /imu0 (intrinsics: camchain_minus3.yaml cam0) [2425/2636 msgs (92%), 30s elapsed, eta 3s]
+check: camera-focal (cam0/image_raw / imu) -> inconclusive (32 s) [pair 3/4 done]
+check: running camera-focal (cam1/image_raw / imu) [pair 4/4]
+check:   camera-focal: /cam1/image_raw + /imu0 (intrinsics: camchain_minus3.yaml cam1) [0s elapsed]
+check:   camera-focal: /cam1/image_raw + /imu0 (intrinsics: camchain_minus3.yaml cam1) [2431/2636 msgs (92%), 30s elapsed, eta 3s]
+check: camera-focal (cam1/image_raw / imu) -> warn (32 s) [pair 4/4 done]

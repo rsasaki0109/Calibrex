@@ -398,7 +398,7 @@ standing on the [leaderboard](docs/benchmarks/sota_leaderboard.md).
 
 | Pair | Native command | Public data used | Audit standing |
 |---|---|---|:---:|
-| camera (focal lengths) | `calibrex camera-imu focal` | Hilti 2022 | no_claim |
+| camera (focal lengths) | `calibrex check` (`camera-focal`), `calibrex camera-imu focal` | Hilti 2022; TUM-VI (dev room1; audit on room2–room6) | **supported** (1) |
 | camera ↔ IMU | `calibrex camera-imu rotation` | Hilti 2022 (dev exp21, exp07; audits on exp01-exp04, exp15-exp23 and exp05-exp18) | **supported** (1) / refuted (2) |
 | camera ↔ camera (stereo) | `calibrex check --pairs camera-camera` (rectified row offsets, rotation only; [tutorial](docs/tutorials/calibrex_check.md#camera-camera-a-stereo-pairs-rotation)) | Hilti 2022 (dev exp01, exp21; audit on twelve recordings) | refuted |
 | camera ↔ LiDAR | `calibrex check` / `estimate` / `drift` (targetless edge alignment, rotation only; [results](docs/benchmarks/camera_lidar_check.md)), `calibrex camera-lidar ...`, `calibrex demo kitti-lidar-camera-evidence` | KITTI raw (37 dev drives; audits on 23 and 18 drives) and Hilti 2022 (check), KITTI-shaped fixture, A2D2, ACFR | refuted |

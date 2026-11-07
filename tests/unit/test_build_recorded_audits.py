@@ -12,7 +12,9 @@ from tools import build_recorded_audits as builder
 ROOT = Path(__file__).resolve().parents[2]
 
 
-@pytest.mark.parametrize("spec", [builder.BOARD, builder.NCLT], ids=lambda s: s.protocol_id)
+@pytest.mark.parametrize(
+    "spec", [builder.BOARD, builder.NCLT, builder.TUMVI], ids=lambda s: s.protocol_id
+)
 def test_a_fresh_build_equals_the_committed_records(spec, tmp_path: Path) -> None:
     built = builder.build(dataclasses.replace(spec, output=tmp_path))
     committed = sorted(spec.output.glob("*.yaml"))
@@ -21,7 +23,7 @@ def test_a_fresh_build_equals_the_committed_records(spec, tmp_path: Path) -> Non
     for path in committed:
         fresh = (tmp_path / path.name).read_text().replace(str(tmp_path), here)
         assert fresh == path.read_text(), path.name
-    assert built["verdict"] == "refuted"
+    assert built["verdict"] == ("supported" if spec is builder.TUMVI else "refuted")
 
 
 def test_the_verdicts_are_the_recorded_ones() -> None:

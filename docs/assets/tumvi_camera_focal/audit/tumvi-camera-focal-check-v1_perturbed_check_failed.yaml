@@ -1,0 +1,628 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: tumvi-camera-focal-check-v1-perturbed_check_failed
+title: 'TUM-VI rooms, camera-focal check: check failed a 3 %-wrong focal length (1
+  = yes)'
+protocol:
+  protocol_id: tumvi-camera-focal-check-v1
+  dataset_id: tum_vi
+  dataset_source_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+  data_license: CC BY 4.0
+  split_policy: One recording per split, as pre-registered; every case retained.
+  splits:
+  - split_id: room2/cam0/plus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 67c520bc94e0566c80a489c0bef4a8fffa9004cec9701da6df5462e057326e8d
+    holdout_ids_sha256: aa445555ca34874e2df05454d5320d8626ff7f00307774b288478e84a7301fa2
+  - split_id: room2/cam1/plus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 1cc7eb24f69802dbc08a02c370d21071769f94879b043b16b8599798db2aed73
+    holdout_ids_sha256: fe6a4a7df5456182ff715726a17f2bfcdae215bebfdfde74ffaadd69e73eeb8f
+  - split_id: room2/cam0/minus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 0e84a58947c9963c43215d68e3797f5d0c4d7a1ea8ff0e8cade46b396261f107
+    holdout_ids_sha256: 1ed8f67a4a9b0dac9e43b30be531f69671c8cd854c6156ba9f1a05f6c7a7776f
+  - split_id: room2/cam1/minus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: e5030345c02376dfb6f72dc3df1c8c8b8c27cd37f23c4a6eadb7363501e1a521
+    holdout_ids_sha256: 6828dd80acee33154d7f491889a9d518a55f28f44b11e0a5320d313a0e0b800f
+  - split_id: room3/cam0/plus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 849eb556687cb35e7186d3a0272101c43920231fed26abf1ce66a3a90a2a0ddc
+    holdout_ids_sha256: df16a8d7b85e129b2f9ebde32cd84a9ece55be67d9413946cabd3c8e8cdcecd6
+  - split_id: room3/cam1/plus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 1682e550d19a5f726ac1020e595267e685886855a7255a73f275b0b96b6bf055
+    holdout_ids_sha256: 0d3110e8e78a95ce9d7b34ece973ef1082ddc11dfe8e8e1ba79d8c0a2a7de7d6
+  - split_id: room3/cam0/minus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: d3a31e65993beb3910a50839c3cd8dde568526ffb6f7c99d00abc39508403de0
+    holdout_ids_sha256: 1d90fdcbb957189f09676e4452f1fdc85f10254d2a48e994ed508073b31daea3
+  - split_id: room3/cam1/minus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 5cc0bc172339c624ec480951d1a94625efee573e0e7b32e5519f3598206ff041
+    holdout_ids_sha256: d58aa0d94c2961f6f2ff8d52d10d428062a6a63381da98f3c086bc16a5d57b5e
+  - split_id: room4/cam0/plus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 3892723605fc7c892a3c05ee7c092f5b5cabca2f32a17caeb51bd3ccaf0d56e0
+    holdout_ids_sha256: 7111f5580e9e19560a88f05c5b0ad2a0a14eefc7dec290da8e560e0f8e091498
+  - split_id: room4/cam1/plus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 5a9719970b8aa342dac2b4e6b23405cec647e56512e03162f70072943979ce99
+    holdout_ids_sha256: ce23b25c9a563b3173281a778bb20e62976526704b8df680796da37bdbf808f9
+  - split_id: room4/cam0/minus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: dddfee9dcf98b154290bc22b2679b8b175eeea6a8ad527380fd7ad1f4f99e1b1
+    holdout_ids_sha256: 53fb341b6a737b42521db8d814612224aa994efb6d409b8feb42b366219827eb
+  - split_id: room4/cam1/minus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 2f4ee50923565f978a0b7943a0560cdccf88378ba35b947b1aa03c091c902271
+    holdout_ids_sha256: 2ee59bb989bda613e14316d57daa500a1c94ec8c3a4102b23d4821e0e9842e85
+  - split_id: room5/cam0/plus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: ff8817f8270e4dcbadacdfa420d7461ebcf50a82345ba4844174a574c82ad110
+    holdout_ids_sha256: 8a21f538fff5477150d9071f23a20ce0a25ce72649360d69907e2d9acf7bd70f
+  - split_id: room5/cam1/plus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: d3e4aa57bfa7027dc59bbb1c7fe30c7058879c57395b88a745b1a9d063cb8d7e
+    holdout_ids_sha256: 2bac9d3a4874ecdde7cf98b7e8bb3d64cbfba61033c5c193a1ba350a0a063d6f
+  - split_id: room5/cam0/minus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: c4ae3e55408cdef46cb2213c38a4dc1bff3f3f17f3ca4be2dc7b694c0949a85a
+    holdout_ids_sha256: cd94a3f84930a3da8e73f3c3ed80521949bca1fefb95713a9d450a4a36ed24ad
+  - split_id: room5/cam1/minus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: c00bea0cf18d90a7b515c2fdf429e797df779bcec9b59dd7a7e8db40d06f8340
+    holdout_ids_sha256: e75de1849c74d0bf7b21e5dfc64e644ff74b2c6101a92cf56ce2c4bce617d781
+  - split_id: room6/cam0/plus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 3c5008666f57882293f58bfbad541a58e13c8182692b17736a8cdde06941416c
+    holdout_ids_sha256: 0a597b05b718f40c78462a7ab337c986e43e2badfcbbba8fe11ac2dffa81317c
+  - split_id: room6/cam1/plus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: e28a81329978589de5751936f9904ac4b6896793137e0adfdb08581fa7119fc9
+    holdout_ids_sha256: 687aaedb39f3510309bc2d298d55bcdf21a943fbd872a083a6add4f92861705d
+  - split_id: room6/cam0/minus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 3e5b99d22a7156ee40d57c0e3b1756ce8b308354f124bd7dc5a0d0bd3f65e5ea
+    holdout_ids_sha256: c123f1a18031acd40ad84b04cdc3ca36a7c4488393d41cbfaacac1e05184da9e
+  - split_id: room6/cam1/minus3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 90f65cce6ff8963a6f80f97a55a6dbccb70e98c30a2d116d7f8f9af1e66a2a84
+    holdout_ids_sha256: 574181453d511c8aef1c9c738e39d05cd203028277c6decd7eee1bf78a83ab46
+  initial_estimate_policy: As pre-registered; the reference is never an input.
+  tuning_policy: Method and gates frozen before the single run; nothing tuned after.
+  failure_policy: A case without an estimate is a failed trial with its reason.
+metrics:
+- name: perturbed_check_failed
+  label: check failed a 3 %-wrong focal length (1 = yes)
+  unit: ratio
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: Lower is better; the dataset calibration is a reference estimate.
+methods:
+- method_id: reference_zero_anchor
+  label: Mathematical zero anchor (not an empirical calibration method)
+  implementation: imported
+  tool_name: dataset_reference_zero
+- method_id: calibrex_camera_focal_check
+  label: calibrex check camera-focal (camera angular rates against the gyro)
+  implementation: calibrex_native
+  tool_name: calibrex
+trials:
+- method_id: reference_zero_anchor
+  split_id: room2/cam0/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room2/cam0/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room2/cam1/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room2/cam1/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room2/cam0/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room2/cam0/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room2/cam1/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room2/cam1/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room3/cam0/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room3/cam0/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room3/cam1/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room3/cam1/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room3/cam0/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room3/cam0/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room3/cam1/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room3/cam1/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room4/cam0/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room4/cam0/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room4/cam1/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room4/cam1/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room4/cam0/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room4/cam0/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 1.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room4/cam1/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room4/cam1/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 1.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room5/cam0/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room5/cam0/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room5/cam1/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room5/cam1/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 1.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room5/cam0/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room5/cam0/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 1.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room5/cam1/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room5/cam1/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 1.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room6/cam0/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room6/cam0/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 1.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room6/cam1/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room6/cam1/plus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room6/cam0/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room6/cam0/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: room6/cam1/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+- method_id: calibrex_camera_focal_check
+  split_id: room6/cam1/minus3
+  status: success
+  metrics:
+    perturbed_check_failed: 0.0
+  provenance:
+    command: recorded tumvi-camera-focal-check-v1 case
+    config_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    input_sha256: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    notes: []
+method_summaries:
+  reference_zero_anchor:
+    method_id: reference_zero_anchor
+    trial_count: 20
+    success_count: 20
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      perturbed_check_failed:
+        metric: perturbed_check_failed
+        distribution:
+          count: 20
+          mean: 0.0
+          median: 0.0
+          standard_deviation: 0.0
+          minimum: 0.0
+          maximum: 0.0
+          p90: 0.0
+          p95: 0.0
+          mean_ci95_low: 0.0
+          mean_ci95_high: 0.0
+        rank: 1
+  calibrex_camera_focal_check:
+    method_id: calibrex_camera_focal_check
+    trial_count: 20
+    success_count: 20
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      perturbed_check_failed:
+        metric: perturbed_check_failed
+        distribution:
+          count: 20
+          mean: 0.3
+          median: 0.0
+          standard_deviation: 0.458257569495584
+          minimum: 0.0
+          maximum: 1.0
+          p90: 1.0
+          p95: 1.0
+          mean_ci95_low: 0.1
+          mean_ci95_high: 0.5
+        rank: 2
+paired_comparisons:
+- reference_method_id: reference_zero_anchor
+  candidate_method_id: calibrex_camera_focal_check
+  metric: perturbed_check_failed
+  direction: lower
+  paired_count: 20
+  raw_delta_mean: 0.3
+  improvement_mean: -0.3
+  improvement_ci95_low: -0.5
+  improvement_ci95_high: -0.1
+reference_method_id: reference_zero_anchor
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- The zero anchor is not an empirical competitor.
+- Built from the committed run records; nothing was re-run.
+provenance:
+  generator: tools.build_recorded_audits
+  generator_version: 0.6.1
+  generated_at: recorded
+  command: python tools/build_recorded_audits.py
+  source_artifacts:
+    docs/assets/tumvi_camera_focal/evaluation/summary.json: 1f9d01487f9a6cf1c46c5c2e198b364600d8c1de8f222aa1f706fbd4ce37b704
+    docs/benchmarks/tumvi_camera_focal_preregistration.yaml: 4019b782fa9b9235446ef31d06ec900044e615f212e578c098bc701a37246805
+  data_verified: true
