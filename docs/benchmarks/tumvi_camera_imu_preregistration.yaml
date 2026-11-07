@@ -25,6 +25,9 @@
 # that axis.  The dataset calibration is reference evidence, not ground truth.
 #
 # Of the five sequences only the bags' sizes and ETags (HEAD requests) have been read.
+# Revised once before any run: frozen_code_commit moved from 12fbbe2a to a commit whose
+# only change makes the harness resume a cut-off download from the bytes on disk (curl's
+# --retry restarts from the beginning, so a 6-7 GB bag cut by the proxy would never finish).
 # The reference is the camchain already pinned by the camera-focal audit (TUM-VI's own
 # calibration recording, not a sequence).
 claims:
@@ -94,4 +97,4 @@ analysis_plan: >-
   Report per case the verdict and the per-axis error, std and tolerance, and both claims'
   verdicts, in docs/benchmarks/hilti_camera_imu.md (the camera-imu page), whatever they
   are; record the five sequences as spent in docs/sota_handoff.md.
-frozen_code_commit: 12fbbe2a0116dd66ae4651a5837a7bdb5b6e9619
+frozen_code_commit: db74694a785464363e505879429ae8be8b14cdc0
