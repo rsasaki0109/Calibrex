@@ -1,0 +1,173 @@
+schema_version: slac.imu_lidar_rotation/v0.1
+method: angular_rate_alignment/v0.1
+sensor_modality: camera
+solver_status: converged
+policy_status: pass
+policy_reasons:
+- every rotation axis is estimated and held-out windows detect every control
+calibrated_dofs:
+- roll
+- pitch
+- yaw
+- time_offset
+- gyro_bias_x
+- gyro_bias_y
+- gyro_bias_z
+rotation_quat_xyzw:
+- -0.011872149622538318
+- -0.6967172927165959
+- 0.7172145421895523
+- -0.006882337163222357
+time_offset_s: 0.00014019911510650506
+gyro_bias_rps:
+- 0.0017785250331084608
+- 0.0004582844783755685
+- 0.0007366574207167884
+dofs:
+- name: roll
+  unit: deg
+  value: -88.34401465201435
+  std_analytic: 0.04840257981484121
+  std_jackknife: 0.015220201785209386
+  std_reported: 0.04840257981484121
+  status: estimated
+  reference_value: -88.02657811453149
+  error_to_reference: 0.30457705265961044
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 283.01479701005155
+    detected: true
+- name: pitch
+  unit: deg
+  value: 1.5253848631584948
+  std_analytic: 0.0909427254545684
+  std_jackknife: 0.10807848506584336
+  std_reported: 0.10807848506584336
+  status: estimated
+  reference_value: -0.28711027860112476
+  error_to_reference: -1.8146948682569162
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 81.35702016618052
+    detected: true
+- name: yaw
+  unit: deg
+  value: 179.6176507325279
+  std_analytic: 0.04845643442797576
+  std_jackknife: 0.06377912726475858
+  std_reported: 0.06377912726475858
+  status: estimated
+  reference_value: 179.5701623027
+  error_to_reference: 0.050914638632310265
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 317.9983486503188
+    detected: true
+- name: time_offset
+  unit: s
+  value: 0.00014019911510650506
+  std_analytic: 0.00012010987955628352
+  std_jackknife: 0.00023941012206624574
+  std_reported: 0.00023941012206624574
+  status: estimated
+  known_bad_control:
+    amount: 0.01
+    unit: s
+    holdout_delta_chi2: 2436.4007564366566
+    detected: true
+- name: gyro_bias_x
+  unit: rad/s
+  value: 0.0017785250331084608
+  std_analytic: 0.0004848800288659843
+  std_jackknife: 0.0013493175759305921
+  std_reported: 0.0013493175759305921
+  status: estimated
+- name: gyro_bias_y
+  unit: rad/s
+  value: 0.0004582844783755685
+  std_analytic: 0.000463772498449662
+  std_jackknife: 0.00034779970039790865
+  std_reported: 0.000463772498449662
+  status: estimated
+- name: gyro_bias_z
+  unit: rad/s
+  value: 0.0007366574207167884
+  std_analytic: 0.0004921810714183958
+  std_jackknife: 0.0007732332534006361
+  std_reported: 0.0007732332534006361
+  status: estimated
+options:
+  holdout_every: 3
+  jackknife_groups: 8
+  rotation_control_deg: 1.0
+  time_control_s: 0.01
+  detection_delta_chi2: 9.0
+  window_duration_s: 10.0
+  local_map_scans: 5
+  deskew_iterations: 1
+  gyro_deskew_passes: 5
+  deskew_convergence_sigma: 0.25
+  feedback_check_deg: 2.0
+  model: preintegrated
+  pair_steps:
+  - 1
+  rate_sigma_floor_rps: 0.01
+  rate_sigma_fraction: 0.02
+  observable_rotation_std_deg: 0.3
+  observable_time_offset_std_s: 0.002
+  frame_stride: 2
+  visual_rotation:
+  - bag: dataset-corridor5_512_16.bag
+    pairs: 2956
+    essential: 2756
+    pure_rotation: 183
+    failed: 17
+  min_window_rotation_deg: 1.0
+  static_windows_excluded: 0
+  static_windows_excluded_reason: 'accumulated window rotation below 1 deg: near-static
+    windows carry no rotation information'
+  essential_inlier_fraction: 0.0
+  max_features: 600
+windows:
+  scans_read: 2957
+  odometry_segments: 18
+  unreliable_registrations: 17
+  windows: 35
+  rate_intervals: 2907
+  imu_samples: 58961
+train_windows: 23
+holdout_windows: 12
+jackknife_fits: 8
+train_median_rate_residual_rps: 0.039358757514402765
+holdout_median_rate_residual_rps: 0.04236610072197789
+reference: deployed candidate calibration (T_cam_imu)
+deskew_passes: []
+limitations:
+- 'Camera rotations come from tracked features: essential-matrix fits, or pure-rotation
+  fits for small-baseline pairs, whose parallax bias grows with near scenes.'
+- 'The artifact calls the camera frame ''lidar'': the rotation is that of T_cam_imu.'
+- The reference, when given, is a target-based calibration (for example Kalibr); it
+  is a comparison, not ground truth.
+provenance:
+  generator: calibrex.evaluation.camera_imu_rotation
+  generator_version: 0.6.1
+  git_commit: fa426478
+  command:
+  - calibrex
+  - check
+  - /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/imu-work/dataset-corridor5_512_16.bag
+  - camera-imu
+  - /cam0/image_raw
+  - /imu0
+  dataset_family: calibrex-check
+  sequence_ids:
+  - dataset-corridor5_512_16.bag
+  stream_profile: ros2-image:/cam0/image_raw+imu:/imu0
+  input_sha256: c2dee964f87a7888b06c9a912288adb3a5a2053b06f9dd7a1cbd2f8caa21f576
+  input_digest_scope: bag metadata.yaml in full; bag databases by size and first 64
+    MiB
+  dataset_license: user-provided
+  created_at: '2026-11-07T06:29:45.067183+00:00'

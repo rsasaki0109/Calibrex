@@ -13,7 +13,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.parametrize(
-    "spec", [builder.BOARD, builder.NCLT, builder.TUMVI], ids=lambda s: s.protocol_id
+    "spec",
+    [builder.BOARD, builder.NCLT, builder.TUMVI, builder.TUMVI_IMU],
+    ids=lambda s: s.protocol_id,
 )
 def test_a_fresh_build_equals_the_committed_records(spec, tmp_path: Path) -> None:
     built = builder.build(dataclasses.replace(spec, output=tmp_path))
@@ -39,6 +41,13 @@ def test_the_verdicts_are_the_recorded_ones() -> None:
     )
     assert board["verdict"] == "refuted"
     assert {r["status"] for r in board["requirements"]} <= {"contradicted", "incomplete"}
+    imu = yaml.safe_load(
+        (builder.TUMVI_IMU.output / "tumvi-camera-imu-check-v1_sota_audit.yaml").read_text()
+    )
+    statuses = {r["requirement_id"]: r["status"] for r in imu["requirements"]}
+    # check never failed Kalibr, but passed a 2 deg pitch turn where pitch was unchecked
+    assert statuses.pop("detection-no-pass") == "contradicted"
+    assert set(statuses.values()) == {"achieved"}
 
 
 def test_the_leaderboard_lists_both() -> None:
@@ -49,4 +58,5 @@ def test_the_leaderboard_lists_both() -> None:
     assert {
         "docs/assets/nclt_lidar_wheel/audit/nclt-lidar-wheel-odometry-v1_sota_audit.yaml",
         "docs/assets/kitti_board_camera_lidar/audit/kitti-board-camera-lidar-v1_sota_audit.yaml",
+        "docs/assets/tumvi_camera_imu/audit/tumvi-camera-imu-check-v1_sota_audit.yaml",
     } <= paths

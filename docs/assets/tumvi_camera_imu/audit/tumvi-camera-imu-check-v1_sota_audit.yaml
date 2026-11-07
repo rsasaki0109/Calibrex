@@ -1,0 +1,75 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: tumvi-camera-imu-check-v1-audit
+protocol_id: tumvi-camera-imu-check-v1
+scope:
+  modalities:
+  - camera
+  - imu
+  quantities:
+  - rotation
+  category: targetless_camera_imu_check
+claim_text: On TUM-VI's corridor1-corridor5 (both fisheye cameras), calibrex check
+  never fails camera-imu with Kalibr's camchain and judges a rotation axis on at least
+  50 % of the cases; with T_cam_imu turned 2 deg about a camera axis it passes none
+  and fails at least 50 % on the turned axis.
+verdict: refuted
+achieved_dataset_families:
+- tum_vi
+achieved_independent_rig_count: 1
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: honesty-no-fail
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/tumvi_camera_imu/audit/tumvi-camera-imu-check-v1_kalibr_check_failed.yaml
+  evidence_sha256: 2e2b51e47da60579d655c2792ed530cae4747f7346d3246fc44a11a03fcdcfb9
+- requirement_id: honesty-judged
+  required: true
+  status: achieved
+  observed_value: 1.0
+  threshold: 0.5
+  reason: observed 1 meets greater_equal 0.5
+  evidence_path: docs/assets/tumvi_camera_imu/audit/tumvi-camera-imu-check-v1_kalibr_rotation_judged.yaml
+  evidence_sha256: 8cdc12845d359957babab79890fd919e21dc1a018837cc111ef960c3c5641208
+- requirement_id: detection-no-pass
+  required: true
+  status: contradicted
+  observed_value: 1.0
+  threshold: 0.0
+  reason: observed 1 does not meet less_equal 0
+  evidence_path: docs/assets/tumvi_camera_imu/audit/tumvi-camera-imu-check-v1_turned_check_passed.yaml
+  evidence_sha256: 2458f6c73d0f988f8bc43fe54cdffca375c4c1962901b6ec3edc724e9e6d9a81
+- requirement_id: detection-fail
+  required: true
+  status: achieved
+  observed_value: 0.8666666666666667
+  threshold: 0.5
+  reason: observed 0.866666666667 meets greater_equal 0.5
+  evidence_path: docs/assets/tumvi_camera_imu/audit/tumvi-camera-imu-check-v1_turned_axis_failed.yaml
+  evidence_sha256: 0741a596620993ca53d7a344538d215c7d47ba3713feb0790c7021223b7a8872
+- requirement_id: completion
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/tumvi_camera_imu/audit/tumvi-camera-imu-check-v1_kalibr_check_failed.yaml
+  evidence_sha256: 2e2b51e47da60579d655c2792ed530cae4747f7346d3246fc44a11a03fcdcfb9
+summary: At least one frozen required numerical or integrity gate is contradicted;
+  the declared SOTA claim is not supported.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.6.1
+  command: []
+  source_sha256:
+    protocol: 2b8821964b3b93715d84b0162fcea491ca33bdabbd7deca3eed4234d4e2b44c5
+    honesty-no-fail: 2e2b51e47da60579d655c2792ed530cae4747f7346d3246fc44a11a03fcdcfb9
+    honesty-judged: 8cdc12845d359957babab79890fd919e21dc1a018837cc111ef960c3c5641208
+    detection-no-pass: 2458f6c73d0f988f8bc43fe54cdffca375c4c1962901b6ec3edc724e9e6d9a81
+    detection-fail: 0741a596620993ca53d7a344538d215c7d47ba3713feb0790c7021223b7a8872
+    completion: 2e2b51e47da60579d655c2792ed530cae4747f7346d3246fc44a11a03fcdcfb9
+  created_at: recorded

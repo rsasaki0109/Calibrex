@@ -34,7 +34,7 @@ pre-registered audit marks `supported`. Five things follow from that:
 | --- | --- | --- | --- |
 | `imu-lidar` | supported | rotation+clock (4/4), full extrinsic v2 (4/4); full extrinsic v1 refuted (0/8) | [MID360](benchmarks/mid360_imu_lidar.md) |
 | `lidar-vehicle` | supported | KITTI motion-only rotation, 8 drives (3/3) | [KITTI lidar-vehicle](benchmarks/kitti_lidar_vehicle.md) |
-| `camera-imu` | supported | Hilti v3 per-axis verdicts (7/7); v1 (6/7) and v2 (5/7) refuted | [Hilti camera-IMU](benchmarks/hilti_camera_imu.md) |
+| `camera-imu` | supported | Hilti v3 per-axis verdicts (7/7); v1 (6/7) and v2 (5/7) refuted; TUM-VI check audit refuted (4/5: never failed Kalibr, but passed 4 of 30 2 deg turns, all about an unchecked pitch) | [Hilti camera-IMU](benchmarks/hilti_camera_imu.md) |
 | `camera-lidar` | refuted | KITTI check v1 (5/9), v2 (8/9) | [v2](benchmarks/kitti_camera_lidar_v2_check.md), [v1](benchmarks/kitti_camera_lidar_check.md) |
 | `camera-camera` | refuted | Hilti (4/6): accurate, but a 1 deg turn was flagged in only 70 % of trials | [Hilti camera SOTA](benchmarks/hilti_camera_sota.md) |
 | `lidar-lidar` | refuted | NTU VIRAL (2/4): accurate, but does not beat scan-to-scan; cross-recording consistency 1.143 against 1.0 | [NTU VIRAL](benchmarks/ntu_viral_lidar_lidar.md) |
@@ -119,6 +119,7 @@ calibrex sota leaderboard \
   docs/assets/ins_lidar_sota_readiness/evaluation/audit/ins_lidar_sota_audit.yaml \
   docs/assets/nclt_lidar_wheel/audit/nclt-lidar-wheel-odometry-v1_sota_audit.yaml \
   docs/assets/tumvi_camera_focal/audit/tumvi-camera-focal-check-v1_sota_audit.yaml \
+  docs/assets/tumvi_camera_imu/audit/tumvi-camera-imu-check-v1_sota_audit.yaml \
   --output docs/assets/sota_leaderboard.json \
   --target-pair camera-lidar --target-pair lidar-lidar --target-pair imu-lidar \
   --target-pair camera-imu --target-pair camera --target-pair camera-camera \
@@ -165,6 +166,7 @@ The camera-imu v3 audit did exactly this with the camera-camera runs.
 | ACSC sample (Livox Horizon + checkerboard) | board-based `camera-lidar` development | the whole sample (21 board poses; [board camera-LiDAR](benchmarks/board_camera_lidar.md)) |
 | TUM-VI | `camera-focal` and `camera-imu` development | room1 (512_16 calibrated bag; camera-imu also with T_cam_imu turned 2 deg) |
 | TUM-VI | `camera-focal` evaluation (supported; `camera-imu` ran with it, now camera-imu development) | room2, room3, room4, room5, room6 (read once by the frozen harness; [pre-registration](benchmarks/tumvi_camera_focal_preregistration.yaml)) |
+| TUM-VI | `camera-imu` check evaluation (honesty supported, detection refuted) | corridor1, corridor2, corridor3, corridor4, corridor5 (read once by the frozen harness; [pre-registration](benchmarks/tumvi_camera_imu_preregistration.yaml)) |
 | NCLT | `lidar-wheel_odometry` development | 2012-01-08 (from 60 s: 2, 10, 20 and 30 minutes; its ground truth read to find the converter's scan-period error) |
 | NCLT | `lidar-wheel_odometry` evaluation (refuted) | 2012-02-02, 2012-05-11, 2012-08-04, 2012-11-04, 2013-02-23 (one hour each from 60 s, read once by the frozen harness; [pre-registration](benchmarks/nclt_lidar_wheel_preregistration.yaml)); afterwards development data for the [within- and between-session analysis](benchmarks/lidar_wheel_odometry.md#development-after-the-audit-the-stds-hold-within-a-recording-the-vehicle-frame-moves-between-recordings) |
 
@@ -580,6 +582,10 @@ reads.
 - **camera-camera** needs better 1 deg detection on Hilti before a new round.
 - **lidar-lidar** needs cross-recording consistency, and a comparison with scan-to-scan
   that the method wins.
+- **camera-imu check (TUM-VI)** passed a 2 deg turn whenever the turned axis was
+  unchecked: a `pass` covers only the judged axes. A next round would gate the turned
+  axes only where they are judged (with a coverage floor), or make check refuse to
+  `pass` a partial pair; either must be pre-registered on new unseen sequences.
 
 ### 4. Lower priority
 

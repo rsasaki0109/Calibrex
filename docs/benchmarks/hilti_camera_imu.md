@@ -610,6 +610,55 @@ Honesty and detection on the unseen corridor1–corridor5 are
 [pre-registered](tumvi_camera_imu_preregistration.yaml).
 [Development records](../assets/tumvi_camera_imu/development/room1_rx2.json).
 
+### Result: camera-imu check honesty supported, detection refuted
+
+The [pre-registered](tumvi_camera_imu_preregistration.yaml) audit ran once on 2026-11-07,
+from a worktree at the pre-registration commit (fa426478), whose `src/` and `tools/` equal
+`frozen_code_commit` (db74694a). Each case is one sequence, one camera and one candidate;
+the cell is camera-imu's verdict, with the turned axis's error in deg (for Kalibr, the
+largest judged error).
+
+| Sequence | Camera | Kalibr | turned about x (roll) | about y (pitch) | about z (yaw) |
+| --- | --- | --- | --- | --- | --- |
+| corridor1 | cam0 | pass (max 0.10 yaw) | fail (roll 2.06) | fail (pitch 2.08) | fail (yaw 1.90) |
+| corridor1 | cam1 | pass (max 0.18 pitch) | fail (roll 1.90) | fail (pitch 2.18) | fail (yaw 2.02) |
+| corridor2 | cam0 | pass (max 0.29 roll) | fail (roll 1.71) | fail (pitch 1.86) | fail (yaw 2.04) |
+| corridor2 | cam1 | pass (max 0.27 roll), pitch unchecked | fail (roll 1.73) | **pass** (pitch unchecked) | fail (yaw 2.11) |
+| corridor3 | cam0 | pass (max 0.31 roll) | fail (roll 1.69) | fail (pitch 2.17) | fail (yaw 2.00) |
+| corridor3 | cam1 | pass (max 0.37 roll) | fail (roll 1.63) | fail (pitch 2.14) | fail (yaw 1.99) |
+| corridor4 | cam0 | pass (max 0.42 roll), pitch unchecked | fail (roll 1.58) | **pass** (pitch unchecked) | fail (yaw 1.89) |
+| corridor4 | cam1 | pass (max 0.44 roll), pitch unchecked | fail (roll 1.56) | **pass** (pitch unchecked) | fail (yaw 1.95) |
+| corridor5 | cam0 | pass (max 0.30 roll) | fail (roll 1.70) | fail (pitch 1.81) | fail (yaw 1.94) |
+| corridor5 | cam1 | pass (max 0.30 roll), pitch unchecked | fail (roll 1.70) | **pass** (pitch unchecked) | fail (yaw 1.92) |
+
+- **Honesty: supported.**
+  - Check never failed Kalibr's T_cam_imu.
+  - It judged rotation axes on 10 of 10 cases (gate 50 %), all three axes on 6.
+- **Detection: refuted.**
+  - Check passed 4 of the 30 turned cases (gate: none). All four are the pitch turn on a
+    case where pitch was not judged:
+    - corridor2 cam1 and corridor4 cam0: the estimator's 1 deg known-bad control on
+      pitch was not detected on held-out windows;
+    - corridor4 cam1 and corridor5 cam1: pitch was not constrained by the data.
+  - Check printed `pass (partial: roll, yaw only)` and a partial-coverage warning on each.
+  - The other 26 (87 %, gate 50 %) failed on the turned axis. Every turned axis that
+    was judged failed (26 of 26), at 1.56–2.18 deg.
+- **The estimate reads roll 0.27–0.44 deg below Kalibr's** on every corridor case on both
+  cameras. This is within the 0.5 deg tolerance, and room6 read the same (0.33, 0.39).
+  No accuracy is claimed.
+
+What this means for a user:
+
+- `calibrex check` did not flag a correct camera-IMU rotation on these fisheye recordings.
+- A 2 deg error on an axis it judges is flagged on that axis.
+- A `pass` with unchecked axes vouches only for the judged axes. Check says so in the
+  verdict (`partial`) and in a warning, but with `--fail-on fail` (the default) it still
+  exits 0. A 2 deg error on an unchecked axis passes.
+
+[Run records](../assets/tumvi_camera_imu/evaluation/summary.json);
+[audit record](../assets/tumvi_camera_imu/audit/tumvi-camera-imu-check-v1_sota_audit.yaml).
+The five sequences are spent.
+
 ## Next steps
 
 - Understand the side-camera errors.
