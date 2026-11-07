@@ -676,6 +676,51 @@ at least 50 % failed on the turned axis) are
 [pre-registered](tumvi_camera_imu_v2_preregistration.yaml) on the five smallest unseen
 sequences: slides1–slides3, magistrale3 and magistrale5. v1 stays refuted.
 
+### Result v2: supported, `--fail-on partial` flags every turned case
+
+The [pre-registered](tumvi_camera_imu_v2_preregistration.yaml) audit ran once on
+2026-11-07, from a worktree at the pre-registration commit (7899e471), whose `src/` and
+`tools/` equal `frozen_code_commit` (317339c1). The four candidates of a sequence shared
+one estimator cache. The cell is camera-imu's verdict, with the turned axis's error in deg
+(for Kalibr, the largest judged error). *partial* marks a pass that left an axis
+unchecked; it exits 1 under `--fail-on partial`.
+
+| Sequence | Camera | Kalibr | turned about x (roll) | about y (pitch) | about z (yaw) |
+| --- | --- | --- | --- | --- | --- |
+| slides2 | cam0 | pass, partial: pitch unchecked (max 0.22 yaw) | fail (roll 1.92) | **pass, partial: pitch unchecked** | fail (yaw 1.78) |
+| slides2 | cam1 | pass, partial: pitch unchecked (max 0.17 roll) | fail (roll 1.83) | **pass, partial: pitch unchecked** | fail (yaw 1.85) |
+| slides1 | cam0 | pass (max 0.17 roll) | fail (roll 2.17) | fail (pitch 2.01) | fail (yaw 1.90) |
+| slides1 | cam1 | pass (max 0.27 pitch) | fail (roll 1.90) | fail (pitch 2.27) | fail (yaw 1.94) |
+| slides3 | cam0 | pass (max 0.08 roll) | fail (roll 1.92) | fail (pitch 1.99) | fail (yaw 2.01) |
+| slides3 | cam1 | pass (max 0.19 roll) | fail (roll 1.81) | fail (pitch 2.06) | fail (yaw 1.88) |
+| magistrale5 | cam0 | pass (max 0.20 pitch) | fail (roll 2.02) | fail (pitch 1.80) | fail (yaw 1.93) |
+| magistrale5 | cam1 | pass (max 0.17 pitch) | fail (roll 1.96) | fail (pitch 2.17) | fail (yaw 1.90) |
+| magistrale3 | cam0 | pass (max 0.20 pitch) | fail (roll 1.94) | fail (pitch 1.80) | fail (yaw 1.84) |
+| magistrale3 | cam1 | pass (max 0.12 roll) | fail (roll 1.88) | fail (pitch 2.10) | fail (yaw 2.01) |
+
+- **Honesty: supported.**
+  - Check never failed Kalibr's T_cam_imu.
+  - It passed with full coverage on 8 of 10 cases (gate 50 %).
+  - Both slides2 cameras left pitch unchecked; under `--fail-on partial` those two runs
+    exit 1 although the calibration is right.
+- **Detection: supported.**
+  - Under `--fail-on partial` no turned case exits 0 (gate: none). The slides2 pitch turns
+    passed with pitch unchecked, as in v1, and are now flagged.
+  - 28 of 30 failed on the turned axis (gate 50 %), at 1.78–2.27 deg.
+- **The same pattern as v1.** Every judged turned axis failed; the misses are an axis the
+  recording could not judge.
+
+What this means for a user:
+
+- With `--fail-on partial`, a 2 deg camera-IMU rotation error did not get through on these
+  recordings.
+- The price is a non-zero exit on a correct calibration when the recording cannot judge an
+  axis (2 of 10 here). Re-record with more rotation about that axis.
+
+[Run records](../assets/tumvi_camera_imu_v2/evaluation/summary.json);
+[audit record](../assets/tumvi_camera_imu_v2/audit/tumvi-camera-imu-check-v2_sota_audit.yaml).
+The five sequences are spent.
+
 ## Next steps
 
 - Understand the side-camera errors.

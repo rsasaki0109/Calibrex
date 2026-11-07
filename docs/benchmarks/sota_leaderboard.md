@@ -28,6 +28,11 @@ As of 2026-11-07, **four pairs have supported SOTA claims**:
     ([refuted, 4 of 5 gates](hilti_camera_imu.md#result-camera-imu-check-honesty-supported-detection-refuted)):
     check never failed Kalibr's T_cam_imu on five unseen corridors, but passed 4 of 30
     T_cam_imu turned 2 deg about pitch, each time with pitch left unchecked.
+  - **v2, with `--fail-on partial`: supported, 5 of 5 gates**
+    ([result](hilti_camera_imu.md#result-v2-supported-fail-on-partial-flags-every-turned-case)).
+    - On five more unseen TUM-VI sequences, check never failed Kalibr and fully passed
+      8 of 10.
+    - It flagged all 30 turned cases and failed 28 of them on the turned axis.
 
 - **`camera`** (focal lengths; TUM-VI fisheye, against Kalibr): check's honesty and
   detection on five unseen room sequences
@@ -86,7 +91,7 @@ pair has a native method but no audited claim yet.
 | --- | --- | ---: | ---: | ---: | --- |
 | `camera` | supported | 1 | 0 | 0 | yes |
 | `camera-camera` | refuted | 0 | 1 | 0 | yes |
-| `camera-imu` | supported | 1 | 3 | 0 | yes |
+| `camera-imu` | supported | 2 | 3 | 0 | yes |
 | `camera-lidar` | refuted | 0 | 3 | 0 | yes |
 | `gnss-imu` | no_claim | 0 | 0 | 0 | yes |
 | `imu-lidar` | supported | 2 | 1 | 0 | yes |
@@ -104,6 +109,7 @@ pair has a native method but no audited claim yet.
 | `camera-imu` | targetless_camera_imu | rotation, time_offset | refuted | 5/7 | `hilti-camera-imu-v2` |
 | `camera-imu` | targetless_camera_imu | rotation, time_offset | supported | 7/7 | `hilti-camera-imu-v3` |
 | `camera-imu` | targetless_camera_imu_check | rotation | refuted | 4/5 | `tumvi-camera-imu-check-v1` |
+| `camera-imu` | targetless_camera_imu_check | rotation | supported | 5/5 | `tumvi-camera-imu-check-v2` |
 | `camera-lidar` | target_board_camera_lidar | rotation, translation | refuted | 0/5 | `kitti-board-camera-lidar-v1` |
 | `camera-lidar` | targetless_camera_lidar_check | rotation | refuted | 5/9 | `kitti-camera-lidar-check-v1` |
 | `camera-lidar` | targetless_camera_lidar_check | rotation | refuted | 8/9 | `kitti-camera-lidar-check-v2` |

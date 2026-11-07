@@ -1,0 +1,76 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: tumvi-camera-imu-check-v2-audit
+protocol_id: tumvi-camera-imu-check-v2
+scope:
+  modalities:
+  - camera
+  - imu
+  quantities:
+  - rotation
+  category: targetless_camera_imu_check
+claim_text: On TUM-VI's slides1-slides3, magistrale3 and magistrale5 (both fisheye
+  cameras), calibrex check never fails camera-imu with Kalibr's camchain and passes
+  it with full coverage on at least 50 % of the cases; with T_cam_imu turned 2 deg
+  about a camera axis, --fail-on partial flags every case and check fails at least
+  50 % on the turned axis.
+verdict: supported
+achieved_dataset_families:
+- tum_vi
+achieved_independent_rig_count: 1
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: honesty-no-fail
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/tumvi_camera_imu_v2/audit/tumvi-camera-imu-check-v2_kalibr_check_failed.yaml
+  evidence_sha256: 5f5caa5bb3e7e1f7f741a35ae238ce353be570dfef4fab6df107921754625314
+- requirement_id: honesty-full-pass
+  required: true
+  status: achieved
+  observed_value: 0.8
+  threshold: 0.5
+  reason: observed 0.8 meets greater_equal 0.5
+  evidence_path: docs/assets/tumvi_camera_imu_v2/audit/tumvi-camera-imu-check-v2_kalibr_full_pass.yaml
+  evidence_sha256: bd98e0d057fa96e38c37d87f0bd90f1907e995faa6272f06017d4ed5729a803d
+- requirement_id: detection-none-unflagged
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/tumvi_camera_imu_v2/audit/tumvi-camera-imu-check-v2_turned_unflagged.yaml
+  evidence_sha256: cfeefa146cc49b98b1b760550b776907ac3c1c74065f0768b7b4ac43fce9836c
+- requirement_id: detection-fail
+  required: true
+  status: achieved
+  observed_value: 0.9333333333333333
+  threshold: 0.5
+  reason: observed 0.933333333333 meets greater_equal 0.5
+  evidence_path: docs/assets/tumvi_camera_imu_v2/audit/tumvi-camera-imu-check-v2_turned_axis_failed.yaml
+  evidence_sha256: 10269f3224426c302c03917910d9f568ce73fd8b0532a48a2b776425ce28de13
+- requirement_id: completion
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/tumvi_camera_imu_v2/audit/tumvi-camera-imu-check-v2_kalibr_check_failed.yaml
+  evidence_sha256: 5f5caa5bb3e7e1f7f741a35ae238ce353be570dfef4fab6df107921754625314
+summary: Every frozen required gate and declared dataset/rig coverage criterion is
+  achieved.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.6.2
+  command: []
+  source_sha256:
+    protocol: 391f14204295f77f94feab43d9bccbcc3704da7ca1728447e59f01f705a74eb0
+    honesty-no-fail: 5f5caa5bb3e7e1f7f741a35ae238ce353be570dfef4fab6df107921754625314
+    honesty-full-pass: bd98e0d057fa96e38c37d87f0bd90f1907e995faa6272f06017d4ed5729a803d
+    detection-none-unflagged: cfeefa146cc49b98b1b760550b776907ac3c1c74065f0768b7b4ac43fce9836c
+    detection-fail: 10269f3224426c302c03917910d9f568ce73fd8b0532a48a2b776425ce28de13
+    completion: 5f5caa5bb3e7e1f7f741a35ae238ce353be570dfef4fab6df107921754625314
+  created_at: recorded

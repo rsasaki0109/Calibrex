@@ -169,6 +169,33 @@
       "verdict": "refuted"
     },
     {
+      "achieved_dataset_families": [
+        "tum_vi"
+      ],
+      "achieved_independent_rig_count": 1,
+      "audit_id": "tumvi-camera-imu-check-v2-audit",
+      "audit_path": "docs/assets/tumvi_camera_imu_v2/audit/tumvi-camera-imu-check-v2_sota_audit.yaml",
+      "audit_schema_version": "slac.sota_audit_result/v0.1",
+      "audit_sha256": "9048952eafd5488bf54c1ec973c867375e736a0292937d18b34e0f63af8b21ba",
+      "claim_text": "On TUM-VI's slides1-slides3, magistrale3 and magistrale5 (both fisheye cameras), calibrex check never fails camera-imu with Kalibr's camchain and passes it with full coverage on at least 50 % of the cases; with T_cam_imu turned 2 deg about a camera axis, --fail-on partial flags every case and check fails at least 50 % on the turned axis.",
+      "pair_id": "camera-imu",
+      "protocol_id": "tumvi-camera-imu-check-v2",
+      "requirement_counts": {
+        "achieved": 5
+      },
+      "scope": {
+        "category": "targetless_camera_imu_check",
+        "modalities": [
+          "camera",
+          "imu"
+        ],
+        "quantities": [
+          "rotation"
+        ]
+      },
+      "verdict": "supported"
+    },
+    {
       "achieved_dataset_families": [],
       "achieved_independent_rig_count": 0,
       "audit_id": "kitti-board-camera-lidar-v1-audit",
@@ -474,7 +501,7 @@
       "pair_id": "camera-imu",
       "refuted_claims": 3,
       "standing": "supported",
-      "supported_claims": 1,
+      "supported_claims": 2,
       "target": true
     },
     {
@@ -563,6 +590,7 @@
       "docs/assets/nclt_lidar_wheel/audit/nclt-lidar-wheel-odometry-v1_sota_audit.yaml",
       "docs/assets/tumvi_camera_focal/audit/tumvi-camera-focal-check-v1_sota_audit.yaml",
       "docs/assets/tumvi_camera_imu/audit/tumvi-camera-imu-check-v1_sota_audit.yaml",
+      "docs/assets/tumvi_camera_imu_v2/audit/tumvi-camera-imu-check-v2_sota_audit.yaml",
       "--output",
       "docs/assets/sota_leaderboard.json",
       "--target-pair",
@@ -588,10 +616,10 @@
       "--target-pair",
       "lidar-wheel_odometry"
     ],
-    "created_at": "2026-11-07T06:38:48.131695+00:00",
+    "created_at": "2026-11-07T23:40:09.621770+00:00",
     "generator": "calibrex.evaluation.sota_leaderboard",
-    "generator_version": "0.6.1",
-    "git_commit": "fa426478"
+    "generator_version": "0.6.2",
+    "git_commit": "7899e471"
   },
   "schema_version": "slac.sota_leaderboard/v0.1"
 }
