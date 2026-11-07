@@ -1046,7 +1046,8 @@ def _verdict_lines(artifact: CalibrationCheckArtifact, color: bool = False) -> l
     if artifact.summary.partial_pairs:
         lines.append(
             f"WARNING: {artifact.summary.partial_pairs} pair(s) have partial coverage: "
-            "unchecked axes were not judged, so a pass covers only the judged axes"
+            "unchecked axes were not judged, so a pass covers only the judged axes "
+            "(--fail-on partial exits 1 on it)"
         )
     return lines
 

@@ -143,6 +143,24 @@ def judge_axis(estimate: AxisEstimate, options: VerdictOptions) -> CheckAxisJudg
     )
 
 
+FAIL_ON_CHOICES: tuple[str, ...] = ("fail", "warn", "inconclusive", "partial", "never")
+"""``calibrex check --fail-on`` levels. ``partial`` sits just above ``pass``: it also stops
+on a pass that left axes unchecked (``coverage: partial``), which vouches for the judged
+axes only."""
+
+
+def check_exit_status(overall: str | None, partial_pairs: int, fail_on: str) -> int:
+    """The exit status of ``calibrex check`` for an overall verdict and ``--fail-on``."""
+
+    if fail_on not in FAIL_ON_CHOICES:
+        raise ValueError(f"unknown --fail-on level {fail_on!r}")
+    if overall is None or fail_on == "never":
+        return 0
+    if fail_on == "partial":
+        return int(partial_pairs > 0 or overall != "pass")
+    return int(VERDICT_ORDER.index(overall) >= VERDICT_ORDER.index(fail_on))
+
+
 def worst_verdict(verdicts: Sequence[str]) -> str | None:
     """The worst of ``fail > warn > inconclusive > pass``; ``None`` for an empty list."""
 

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `calibrex check --fail-on partial` exits 1 on a `pass` that left axes unchecked
+  (`coverage: partial`), as well as on `inconclusive`, `warn` and `fail`. The default
+  (`fail`) is unchanged. On TUM-VI's corridors a T_cam_imu 2 deg wrong in pitch passed as
+  `pass (partial)` on 4 of 10 camera runs, because pitch was unchecked; the partial
+  warning now names the option.
+
 ## 0.6.2 - 2026-11-07
 
 Highlights:

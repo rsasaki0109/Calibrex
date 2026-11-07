@@ -3249,9 +3249,10 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     check.add_argument(
         "--fail-on",
-        choices=["fail", "warn", "inconclusive", "never"],
+        choices=["fail", "warn", "inconclusive", "partial", "never"],
         default="fail",
-        help="exit with status 1 when the overall verdict is at least this bad (default fail)",
+        help="exit with status 1 when the overall verdict is at least this bad (default fail); "
+        "partial also stops on a pass that left axes unchecked",
     )
     check.add_argument(
         "--write-frames-template",
@@ -4923,8 +4924,8 @@ def _cmd_check(args: argparse.Namespace) -> int:
     from calibrex.check.runner import CheckRunOptions, parse_frame_map
     from calibrex.check.verdict import (
         RIGID_SCAN_ROTATION_FLOOR_DEG,
-        VERDICT_ORDER,
         VerdictOptions,
+        check_exit_status,
     )
     from calibrex.core.calibration_check import CHECK_PAIR_NAMES
     from calibrex.core.io import write_mapping
@@ -5031,13 +5032,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
             print(f"artifact: {args.output}")
         if args.html:
             print(f"html report: {args.html}")
-    if (
-        artifact.overall_verdict is not None
-        and args.fail_on != "never"
-        and VERDICT_ORDER.index(artifact.overall_verdict) >= VERDICT_ORDER.index(args.fail_on)
-    ):
-        return 1
-    return 0
+    return check_exit_status(artifact.overall_verdict, artifact.summary.partial_pairs, args.fail_on)
 
 
 def _cmd_capture_readiness(args: argparse.Namespace) -> int:

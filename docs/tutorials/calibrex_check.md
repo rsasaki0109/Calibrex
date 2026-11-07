@@ -867,7 +867,8 @@ listed as `unchecked_axes` with the reason.
 * Overall: the worst pair verdict in the order `fail > warn > inconclusive > pass`.
   Skipped pairs do not count. If no pair ran the overall verdict is
   `inconclusive`, never a silent pass. The exit status is 1 when the overall
-  verdict is at least `--fail-on` (default `fail`; `never` always exits 0).
+  verdict is at least `--fail-on` (default `fail`; `never` always exits 0). `--fail-on
+  partial` also exits 1 on a `pass` that left axes unchecked (see Coverage).
 
 The estimator is told nothing about the candidate except, for `lidar-lidar`, its
 starting value (the solver is local, so a candidate outside its capture range
@@ -886,6 +887,15 @@ table prints `pass (partial: roll only)`, the pair record carries
 `coverage: partial`, and the summary counts `partial_pairs`. A run whose pairs
 all pass but some are partial keeps the overall verdict `pass`, and the CLI
 prints a warning; a `pass` covers only the judged axes.
+
+With the default `--fail-on fail` such a run exits 0. In CI, or wherever nobody reads
+the warning, use `--fail-on partial`. It exits 1 on a partial pass and on anything
+`inconclusive` or worse, so an axis the bag could not judge is never silently passed.
+On TUM-VI's corridors, a T_cam_imu 2 deg wrong in pitch passed this way on 4 of 10
+camera runs, because pitch was unchecked on those recordings
+([audit](../benchmarks/hilti_camera_imu.md#result-camera-imu-check-honesty-supported-detection-refuted)).
+The price: a correct calibration on such a recording also exits 1, because the bag
+cannot vouch for that axis.
 
 ### What error could this bag detect?
 
