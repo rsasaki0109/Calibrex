@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- The pre-registered camera-imu check v2 audit (`--fail-on partial`) on TUM-VI slides1–slides3,
+  magistrale3 and magistrale5 ran once. Both claims are supported.
+  - **Honesty:** check never failed Kalibr's T_cam_imu, and fully passed 8 of 10 cases.
+  - **Detection:** with T_cam_imu turned 2 deg, `--fail-on partial` flagged all 30 cases;
+    28 failed on the turned axis.
+  - The two misses were pitch turns on slides2, where pitch was unchecked (as in v1).
+  - `tools/build_recorded_audits.py` builds its leaderboard record.
 - `calibrex check --fail-on partial` exits 1 on a `pass` that left axes unchecked
   (`coverage: partial`), as well as on `inconclusive`, `warn` and `fail`. The default
   (`fail`) is unchanged. On TUM-VI's corridors a T_cam_imu 2 deg wrong in pitch passed as

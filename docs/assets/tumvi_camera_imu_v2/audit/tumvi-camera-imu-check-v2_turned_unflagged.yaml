@@ -1,0 +1,888 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: tumvi-camera-imu-check-v2-turned_unflagged
+title: 'TUM-VI slides and magistrale, camera-imu check with --fail-on partial: --fail-on
+  partial let a turned T_cam_imu through (1 = yes)'
+protocol:
+  protocol_id: tumvi-camera-imu-check-v2
+  dataset_id: tum_vi
+  dataset_source_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+  data_license: CC BY 4.0
+  split_policy: One recording per split, as pre-registered; every case retained.
+  splits:
+  - split_id: slides2/cam0/rx2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 4ed5b3e56eabcf3571bc577ee0fdd827e4babb8f38acfa728093cfa046a071a0
+    holdout_ids_sha256: 1a84362545ae0209fbabfc10e52ca0386849cd8182f0307dd3df0809b4e93636
+  - split_id: slides2/cam1/rx2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 3f45d34d2b591b208c204bd22883a6f893213a14387b7e232cbfda6ae5834e40
+    holdout_ids_sha256: 40ce11c1e21c187976c401f9fc7534cbcb6ec96cd0825cb7d2a7d437ffbc49f3
+  - split_id: slides2/cam0/ry2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 8df4b8a4bf7db2e8ef9d58db8b76b94543d673b7f3e20e887ae86debc2120d96
+    holdout_ids_sha256: 668965bd5269f89fb864467405733812b67b3903f91095b3d0c23136fae2e9b5
+  - split_id: slides2/cam1/ry2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 7ffcd66d2923b9cbac54c884526fc3a5ec24520c8f58d8e3072238617ce1a4ce
+    holdout_ids_sha256: caf15da1377469b5ad37cb7cc5a224eaa44face01674091daaaf3aba4b32d9a2
+  - split_id: slides2/cam0/rz2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 713321a7a255a92293d940d0ac2332facbc3fbecaf60ddb7c716605725259d41
+    holdout_ids_sha256: f8ad1df4fbba32ea7a03ed6e74e3d47d4d66be17fd28da20dccd1a19b9c8d17d
+  - split_id: slides2/cam1/rz2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: fdd59b51d7de7ec5f0d96d222c488d8deb2f299ede85750c6e44abca8de96f6b
+    holdout_ids_sha256: 515a8414aa3cbaf9ffa6f3bdf9d87baeda8c2314f873ea0a341bea2e08baa175
+  - split_id: slides1/cam0/rx2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: e5a5ee28a087c363ad1c0452f225f834230d959ec220a9d7978b1c9ec29efe6b
+    holdout_ids_sha256: 2751e89fd9d2102b1a1812ced03a09d4914b6ee8b28f40d47e96e5e7b520dd17
+  - split_id: slides1/cam1/rx2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 4a606a83959c9a3244b4a2f8ba940f8701daac2ce1e07cf69f45519a02bc13eb
+    holdout_ids_sha256: 1b6c0d0ba4c3d402fe0baff542b7d8af812357a079b39993b61df55564525e77
+  - split_id: slides1/cam0/ry2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 21ea5bd8e35add2538265fa8b09a3ac3c1813681d2c40b0acc2008ebd89feec3
+    holdout_ids_sha256: 1ad16349dbb80cf90120d9b4ac5adb9461f1b285e7c0512c6af692d3113901de
+  - split_id: slides1/cam1/ry2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 056ce20c89c11d30a52374b5d597e5529988dbaab32bc109be1d6ab48b8bd1b2
+    holdout_ids_sha256: d69e5c2208bd6c8ef47cee2a368d14410ffe543930a70ab0bd9d45c2a6aa4c4c
+  - split_id: slides1/cam0/rz2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 6c2584ac146829949b50ca3e33ea5ab36a3905bf72edf9cb8b4a9da3a71127bd
+    holdout_ids_sha256: a594340189480a4b3c4eab0ffd7d8901f82ad4097f42af7ce8b61c74d9ca892c
+  - split_id: slides1/cam1/rz2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 4dfef7e5616f0b750df1cfbaa84db05ae0979c933ec47d535f5806db066e6934
+    holdout_ids_sha256: 436720414e683be2fe3f98a0f335c04e9f6d48b7de4846ad0833bdbbb46e651f
+  - split_id: slides3/cam0/rx2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: f48d574407018a38774575688f5a57818cae2c91cb52ce687ffa87fef50f1ccc
+    holdout_ids_sha256: 60f80a360c70fa7f52e2f5d86e88514814249a65e9d6d29f6f8c08332a243f36
+  - split_id: slides3/cam1/rx2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 64689f9c75da47761740d7ce881afc5c910cfabedb07dacc5e24a2b85217f587
+    holdout_ids_sha256: dad7fe40441b88c749862e6f7eb2386449ac8a8c6420b878f3b92a1d38ded5de
+  - split_id: slides3/cam0/ry2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 9ccd765543994e4fbf62b914739295b19c9c158e451afb2b9c2a4cda7ebe482f
+    holdout_ids_sha256: 8e27d7875821cb1e792966531d7d9e2a0e1c600b71f574f2af7be7a42e47e74e
+  - split_id: slides3/cam1/ry2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 2912d5ad2049dee5c84a77adeb7cad28b38fe192f2a40f5223ffc1a6d81e1e26
+    holdout_ids_sha256: 1ab1f532c4c168af354b7b5e3fd2ae3652205b7c18a8282510ae8e9f0e689b55
+  - split_id: slides3/cam0/rz2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: a1b8491453c8b779054741417205b04817826923447ca845fa9e514bade79912
+    holdout_ids_sha256: d5aafbf417105619965f9d26bebd59f9a88a58c4108c027ffed40605070ac70b
+  - split_id: slides3/cam1/rz2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: b9e736654bb7aab354507e3c89f53cb0c300a8d01d94603909e00d559f2adaa6
+    holdout_ids_sha256: 5662232bb6a9c3a885303dcd30ef12e02d07ad67a13add2b438df3496711e109
+  - split_id: magistrale5/cam0/rx2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 3ed059da4ac611a4f0e694fd40dc8482ba2b021aead308110119dbc954a464a7
+    holdout_ids_sha256: 948ab4f0781ec517e428ae16bc5f5e97ed2cfc2632d5286336bccc0ddc259418
+  - split_id: magistrale5/cam1/rx2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 9184f9eeee5a200ef2c7b1f94fb0f79415d85fb5e9ccbf8e634ebd447c7fbac3
+    holdout_ids_sha256: 04fdbba7b804ab0e2d0069ea4721f5f4d69ad2e492ce348400013ce5d0bf5a81
+  - split_id: magistrale5/cam0/ry2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 2d3094a0e6570e6787278c4a932c2b7ee9dbe827274eb3f90e73c4ea499bf7d1
+    holdout_ids_sha256: b17d4f1936ca31536e6509803f19535a04bee821fd846e44d63da7ea646121b0
+  - split_id: magistrale5/cam1/ry2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: b01a16f938384f45a9d5e4fa1bc55921869dcd80c47a4244337601e46d8a5ee3
+    holdout_ids_sha256: aa3636302282b89461304183f19f1bdfdf2a60c62ea2c93c26ca024b35c6e678
+  - split_id: magistrale5/cam0/rz2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: aae7cad7ec7b4254038539369293ac96daff59081763e09b74aab0c9028c5e09
+    holdout_ids_sha256: 4a87689c4516bf987ea852ff76d71451778804642193ef52e787b69ebe17c335
+  - split_id: magistrale5/cam1/rz2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: c2907be62bee61038c66a2138ffecb8a7eacf17dfe6a96871346f0716cfe27a9
+    holdout_ids_sha256: 8d22d252ec0679b5d557f5447efc6179bcabf4234ef8eaa466953b7a46de9819
+  - split_id: magistrale3/cam0/rx2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 8f235601decc9c596ac9db363ca3649d1b1374f06a73fc243cc7d5c6cbde7e87
+    holdout_ids_sha256: 2b66bc9edf8187754e89c0b1204e6d27b6cc3e2b1616e63f7d5aac34bb573393
+  - split_id: magistrale3/cam1/rx2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: de4898795f29303c3150b228cdc6be6131939be36e1800a506299920bda88330
+    holdout_ids_sha256: 67a28751bbe79a698fd3fc1072ea1d27c9ae876276bca0e30e9257fa648341c6
+  - split_id: magistrale3/cam0/ry2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 187825830e333ac9cbc1256fc5ba92176fee27187a7c8da5d3421c1ef836b6d1
+    holdout_ids_sha256: ab09cd7ad91460fe03f4462d2d542841240520273d34c8eceb24e48e7c6356ba
+  - split_id: magistrale3/cam1/ry2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 567acd5905a5a65bf0508bcf3ac3998f819c6afbc0a711d2e1d257fc273c39e4
+    holdout_ids_sha256: f5dc340bc92a837d69e58c2f571a29276329e824227d6c8e60510c9ba504b809
+  - split_id: magistrale3/cam0/rz2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 37cebab3da34a3064d2ccfb08f7071ee4678bd1c461376ff98e7f970d88a24aa
+    holdout_ids_sha256: cef95846661de0664a3bba70736c7ab41bd23979eb76c81353fe490b74b930da
+  - split_id: magistrale3/cam1/rz2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 7c2d5798134d7ed78433105eef033c59011764583d353eedd525cf5a3a12ab8a
+    holdout_ids_sha256: b1e158a851389631b10ad9021b06227134c70661bc291f3321ba8b95ee70dfe9
+  initial_estimate_policy: As pre-registered; the reference is never an input.
+  tuning_policy: Method and gates frozen before the single run; nothing tuned after.
+  failure_policy: A case without an estimate is a failed trial with its reason.
+metrics:
+- name: turned_unflagged
+  label: --fail-on partial let a turned T_cam_imu through (1 = yes)
+  unit: ratio
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: Lower is better; the dataset calibration is a reference estimate.
+methods:
+- method_id: reference_zero_anchor
+  label: Mathematical zero anchor (not an empirical calibration method)
+  implementation: imported
+  tool_name: dataset_reference_zero
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  label: calibrex check camera-imu --fail-on partial
+  implementation: calibrex_native
+  tool_name: calibrex
+trials:
+- method_id: reference_zero_anchor
+  split_id: slides2/cam0/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides2/cam0/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides2/cam1/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides2/cam1/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides2/cam0/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides2/cam0/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides2/cam1/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides2/cam1/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides2/cam0/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides2/cam0/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides2/cam1/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides2/cam1/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides1/cam0/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides1/cam0/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides1/cam1/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides1/cam1/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides1/cam0/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides1/cam0/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides1/cam1/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides1/cam1/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides1/cam0/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides1/cam0/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides1/cam1/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides1/cam1/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides3/cam0/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides3/cam0/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides3/cam1/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides3/cam1/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides3/cam0/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides3/cam0/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides3/cam1/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides3/cam1/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides3/cam0/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides3/cam0/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: slides3/cam1/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: slides3/cam1/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: magistrale5/cam0/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: magistrale5/cam0/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: magistrale5/cam1/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: magistrale5/cam1/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: magistrale5/cam0/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: magistrale5/cam0/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: magistrale5/cam1/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: magistrale5/cam1/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: magistrale5/cam0/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: magistrale5/cam0/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: magistrale5/cam1/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: magistrale5/cam1/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: magistrale3/cam0/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: magistrale3/cam0/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: magistrale3/cam1/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: magistrale3/cam1/rx2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: magistrale3/cam0/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: magistrale3/cam0/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: magistrale3/cam1/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: magistrale3/cam1/ry2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: magistrale3/cam0/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: magistrale3/cam0/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: magistrale3/cam1/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+- method_id: calibrex_camera_imu_check_fail_on_partial
+  split_id: magistrale3/cam1/rz2
+  status: success
+  metrics:
+    turned_unflagged: 0.0
+  provenance:
+    command: recorded tumvi-camera-imu-check-v2 case
+    config_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    input_sha256: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    notes: []
+method_summaries:
+  reference_zero_anchor:
+    method_id: reference_zero_anchor
+    trial_count: 30
+    success_count: 30
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      turned_unflagged:
+        metric: turned_unflagged
+        distribution:
+          count: 30
+          mean: 0.0
+          median: 0.0
+          standard_deviation: 0.0
+          minimum: 0.0
+          maximum: 0.0
+          p90: 0.0
+          p95: 0.0
+          mean_ci95_low: 0.0
+          mean_ci95_high: 0.0
+        rank: 1
+  calibrex_camera_imu_check_fail_on_partial:
+    method_id: calibrex_camera_imu_check_fail_on_partial
+    trial_count: 30
+    success_count: 30
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      turned_unflagged:
+        metric: turned_unflagged
+        distribution:
+          count: 30
+          mean: 0.0
+          median: 0.0
+          standard_deviation: 0.0
+          minimum: 0.0
+          maximum: 0.0
+          p90: 0.0
+          p95: 0.0
+          mean_ci95_low: 0.0
+          mean_ci95_high: 0.0
+        rank: 1
+paired_comparisons:
+- reference_method_id: reference_zero_anchor
+  candidate_method_id: calibrex_camera_imu_check_fail_on_partial
+  metric: turned_unflagged
+  direction: lower
+  paired_count: 30
+  raw_delta_mean: 0.0
+  improvement_mean: 0.0
+  improvement_ci95_low: 0.0
+  improvement_ci95_high: 0.0
+reference_method_id: reference_zero_anchor
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- The zero anchor is not an empirical competitor.
+- Built from the committed run records; nothing was re-run.
+provenance:
+  generator: tools.build_recorded_audits
+  generator_version: 0.6.2
+  generated_at: recorded
+  command: python tools/build_recorded_audits.py
+  source_artifacts:
+    docs/assets/tumvi_camera_imu_v2/evaluation/summary.json: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    docs/benchmarks/tumvi_camera_imu_v2_preregistration.yaml: 995d9ce84c26274c2fcb0a6d7eed98544da3403269fe564a003e21e6d50c7e67
+  data_verified: true

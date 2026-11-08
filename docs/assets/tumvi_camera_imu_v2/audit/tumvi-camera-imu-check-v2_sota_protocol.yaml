@@ -1,0 +1,98 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: tumvi-camera-imu-check-v2
+scope:
+  modalities:
+  - camera
+  - imu
+  quantities:
+  - rotation
+  category: targetless_camera_imu_check
+claim_text: On TUM-VI's slides1-slides3, magistrale3 and magistrale5 (both fisheye
+  cameras), calibrex check never fails camera-imu with Kalibr's camchain and passes
+  it with full coverage on at least 50 % of the cases; with T_cam_imu turned 2 deg
+  about a camera axis, --fail-on partial flags every case and check fails at least
+  50 % on the turned axis.
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: honesty-no-fail
+  phase: audit
+  description: check never fails Kalibr's T_cam_imu
+  dataset_family: tum_vi
+  independent_rig: true
+  rig_id: tumvi-handheld
+  evidence_path: tumvi-camera-imu-check-v2_kalibr_check_failed.yaml
+  evidence_sha256: 5f5caa5bb3e7e1f7f741a35ae238ce353be570dfef4fab6df107921754625314
+  method_id: calibrex_camera_imu_check_fail_on_partial
+  metric: kalibr_check_failed
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: honesty-full-pass
+  phase: audit
+  description: check passes Kalibr's T_cam_imu with full coverage on at least 50 %
+    of cases
+  dataset_family: tum_vi
+  independent_rig: true
+  rig_id: tumvi-handheld
+  evidence_path: tumvi-camera-imu-check-v2_kalibr_full_pass.yaml
+  evidence_sha256: bd98e0d057fa96e38c37d87f0bd90f1907e995faa6272f06017d4ed5729a803d
+  method_id: calibrex_camera_imu_check_fail_on_partial
+  metric: kalibr_full_pass
+  statistic: metric_mean
+  comparison: greater_equal
+  threshold: 0.5
+  required: true
+- requirement_id: detection-none-unflagged
+  phase: audit
+  description: --fail-on partial flags every 2 deg-turned T_cam_imu
+  dataset_family: tum_vi
+  independent_rig: true
+  rig_id: tumvi-handheld
+  evidence_path: tumvi-camera-imu-check-v2_turned_unflagged.yaml
+  evidence_sha256: cfeefa146cc49b98b1b760550b776907ac3c1c74065f0768b7b4ac43fce9836c
+  method_id: calibrex_camera_imu_check_fail_on_partial
+  metric: turned_unflagged
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: detection-fail
+  phase: audit
+  description: check fails at least 50 % of the turned cases on the turned axis
+  dataset_family: tum_vi
+  independent_rig: true
+  rig_id: tumvi-handheld
+  evidence_path: tumvi-camera-imu-check-v2_turned_axis_failed.yaml
+  evidence_sha256: 10269f3224426c302c03917910d9f568ce73fd8b0532a48a2b776425ce28de13
+  method_id: calibrex_camera_imu_check_fail_on_partial
+  metric: turned_axis_failed
+  statistic: metric_mean
+  comparison: greater_equal
+  threshold: 0.5
+  required: true
+- requirement_id: completion
+  phase: audit
+  description: every case produced a camera-imu record
+  dataset_family: tum_vi
+  independent_rig: true
+  rig_id: tumvi-handheld
+  evidence_path: tumvi-camera-imu-check-v2_kalibr_check_failed.yaml
+  evidence_sha256: 5f5caa5bb3e7e1f7f741a35ae238ce353be570dfef4fab6df107921754625314
+  method_id: calibrex_camera_imu_check_fail_on_partial
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+provenance:
+  generator: tools.build_recorded_audits
+  generator_version: 0.6.2
+  git_commit: 317339c1d50f19b9ef2f4b360d3a9c21a2a3b91e
+  command:
+  - python
+  - tools/build_recorded_audits.py
+  source_sha256:
+    docs/assets/tumvi_camera_imu_v2/evaluation/summary.json: 0464c557fa8f45634a325df90f29e0535935492412c0e335f12404dcc25506b7
+    docs/benchmarks/tumvi_camera_imu_v2_preregistration.yaml: 995d9ce84c26274c2fcb0a6d7eed98544da3403269fe564a003e21e6d50c7e67
+  created_at: recorded

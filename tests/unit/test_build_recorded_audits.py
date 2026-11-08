@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 @pytest.mark.parametrize(
     "spec",
-    [builder.BOARD, builder.NCLT, builder.TUMVI, builder.TUMVI_IMU],
+    [builder.BOARD, builder.NCLT, builder.TUMVI, builder.TUMVI_IMU, builder.TUMVI_IMU_V2],
     ids=lambda s: s.protocol_id,
 )
 def test_a_fresh_build_equals_the_committed_records(
@@ -35,7 +35,8 @@ def test_a_fresh_build_equals_the_committed_records(
     for path in committed:
         fresh = (tmp_path / path.name).read_text().replace(str(tmp_path), here)
         assert fresh == path.read_text(), path.name
-    assert built["verdict"] == ("supported" if spec is builder.TUMVI else "refuted")
+    supported = spec in (builder.TUMVI, builder.TUMVI_IMU_V2)
+    assert built["verdict"] == ("supported" if supported else "refuted")
 
 
 def test_the_verdicts_are_the_recorded_ones() -> None:
@@ -69,4 +70,5 @@ def test_the_leaderboard_lists_both() -> None:
         "docs/assets/nclt_lidar_wheel/audit/nclt-lidar-wheel-odometry-v1_sota_audit.yaml",
         "docs/assets/kitti_board_camera_lidar/audit/kitti-board-camera-lidar-v1_sota_audit.yaml",
         "docs/assets/tumvi_camera_imu/audit/tumvi-camera-imu-check-v1_sota_audit.yaml",
+        "docs/assets/tumvi_camera_imu_v2/audit/tumvi-camera-imu-check-v2_sota_audit.yaml",
     } <= paths
