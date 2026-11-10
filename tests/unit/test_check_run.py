@@ -546,6 +546,13 @@ def test_an_unchecked_rotation_axis_says_what_to_record(
     assert "camera-imu (camera_optical): to judge pitch, rotate the rig" in table
     assert reads == ["/imu"]
 
+    # the same pair on a rig that did rotate about x and z: no motion is asked for
+    gyro[:, 0] = np.radians(30.0)
+    moved = build_calibration_check(
+        bag, run=CheckRunOptions(evidence_dir=tmp_path / "e3", pairs=("camera-imu",))
+    )
+    assert "to judge pitch, other motion is not what is missing" in format_check_table(moved)
+
     # a pair with every axis judged reads no IMU and gets no advice
     reads.clear()
     monkeypatch.setattr(estimators, "ESTIMATORS", {"camera-imu": lambda ctx: _run()})

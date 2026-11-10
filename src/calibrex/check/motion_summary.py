@@ -21,6 +21,8 @@ from calibrex.data.rosbag2 import decode_imu, iter_topic_messages, require_cdr_c
 # Heuristic: a rotation axis counts as excited by an excursion of this many degrees.
 EXCITED_EXCURSION_DEG = 10.0
 RECOMMENDED_DURATION_S = 60.0
+# Heuristic: an axis counts as rotated about at this RMS angular rate (deg/s).
+EXCITED_RATE_DPS = 5.0
 _AXES = ("x", "y", "z")
 
 
@@ -89,26 +91,39 @@ def rotation_rates_dps(
 def rotation_axis_advice(
     axis: str, frame: str, rates_dps: Sequence[float], *, camera: bool = False
 ) -> str:
-    """What to record so that the rotation error about one axis of ``frame`` can be judged.
+    """Whether recording other motion would let the rotation error about one axis be judged.
 
     A mounting error about an axis does not change the rotation rate measured about that
     axis; it shows only in rotation about the other two. So ``roll`` (x) needs rotation
-    about y or z, ``pitch`` (y) about x or z and ``yaw`` (z) about x or y. The text ends
-    with what the recording offered: the RMS rate about each axis.
+    about y or z, ``pitch`` (y) about x or z and ``yaw`` (z) about x or y.
+
+    When the rig hardly rotated about either of those (both RMS rates under
+    ``EXCITED_RATE_DPS``, a heuristic) the text says which rotation to add. When it did,
+    the text says so: the motion is not what is missing, and re-recording the same way is
+    not expected to help. TUM-VI's corridor4 leaves pitch unchecked at 34 and 27 deg/s
+    about x and z, about what room1 has (42 and 26) with every axis judged.
     """
 
     index = _ROTATION_AXES.index(axis)
     others = [name for k, name in enumerate(_AXES) if k != index]
+    offered = ", ".join(f"{name} {rate:.0f}" for name, rate in zip(_AXES, rates_dps, strict=True))
+    measured = f"this recording's RMS rotation rate about {frame} was {offered} deg/s"
+    if max(rate for k, rate in enumerate(rates_dps) if k != index) >= EXCITED_RATE_DPS:
+        return (
+            f"{axis}, other motion is not what is missing: the rig did rotate about "
+            f"{others[0]} and {others[1]}, the axes that show an error about {_AXES[index]} "
+            f"({measured}); the estimator's noise on this axis limits it, so recording the "
+            "same way again is not expected to help"
+        )
     motions = (
         " (" + ", or ".join(f"{_CAMERA_MOTION[name]} for {name}" for name in others) + ")"
         if camera
         else ""
     )
-    offered = ", ".join(f"{name} {rate:.0f}" for name, rate in zip(_AXES, rates_dps, strict=True))
     return (
         f"{axis}, rotate the rig about the {others[0]} or {others[1]} axis of {frame}{motions}: "
-        f"an error about {_AXES[index]} does not show in rotation about {_AXES[index]} itself; "
-        f"this recording's RMS rotation rate was {offered} deg/s"
+        f"an error about {_AXES[index]} does not show in rotation about {_AXES[index]} itself, "
+        f"and {measured}"
     )
 
 

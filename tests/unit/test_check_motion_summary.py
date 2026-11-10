@@ -87,14 +87,25 @@ def test_rates_are_given_in_the_frame_of_the_errors() -> None:
     assert rotation_rates_dps(np.zeros((0, 3)), np.eye(3)) == (0.0, 0.0, 0.0)
 
 
-def test_advice_names_the_other_two_axes() -> None:
+def test_advice_names_the_other_two_axes_when_the_rig_did_not_rotate_about_them() -> None:
     from calibrex.check.motion_summary import rotation_axis_advice
 
-    advice = rotation_axis_advice("pitch", "cam0", (4.0, 31.0, 6.0), camera=True)
+    advice = rotation_axis_advice("pitch", "cam0", (2.0, 31.0, 3.0), camera=True)
 
     # a pitch (y) error shows only in rotation about x or z, never about y itself
     assert advice.startswith("pitch, rotate the rig about the x or z axis of cam0")
     assert "tilt it up and down for x, or roll it for z" in advice
-    assert "x 4, y 31, z 6 deg/s" in advice
-    lidar = rotation_axis_advice("yaw", "lidar", (4.0, 31.0, 6.0))
+    assert "x 2, y 31, z 3 deg/s" in advice
+    lidar = rotation_axis_advice("yaw", "lidar", (2.0, 3.0, 31.0))
     assert "about the x or y axis of lidar:" in lidar and "tilt" not in lidar
+
+
+def test_advice_does_not_ask_for_motion_the_recording_already_has() -> None:
+    from calibrex.check.motion_summary import rotation_axis_advice
+
+    # TUM-VI corridor4: pitch unchecked although the rig rotated about x and z
+    advice = rotation_axis_advice("pitch", "cam0", (34.0, 43.0, 27.0), camera=True)
+
+    assert advice.startswith("pitch, other motion is not what is missing")
+    assert "x 34, y 43, z 27 deg/s" in advice
+    assert "not expected to help" in advice and "tilt" not in advice
