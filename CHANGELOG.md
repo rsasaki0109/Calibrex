@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `calibrex check` says whether other motion would help an unchecked rotation axis of
+  `camera-imu` or `imu-lidar`. It reports the recording's RMS rotation rate about each axis
+  and either names the rotation to add or says that motion is not what is missing. On
+  TUM-VI's corridor4 and room1 (spent) the rotation about the needed axes is the same, yet
+  only corridor4 leaves pitch unchecked: there the estimator's noise limits it, not the
+  motion.
 - The pre-registered camera-imu check v2 audit (`--fail-on partial`) on TUM-VI slides1–slides3,
   magistrale3 and magistrale5 ran once. Both claims are supported.
   - **Honesty:** check never failed Kalibr's T_cam_imu, and fully passed 8 of 10 cases.

@@ -507,3 +507,56 @@ def test_errors_shared_through_one_frame_are_attributed_to_it(
     assert "imu_link alone explains the pair errors" in format_check_table(artifact)
     again = CalibrationCheckArtifact.model_validate(artifact.model_dump(mode="json"))
     assert again.rotation_attribution == artifact.rotation_attribution
+
+
+def test_an_unchecked_rotation_axis_says_what_to_record(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from calibrex.check import runner
+
+    partial = _run((0.0, 0.0, 0.0))
+    axes = list(partial.estimates)
+    axes[1] = AxisEstimate("pitch", "deg", 0.0, 0.4, False, "x", "unobservable")
+    # R_cam_imu: the IMU's z axis is the camera's y axis
+    compared = np.eye(4)
+    compared[:3, :3] = [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0]]
+    partial = EstimatorRun(**{**partial.__dict__, "estimates": tuple(axes), "compared": compared})
+    monkeypatch.setattr(estimators, "ESTIMATORS", {"camera-imu": lambda ctx: partial})
+    gyro = np.zeros((200, 3))
+    gyro[:, 2] = np.radians(40.0)  # a walk: the rig only pans, about the IMU's z
+    reads: list[str] = []
+
+    def fake_gyro(_bag: Path, topic: str, *, max_duration_s: float | None = None) -> Any:
+        reads.append(topic)
+        return list(np.arange(200) * 0.005), gyro
+
+    monkeypatch.setattr(runner, "read_gyro", fake_gyro)
+
+    artifact = build_calibration_check(
+        bag, run=CheckRunOptions(evidence_dir=tmp_path / "ev", pairs=("camera-imu",))
+    )
+
+    record = _by(artifact, "camera-imu")[0]
+    assert (record.status, record.coverage) == ("pass", "partial")
+    reason = record.unchecked_axes[0].reason
+    assert "; to judge pitch, rotate the rig about the x or z axis of camera_optical" in reason
+    assert "x 0, y 40, z 0 deg/s" in reason
+    table = format_check_table(artifact)
+    assert "next steps:" in table
+    assert "camera-imu (camera_optical): to judge pitch, rotate the rig" in table
+    assert reads == ["/imu"]
+
+    # the same pair on a rig that did rotate about x and z: no motion is asked for
+    gyro[:, 0] = np.radians(30.0)
+    moved = build_calibration_check(
+        bag, run=CheckRunOptions(evidence_dir=tmp_path / "e3", pairs=("camera-imu",))
+    )
+    assert "to judge pitch, other motion is not what is missing" in format_check_table(moved)
+
+    # a pair with every axis judged reads no IMU and gets no advice
+    reads.clear()
+    monkeypatch.setattr(estimators, "ESTIMATORS", {"camera-imu": lambda ctx: _run()})
+    full = build_calibration_check(
+        bag, run=CheckRunOptions(evidence_dir=tmp_path / "e2", pairs=("camera-imu",))
+    )
+    assert not reads and "to judge" not in format_check_table(full)

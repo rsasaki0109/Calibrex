@@ -21,6 +21,8 @@ from calibrex.data.rosbag2 import decode_imu, iter_topic_messages, require_cdr_c
 # Heuristic: a rotation axis counts as excited by an excursion of this many degrees.
 EXCITED_EXCURSION_DEG = 10.0
 RECOMMENDED_DURATION_S = 60.0
+# Heuristic: an axis counts as rotated about at this RMS angular rate (deg/s).
+EXCITED_RATE_DPS = 5.0
 _AXES = ("x", "y", "z")
 
 
@@ -70,10 +72,65 @@ def motion_note(duration_s: float, excursions_deg: Sequence[float]) -> str:
     )
 
 
-def recording_motion_note(
+ADVICE_MARK = "; to judge "
+"""Where an unchecked rotation axis's reason turns into advice (:func:`rotation_axis_advice`)."""
+_ROTATION_AXES = ("roll", "pitch", "yaw")
+_CAMERA_MOTION = {"x": "tilt it up and down", "y": "pan it left and right", "z": "roll it"}
+
+
+def rotation_rates_dps(
+    angular_velocity_rps: NDArray[np.float64], rotation_parent_imu: NDArray[np.float64]
+) -> tuple[float, float, float]:
+    """RMS angular rate (deg/s) about the x, y, z axes of the frame the errors are given in."""
+
+    rates = np.asarray(angular_velocity_rps, dtype=np.float64) @ np.asarray(rotation_parent_imu).T
+    rms = np.degrees(np.sqrt(np.mean(rates**2, axis=0))) if rates.size else np.zeros(3)
+    return float(rms[0]), float(rms[1]), float(rms[2])
+
+
+def rotation_axis_advice(
+    axis: str, frame: str, rates_dps: Sequence[float], *, camera: bool = False
+) -> str:
+    """Whether recording other motion would let the rotation error about one axis be judged.
+
+    A mounting error about an axis does not change the rotation rate measured about that
+    axis; it shows only in rotation about the other two. So ``roll`` (x) needs rotation
+    about y or z, ``pitch`` (y) about x or z and ``yaw`` (z) about x or y.
+
+    When the rig hardly rotated about either of those (both RMS rates under
+    ``EXCITED_RATE_DPS``, a heuristic) the text says which rotation to add. When it did,
+    the text says so: the motion is not what is missing, and re-recording the same way is
+    not expected to help. TUM-VI's corridor4 leaves pitch unchecked at 34 and 27 deg/s
+    about x and z, about what room1 has (42 and 26) with every axis judged.
+    """
+
+    index = _ROTATION_AXES.index(axis)
+    others = [name for k, name in enumerate(_AXES) if k != index]
+    offered = ", ".join(f"{name} {rate:.0f}" for name, rate in zip(_AXES, rates_dps, strict=True))
+    measured = f"this recording's RMS rotation rate about {frame} was {offered} deg/s"
+    if max(rate for k, rate in enumerate(rates_dps) if k != index) >= EXCITED_RATE_DPS:
+        return (
+            f"{axis}, other motion is not what is missing: the rig did rotate about "
+            f"{others[0]} and {others[1]}, the axes that show an error about {_AXES[index]} "
+            f"({measured}); the estimator's noise on this axis limits it, so recording the "
+            "same way again is not expected to help"
+        )
+    motions = (
+        " (" + ", or ".join(f"{_CAMERA_MOTION[name]} for {name}" for name in others) + ")"
+        if camera
+        else ""
+    )
+    return (
+        f"{axis}, rotate the rig about the {others[0]} or {others[1]} axis of {frame}{motions}: "
+        f"an error about {_AXES[index]} does not show in rotation about {_AXES[index]} itself, "
+        f"and {measured}"
+    )
+
+
+def read_gyro(
     bag: Path, imu_topic: str, *, max_duration_s: float | None = None
-) -> str | None:
-    """Read the IMU of ``bag`` and return a :func:`motion_note`, or ``None`` if unreadable."""
+) -> tuple[list[float], NDArray[np.float64]] | None:
+    """Times (s) and angular velocities (rad/s) of the IMU of ``bag``, or ``None`` if unreadable."""
 
     times: list[float] = []
     rates: list[list[float]] = []
@@ -90,5 +147,16 @@ def recording_motion_note(
         return None
     if len(times) < 2:
         return None
-    duration, excursions = rotation_excursions_deg(times, np.asarray(rates))
+    return times, np.asarray(rates, dtype=np.float64)
+
+
+def recording_motion_note(
+    bag: Path, imu_topic: str, *, max_duration_s: float | None = None
+) -> str | None:
+    """Read the IMU of ``bag`` and return a :func:`motion_note`, or ``None`` if unreadable."""
+
+    gyro = read_gyro(bag, imu_topic, max_duration_s=max_duration_s)
+    if gyro is None:
+        return None
+    duration, excursions = rotation_excursions_deg(*gyro)
     return motion_note(duration, excursions)

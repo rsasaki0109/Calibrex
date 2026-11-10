@@ -888,6 +888,17 @@ table prints `pass (partial: roll only)`, the pair record carries
 all pass but some are partial keeps the overall verdict `pass`, and the CLI
 prints a warning; a `pass` covers only the judged axes.
 
+For an unchecked rotation axis of `camera-imu` or `imu-lidar`, the next steps say whether
+other motion would help. An error about one axis does not show in rotation about that axis,
+only about the other two, so check reads the IMU and reports the RMS rotation rate about
+each axis of the frame the errors are given in:
+
+- if the rig hardly rotated about the other two axes (both under 5 deg/s RMS, a
+  heuristic), it names the rotation to add;
+- if it did, it says that motion is not what is missing and that recording the same way
+  again is not expected to help. TUM-VI's corridor4 is such a case: pitch is unchecked at
+  34 and 27 deg/s about x and z, about what room1 has (42 and 26) with every axis judged.
+
 With the default `--fail-on fail` such a run exits 0. In CI, or wherever nobody reads
 the warning, use `--fail-on partial`. It exits 1 on a partial pass and on anything
 `inconclusive` or worse, so an axis the bag could not judge is never silently passed.

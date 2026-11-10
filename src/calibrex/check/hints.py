@@ -14,6 +14,7 @@ from typing import Any, get_args
 
 import yaml
 
+from calibrex.check.motion_summary import ADVICE_MARK
 from calibrex.core.calibration_check import (
     CHECK_FRAMES_SCHEMA_VERSION,
     CalibrationCheckArtifact,
@@ -221,6 +222,10 @@ def collect_next_steps(artifact: CalibrationCheckArtifact) -> list[str]:
     for pair in artifact.pairs:
         for text in excitation_hints(pair.pair, pair.unchecked_axes):
             add(text)
+        for axis in pair.unchecked_axes:  # rotation axes: the runner's recording advice
+            _reason, mark, advice = axis.reason.partition(ADVICE_MARK)
+            if mark:
+                add(f"{pair.pair} ({pair.sensors[0]}): to judge {advice}")
     return steps
 
 
