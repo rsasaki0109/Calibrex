@@ -16,6 +16,12 @@
   - The pre-registered audit on nine unseen bags (Doer & Trommer IROS 2021) is refuted, on
     coverage: no wrong verdict was given, but 8 of the 9 recordings (84–206 s) judged no
     axis ([radar-imu](docs/benchmarks/radar_imu.md)).
+  - A second audit, pre-registered on longer unseen recordings (JGN 2022, 4 bags × 3
+    radars, 219–368 s), supports honesty, coverage and detection.
+    - Yaw was judged on 7 of 12 cases, the authors' calibration was never failed, and every
+      judged 3 deg yaw turn failed.
+    - The authors' calibration warned on 4 cases.
+    - Roll and pitch were never judged.
   - Schemas: the `radar` role and the `radar-imu` pair are added to the check, estimate and
     drift schemas; the rotation artifact gains method `doppler_velocity_alignment/v0.1`
     and modality `radar`.
