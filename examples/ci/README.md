@@ -18,7 +18,7 @@ mkdir -p .github/workflows
 cp examples/ci/calibration-ci-pr.yml .github/workflows/calibration-ci.yml
 ```
 
-Pin the action to a release tag (for example `@v0.6.2`) rather than `@main`
+Pin the action to a release tag (for example `@v0.6.3`) rather than `@main`
 once you adopt the workflow.
 
 ## What the check does

@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 0.6.3 - 2026-11-10
+
+Highlights:
+
+- **`calibrex check --fail-on partial`** exits 1 on a `pass` that left axes unchecked, so
+  CI no longer lets an unjudged axis through. The default is unchanged.
+- **Unchecked rotation axes say what to do.** For `camera-imu` and `imu-lidar`, check
+  reports the recording's rotation rate about each axis and either names the rotation to
+  add or says that motion is not what is missing.
+- **Audit:** with `--fail-on partial`, check flagged every 2 deg camera-IMU rotation error
+  on five more unseen TUM-VI sequences and never failed the correct calibration.
+
 - `calibrex check` says whether other motion would help an unchecked rotation axis of
   `camera-imu` or `imu-lidar`. It reports the recording's RMS rotation rate about each axis
   and either names the rotation to add or says that motion is not what is missing. On
