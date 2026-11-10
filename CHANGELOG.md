@@ -14,7 +14,16 @@
   - On the public LiU GoPro-IMU dataset (a GoPro video and a separate IMU on its own
     clock), the clock was found on all five sequences, 6–30 ms from the authors' offset.
     The rotation was mostly not judged (30–45 s recordings). On fast bodycam motion the
-    unjudged estimate is 3–4 deg off: rolling shutter is not modelled.
+    unjudged estimate is 3–6 deg off.
+- A camchain camera's `readout_s` (or Kalibr's `line_delay` times the height) makes
+  `camera-imu` and `camera-focal` treat the camera as rolling shutter. Frame times move
+  to mid-frame, and each tracked feature is moved from its row's time to mid-frame before
+  the pair's rotation is fitted again.
+  - On the GoPro sequences, the clock difference to the authors' went from +6 to +31 ms
+    to -9 to +7 ms.
+  - The rotation error fell on all five sequences (for example 0.96 to 0.58 deg on
+    barn3), but the fast bodycam sequences stay 3.0 and 5.3 deg off. Rolling shutter is
+    not the main cause there.
 - Kalibr-style camchains accept `distortion_model: atan` (FOV model with a distortion
   centre, `[gamma, wc_x, wc_y]`, as Kontiki's AtanCamera).
 - An unchecked rotation axis of a recording shorter than 60 s now asks for more of the

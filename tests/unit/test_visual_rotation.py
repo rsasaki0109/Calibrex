@@ -166,7 +166,6 @@ def test_unrolling_the_rows_removes_the_rolling_shutter_bias(axis: int) -> None:
         np.random.default_rng(0),
     )  # fmt: skip
 
-    assert unrolled is not None
     assert error_deg(unrolled) < 0.01
     if axis == 0:  # turning about x moves features across rows: the readout biases the fit
         assert error_deg(raw) > 0.1

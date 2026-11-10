@@ -332,14 +332,15 @@ def _unrolled_rotation(
     focal: float,
     options: VisualRotationOptions,
     rng: np.random.Generator,
-) -> tuple[FloatArray, str, NDArray[np.bool_]] | None:
+) -> tuple[FloatArray, str, NDArray[np.bool_]]:
     """The pair's rotation with every feature moved from its row's time to mid-frame.
 
     Row ``y`` of a rolling-shutter frame is exposed ``(y / rows - 1/2) * readout_s`` after
     mid-frame. With the camera turning at ``omega`` (camera frame) over the pair, a bearing
     ``b`` seen then is ``Exp(-omega delta) b_mid``, so ``b_mid = Exp(omega delta) b``.
     ``omega`` comes from the pair's own rotation (``R^T = Exp(omega dt)``), so no gyro
-    enters; the estimate is refined ``ROLLING_SHUTTER_PASSES`` times.
+    enters; the estimate is refined ``ROLLING_SHUTTER_PASSES`` times, and a refit that
+    fails keeps the fit before it.
     """
 
     from scipy.spatial.transform import Rotation
@@ -359,8 +360,8 @@ def _unrolled_rotation(
             options,
             rng,
         )
-        if refined is None:
-            return None
+        if refined is None:  # keep the last fit rather than break the tracked segment
+            return result
         result = refined
     return result
 
