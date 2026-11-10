@@ -13,6 +13,7 @@ from calibrex.data.ros2_camera_imu import to_gray
 from calibrex.evaluation.visual_rotation import (
     CameraModel,
     VisualRotationOptions,
+    _unrolled_rotation,
     pure_rotation_ransac,
     relative_rotation,
     track_camera_rotations,
@@ -111,6 +112,63 @@ def test_kalibr_camera_models_parse() -> None:
     assert camera.distortion_model == "equidistant"
     with pytest.raises(ValueError, match="unsupported camera model"):
         CameraModel.from_kalibr({"camera_model": "omni", "intrinsics": [1, 1, 0, 0]})
+
+
+def test_the_rolling_shutter_readout_is_read_from_the_camchain() -> None:
+    base = {"camera_model": "pinhole", "intrinsics": [500.0, 500.0, 320.0, 240.0]}
+
+    assert CameraModel.from_kalibr(base).readout_s == 0.0
+    assert CameraModel.from_kalibr({**base, "readout_s": 0.0317}).readout_s == 0.0317
+    per_row = {**base, "line_delay": 2.0e-5, "resolution": [640, 480]}
+    assert CameraModel.from_kalibr(per_row).readout_s == pytest.approx(0.0096)
+    with pytest.raises(ValueError, match="resolution"):
+        CameraModel.from_kalibr({**base, "line_delay": 2.0e-5})
+    with pytest.raises(ValueError, match="readout"):
+        CameraModel.from_kalibr({**base, "readout_s": -0.01})
+
+
+@pytest.mark.parametrize("axis", [0, 1, 2])
+def test_unrolling_the_rows_removes_the_rolling_shutter_bias(axis: int) -> None:
+    pytest.importorskip("cv2")
+    focal, width, rows, readout, interval = 500.0, 640, 480, 0.03, 1.0 / 30.0
+    omega = 2.0 * np.eye(3)[axis]  # rad/s in the camera frame
+    centre = np.array([width / 2, rows / 2])
+    seed = np.random.default_rng(1).uniform([0, 0], [width, rows], (400, 2))
+    world = np.column_stack([(seed - centre) / focal, np.ones(len(seed))])
+
+    def shoot(start: float) -> np.ndarray:
+        """Pixels of a rolling-shutter frame whose first row is exposed at ``start``."""
+
+        row = np.full(len(world), rows / 2)
+        for _ in range(30):  # each point lands on the row exposed when it is seen
+            seen = start + row / rows * readout
+            camera = Rotation.from_rotvec(omega[None, :] * seen[:, None]).inv().apply(world)
+            pixels = focal * camera[:, :2] / camera[:, 2:] + centre
+            row = pixels[:, 1]
+        return pixels
+
+    before, after = shoot(0.0), shoot(interval)
+    inside = np.all(
+        (before > 0) & (before < [width, rows]) & (after > 0) & (after < [width, rows]), 1
+    )
+    before, after = before[inside], after[inside]
+    previous, current = (before - centre) / focal, (after - centre) / focal
+    truth = Rotation.from_rotvec(omega * interval).inv()
+    options = VisualRotationOptions()
+
+    def error_deg(fit: Any) -> float:
+        return float(np.degrees((Rotation.from_matrix(fit[0]) * truth.inv()).magnitude()))
+
+    raw = relative_rotation(previous, current, focal, options, np.random.default_rng(0))
+    assert raw is not None
+    unrolled = _unrolled_rotation(
+        raw, before, after, previous, current, rows, readout, interval, focal, options,
+        np.random.default_rng(0),
+    )  # fmt: skip
+
+    assert error_deg(unrolled) < 0.01
+    if axis == 0:  # turning about x moves features across rows: the readout biases the fit
+        assert error_deg(raw) > 0.1
 
 
 def test_essential_matrix_recovers_rotation_with_parallax() -> None:

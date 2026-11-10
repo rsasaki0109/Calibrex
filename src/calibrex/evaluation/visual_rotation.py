@@ -68,6 +68,9 @@ class CameraModel:
     cy: float
     distortion_model: Literal["equidistant", "radtan", "atan", "none"] = "none"
     distortion: tuple[float, ...] = ()
+    readout_s: float = 0.0
+    """Rolling-shutter readout, first row to last (0: global shutter). From a camchain's
+    ``readout_s``, or Kalibr's per-row ``line_delay`` times the image height."""
 
     @classmethod
     def from_kalibr(cls, camera: Mapping[str, Any]) -> CameraModel:
@@ -82,7 +85,15 @@ class CameraModel:
         coeffs = tuple(float(value) for value in camera.get("distortion_coeffs", ()))
         if model == "atan" and (len(coeffs) != 3 or not 0.0 < coeffs[0] < math.pi):
             raise ValueError("atan distortion needs distortion_coeffs [gamma, wc_x, wc_y]")
-        return cls(fx, fy, cx, cy, model, coeffs)  # type: ignore[arg-type]
+        readout = float(camera.get("readout_s", 0.0) or 0.0)
+        if not readout and camera.get("line_delay"):
+            rows = camera.get("resolution", (0, 0))[1]
+            if not rows:
+                raise ValueError("line_delay needs the camera resolution [width, height]")
+            readout = float(camera["line_delay"]) * float(rows)
+        if not 0.0 <= readout < 1.0:
+            raise ValueError(f"rolling-shutter readout {readout!r} s is not in [0, 1)")
+        return cls(fx, fy, cx, cy, model, coeffs, readout)  # type: ignore[arg-type]
 
     def normalize(self, pixels: FloatArray) -> FloatArray:
         """Undistorted normalized image coordinates ``(N, 2)`` of pixel coordinates."""
@@ -305,6 +316,56 @@ def relative_rotation(
     return pure[0], "pure_rotation", pure[1]
 
 
+ROLLING_SHUTTER_PASSES = 2
+"""Re-estimations of a frame pair's rotation with its rows moved to mid-frame time."""
+
+
+def _unrolled_rotation(
+    result: tuple[FloatArray, str, NDArray[np.bool_]],
+    previous_px: Any,
+    current_px: Any,
+    previous: FloatArray,
+    current: FloatArray,
+    rows: int,
+    readout_s: float,
+    interval_s: float,
+    focal: float,
+    options: VisualRotationOptions,
+    rng: np.random.Generator,
+) -> tuple[FloatArray, str, NDArray[np.bool_]]:
+    """The pair's rotation with every feature moved from its row's time to mid-frame.
+
+    Row ``y`` of a rolling-shutter frame is exposed ``(y / rows - 1/2) * readout_s`` after
+    mid-frame. With the camera turning at ``omega`` (camera frame) over the pair, a bearing
+    ``b`` seen then is ``Exp(-omega delta) b_mid``, so ``b_mid = Exp(omega delta) b``.
+    ``omega`` comes from the pair's own rotation (``R^T = Exp(omega dt)``), so no gyro
+    enters; the estimate is refined ``ROLLING_SHUTTER_PASSES`` times, and a refit that
+    fails keeps the fit before it.
+    """
+
+    from scipy.spatial.transform import Rotation
+
+    def unroll(points: FloatArray, pixels: Any, omega: FloatArray) -> FloatArray:
+        delta = (np.asarray(pixels, dtype=np.float64).reshape(-1, 2)[:, 1] / rows - 0.5) * readout_s
+        rays = _bearings(points)
+        moved = Rotation.from_rotvec(omega[None, :] * delta[:, None]).apply(rays)
+        return np.asarray(moved[:, :2] / moved[:, 2:3], dtype=np.float64)
+
+    for _ in range(ROLLING_SHUTTER_PASSES):
+        omega = Rotation.from_matrix(result[0].T).as_rotvec() / interval_s
+        refined = relative_rotation(
+            unroll(previous, previous_px, omega),
+            unroll(current, current_px, omega),
+            focal,
+            options,
+            rng,
+        )
+        if refined is None:  # keep the last fit rather than break the tracked segment
+            return result
+        result = refined
+    return result
+
+
 def track_camera_rotations(
     frames: Iterable[tuple[float, NDArray[np.uint8]]],
     camera: CameraModel,
@@ -337,7 +398,9 @@ def track_camera_rotations(
             image, opts.max_features, opts.feature_quality, opts.min_feature_distance_px
         )
 
-    for time_s, raw in frames:
+    for frame_time_s, raw in frames:
+        # a rolling-shutter frame is stamped at its first row; its rotation belongs to mid-frame
+        time_s = frame_time_s + 0.5 * camera.readout_s
         image = raw if clahe is None else clahe.apply(raw)
         if previous_image is None:
             previous_image, features = image, detect(image)
@@ -359,13 +422,15 @@ def track_camera_rotations(
             )
             good = status.ravel() == 1
             features, tracked = features[good], tracked[good]
-            result = relative_rotation(
-                camera.normalize(features.reshape(-1, 2)),
-                camera.normalize(tracked.reshape(-1, 2)),
-                0.5 * (camera.fx + camera.fy),
-                opts,
-                rng,
-            )
+            before = camera.normalize(features.reshape(-1, 2))
+            after = camera.normalize(tracked.reshape(-1, 2))
+            focal = 0.5 * (camera.fx + camera.fy)
+            result = relative_rotation(before, after, focal, opts, rng)
+            if result is not None and camera.readout_s > 0.0 and time_s > times[-1]:
+                result = _unrolled_rotation(
+                    result, features, tracked, before, after, raw.shape[0],
+                    camera.readout_s, time_s - times[-1], focal, opts, rng,
+                )  # fmt: skip
         if result is None:
             stats.failed += 1
             segment += 1

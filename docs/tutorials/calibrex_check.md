@@ -239,6 +239,30 @@ own, the two cameras as image folders and as 20 fps MPEG-4 videos.
 - The video is a little worse: its compression, and frame times on a uniform 20 fps
   grid instead of the camera's own stamps. camera-focal judged only fx on cam0 from it.
 
+#### Rolling-shutter cameras
+
+A rolling-shutter camera (most phones and action cameras) exposes its rows one after
+another, so a frame taken while turning is skewed. Give the readout time, from the first
+row to the last, in the camchain camera's entry:
+
+```yaml
+cam0:
+  camera_model: pinhole
+  intrinsics: [868.1, 881.6, 987.9, 529.8]
+  resolution: [1920, 1080]
+  readout_s: 0.0316698        # or Kalibr's per-row line_delay (s), times the height
+```
+
+`camera-imu` and `camera-focal` then use the readout, whether the camera is in the bag
+or outside it:
+- Frame times move from the first row to mid-frame.
+- Every tracked feature is moved from its row's exposure time to mid-frame, at the
+  frame pair's own rotation rate (no gyro enters), and the pair's rotation is fitted
+  again (twice).
+
+Without `readout_s` the camera is treated as global shutter, as before. `camera-lidar`
+and `camera-camera` ignore it.
+
 #### A real separate camera: the LiU GoPro-IMU dataset
 
 The [GoPro-IMU dataset](https://www.cvl.isy.liu.se/en/research/datasets/gopro-imu-dataset/)
@@ -250,33 +274,43 @@ The [GoPro-IMU dataset](https://www.cvl.isy.liu.se/en/research/datasets/gopro-im
 
 Each IMU went into a bag of its own and each `video.mp4` was the external camera. The
 camera model is the dataset's atan (FOV) model with a distortion centre, given in a
-camchain as `distortion_model: atan`, `distortion_coeffs: [gamma, wc_x, wc_y]`.
+camchain as `distortion_model: atan`, `distortion_coeffs: [gamma, wc_x, wc_y]`. Each
+sequence was run twice: without and with the GoPro's readout in the camchain
+(`readout_s: 0.0316698`, see [Rolling-shutter cameras](#rolling-shutter-cameras)).
 
-| Sequence | Length | Clock offset found (coarse + fine) | Reference | Difference | camera-imu |
-| --- | ---: | ---: | ---: | ---: | --- |
-| apple3 (handheld) | 30 s | 227.764 s | 227.758 s | +6 ms | inconclusive: no axis within 0.3 deg std |
-| barn3 (handheld) | 45 s | 133.086 s | 133.064 s | +22 ms | inconclusive |
-| playground1 (bodycam) | 32 s | 245.769 s | 245.754 s | +15 ms | inconclusive |
-| playground3 (bodycam) | 38 s | 481.508 s | 481.477 s | +30 ms | inconclusive |
-| rccar_barn1 (RC car) | 32 s | 292.913 s | 292.899 s | +14 ms | pass, partial: pitch only (0.77 deg, std 0.29) |
+| Sequence | Length | Clock vs reference, without / with readout | Rotation error vs reference (roll / pitch / yaw), without | with readout | camera-imu with readout |
+| --- | ---: | ---: | --- | --- | --- |
+| apple3 (handheld) | 30 s | +5.7 / -9.3 ms | -0.02 / -0.34 / 0.02 deg | 0.08 / -0.10 / -0.08 deg | inconclusive |
+| barn3 (handheld) | 45 s | +21.7 / +6.4 ms | 0.28 / -0.67 / -0.62 deg | 0.28 / -0.31 / -0.41 deg | inconclusive |
+| rccar_barn1 (RC car) | 32 s | +13.8 / -1.7 ms | -1.00 / -0.77 / 0.04 deg | -1.02 / -0.33 / -0.00 deg | warn, partial: roll 1.02 deg over 0.88 |
+| playground1 (bodycam) | 32 s | +15.1 / -0.6 ms | -3.14 / -0.71 / 0.10 deg | -2.86 / -0.91 / -0.04 deg | inconclusive |
+| playground3 (bodycam) | 38 s | +30.8 / +6.6 ms | -4.25 / 3.88 / 2.49 deg | -3.31 / 3.90 / 1.48 deg | inconclusive |
 
 - **The clock is found on every sequence**, on clocks 130 to 480 s apart. The rotation
   speeds correlated at 0.64–0.89 (next best 0.28–0.55).
-  - The found offset is 6 to 30 ms later than the authors'. Half the rolling-shutter
-    readout is 16 ms: a whole-frame rotation belongs to mid-exposure rather than the
-    first row. That would explain most of it, but it is not verified.
+  - Without the readout, the found offset is 6 to 31 ms later than the authors' (mean
+    +17 ms). Half the readout is 16 ms: the authors stamp a frame at its first row,
+    and a whole-frame rotation belongs to mid-frame.
+  - With the readout, check moves frame times to mid-frame and the differences are -9 to
+    +7 ms (mean 0).
 - **The rotation is mostly not judged.** These recordings are 30–45 s, four to six
   10 s windows, so the stds stay over the 0.3 deg bound. Check says so, and asks for
   60 s or more of the same motion.
-- **Rolling shutter is not modelled, and it shows.** The estimates against the authors'
-  rotation:
-  - within 0.7 deg on the handheld sequences;
-  - 3.1 deg (playground1) and 4.3 deg (playground3) on the fast bodycam sequences, at a
-    reported std of only 0.33–0.5 deg.
+  - Without the readout, rccar_barn1 passed on pitch only (0.77 deg, std 0.29).
+  - With it, rccar_barn1's roll std fell below the bound, and check warns at 1.02 deg
+    from the authors' rotation. The authors' rotation is reference evidence, not ground
+    truth.
+- **The readout explains the clock, not most of the rotation bias.** Unrolling the rows
+  cut the total rotation error on all five sequences:
+  - 0.34 to 0.16 deg (apple3);
+  - 0.96 to 0.58 deg (barn3);
+  - 1.26 to 1.08 deg (rccar_barn1);
+  - 3.23 to 3.00 deg (playground1);
+  - 6.27 to 5.33 deg (playground3).
 
-  None of these was judged, so no wrong verdict came out. But a longer fast recording
-  with a rolling-shutter camera could be judged with a bias several times its std. Use
-  a global-shutter camera, or slow, smooth motion, until the tracker models the readout.
+  The fast bodycam sequences stay 3–5 deg off, at a reported std of 0.3–1.2 deg. Their
+  cause is not found. None was judged, so no wrong verdict came out, but a longer fast
+  bodycam recording could be judged with a bias several times its std.
 
 ## camera-lidar: targetless edge alignment
 
