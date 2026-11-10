@@ -10,8 +10,8 @@ radar-thermal-visual-inertial archive (TI IWR6843AOP radar, ADIS16448 IMU, nine 
 
 - Plan: [`doer_radar_imu_preregistration.yaml`](doer_radar_imu_preregistration.yaml),
   frozen at `fb0dcc35`.
-- Harness: [`tools/doer_radar_imu_audit.py`](../../tools/doer_radar_imu_audit.py).
-- Records: [`docs/assets/doer_radar_imu/evaluation/`](../assets/doer_radar_imu/evaluation/).
+- Harness: `tools/doer_radar_imu_audit.py`.
+- Records: [`evaluation/summary.json`](../assets/doer_radar_imu/evaluation/summary.json) and one `*_score.json` per bag beside it.
 - The development run on the ICINS 2021 recordings:
   [`development_summary.json`](../assets/doer_radar_imu/development_summary.json).
 
