@@ -707,7 +707,11 @@ def _advise_unchecked_rotation(
     frame = str(judged["compared_transform"]["parent_frame"])
     for axis in unchecked:
         advice = rotation_axis_advice(
-            axis["name"], frame, rates, camera=record.pair == "camera-imu"
+            axis["name"],
+            frame,
+            rates,
+            camera=record.pair == "camera-imu",
+            duration_s=float(gyro[0][-1] - gyro[0][0]),
         )
         axis["reason"] = f"{axis['reason']}{ADVICE_MARK}{advice}"
 

@@ -239,6 +239,45 @@ own, the two cameras as image folders and as 20 fps MPEG-4 videos.
 - The video is a little worse: its compression, and frame times on a uniform 20 fps
   grid instead of the camera's own stamps. camera-focal judged only fx on cam0 from it.
 
+#### A real separate camera: the LiU GoPro-IMU dataset
+
+The [GoPro-IMU dataset](https://www.cvl.isy.liu.se/en/research/datasets/gopro-imu-dataset/)
+(Ovrén and Forssén, Linköping University; CC BY-SA 4.0) is the case this option is for:
+- a GoPro Hero 3+ filming 1080p at 29.97 fps (wide FOV, rolling shutter, 31.7 ms readout);
+- a separate MPU-9250 IMU logging at 1000 Hz on its own clock;
+- per sequence, the authors' time offset and IMU-to-camera rotation (from a spline
+  visual-inertial fit), used here as the reference.
+
+Each IMU went into a bag of its own and each `video.mp4` was the external camera. The
+camera model is the dataset's atan (FOV) model with a distortion centre, given in a
+camchain as `distortion_model: atan`, `distortion_coeffs: [gamma, wc_x, wc_y]`.
+
+| Sequence | Length | Clock offset found (coarse + fine) | Reference | Difference | camera-imu |
+| --- | ---: | ---: | ---: | ---: | --- |
+| apple3 (handheld) | 30 s | 227.764 s | 227.758 s | +6 ms | inconclusive: no axis within 0.3 deg std |
+| barn3 (handheld) | 45 s | 133.086 s | 133.064 s | +22 ms | inconclusive |
+| playground1 (bodycam) | 32 s | 245.769 s | 245.754 s | +15 ms | inconclusive |
+| playground3 (bodycam) | 38 s | 481.508 s | 481.477 s | +30 ms | inconclusive |
+| rccar_barn1 (RC car) | 32 s | 292.913 s | 292.899 s | +14 ms | pass, partial: pitch only (0.77 deg, std 0.29) |
+
+- **The clock is found on every sequence**, on clocks 130 to 480 s apart. The rotation
+  speeds correlated at 0.64–0.89 (next best 0.28–0.55).
+  - The found offset is 6 to 30 ms later than the authors'. Half the rolling-shutter
+    readout is 16 ms: a whole-frame rotation belongs to mid-exposure rather than the
+    first row. That would explain most of it, but it is not verified.
+- **The rotation is mostly not judged.** These recordings are 30–45 s, four to six
+  10 s windows, so the stds stay over the 0.3 deg bound. Check says so, and asks for
+  60 s or more of the same motion.
+- **Rolling shutter is not modelled, and it shows.** The estimates against the authors'
+  rotation:
+  - within 0.7 deg on the handheld sequences;
+  - 3.1 deg (playground1) and 4.3 deg (playground3) on the fast bodycam sequences, at a
+    reported std of only 0.33–0.5 deg.
+
+  None of these was judged, so no wrong verdict came out. But a longer fast recording
+  with a rolling-shutter camera could be judged with a bias several times its std. Use
+  a global-shutter camera, or slow, smooth motion, until the tracker models the readout.
+
 ## camera-lidar: targetless edge alignment
 
 `camera-lidar` audits the **rotation** of `T_camera_lidar` (the camera optical frame, `z`

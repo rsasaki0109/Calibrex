@@ -154,3 +154,57 @@ def test_a_motion_that_repeats_is_refused_rather_than_guessed() -> None:
 
     assert not found.accepted
     assert "motion repeats" in found.reason and "@SECONDS" in found.reason
+
+
+def test_the_atan_camera_inverts_kontikis_projection() -> None:
+    from calibrex.evaluation.visual_rotation import CameraModel
+
+    # the LiU GoPro Hero 3+ (camera_parameters.h5)
+    camera = CameraModel.from_kalibr(
+        {
+            "camera_model": "pinhole",
+            "intrinsics": [868.10, 881.58, 987.87, 529.78],
+            "distortion_model": "atan",
+            "distortion_coeffs": [0.8924, 0.000386, -0.003408],
+        }
+    )
+    gamma, wc = 0.8924, np.array([0.000386, -0.003408])
+    rays = np.array([[0.0, 0.0], [0.4, -0.2], [-0.9, 0.5], [1.1, 0.6]])
+    # Kontiki AtanView::EvaluateProjection: L = a - wc, f = atan(r gamma) / gamma
+    offset = rays - wc
+    radius = np.linalg.norm(offset, axis=1)
+    distorted = (
+        wc + offset * (np.arctan(radius * gamma) / gamma / np.maximum(radius, 1e-12))[:, None]
+    )
+    pixels = np.column_stack([868.10 * distorted[:, 0] + 987.87, 881.58 * distorted[:, 1] + 529.78])
+
+    assert camera.normalize(pixels) == pytest.approx(rays, abs=1e-9)
+    with pytest.raises(ValueError, match="gamma"):
+        CameraModel.from_kalibr(
+            {"intrinsics": [1, 1, 0, 0], "distortion_model": "atan", "distortion_coeffs": [0.9]}
+        )
+
+
+def test_an_atan_camera_is_read_only_by_the_pairs_that_unproject(tmp_path: Path) -> None:
+    from types import SimpleNamespace
+
+    from calibrex.check import estimators
+
+    def ctx(pair: str, path: Path) -> SimpleNamespace:
+        return SimpleNamespace(
+            pair=SimpleNamespace(pair=pair),
+            sources=[SimpleNamespace(path=path, kind="kalibr_camchain")],
+        )
+
+    chain = tmp_path / "camchain.yaml"
+    chain.write_text(
+        "cam0:\n  camera_model: pinhole\n  intrinsics: [868.1, 881.6, 987.9, 529.8]\n"
+        "  distortion_model: atan\n  distortion_coeffs: [0.8924, 0.0004, -0.0034]\n"
+        "  T_cam_imu: [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]\n"
+    )
+    model, _source, _key = estimators.resolve_camera_intrinsics(
+        ctx("camera-imu", chain), "/external/cam0", "cam0"
+    )
+    assert model.distortion_model == "atan"
+    with pytest.raises(estimators.CheckSkipError, match="atan"):
+        estimators.resolve_camera_intrinsics(ctx("camera-lidar", chain), "/c", "cam0")

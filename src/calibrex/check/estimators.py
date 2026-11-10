@@ -1057,6 +1057,10 @@ def _first_image_size(ctx: PairContext, image_topic: str) -> tuple[int, int]:
     raise CheckSkipError("missing_topic", f"{image_topic} has no images")
 
 
+ATAN_CAMERA_PAIRS = frozenset({"camera-imu", "camera-focal"})
+"""Pairs that only unproject pixels, so they can use the atan model's :meth:`normalize`."""
+
+
 def resolve_camera_intrinsics(
     ctx: PairContext, image_topic: str, camera_frame: str
 ) -> tuple[CameraModel, str, str]:
@@ -1076,6 +1080,13 @@ def resolve_camera_intrinsics(
                     raise CheckSkipError(
                         "missing_intrinsics", f"{source.path.name} {key}: {exc}"
                     ) from exc
+                if model.distortion_model == "atan" and ctx.pair.pair not in ATAN_CAMERA_PAIRS:
+                    raise CheckSkipError(
+                        "unsupported_sensor",
+                        f"{source.path.name} {key}: the atan (FOV) camera model is read by "
+                        f"{' and '.join(sorted(ATAN_CAMERA_PAIRS))} only; {ctx.pair.pair} "
+                        "needs equidistant, radtan or no distortion",
+                    )
                 return model, f"{source.path.name} {key}", key
     fast_livo = _fast_livo_camera_intrinsics(ctx, image_topic, camera_frame)
     if fast_livo is not None:
@@ -2557,9 +2568,10 @@ def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
     lidar_topic = _require_lidar_topic(ctx, ctx.sensor_topics.get("lidar", ()))
     camera_frame, lidar_frame = ctx.pair.frames[0], ctx.pair.frames[1]
     model, intrinsics_source, _key = resolve_camera_intrinsics(ctx, image_topic, camera_frame)
-    camera = EdgeCamera(
-        model.fx, model.fy, model.cx, model.cy, model.distortion_model, tuple(model.distortion)
-    )
+    distortion = model.distortion_model
+    if distortion == "atan":  # resolve_camera_intrinsics refuses it for this pair
+        raise CheckSkipError("unsupported_sensor", "camera-lidar cannot project the atan model")
+    camera = EdgeCamera(model.fx, model.fy, model.cx, model.cy, distortion, tuple(model.distortion))
     point_time = detect_point_time(ctx.bag, lidar_topic)
     candidate = ctx.candidate  # T_camera_lidar
     options = EdgeAlignmentOptions(

@@ -89,7 +89,12 @@ def rotation_rates_dps(
 
 
 def rotation_axis_advice(
-    axis: str, frame: str, rates_dps: Sequence[float], *, camera: bool = False
+    axis: str,
+    frame: str,
+    rates_dps: Sequence[float],
+    *,
+    camera: bool = False,
+    duration_s: float | None = None,
 ) -> str:
     """Whether recording other motion would let the rotation error about one axis be judged.
 
@@ -101,14 +106,23 @@ def rotation_axis_advice(
     ``EXCITED_RATE_DPS``, a heuristic) the text says which rotation to add. When it did,
     the text says so: the motion is not what is missing, and re-recording the same way is
     not expected to help. TUM-VI's corridor4 leaves pitch unchecked at 34 and 27 deg/s
-    about x and z, about what room1 has (42 and 26) with every axis judged.
+    about x and z, about what room1 has (42 and 26) with every axis judged. A recording
+    shorter than ``RECOMMENDED_DURATION_S`` is the exception: the same motion for longer
+    narrows every axis (the LiU GoPro sequences are 30 to 45 s).
     """
 
     index = _ROTATION_AXES.index(axis)
     others = [name for k, name in enumerate(_AXES) if k != index]
     offered = ", ".join(f"{name} {rate:.0f}" for name, rate in zip(_AXES, rates_dps, strict=True))
     measured = f"this recording's RMS rotation rate about {frame} was {offered} deg/s"
-    if max(rate for k, rate in enumerate(rates_dps) if k != index) >= EXCITED_RATE_DPS:
+    excited = max(rate for k, rate in enumerate(rates_dps) if k != index) >= EXCITED_RATE_DPS
+    if excited and duration_s is not None and duration_s < RECOMMENDED_DURATION_S:
+        return (
+            f"{axis}, record the same motion for longer: the rig did rotate about {others[0]} "
+            f"and {others[1]} ({measured}), but only for {duration_s:.0f} s; record about "
+            f"{RECOMMENDED_DURATION_S:.0f} s or more"
+        )
+    if excited:
         return (
             f"{axis}, other motion is not what is missing: the rig did rotate about "
             f"{others[0]} and {others[1]}, the axes that show an error about {_AXES[index]} "

@@ -31,6 +31,7 @@ orientations.  OpenCV (``pip install calibrex[opencv]``) is needed only here.
 from __future__ import annotations
 
 import importlib
+import math
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Literal, TypeAlias
@@ -53,13 +54,19 @@ def _opencv() -> Any:
 
 @dataclass(frozen=True)
 class CameraModel:
-    """Pinhole intrinsics with equidistant (fisheye), radtan, or no distortion."""
+    """Pinhole intrinsics with equidistant (fisheye), radtan, atan, or no distortion.
+
+    ``atan`` is the field-of-view model of Devernay and Faugeras with a distortion centre,
+    as Kontiki's ``AtanCamera`` (the LiU GoPro datasets): ``distortion = (gamma, wc_x,
+    wc_y)``. A pixel ``p`` maps to ``n = K^-1 p``; with ``L = n - wc`` and ``r = |L|`` the
+    undistorted point is ``wc + tan(gamma r) / gamma * L / r``.
+    """
 
     fx: float
     fy: float
     cx: float
     cy: float
-    distortion_model: Literal["equidistant", "radtan", "none"] = "none"
+    distortion_model: Literal["equidistant", "radtan", "atan", "none"] = "none"
     distortion: tuple[float, ...] = ()
 
     @classmethod
@@ -69,10 +76,12 @@ class CameraModel:
         if camera.get("camera_model", "pinhole") != "pinhole":
             raise ValueError(f"unsupported camera model {camera.get('camera_model')!r}")
         model = str(camera.get("distortion_model", "none"))
-        if model not in {"equidistant", "radtan", "none"}:
+        if model not in {"equidistant", "radtan", "atan", "none"}:
             raise ValueError(f"unsupported distortion model {model!r}")
         fx, fy, cx, cy = (float(value) for value in camera["intrinsics"])
         coeffs = tuple(float(value) for value in camera.get("distortion_coeffs", ()))
+        if model == "atan" and (len(coeffs) != 3 or not 0.0 < coeffs[0] < math.pi):
+            raise ValueError("atan distortion needs distortion_coeffs [gamma, wc_x, wc_y]")
         return cls(fx, fy, cx, cy, model, coeffs)  # type: ignore[arg-type]
 
     def normalize(self, pixels: FloatArray) -> FloatArray:
@@ -86,6 +95,18 @@ class CameraModel:
             return np.column_stack(
                 [(points[:, 0, 0] - self.cx) / self.fx, (points[:, 0, 1] - self.cy) / self.fy]
             )
+        if self.distortion_model == "atan":
+            gamma, wcx, wcy = self.distortion
+            centre = np.array([wcx, wcy])
+            normalized = np.column_stack(
+                [(points[:, 0, 0] - self.cx) / self.fx, (points[:, 0, 1] - self.cy) / self.fy]
+            )
+            offset = normalized - centre
+            radius = np.linalg.norm(offset, axis=1)
+            scale = np.ones_like(radius)
+            moved = radius > 1e-12
+            scale[moved] = np.tan(gamma * radius[moved]) / (gamma * radius[moved])
+            return np.asarray(centre + offset * scale[:, None], dtype=np.float64)
         cv2 = _opencv()
         coeffs: FloatArray = np.asarray(self.distortion, dtype=np.float64)
         if self.distortion_model == "equidistant":

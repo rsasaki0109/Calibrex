@@ -155,6 +155,8 @@ class _Measurement:
 def stereo_camera(model: CameraModel, width: int, height: int) -> StereoCamera:
     """The rectification camera of a check camera model and its image size."""
 
+    if model.distortion_model == "atan":
+        raise ValueError("stereo rectification supports equidistant, radtan or no distortion")
     if model.distortion_model == "equidistant":
         k = (*model.distortion, 0.0, 0.0, 0.0, 0.0)
         return EquidistantCamera(

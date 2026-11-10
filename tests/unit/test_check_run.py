@@ -525,10 +525,11 @@ def test_an_unchecked_rotation_axis_says_what_to_record(
     gyro = np.zeros((200, 3))
     gyro[:, 2] = np.radians(40.0)  # a walk: the rig only pans, about the IMU's z
     reads: list[str] = []
+    duration = [100.0]  # seconds of IMU the fake reader returns
 
     def fake_gyro(_bag: Path, topic: str, *, max_duration_s: float | None = None) -> Any:
         reads.append(topic)
-        return list(np.arange(200) * 0.005), gyro
+        return list(np.arange(200) * duration[0] / 199), gyro
 
     monkeypatch.setattr(runner, "read_gyro", fake_gyro)
 
@@ -552,6 +553,11 @@ def test_an_unchecked_rotation_axis_says_what_to_record(
         bag, run=CheckRunOptions(evidence_dir=tmp_path / "e3", pairs=("camera-imu",))
     )
     assert "to judge pitch, other motion is not what is missing" in format_check_table(moved)
+    duration[0] = 30.0  # the same motion, but a short recording: ask for more of it
+    short = build_calibration_check(
+        bag, run=CheckRunOptions(evidence_dir=tmp_path / "e4", pairs=("camera-imu",))
+    )
+    assert "to judge pitch, record the same motion for longer" in format_check_table(short)
 
     # a pair with every axis judged reads no IMU and gets no advice
     reads.clear()

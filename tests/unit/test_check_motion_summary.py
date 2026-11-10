@@ -109,3 +109,16 @@ def test_advice_does_not_ask_for_motion_the_recording_already_has() -> None:
     assert advice.startswith("pitch, other motion is not what is missing")
     assert "x 34, y 43, z 27 deg/s" in advice
     assert "not expected to help" in advice and "tilt" not in advice
+
+
+def test_a_short_recording_with_the_right_motion_asks_for_more_of_it() -> None:
+    from calibrex.check.motion_summary import rotation_axis_advice
+
+    # LiU GoPro playground1: 32 s, the rig rotated about every axis
+    advice = rotation_axis_advice("roll", "cam0", (12.0, 22.0, 10.0), duration_s=32.0)
+
+    assert advice.startswith("roll, record the same motion for longer")
+    assert "only for 32 s; record about 60 s or more" in advice
+    assert "not expected to help" not in advice
+    long = rotation_axis_advice("roll", "cam0", (12.0, 22.0, 10.0), duration_s=140.0)
+    assert "not expected to help" in long
