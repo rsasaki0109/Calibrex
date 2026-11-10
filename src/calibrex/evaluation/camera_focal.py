@@ -19,7 +19,7 @@ ratios must agree, and an 8-group block jackknife sets the std.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import TypeAlias
 
@@ -232,8 +232,11 @@ def run_camera_focal_check(
     max_seconds: float | None = None,
     options: FocalScaleOptions | None = None,
     command: list[str] | None = None,
+    frames: Iterable[tuple[float, NDArray[np.uint8]]] | None = None,
 ) -> CameraFocalScaleArtifact:
     """Track the camera with ``camera``'s focal lengths, then regress its rates on the gyro's.
+
+    ``frames`` replaces the bag's ``image_topic`` (an external camera, on the IMU clock).
 
     The rotation, clock offset and gyro bias come from ``rotation_artifact``
     (digest ``rotation_artifact_sha256``); ``max_seconds`` limits the images
@@ -258,7 +261,10 @@ def run_camera_focal_check(
     if rotation_artifact.rotation_quat_xyzw is None:
         raise ValueError("the rotation artifact has no rotation estimate")
     track = track_camera_rotations(
-        iter_gray_images(bag, image_topic, stride=frame_stride, max_seconds=max_seconds), camera
+        frames
+        if frames is not None
+        else iter_gray_images(bag, image_topic, stride=frame_stride, max_seconds=max_seconds),
+        camera,
     )
     imu = load_ros2_imu(bag, imu_topic)
     result = estimate_focal_scale(

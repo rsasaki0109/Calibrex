@@ -560,3 +560,70 @@ def test_an_unchecked_rotation_axis_says_what_to_record(
         bag, run=CheckRunOptions(evidence_dir=tmp_path / "e2", pairs=("camera-imu",))
     )
     assert not reads and "to judge" not in format_check_table(full)
+
+
+def test_an_external_camera_joins_the_topics_and_only_camera_imu_reads_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from calibrex.data.external_camera import parse_camera_source
+
+    imu_only = write_check_bag(
+        tmp_path / "imu.db3",
+        tf_messages=[default_tf()],
+        sensor_frames={
+            "/imu": ("sensor_msgs/msg/Imu", "imu_link"),
+            "/lidar_front/points": ("sensor_msgs/msg/PointCloud2", "lidar_front"),
+        },
+    )
+    (tmp_path / "frames").mkdir()
+    source = parse_camera_source(f"camera_optical={tmp_path / 'frames'}")
+    seen: list[tuple[str, tuple[str, ...]]] = []
+
+    def camera_imu(ctx: PairContext) -> EstimatorRun:
+        seen.append((ctx.pair.pair, ctx.sensor_topics["camera"]))
+        assert ctx.controls.external_cameras["/external/camera_optical"] is source
+        return _run()
+
+    monkeypatch.setattr(
+        estimators,
+        "ESTIMATORS",
+        {**estimators.ESTIMATORS, "camera-imu": camera_imu},
+    )
+
+    artifact = build_calibration_check(
+        imu_only,
+        run=CheckRunOptions(
+            evidence_dir=tmp_path / "ev",
+            pairs=("camera-imu", "camera-lidar"),
+            external_cameras=(source,),
+        ),
+    )
+
+    topic = next(t for t in artifact.topics if t.topic == "/external/camera_optical")
+    assert (topic.role, topic.mapped_frame) == ("camera", "camera_optical")
+    assert "camera outside the bag (images)" in topic.notes[0]
+    assert seen == [("camera-imu", ("/external/camera_optical",))]
+    assert _by(artifact, "camera-imu")[0].status == "pass"
+    lidar = _by(artifact, "camera-lidar")[0]
+    assert (lidar.status, lidar.reason_code) == ("skipped", "unsupported_sensor")
+    assert "only camera-focal and camera-imu read external cameras" in (lidar.reason or "")
+
+
+def test_a_camera_that_cannot_be_placed_on_the_imu_clock_is_inconclusive(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def no_clock(ctx: PairContext) -> EstimatorRun:
+        raise estimators.CheckInconclusiveError(
+            "estimator_failed", "cannot place the camera on the IMU clock: the motion repeats"
+        )
+
+    monkeypatch.setattr(estimators, "ESTIMATORS", {"camera-imu": no_clock})
+
+    artifact = build_calibration_check(
+        bag, run=CheckRunOptions(evidence_dir=tmp_path / "ev", pairs=("camera-imu",))
+    )
+
+    record = _by(artifact, "camera-imu")[0]
+    # not skipped: a skipped pair would not count towards the overall verdict
+    assert (record.status, record.reason_code) == ("inconclusive", "estimator_failed")
+    assert artifact.overall_verdict == "inconclusive"

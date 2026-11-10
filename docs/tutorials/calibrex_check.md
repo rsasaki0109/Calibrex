@@ -191,6 +191,54 @@ image. The pair's notes say which stride ran. A camera slower than 4 Hz cannot g
 stride. Before this rule the stride was always 4, which left a 10 Hz camera no interval at
 all (see [FAST-LIVO `hku1` and `hku2`](#fast-livo-hku1-and-hku2-jpeg-camera-and-livox-custommsg)).
 
+### A camera outside the bag (`--camera-source`)
+
+When the camera was recorded on its own (a phone, an action camera, a separate capture
+PC) and only the IMU is in the bag, give the camera with `--camera-source NAME=PATH`:
+
+```bash
+calibrex check imu_bag/ --tf camchain.yaml --pairs camera-imu,camera-focal \
+  --camera-source cam0=recording/cam0/data        # an image folder
+calibrex check imu_bag/ --tf camchain.yaml --camera-source cam0=front.mp4   # a video
+calibrex check imu_bag/ --tf camchain.yaml --camera-source cam0=front.mp4@1520530308.2
+```
+
+- **`NAME`** is the camchain camera (`cam0`) or the camera's frame. The camera's
+  intrinsics and `T_cam_imu` come from `--tf` as for a camera in the bag. It shows up in
+  the topic list as `/external/NAME`.
+- **An image folder** gets its capture times from a `data.csv` next to it or in its
+  parent (EuRoC/ASL: `#timestamp [ns],filename`), a `timestamps.csv`, or the file names
+  (an integer stem is nanoseconds, a decimal stem seconds).
+- **A video** gets its frame times from the video's own presentation times, starting at 0.
+- **The clock.** The camera's clock need not be the IMU's. Check finds the offset by
+  correlating the camera's rotation speed with the gyro's. Speed does not depend on the
+  mounting, so this works before `T_cam_imu` is known. The camera-IMU fit then refines the
+  remainder, reported as the pair's time offset.
+  - The search refuses rather than guesses:
+    - when the speeds correlate below 0.5 (too little rotation, or not the same rig);
+    - when another offset more than 1 s away fits almost as well (a motion that repeats).
+    The pair is then `inconclusive`, and `@SECONDS` gives the offset by hand
+    (camera time + SECONDS = IMU time).
+- **Which pairs.** Only `camera-imu` and `camera-focal` read an external camera, because
+  only they can place its clock on the IMU's. `camera-lidar` and `camera-camera` skip it
+  with `unsupported_sensor`.
+
+Checked on TUM-VI room1 (spent), from its EuRoC export: the IMU written to a bag of its
+own, the two cameras as image folders and as 20 fps MPEG-4 videos.
+
+| Camera input | Clock offset found | Expected | camera-imu, cam0 (roll / pitch / yaw error) |
+| --- | --- | --- | --- |
+| the bag's own image topic | - | - | 0.010 / 0.097 / 0.147 deg, pass |
+| image folder, same clock | +0.004 s | 0 | 0.010 / 0.097 / 0.147 deg, pass |
+| image folder, clock 12.345 s behind | +12.349 s | +12.345 s | 0.010 / 0.097 / 0.147 deg, pass |
+| video (times from 0) | +1520530308.203 s | first frame at 1520530308.199 s | 0.147 / 0.124 / 0.052 deg, pass |
+
+- The folder runs reproduce the bag run to the last digit, both cameras and camera-focal
+  included (cam0 fx scale 0.9996).
+- The speeds correlated at 0.97–0.98, against 0.52 for the next best offset.
+- The video is a little worse: its compression, and frame times on a uniform 20 fps
+  grid instead of the camera's own stamps. camera-focal judged only fx on cam0 from it.
+
 ## camera-lidar: targetless edge alignment
 
 `camera-lidar` audits the **rotation** of `T_camera_lidar` (the camera optical frame, `z`

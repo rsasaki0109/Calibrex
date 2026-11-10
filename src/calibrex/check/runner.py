@@ -27,6 +27,7 @@ from calibrex.check.closure import (
     shared_inputs_of,
 )
 from calibrex.check.estimators import (
+    CheckInconclusiveError,
     CheckSkipError,
     EstimatorRun,
     PairContext,
@@ -52,6 +53,7 @@ from calibrex.check.roles import (
 )
 from calibrex.check.tf_sources import (
     LoadedSource,
+    camchain_entries,
     load_bag_tf_static,
     load_tf_file,
     merge_hints,
@@ -88,6 +90,8 @@ from calibrex.core.camera_lidar_edge import DEFAULT_MIN_CONTROL_T
 from calibrex.core.exceptions import DatasetError
 from calibrex.core.progress import progress_sink
 from calibrex.core.provenance import git_commit
+from calibrex.data.external_camera import IMAGE_TYPE as EXTERNAL_IMAGE_TYPE
+from calibrex.data.external_camera import ExternalCameraSource, external_sources_by_topic
 from calibrex.data.livox_ros2 import ScanStore
 from calibrex.data.rosbag2 import list_rosbag2_connections, resolve_storage
 from calibrex.evaluation.edge_preparation_cache import EdgePreparationCache
@@ -224,6 +228,8 @@ class CheckRunOptions:
     camera_lidar_overlay: bool = False
     """Write camera-lidar overlay images to the evidence directory (``check --html``)."""
     board: str | None = None
+    external_cameras: tuple[ExternalCameraSource, ...] = ()
+    """Cameras outside the bag (``--camera-source NAME=PATH``): image folders or videos."""
     """camera-lidar from a checkerboard held still at several poses (``COLUMNSxROWSxSQUARE_M``,
     inner corners and square size) instead of targetless edge alignment."""
     edge_preparation_cache: EdgePreparationCache | None = field(
@@ -272,6 +278,18 @@ def classify_bag_topics(
     return candidates, read_header_frames(bag, candidates)
 
 
+def _external_camera_frame(name: str, sources: Sequence[LoadedSource]) -> str:
+    """The frame of camera ``name``: its camchain frame when a camchain names it, else ``name``."""
+
+    for source in sources:
+        if source.path is None or source.kind not in {"kalibr_camchain", "rtk_slam_calib"}:
+            continue
+        for key, frame, _entry in camchain_entries(source.path):
+            if name in {key, frame}:
+                return frame
+    return name
+
+
 def _quiet(_message: str) -> None:
     return None
 
@@ -312,6 +330,19 @@ def build_calibration_check(
     hints = merge_hints(file_sources)
 
     candidates, header_frames = classify_bag_topics(bag_path, connections, topic_kinds)
+    externals = run.external_cameras if run is not None else ()
+    for source in externals:
+        frame = _external_camera_frame(source.name, file_sources)
+        candidates.append(
+            CheckTopicRecord(
+                topic=source.topic,
+                message_type=EXTERNAL_IMAGE_TYPE,
+                role="camera",
+                header_frame_id=frame,
+                notes=[f"camera outside the bag ({source.kind}): {source.path}"],
+            )
+        )
+        header_frames[source.topic] = frame
     topics: list[CheckTopicRecord] = map_topics_to_frames(
         candidates, header_frames, tree, hints, frame_overrides
     )
@@ -329,6 +360,7 @@ def build_calibration_check(
         notes.insert(0, "plan only; no pair solver was run")
     else:
         topic_types = {connection.topic: connection.message_type for connection, _ in connections}
+        topic_types.update({source.topic: EXTERNAL_IMAGE_TYPE for source in externals})
         base_dir = run.base_dir or Path.cwd()
         evidence_dir = run.evidence_dir or base_dir / "calibrex_check_evidence"
         pairs, run_memo = _run_pairs(
@@ -494,6 +526,7 @@ def _run_pairs(
         camera_lidar_start_agreement_deg=run.camera_lidar_start_agreement_deg,
         camera_lidar_overlay=run.camera_lidar_overlay,
         board=run.board,
+        external_cameras=external_sources_by_topic(run.external_cameras),
         frame_tree=frame_tree,
         progress=progress,
         cache=EstimatorCache(run.cache_dir) if run.cache_dir is not None else None,
@@ -717,6 +750,18 @@ def _run_one(
     except CheckSkipError as exc:
         progress.pair_skipped(_label(record), exc.code, exc.reason)
         return _skipped(record, exc.code, exc.reason)
+    except CheckInconclusiveError as exc:
+        progress.pair_failed(_label(record), exc.reason)
+        return CheckPairRecord.model_validate(
+            {
+                **record.model_dump(),
+                "status": "inconclusive",
+                "verdict": "inconclusive",
+                "reason_code": exc.code,
+                "reason": exc.reason,
+                "runtime_s": time.monotonic() - started,
+            }
+        )
     except Exception as exc:  # one failing estimator must not lose the other pairs
         runtime = time.monotonic() - started
         progress.pair_failed(_label(record), f"{type(exc).__name__}: {exc}")
@@ -1065,6 +1110,9 @@ def _verdict_lines(artifact: CalibrationCheckArtifact, color: bool = False) -> l
             lines.append(f"  {pair.pair}: {pair.reason}")
         if pair.deskew == "none":
             lines.append(f"  {pair.pair}: {_rigid_summary(pair.pair, artifact)}")
+        for note in pair.notes:
+            if note.startswith(("external camera", "camera clock + ")):
+                lines.append(f"  {pair.pair} ({pair.sensors[0]}): {note}")
         if pair.time_offset is not None:
             lines.append(
                 f"  {pair.pair}: time offset {pair.time_offset.estimate_s * 1e3:.2f} ms "

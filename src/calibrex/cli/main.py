@@ -151,6 +151,17 @@ def _packaged_kitti_lidar_camera_demo_config() -> Path:
     )
 
 
+def _camera_source(value: str) -> Any:
+    """Parse ``--camera-source NAME=PATH[@SECONDS]``."""
+
+    from calibrex.data.external_camera import parse_camera_source
+
+    try:
+        return parse_camera_source(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
 def _coverage_ratio(value: str) -> float:
     """Parse an argparse value as a coverage target in (0, 1)."""
 
@@ -3188,6 +3199,18 @@ def _build_parser() -> argparse.ArgumentParser:
         "start (finite T >= 2.5 on every observed rotation axis; default: no extra margin)",
     )
     check.add_argument(
+        "--camera-source",
+        action="append",
+        type=_camera_source,
+        default=[],
+        metavar="NAME=PATH[@SECONDS]",
+        help="a camera recorded outside the bag: an image folder (times from a data.csv "
+        "'timestamp_ns,filename' or the file names) or a video file. NAME is its camchain "
+        "camera (cam0) or frame. Its clock is placed on the IMU's from the data unless "
+        "@SECONDS gives the offset (camera time + SECONDS = IMU time). Read by camera-imu "
+        "and camera-focal; repeatable",
+    )
+    check.add_argument(
         "--board",
         type=_board_spec,
         default=None,
@@ -4971,6 +4994,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
             camera_lidar_start_agreement_deg=args.camera_lidar_start_agreement_deg,
             camera_lidar_overlay=bool(args.html),
             board=args.board,
+            external_cameras=tuple(args.camera_source),
             rigid_scan_rotation_floor_deg=(
                 args.rigid_scan_rotation_floor_deg
                 if args.rigid_scan_rotation_floor_deg is not None

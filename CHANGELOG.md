@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- `calibrex check --camera-source NAME=PATH[@SECONDS]` reads a camera recorded outside the
+  bag: an image folder (times from a EuRoC `data.csv`, a `timestamps.csv` or the file
+  names) or a video. `camera-imu` and `camera-focal` read it.
+  - Its clock is placed on the IMU's by correlating the camera's rotation speed with the
+    gyro's, which needs no mounting estimate. An offset it cannot tell apart from another
+    leaves the pair `inconclusive` instead of guessing.
+  - On TUM-VI room1 (spent), image folders reproduce the bag run exactly; a 12.345 s
+    clock offset was found as 12.349 s (true offset plus the 4 ms the fit also finds
+    without a shift). A video gives a pass within 0.15 deg.
+
 ## 0.6.3 - 2026-11-10
 
 Highlights:
