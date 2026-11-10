@@ -160,21 +160,23 @@ def _write_bag(rig: Rig, directory: Path) -> Path:
         writer.add_topic("/imu", "sensor_msgs/msg/Imu")
         writer.add_topic("/radar/scan", "sensor_msgs/msg/PointCloud2")
         for t, g, a in zip(rig.imu.times_s, rig.imu.gyro_rps, rig.imu.accel_mps2, strict=True):
-            ns = int(round((t + 1.7e9) * 1e9))
+            ns = round((t + 1.7e9) * 1e9)
             writer.write(
                 "/imu",
                 ns,
                 encode_imu(
-                    frame_id="imu", timestamp_ns=ns, angular_velocity=tuple(g),
+                    frame_id="imu",
+                    timestamp_ns=ns,
+                    angular_velocity=tuple(g),
                     linear_acceleration=tuple(a),
-                ),  # fmt: skip
+                ),
             )
         for t, v in zip(rig.radar_times_s, rig.radar_velocities, strict=True):
             points = rng.uniform([1.0, -4.0, -2.0], [12.0, 4.0, 2.0], (64, 3))
             directions = points / np.linalg.norm(points, axis=1, keepdims=True)
             doppler = -directions @ v
             data = np.column_stack([points, doppler]).astype("<f4").tobytes()
-            ns = int(round((t + 1.7e9) * 1e9))
+            ns = round((t + 1.7e9) * 1e9)
             writer.write(
                 "/radar/scan",
                 ns,
