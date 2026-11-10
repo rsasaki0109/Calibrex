@@ -13,6 +13,9 @@
   - On nine spent radar-inertial recordings the authors' calibration never failed, every
     judged 3 deg turn failed, and the clock offset was found at 9–13 ms. Mostly the
     radar's z axis was judged.
+  - The pre-registered audit on nine unseen bags (Doer & Trommer IROS 2021) is refuted, on
+    coverage: no wrong verdict was given, but 8 of the 9 recordings (84–206 s) judged no
+    axis ([radar-imu](docs/benchmarks/radar_imu.md)).
   - Schemas: the `radar` role and the `radar-imu` pair are added to the check, estimate and
     drift schemas; the rotation artifact gains method `doppler_velocity_alignment/v0.1`
     and modality `radar`.

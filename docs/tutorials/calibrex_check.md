@@ -355,8 +355,12 @@ with the authors' calibration as the candidate.
   about half the 18.5 ms radar frame. The lever arm came out within 3 cm of the
   authors'.
 
-The pre-registered evaluation on the unseen IROS 2021 archive is
-[`doer_radar_imu_preregistration.yaml`](../benchmarks/doer_radar_imu_preregistration.yaml).
+The pre-registered evaluation on the unseen IROS 2021 archive
+([`doer_radar_imu_preregistration.yaml`](../benchmarks/doer_radar_imu_preregistration.yaml))
+is refuted, on coverage.
+- No wrong verdict was given.
+- On recordings of 84–206 s, 8 of 9 bags judged no axis and came out `inconclusive`.
+- Results: [radar-imu](../benchmarks/radar_imu.md).
 
 ## camera-lidar: targetless edge alignment
 
