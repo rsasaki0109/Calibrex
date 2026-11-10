@@ -154,7 +154,7 @@ sensor.
 
 Candidates: `imu-lidar`, `lidar-lidar`, `camera-imu`, `camera-focal`, `camera-lidar`,
 `camera-camera`, `gnss-lidar`, `gnss-imu`, `lidar-vehicle`, `imu-vehicle`, `ins-lidar`,
-`lidar-wheel_odometry`. A pair is `planned` when both frames are in the tree and
+`lidar-wheel_odometry`, `radar-imu`. A pair is `planned` when both frames are in the tree and
 connected and the topics exist. Otherwise it is `skipped` with a reason code:
 
 | Code | Meaning |
@@ -311,6 +311,52 @@ sequence was run twice: without and with the GoPro's readout in the camchain
   The fast bodycam sequences stay 3–5 deg off, at a reported std of 0.3–1.2 deg. Their
   cause is not found. None was judged, so no wrong verdict came out, but a longer fast
   bodycam recording could be judged with a bias several times its std.
+
+## radar-imu: a 4D radar's Doppler against the IMU
+
+`radar-imu` audits the **rotation** of `T_radar_imu` with no target, from a 4D radar that
+reports each return's Doppler (radial) velocity.
+- **Which topic.** A `sensor_msgs/PointCloud2` topic whose first message has a float
+  Doppler field gets the `radar` role instead of `lidar`. The field names tried, in order:
+  `v_doppler_mps`, `doppler`, `Doppler`, `radial_velocity`, `v_r`, `vr`, `velocity`.
+- **The method.**
+  - Each scan gives the radar's own velocity: a static return in direction `u` closes at
+    `-u . v`, and a robust fit over the scan's returns (RANSAC, then least squares)
+    gives `v` in the radar frame. Returns that disagree, a passing car for example, are
+    left out.
+  - The IMU gives the same velocity's changes. Between scans 1 s apart, within 10 s
+    windows, the gyro-integrated attitude and the accelerometer must explain how the
+    radar's velocity turned and grew.
+  - The rotation and a constant clock offset are searched. The lever arm, accelerometer
+    bias, a gyro-bias correction and each window's gravity are solved alongside, in
+    closed form.
+  - The gyro bias starts from a still start of the recording (at least 1 s), or from
+    zero.
+- **What is judged.** Roll, pitch and yaw as for `camera-imu`: an axis is judged when its
+  std is at most 0.5 deg and held-out windows detect a 1 deg turn about it, both ways
+  on average. The clock offset is reported, not judged. The lever arm is a note, not
+  judged.
+- **What to expect.** On the development recordings only the rotation about the radar's
+  `z` axis was judged; roll and pitch stayed unchecked. Record a minute or more of motion
+  that turns the rig about every axis while it moves.
+
+```bash
+calibrex check radar_imu_bag/ --tf frames.yaml --pairs radar-imu --fail-on partial
+```
+
+Development (spent) on Doer & Trommer's ICINS 2021 radar-inertial recordings: a TI
+IWR6843AOP radar and an ADIS16448 IMU, nine hand-held and quadcopter bags of 75–390 s,
+with the authors' calibration as the candidate.
+- **The reference.** It never failed. It passed on 4 bags (yaw judged), warned on 1
+  (carried_1, yaw 0.61 deg against a 0.50 deg tolerance) and was inconclusive on 4.
+- **3 deg turns.** No turned candidate passed with full coverage. Every judged turned
+  axis failed (yaw on 5 bags); roll and pitch were not judged.
+- **The clock and the lever arm.** The clock offset came out 8.9–12.5 ms on every bag,
+  about half the 18.5 ms radar frame. The lever arm came out within 3 cm of the
+  authors'.
+
+The pre-registered evaluation on the unseen IROS 2021 archive is
+[`doer_radar_imu_preregistration.yaml`](../benchmarks/doer_radar_imu_preregistration.yaml).
 
 ## camera-lidar: targetless edge alignment
 

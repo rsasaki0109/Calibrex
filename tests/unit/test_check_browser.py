@@ -181,6 +181,7 @@ def test_plan_of_the_sample_bag() -> None:
         "imu-vehicle": "no_vehicle_frame",
         "ins-lidar": "missing_topic",
         "lidar-wheel_odometry": "missing_topic",
+        "radar-imu": "missing_topic",
     }
     assert artifact.summary.runnable_count == 10
     assert artifact.provenance.command == ["calibrex", "check", "check_sample", "--plan"]

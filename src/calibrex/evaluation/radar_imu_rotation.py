@@ -90,6 +90,10 @@ class RadarImuOptions:
     holdout_every: int = 3
     jackknife_groups: int = 8
     rotation_control_deg: float = 1.0
+    """Each control turns (or shifts) both ways and averages the held-out chi-square
+    increase: a one-sided control also measures how far the held-out optimum lies from
+    the training fit, which for a radar's 0.3-0.5 deg stds hides axes the data does
+    resolve."""
     time_control_s: float = 0.01
     detection_delta_chi2: float = 9.0
     observable_rotation_std_deg: float = 0.5
@@ -673,11 +677,13 @@ def evaluate_radar_imu_rotation(
         reported = max(float(analytic[axis]), float(jackknife[axis]))
         control = None
         if can_control and holdout is not None:
-            turn = np.zeros(3)
-            turn[axis] = math.radians(opts.rotation_control_deg)
-            moved = (Rotation.from_rotvec(turn).as_matrix() @ fit.rotation.T).T
-            delta = _chi2(moved, fit.offset_s, holdout, variance) - baseline
-            control = _control(opts.rotation_control_deg, "deg", delta, opts)
+            increases = []
+            for sign in (1.0, -1.0):
+                turn = np.zeros(3)
+                turn[axis] = sign * math.radians(opts.rotation_control_deg)
+                moved = (Rotation.from_rotvec(turn).as_matrix() @ fit.rotation.T).T
+                increases.append(_chi2(moved, fit.offset_s, holdout, variance) - baseline)
+            control = _control(opts.rotation_control_deg, "deg", float(np.mean(increases)), opts)
         records.append(
             ImuLidarRotationDofRecord(
                 name=name,  # type: ignore[arg-type]
@@ -697,10 +703,12 @@ def evaluate_radar_imu_rotation(
     offset_reported = max(analytic_offset, jackknife_offset)
     offset_control = None
     if can_control and holdout is not None:
-        delta = (
-            _chi2(fit.rotation, fit.offset_s + opts.time_control_s, holdout, variance) - baseline
-        )
-        offset_control = _control(opts.time_control_s, "s", delta, opts)
+        increases = [
+            _chi2(fit.rotation, fit.offset_s + sign * opts.time_control_s, holdout, variance)
+            - baseline
+            for sign in (1.0, -1.0)
+        ]
+        offset_control = _control(opts.time_control_s, "s", float(np.mean(increases)), opts)
     records.append(
         ImuLidarRotationDofRecord(
             name="time_offset",
