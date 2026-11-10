@@ -35,7 +35,13 @@ from calibrex.check.estimators import (
 )
 from calibrex.check.frame_tree import StaticFrameTree, normalize_frame_id
 from calibrex.check.hints import format_next_steps
-from calibrex.check.motion_summary import recording_motion_note
+from calibrex.check.motion_summary import (
+    ADVICE_MARK,
+    read_gyro,
+    recording_motion_note,
+    rotation_axis_advice,
+    rotation_rates_dps,
+)
 from calibrex.check.planner import ALL_WIRED_PAIRS, PAIR_SLOTS, plan_pairs, slot_of
 from calibrex.check.progress import CheckProgress, as_progress, paint_verdict
 from calibrex.check.roles import (
@@ -638,6 +644,41 @@ def _label(record: CheckPairRecord) -> str:
 _MOTION_NOTE_PAIRS = frozenset({"imu-lidar", "camera-imu"})
 
 
+def _advise_unchecked_rotation(
+    record: CheckPairRecord,
+    outcome: EstimatorRun,
+    judged: dict[str, Any],
+    bag: Path,
+    sensor_topics: Mapping[str, Sequence[str]],
+    controls: RunControls,
+) -> None:
+    """Append what to record to the reason of each rotation axis the data left unjudged.
+
+    The rates are the IMU's, turned into the frame the pair's errors are given in with the
+    compared rotation; one extra pass over the IMU topic, only when an axis is unchecked.
+    """
+
+    unchecked = [
+        axis
+        for axis in judged.get("unchecked_axes") or []
+        if axis["unit"] == "deg"
+        and axis.get("reason_code") in {"unobservable", "control_not_detected"}
+    ]
+    imu_topics = sensor_topics.get("imu", ())
+    if not unchecked or not imu_topics or record.pair not in _MOTION_NOTE_PAIRS:
+        return
+    gyro = read_gyro(bag, imu_topics[0], max_duration_s=controls.max_duration_s)
+    if gyro is None:
+        return
+    rates = rotation_rates_dps(gyro[1], outcome.compared[:3, :3])
+    frame = str(judged["compared_transform"]["parent_frame"])
+    for axis in unchecked:
+        advice = rotation_axis_advice(
+            axis["name"], frame, rates, camera=record.pair == "camera-imu"
+        )
+        axis["reason"] = f"{axis['reason']}{ADVICE_MARK}{advice}"
+
+
 def _run_one(
     record: CheckPairRecord,
     run: CheckRunOptions,
@@ -701,6 +742,7 @@ def _run_one(
         )
         if note:
             judged["reason"] = f"{judged['reason']}; {note}"
+    _advise_unchecked_rotation(record, outcome, judged, bag, sensor_topics, controls)
     evidence = _write_evidence(record, outcome, evidence_dir, base_dir)
     update = {**judged, "evidence": [item.model_dump() for item in evidence]}
     if evidence:
