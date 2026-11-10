@@ -211,7 +211,10 @@ def test_calibrex_check_judges_radar_imu(tmp_path: Path) -> None:
             )
         )
         artifact = build_calibration_check(
-            bag, tf_files=[frames], wired_pairs=frozenset({"radar-imu"}), run=CheckRunOptions()
+            bag,
+            tf_files=[frames],
+            wired_pairs=frozenset({"radar-imu"}),
+            run=CheckRunOptions(evidence_dir=tmp_path / f"evidence-{name}"),
         )
         results[name] = next(p for p in artifact.pairs if p.pair == "radar-imu")
 
