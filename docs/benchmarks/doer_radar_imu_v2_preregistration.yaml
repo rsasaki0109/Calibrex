@@ -1,0 +1,119 @@
+# Pre-registration of the radar-imu check audit v2 on longer, unseen radar-inertial
+# recordings: calibrex check --pairs radar-imu --fail-on partial run once on the four bags
+# of Doer & Trommer's JGN 2022 multi-radar archive (three TI IWR6843AOP radars, left, right
+# and centre, and an ADIS16448 IMU), which no Calibrex method has read, with the authors'
+# calibration of each radar as the candidate and with every radar's T_radar_imu turned
+# 3 deg about its own x, y and z axes.
+# It is binding once committed; tools/doer_radar_imu_v2_audit.py at frozen_code_commit is
+# the only code that reads these bags, and it runs once.
+#
+# Written on 2026-11-10. v1 (doer_radar_imu_preregistration.yaml, the IROS 2021 archive)
+# was refuted on coverage: the authors' calibration was never failed and no judged 3 deg
+# turn passed, but on recordings of 84-206 s, 8 of 9 bags judged no axis. v2 tests the
+# reading of that result: with the method unchanged (calibrex.evaluation.radar_imu_rotation
+# as merged in #369), recordings of 200 s or more are judged. The JGN 2022 recordings are
+# 219-368 s by the dataset page (office_floor 367.5 s, lab_floor 285.8 s, workshop
+# 313.3 s, basement 218.6 s).
+#
+# Development (spent: the ICINS 2021 archive and the IROS 2021 archive, 18 bags), scored by
+# this rule on the bags of 200 s or more (carried_1 273 s, carried_2 392 s, carried_4
+# 220 s, indoor_floor 206 s; single radar each):
+#   reference: no fail; an axis judged on 3 of 4; a pass on 2 of 4 (carried_2, carried_4);
+#     warn on carried_1 (yaw 0.61 deg against 0.50); indoor_floor judged nothing.
+#   turned 3 deg: none would exit 0 under --fail-on partial; every judged turned axis
+#     failed; 3 of 4 bags failed a turned candidate on its turned axis (yaw).
+#   records: docs/assets/doer_radar_imu/development_summary.json and
+#     docs/assets/doer_radar_imu/evaluation/ (the v1 run)
+# The harness was tested end to end on the spent carried_2 and carried_4 bags (with the one
+# ICINS radar as "center"); it reproduced the v1 development verdicts.
+#
+# Of the evaluation archive only these have been read: its size and Last-Modified date
+# (a one-byte range request), its member list (names and sizes: four bags, three
+# calib_*.yaml at the top level, the authors' groundtruth plots and their own x_rio and
+# VINS result folders), and the dataset page. The calib files (the reference) are read
+# by the harness during the run. The IMU topic is assumed to be /sensor_platform/imu (as in
+# the x_rio launch file for these datasets, christopherdoer/rio).
+claims:
+  doer-radar-imu-check-v2-honesty:
+    text: >-
+      On the four bags of the JGN 2022 archive (three radars each, twelve cases),
+      calibrex check with the authors' calibration as the candidate does not fail
+      radar-imu on any case, and passes it (on the judged axes) on at least 25 % of the
+      cases.
+    gates:
+      max_reference_fails: 0
+      min_reference_pass_fraction: 0.25
+  doer-radar-imu-check-v2-coverage:
+    text: >-
+      With the authors' calibration as the candidate, radar-imu judges at least one
+      rotation axis on at least 50 % of the twelve cases.
+    gates:
+      min_reference_judged_fraction: 0.5
+  doer-radar-imu-check-v2-detection:
+    text: >-
+      With every radar's T_radar_imu turned 3 deg about its x, y or z axis (36 cases), no
+      case exits 0 under --fail-on partial, no case whose turned axis is judged leaves that
+      axis unfailed, and at least 50 % of the twelve (bag, radar) cases fail a turned
+      candidate on its turned axis.
+    gates:
+      max_turned_unflagged: 0
+      max_judged_turns_missed: 0
+      min_detecting_case_fraction: 0.5
+  source_of_gates: >-
+    The fractions are the development rates on the spent bags of 200 s or more divided by
+    1.5 and rounded down to the next 0.25 (2 of 4 passes; 3 of 4 judged; 3 of 4
+    detecting), the rule of the earlier check pre-registrations; a fail of the reference,
+    a turned case that exits 0 or a judged turned axis that does not fail is a plain
+    honesty/detection rule. Fixed before any evaluation bag was read and not to be changed
+    after the run.
+sessions:
+  development_spent:
+    - archive: radar_inertial_datasets_icins_2021.zip
+      bags: [carried_1, carried_2, carried_3, carried_4, carried_5, flight_1, flight_2, flight_3, flight_4]
+    - archive: irs_rtvi_datasets_2021.zip
+      bags: [gym, indoor_floor, mocap_dark, mocap_dark_fast, mocap_difficult, mocap_easy, mocap_medium, outdoor_campus, outdoor_street]
+  evaluation:
+    archive: multi_radar_inertial_datasets_jgn_2022.zip
+    google_drive_id: 1zq9g0S9Rn6jrlmgwsmzBNgnSFr-m9NqL
+    size_bytes: 135085976
+    last_modified: "2022-08-11T15:56:08Z"
+    expected_bags: 4
+    expected_radars: 3
+reference:
+  calib: the archive's top-level calib_left.yaml, calib_right.yaml and calib_center.yaml (q_b_r, l_b_r, topic_radar_scan), read by the harness
+  license: >-
+    The archive page states no licence and asks academic users to cite Doer & Trommer
+    (JGN 2022); only results are committed, no data.
+method:
+  check: >-
+    calibrex check BAG --tf CANDIDATE --pairs radar-imu --frame-map TOPIC=radar_NAME for
+    each radar's topic_radar_scan --frame-map /sensor_platform/imu=imu --cache-dir
+    WORK/cache-BAG --fail-on partial, with the package's defaults (rotation tolerance
+    max(3 std, 0.5 deg) per axis, fail beyond twice the tolerance)
+  candidates: >-
+    The authors' calibration of the three radars (T_imu_radar from q_b_r and l_b_r), and
+    three copies with every radar's T_radar_imu turned 3 deg about its own x (roll), y
+    (pitch) or z (yaw) axis: T_radar_imu' = R_delta T_radar_imu
+  case: one (bag, radar, candidate), scored from that radar's radar-imu pair record
+  flagged: >-
+    the pair would make check exit 1 under --fail-on partial
+    (calibrex.check.verdict.check_exit_status of its status and coverage)
+  passed: status pass (any coverage)
+  judged: at least one rotation axis judged (status pass, warn or fail with axes)
+  detected: a turned case whose pair fails with the turned axis's own status fail
+run_recipe:
+  command: >-
+    python tools/doer_radar_imu_v2_audit.py --archive --work-dir WORK --output-dir RUNS,
+    from a checkout whose src/ and tools/ equal frozen_code_commit, run once. The archive
+    is read over HTTP range requests and must be the pinned size; each bag member is
+    unpacked alone, checked with the four candidates, and deleted.
+    RUNS/BAG_VARIANT.json, BAG_score.json and summary.json are the results.
+invalidates:
+  - a change to src/ or tools/ after frozen_code_commit before the run is done
+  - reading any data of the evaluation archive before the run beyond what is listed above
+  - running the harness on it more than once, or changing a gate after the run
+analysis_plan: >-
+  Report per case the verdict, coverage, per-axis error and the clock offset, and the
+  three claims' verdicts, in docs/benchmarks/radar_imu.md, whatever they are; record the
+  archive as spent in docs/sota_handoff.md.
+frozen_code_commit: 086bfd33b1ba34686a0d67a0a8792907c8f4bd08

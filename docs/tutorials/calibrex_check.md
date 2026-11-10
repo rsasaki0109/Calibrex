@@ -362,6 +362,13 @@ is refuted, on coverage.
 - On recordings of 84–206 s, 8 of 9 bags judged no axis and came out `inconclusive`.
 - Results: [radar-imu](../benchmarks/radar_imu.md).
 
+A second pre-registered audit on longer recordings (JGN 2022, 219–368 s, three radars
+per bag) supported honesty, coverage and detection.
+- Yaw was judged on 7 of 12 cases, and every judged 3 deg yaw turn failed.
+- The authors' calibration was never failed. It warned on 4 cases, its yaw 0.5–1.2 deg
+  off.
+- Roll and pitch were never judged: read only yaw from this pair.
+
 ## camera-lidar: targetless edge alignment
 
 `camera-lidar` audits the **rotation** of `T_camera_lidar` (the camera optical frame, `z`
