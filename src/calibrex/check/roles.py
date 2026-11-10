@@ -9,10 +9,12 @@ from pathlib import Path
 from calibrex.check.frame_tree import FrameHints, StaticFrameTree, normalize_frame_id
 from calibrex.core.calibration_check import CheckTopicRecord, OdometryKind, SensorRole
 from calibrex.core.exceptions import DatasetError
+from calibrex.data.radar_pointcloud import doppler_field
 from calibrex.data.ros_cdr import (
     AUTOWARE_VELOCITY_REPORT_TYPES,
     decode_ros2_header_frame_id,
     decode_ros2_odometry,
+    decode_ros2_pointcloud2,
     ros2_pointcloud2_payload_problem,
 )
 from calibrex.data.rosbag2 import (
@@ -240,6 +242,38 @@ def flag_unreadable_pointclouds(
                 )
             )
     return flagged
+
+
+def mark_radar_pointclouds(
+    bag: str | Path,
+    records: Sequence[CheckTopicRecord],
+) -> list[CheckTopicRecord]:
+    """Give a PointCloud2 topic whose first message has a Doppler field the ``radar`` role."""
+
+    marked: list[CheckTopicRecord] = []
+    for record in records:
+        if (
+            record.role != "lidar"
+            or record.message_type != POINTCLOUD2_TYPE
+            or record.ignored_reason is not None
+        ):
+            marked.append(record)
+            continue
+        field: str | None = None
+        try:
+            for _conn, timestamp_ns, data in iter_topic_messages(bag, record.topic, limit=1):
+                require_cdr_connection(_conn)
+                field = doppler_field(
+                    decode_ros2_pointcloud2(record.topic, timestamp_ns, data).fields
+                )
+        except DatasetError:
+            field = None
+        if field is None:
+            marked.append(record)
+            continue
+        note = f"a radar: its points carry a Doppler velocity ({field})"
+        marked.append(record.model_copy(update={"role": "radar", "notes": [*record.notes, note]}))
+    return marked
 
 
 def map_topics_to_frames(

@@ -31,6 +31,7 @@ PAIR_SLOTS: dict[CheckPairName, tuple[str, str]] = {
     "imu-vehicle": ("imu", "vehicle"),
     "ins-lidar": ("ins", "lidar"),
     "lidar-wheel_odometry": ("lidar", "wheel"),
+    "radar-imu": ("radar", "imu"),
 }
 ALL_WIRED_PAIRS: frozenset[str] = frozenset(CHECK_PAIR_NAMES)
 
@@ -57,7 +58,7 @@ def slot_of(record: CheckTopicRecord) -> str | None:
         if record.odometry_kind == "wheel":
             return "wheel"
         return None
-    if record.role in {"lidar", "imu", "camera", "gnss"}:
+    if record.role in {"lidar", "imu", "camera", "gnss", "radar"}:
         return record.role
     return None
 
