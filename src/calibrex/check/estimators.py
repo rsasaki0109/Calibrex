@@ -3149,6 +3149,97 @@ def _camera_gyro(ctx: PairContext, camera_frame: str) -> tuple[str, FloatArray] 
     return None
 
 
+def run_radar_imu(ctx: PairContext) -> EstimatorRun:
+    """``T_radar_imu`` rotation from the radar's Doppler ego velocity against the IMU."""
+
+    from calibrex.core.imu_lidar_rotation import load_imu_lidar_rotation
+    from calibrex.evaluation.imu_lidar_rotation import rebase_rotation_reference
+    from calibrex.evaluation.radar_imu_rotation import RadarImuOptions, run_radar_imu_rotation
+
+    radar_topics = ctx.sensor_topics.get("radar", ())
+    imu_topics = ctx.sensor_topics.get("imu", ())
+    if not radar_topics or not imu_topics:
+        raise CheckSkipError("missing_topic", "the pair needs a radar topic and an IMU topic")
+    radar_topic, imu_topic = radar_topics[0], imu_topics[0]
+    ctx.controls.progress(f"radar-imu: {radar_topic} + {imu_topic}")
+    candidate = ctx.candidate  # T_radar_imu
+    options = RadarImuOptions()
+    command = ["calibrex", "check", str(ctx.bag), "radar-imu", radar_topic, imu_topic]
+
+    def compute() -> Any:
+        try:
+            return run_radar_imu_rotation(
+                ctx.bag,
+                radar_topic=radar_topic,
+                imu_topic=imu_topic,
+                dataset_family=DATASET_FAMILY,
+                dataset_license=DATASET_LICENSE,
+                acceleration_unit=ctx.controls.acceleration_unit,
+                reference_rotation=candidate[:3, :3],
+                reference="deployed candidate calibration (T_radar_imu)",
+                options=options,
+                max_seconds=ctx.controls.max_duration_s,
+                command=command,
+            )
+        except ValueError as exc:
+            raise CheckInconclusiveError("estimator_failed", str(exc)) from exc
+
+    artifact, cached = cached_artifact(
+        ctx.controls.cache,
+        ctx.controls.bag_sha256,
+        "radar_imu_rotation",
+        {
+            "radar_topic": radar_topic,
+            "imu_topic": imu_topic,
+            "acceleration_unit": ctx.controls.acceleration_unit,
+            "max_seconds": ctx.controls.max_duration_s,
+            "options": options,
+        },
+        loader=load_imu_lidar_rotation,
+        compute=compute,
+        rebase=lambda hit: rebase_rotation_reference(hit, candidate[:3, :3]),
+    )
+    solved = artifact.rotation_quat_xyzw is not None and artifact.solver_status == "converged"
+    if artifact.rotation_quat_xyzw is not None:
+        estimates = rotation_axis_estimates(
+            artifact.dofs, candidate[:3, :3], _pose_rotation(artifact)
+        )
+    else:
+        estimates = [
+            _unestimated(item)
+            for item in rotation_axis_estimates(artifact.dofs, candidate[:3, :3], candidate[:3, :3])
+        ]
+    lever = artifact.options.get("lever_arm_m")
+    notes = [f"Doppler field: {artifact.options.get('doppler_field')}"]
+    if lever is not None:
+        notes.append(
+            "lever arm fitted as a nuisance (not judged): "
+            + ", ".join(f"{value:+.3f}" for value in lever)
+            + " m in the IMU frame"
+        )
+    notes.append(
+        f"gyro bias from the {artifact.options.get('gyro_bias_source')}, refined by the fit"
+    )
+    return EstimatorRun(
+        estimator=f"{artifact.method} (radar)",
+        artifacts=(
+            EvidenceArtifact(
+                "rotation",
+                artifact,
+                artifact.policy_status,
+                cached if ctx.controls.cache is not None else None,
+            ),
+        ),
+        solved=solved,
+        policy_status=artifact.policy_status,
+        policy_reasons=tuple(artifact.policy_reasons),
+        estimates=tuple(estimates),
+        compared=candidate,
+        time_offset=time_offset_of(artifact.dofs, artifact.time_offset_s),
+        notes=tuple(notes),
+    )
+
+
 ESTIMATORS: dict[str, Adapter] = {
     "imu-lidar": run_imu_lidar,
     "gnss-lidar": run_gnss_lidar,
@@ -3162,5 +3253,6 @@ ESTIMATORS: dict[str, Adapter] = {
     "imu-vehicle": run_imu_vehicle,
     "ins-lidar": run_ins_lidar,
     "lidar-wheel_odometry": run_lidar_wheel,
+    "radar-imu": run_radar_imu,
 }
 WIRED_CHECK_PAIRS: frozenset[str] = frozenset(ESTIMATORS)

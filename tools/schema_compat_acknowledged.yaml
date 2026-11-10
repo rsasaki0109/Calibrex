@@ -16,3 +16,10 @@ acknowledged:
       dataset, sensors, and frames; it was already invalid when v0.5.0 was
       released and is tracked in KNOWN_INVALID_ARTIFACTS in
       tests/unit/test_schema_registry.py.
+  - key: imu_lidar_rotation.schema.json#<root>.method
+    reason: >-
+      method was the single-value literal angular_rate_alignment/v0.1 (a JSON
+      Schema const) and became an enum of that value plus
+      doppler_velocity_alignment/v0.1 for radar-imu. Every artifact v0.6.3 accepts
+      is still accepted; the checker reads a const turning into an enum as a
+      narrowing.

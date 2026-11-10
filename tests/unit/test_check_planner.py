@@ -175,6 +175,7 @@ def _rig_topics() -> list[CheckTopicRecord]:
         _topic("/gnss", "gnss", "gps"),
         _topic("/wheel/odom", "odometry", "base", kind="wheel"),
         _topic("/ins/odom", "odometry", "ins", kind="ins"),
+        _topic("/radar", "radar", "radar"),
     ]
 
 
@@ -186,6 +187,7 @@ def _rig_tree() -> StaticFrameTree:
         ("base", "cam", 2.0),
         ("base", "gps", 3.0),
         ("base", "ins", 4.0),
+        ("base", "radar", 5.0),
     )
 
 
@@ -216,7 +218,10 @@ def test_all_pairs_planned_with_composed_transforms() -> None:
         "ins-lidar",
         "lidar-wheel_odometry",
         "lidar-wheel_odometry",
+        "radar-imu",
     ]
+    (radar_imu,) = _by_pair(records, "radar-imu")
+    assert radar_imu.frames == ["radar", "imu"] and sorted(radar_imu.topics) == ["/imu", "/radar"]
     (lidar_lidar,) = _by_pair(records, "lidar-lidar")
     assert lidar_lidar.candidate_transform is not None
     assert lidar_lidar.candidate_transform.translation_m == pytest.approx([-2.0, 0.0, 0.0])

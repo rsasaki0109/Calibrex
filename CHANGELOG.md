@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- `calibrex check` judges a new pair, `radar-imu`. It checks the rotation of `T_radar_imu`
+  with no target, from a 4D radar's Doppler returns against the gyro and accelerometer.
+  - A `PointCloud2` topic with a float Doppler field (`v_doppler_mps`, `doppler`, ...) gets
+    the new `radar` role.
+  - The clock offset, lever arm, accelerometer bias and a gyro-bias correction are fitted
+    alongside the rotation. The lever arm is reported, not judged.
+  - Its held-out controls turn both ways and average, so an axis is judged only when the
+    held-out data resolves 1 deg.
+  - On nine spent radar-inertial recordings the authors' calibration never failed, every
+    judged 3 deg turn failed, and the clock offset was found at 9–13 ms. Mostly the
+    radar's z axis was judged.
+  - The pre-registered audit on nine unseen bags (Doer & Trommer IROS 2021) is refuted, on
+    coverage: no wrong verdict was given, but 8 of the 9 recordings (84–206 s) judged no
+    axis ([radar-imu](docs/benchmarks/radar_imu.md)).
+  - Schemas: the `radar` role and the `radar-imu` pair are added to the check, estimate and
+    drift schemas; the rotation artifact gains method `doppler_velocity_alignment/v0.1`
+    and modality `radar`.
 - `calibrex check --camera-source NAME=PATH[@SECONDS]` reads a camera recorded outside the
   bag: an image folder (times from a EuRoC `data.csv`, a `timestamps.csv` or the file
   names) or a video. `camera-imu` and `camera-focal` read it.

@@ -1,0 +1,109 @@
+# Pre-registration of the radar-imu check audit on unseen radar-inertial recordings:
+# calibrex check --pairs radar-imu --fail-on partial run once on the nine bags of Doer &
+# Trommer's IROS 2021 radar-thermal-visual-inertial archive, which no Calibrex method has
+# read, with the authors' radar-to-IMU calibration as the candidate and with T_radar_imu
+# turned 3 deg about the radar's x, y and z axes.
+# It is binding once committed; tools/doer_radar_imu_audit.py at frozen_code_commit is the
+# only code that reads these bags, and it runs once.
+#
+# Written on 2026-11-10. radar-imu is new: the rotation of T_radar_imu from a 4D radar's
+# Doppler ego velocity against the gyro and accelerometer, with the clock offset, lever arm,
+# accelerometer bias and a gyro-bias correction fitted alongside
+# (calibrex.evaluation.radar_imu_rotation).
+#
+# Development (spent: the ICINS 2021 radar-inertial archive, carried_1-carried_5 and
+# flight_1-flight_4, same radar (TI IWR6843AOP) and IMU (ADIS16448), two other mountings),
+# scored by this rule with the authors' calib.yaml of each mounting as the reference:
+#   reference, 9 cases: no fail; pass on 4 (carried_2, carried_4, carried_5, flight_3), all
+#     on yaw alone; warn on 1 (carried_1, yaw 0.61 deg against a 0.50 deg tolerance);
+#     inconclusive on 4. Roll and pitch were never judged: their stds stay above 0.5 deg or
+#     their held-out 1 deg controls are not detected.
+#   turned 3 deg, 27 cases: none would exit 0 under --fail-on partial; every turned axis
+#     that was judged failed (5 yaw cases); 5 of 9 bags failed a turned candidate on its
+#     turned axis.
+#   the clock offset came out 8.9-12.5 ms on every bag (half the 18.5 ms radar frame is
+#     9.25 ms); the lever arm within 3 cm of the authors' (within 1 cm on carried).
+#   records: docs/assets/doer_radar_imu/development_summary.json
+# The estimate does not depend on the candidate, so the four candidates of a bag share
+# one estimator cache. The authors' calibration is reference evidence, not ground truth.
+#
+# Of the evaluation archive only these have been read: its size and Last-Modified date
+# (a one-byte range request), the dataset page's table of sequences (nine bags: five
+# motion-capture, four others), and the authors' calib_radar.yaml (the reference). The
+# archive's member list is read by the harness during the run. The IMU topic is assumed
+# to be /sensor_platform/imu, as in the development archive of the same sensor platform.
+claims:
+  doer-radar-imu-check-honesty:
+    text: >-
+      On the nine bags of the IROS 2021 archive, calibrex check with the authors'
+      radar-to-IMU calibration as the candidate does not fail radar-imu on any bag, and
+      passes it (on the judged axes) on at least 25 % of the bags.
+    gates:
+      max_reference_fails: 0
+      min_reference_pass_fraction: 0.25
+  doer-radar-imu-check-detection:
+    text: >-
+      With T_radar_imu turned 3 deg about the radar's x, y or z axis (27 cases), no case
+      exits 0 under --fail-on partial, no case whose turned axis is judged leaves that
+      axis unfailed, and at least 25 % of the bags fail a turned candidate on its turned
+      axis.
+    gates:
+      max_turned_unflagged: 0
+      max_judged_turns_missed: 0
+      min_detecting_bag_fraction: 0.25
+  source_of_gates: >-
+    The fractions are the development rates divided by 1.5 and rounded down to the next
+    0.25 (4 of 9 passes; 5 of 9 detecting bags), the rule of the earlier check
+    pre-registrations; a fail of the reference, a turned case that exits 0 or a judged
+    turned axis that does not fail is a plain honesty/detection rule. Fixed before any
+    evaluation bag was read and not to be changed after the run.
+sessions:
+  development_spent:
+    archive: radar_inertial_datasets_icins_2021.zip
+    sha256: 16133b6e8205b443e7722c5b6b97319768dd6cebbf4cf238d0866693902180b1
+    bags: [carried_1, carried_2, carried_3, carried_4, carried_5, flight_1, flight_2, flight_3, flight_4]
+  evaluation:
+    archive: irs_rtvi_datasets_2021.zip
+    google_drive_id: 11d3Lt0wBUGz1Psp7rbS27YBGGveK2OCD
+    size_bytes: 9772383980
+    last_modified: "2022-08-11T23:10:26Z"
+    expected_bags: 9
+reference:
+  calib: https://christopherdoer.github.io/_datasets/irs_rtvi_datasets_iros2021/calib_radar.yaml
+  calib_sha256: d953e74ea204258a7a91a49ddcb916989920676b428eb8d23e094c6c7d821f20
+  license: >-
+    The archive page states no licence and asks academic users to cite Doer & Trommer
+    (IROS 2021); only results are committed, no data.
+method:
+  check: >-
+    calibrex check BAG --tf CANDIDATE --pairs radar-imu --frame-map
+    /sensor_platform/radar/scan=radar --frame-map /sensor_platform/imu=imu --cache-dir
+    WORK/cache-BAG --fail-on partial, with the package's defaults (rotation tolerance
+    max(3 std, 0.5 deg) per axis, fail beyond twice the tolerance)
+  candidates: >-
+    The authors' calibration (T_imu_radar from q_b_r and l_b_r), and three copies with
+    T_radar_imu turned 3 deg about the radar's x (roll), y (pitch) or z (yaw) axis:
+    T_radar_imu' = R_delta T_radar_imu
+  case: one (bag, candidate), scored from radar-imu's pair record
+  flagged: >-
+    the pair would make check exit 1 under --fail-on partial
+    (calibrex.check.verdict.check_exit_status of its status and coverage)
+  passed: status pass (any coverage)
+  detected: a turned case whose pair fails with the turned axis's own status fail
+run_recipe:
+  command: >-
+    python tools/doer_radar_imu_audit.py --calib calib_radar.yaml --archive --work-dir
+    WORK --output-dir RUNS, from a checkout whose src/ and tools/ equal
+    frozen_code_commit, run once, with calib_radar.yaml matching calib_sha256. The
+    archive is read over HTTP range requests and must be the pinned size; each bag member
+    is unpacked alone, checked with the four candidates, and deleted.
+    RUNS/BAG_VARIANT.json, BAG_score.json and summary.json are the results.
+invalidates:
+  - a change to src/ or tools/ after frozen_code_commit before the run is done
+  - reading any data of the evaluation archive before the run beyond what is listed above
+  - running the harness on it more than once, or changing a gate after the run
+analysis_plan: >-
+  Report per case the verdict, coverage, per-axis error and the clock offset, and both
+  claims' verdicts, in docs/benchmarks/radar_imu.md, whatever they are; record the archive
+  as spent in docs/sota_handoff.md.
+frozen_code_commit: fb0dcc35d0db5dfd45d31bec2f2e9061057a22cf

@@ -42,6 +42,7 @@ pre-registered audit marks `supported`. Five things follow from that:
 | `camera-lidar` (checkerboard) | refuted | KITTI calibration recordings (0/5 days): no estimate on any day (stereo time bound, board fragments) | [board camera-LiDAR](benchmarks/board_camera_lidar.md#result-both-claims-refuted-no-estimate-on-any-day) |
 | `lidar-wheel_odometry` | refuted | NCLT, 5 unseen sessions: accuracy 0/5 (roll and pitch 0.1-2.4 deg off; yaw within 0.43 deg); check honesty supported (never failed NCLT's calibration) | [LiDAR-wheel odometry](benchmarks/lidar_wheel_odometry.md#result-accuracy-refuted-05-sessions-check-honesty-supported) |
 | `camera` (focal) | supported | TUM-VI check honesty and detection (5/5): never failed Kalibr's focal lengths (6/10 judged); passed none of 20 3 %-wrong cases, failed 6; half inconclusive, no accuracy claim | [camera-focal](benchmarks/hilti_camera_imu.md#result-camera-focal-check-honesty-and-detection-supported) |
+| `radar-imu` | refuted | Doer & Trommer IROS 2021, 9 unseen bags (honesty and detection refuted on coverage): never failed the authors' calibration and never passed a judged 3 deg turn, but judged an axis on only 1 of 9 bags (84-206 s recordings) | [radar-imu](benchmarks/radar_imu.md) |
 | `gnss-imu`, `imu-vehicle` | no claim | native methods exist; no audit yet | [estimate on real data](benchmarks/estimate_real_data.md) |
 
 ## How an audit is run
@@ -171,6 +172,8 @@ The camera-imu v3 audit did exactly this with the camera-camera runs.
 | TUM-VI | `camera-imu` check v2 evaluation (`--fail-on partial`, supported) | slides1, slides2, slides3, magistrale3, magistrale5 (read once by the frozen harness; [pre-registration](benchmarks/tumvi_camera_imu_v2_preregistration.yaml)); room1 read again for the harness's development run |
 | NCLT | `lidar-wheel_odometry` development | 2012-01-08 (from 60 s: 2, 10, 20 and 30 minutes; its ground truth read to find the converter's scan-period error) |
 | NCLT | `lidar-wheel_odometry` evaluation (refuted) | 2012-02-02, 2012-05-11, 2012-08-04, 2012-11-04, 2013-02-23 (one hour each from 60 s, read once by the frozen harness; [pre-registration](benchmarks/nclt_lidar_wheel_preregistration.yaml)); afterwards development data for the [within- and between-session analysis](benchmarks/lidar_wheel_odometry.md#development-after-the-audit-the-stds-hold-within-a-recording-the-vehicle-frame-moves-between-recordings) |
+| Doer & Trommer ICINS 2021 radar-inertial | `radar-imu` development | carried_1-carried_5, flight_1-flight_4 (the whole archive) |
+| Doer & Trommer IROS 2021 radar-thermal-visual-inertial | `radar-imu` evaluation (refuted) | the nine bags of `irs_rtvi_datasets_2021.zip` (radar and IMU topics read once by the frozen harness; [pre-registration](benchmarks/doer_radar_imu_preregistration.yaml)) |
 
 The v2 camera-lidar runs also read the Velodyne and OXTS of the first 600 frames of its
 18 drives. A `lidar-vehicle` or `ins-lidar` audit on those drives must disclose that.

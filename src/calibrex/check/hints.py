@@ -42,6 +42,7 @@ SLOT_MESSAGE_TYPES: dict[str, str] = {
         "its intrinsics)"
     ),
     "gnss": "sensor_msgs/msg/NavSatFix",
+    "radar": "sensor_msgs/msg/PointCloud2 with a float Doppler field (for example v_doppler_mps)",
     "ins": "nav_msgs/msg/Odometry classified as ins (--topic-kind TOPIC=ins)",
     "wheel": "nav_msgs/msg/Odometry or TwistStamped classified as wheel (--topic-kind TOPIC=wheel)",
 }

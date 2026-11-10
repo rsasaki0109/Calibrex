@@ -49,6 +49,7 @@ from calibrex.check.roles import (
     classify_topics,
     flag_unreadable_pointclouds,
     map_topics_to_frames,
+    mark_radar_pointclouds,
     read_header_frames,
 )
 from calibrex.check.tf_sources import (
@@ -274,7 +275,7 @@ def classify_bag_topics(
             unknown_topics
         )
         raise DatasetError(msg)
-    candidates = flag_unreadable_pointclouds(bag, candidates)
+    candidates = mark_radar_pointclouds(bag, flag_unreadable_pointclouds(bag, candidates))
     return candidates, read_header_frames(bag, candidates)
 
 

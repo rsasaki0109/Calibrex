@@ -353,8 +353,11 @@
       "type": "array"
     },
     "method": {
-      "const": "angular_rate_alignment/v0.1",
       "default": "angular_rate_alignment/v0.1",
+      "enum": [
+        "angular_rate_alignment/v0.1",
+        "doppler_velocity_alignment/v0.1"
+      ],
       "title": "Method",
       "type": "string"
     },
@@ -421,11 +424,12 @@
     },
     "sensor_modality": {
       "default": "lidar",
-      "description": "Which sensor's motion was aligned with the gyro: LiDAR odometry, camera rotations from images, or a user-supplied trajectory. The artifact calls that sensor's frame 'lidar' in every case.",
+      "description": "Which sensor's motion was aligned with the IMU: LiDAR odometry, camera rotations from images, a user-supplied trajectory (all against the gyro), or a radar's Doppler ego velocity (against the gyro and accelerometer). The artifact calls that sensor's frame 'lidar' in every case.",
       "enum": [
         "lidar",
         "camera",
-        "trajectory"
+        "trajectory",
+        "radar"
       ],
       "title": "Sensor Modality",
       "type": "string"

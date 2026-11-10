@@ -34,7 +34,7 @@ CALIBRATION_CHECK_SCHEMA_VERSION: Literal["slac.calibration_check/v0.1"] = (
 )
 CHECK_FRAMES_SCHEMA_VERSION: Literal["slac.check_frames/v0.1"] = "slac.check_frames/v0.1"
 
-SensorRole = Literal["lidar", "imu", "camera", "gnss", "odometry", "twist", "tf_static"]
+SensorRole = Literal["lidar", "imu", "camera", "gnss", "odometry", "twist", "tf_static", "radar"]
 OdometryKind = Literal["wheel", "ins", "unknown"]
 CheckPairName = Literal[
     "imu-lidar",
@@ -49,6 +49,7 @@ CheckPairName = Literal[
     "imu-vehicle",
     "ins-lidar",
     "lidar-wheel_odometry",
+    "radar-imu",
 ]
 CHECK_PAIR_NAMES: tuple[CheckPairName, ...] = (
     "imu-lidar",
@@ -63,6 +64,7 @@ CHECK_PAIR_NAMES: tuple[CheckPairName, ...] = (
     "imu-vehicle",
     "ins-lidar",
     "lidar-wheel_odometry",
+    "radar-imu",
 )
 CheckPairStatus = Literal["planned", "skipped", "pass", "warn", "fail", "inconclusive"]
 CheckReasonCode = Literal[
