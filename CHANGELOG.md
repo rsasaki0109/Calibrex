@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- `calibrex check --camera-source NAME=PATH[@SECONDS]` reads a camera recorded outside the
+  bag: an image folder (times from a EuRoC `data.csv`, a `timestamps.csv` or the file
+  names) or a video. `camera-imu` and `camera-focal` read it.
+  - Its clock is placed on the IMU's by correlating the camera's rotation speed with the
+    gyro's, which needs no mounting estimate. An offset it cannot tell apart from another
+    leaves the pair `inconclusive` instead of guessing.
+  - On TUM-VI room1 (spent), image folders reproduce the bag run exactly; a 12.345 s
+    clock offset was found as 12.349 s (true offset plus the 4 ms the fit also finds
+    without a shift). A video gives a pass within 0.15 deg.
+  - On the public LiU GoPro-IMU dataset (a GoPro video and a separate IMU on its own
+    clock), the clock was found on all five sequences, 6–30 ms from the authors' offset.
+    The rotation was mostly not judged (30–45 s recordings). On fast bodycam motion the
+    unjudged estimate is 3–4 deg off: rolling shutter is not modelled.
+- Kalibr-style camchains accept `distortion_model: atan` (FOV model with a distortion
+  centre, `[gamma, wc_x, wc_y]`, as Kontiki's AtanCamera).
+- An unchecked rotation axis of a recording shorter than 60 s now asks for more of the
+  same motion, instead of saying that recording again would not help.
+
 ## 0.6.3 - 2026-11-10
 
 Highlights:

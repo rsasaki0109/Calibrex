@@ -191,6 +191,93 @@ image. The pair's notes say which stride ran. A camera slower than 4 Hz cannot g
 stride. Before this rule the stride was always 4, which left a 10 Hz camera no interval at
 all (see [FAST-LIVO `hku1` and `hku2`](#fast-livo-hku1-and-hku2-jpeg-camera-and-livox-custommsg)).
 
+### A camera outside the bag (`--camera-source`)
+
+When the camera was recorded on its own (a phone, an action camera, a separate capture
+PC) and only the IMU is in the bag, give the camera with `--camera-source NAME=PATH`:
+
+```bash
+calibrex check imu_bag/ --tf camchain.yaml --pairs camera-imu,camera-focal \
+  --camera-source cam0=recording/cam0/data        # an image folder
+calibrex check imu_bag/ --tf camchain.yaml --camera-source cam0=front.mp4   # a video
+calibrex check imu_bag/ --tf camchain.yaml --camera-source cam0=front.mp4@1520530308.2
+```
+
+- **`NAME`** is the camchain camera (`cam0`) or the camera's frame. The camera's
+  intrinsics and `T_cam_imu` come from `--tf` as for a camera in the bag. It shows up in
+  the topic list as `/external/NAME`.
+- **An image folder** gets its capture times from a `data.csv` next to it or in its
+  parent (EuRoC/ASL: `#timestamp [ns],filename`), a `timestamps.csv`, or the file names
+  (an integer stem is nanoseconds, a decimal stem seconds).
+- **A video** gets its frame times from the video's own presentation times, starting at 0.
+- **The clock.** The camera's clock need not be the IMU's. Check finds the offset by
+  correlating the camera's rotation speed with the gyro's. Speed does not depend on the
+  mounting, so this works before `T_cam_imu` is known. The camera-IMU fit then refines the
+  remainder, reported as the pair's time offset.
+  - The search refuses rather than guesses:
+    - when the speeds correlate below 0.5 (too little rotation, or not the same rig);
+    - when another offset more than 1 s away fits almost as well (a motion that repeats).
+    The pair is then `inconclusive`, and `@SECONDS` gives the offset by hand
+    (camera time + SECONDS = IMU time).
+- **Which pairs.** Only `camera-imu` and `camera-focal` read an external camera, because
+  only they can place its clock on the IMU's. `camera-lidar` and `camera-camera` skip it
+  with `unsupported_sensor`.
+
+Checked on TUM-VI room1 (spent), from its EuRoC export: the IMU written to a bag of its
+own, the two cameras as image folders and as 20 fps MPEG-4 videos.
+
+| Camera input | Clock offset found | Expected | camera-imu, cam0 (roll / pitch / yaw error) |
+| --- | --- | --- | --- |
+| the bag's own image topic | - | - | 0.010 / 0.097 / 0.147 deg, pass |
+| image folder, same clock | +0.004 s | 0 | 0.010 / 0.097 / 0.147 deg, pass |
+| image folder, clock 12.345 s behind | +12.349 s | +12.345 s | 0.010 / 0.097 / 0.147 deg, pass |
+| video (times from 0) | +1520530308.203 s | first frame at 1520530308.199 s | 0.147 / 0.124 / 0.052 deg, pass |
+
+- The folder runs reproduce the bag run to the last digit, both cameras and camera-focal
+  included (cam0 fx scale 0.9996).
+- The speeds correlated at 0.97–0.98, against 0.52 for the next best offset.
+- The video is a little worse: its compression, and frame times on a uniform 20 fps
+  grid instead of the camera's own stamps. camera-focal judged only fx on cam0 from it.
+
+#### A real separate camera: the LiU GoPro-IMU dataset
+
+The [GoPro-IMU dataset](https://www.cvl.isy.liu.se/en/research/datasets/gopro-imu-dataset/)
+(Ovrén and Forssén, Linköping University; CC BY-SA 4.0) is the case this option is for:
+- a GoPro Hero 3+ filming 1080p at 29.97 fps (wide FOV, rolling shutter, 31.7 ms readout);
+- a separate MPU-9250 IMU logging at 1000 Hz on its own clock;
+- per sequence, the authors' time offset and IMU-to-camera rotation (from a spline
+  visual-inertial fit), used here as the reference.
+
+Each IMU went into a bag of its own and each `video.mp4` was the external camera. The
+camera model is the dataset's atan (FOV) model with a distortion centre, given in a
+camchain as `distortion_model: atan`, `distortion_coeffs: [gamma, wc_x, wc_y]`.
+
+| Sequence | Length | Clock offset found (coarse + fine) | Reference | Difference | camera-imu |
+| --- | ---: | ---: | ---: | ---: | --- |
+| apple3 (handheld) | 30 s | 227.764 s | 227.758 s | +6 ms | inconclusive: no axis within 0.3 deg std |
+| barn3 (handheld) | 45 s | 133.086 s | 133.064 s | +22 ms | inconclusive |
+| playground1 (bodycam) | 32 s | 245.769 s | 245.754 s | +15 ms | inconclusive |
+| playground3 (bodycam) | 38 s | 481.508 s | 481.477 s | +30 ms | inconclusive |
+| rccar_barn1 (RC car) | 32 s | 292.913 s | 292.899 s | +14 ms | pass, partial: pitch only (0.77 deg, std 0.29) |
+
+- **The clock is found on every sequence**, on clocks 130 to 480 s apart. The rotation
+  speeds correlated at 0.64–0.89 (next best 0.28–0.55).
+  - The found offset is 6 to 30 ms later than the authors'. Half the rolling-shutter
+    readout is 16 ms: a whole-frame rotation belongs to mid-exposure rather than the
+    first row. That would explain most of it, but it is not verified.
+- **The rotation is mostly not judged.** These recordings are 30–45 s, four to six
+  10 s windows, so the stds stay over the 0.3 deg bound. Check says so, and asks for
+  60 s or more of the same motion.
+- **Rolling shutter is not modelled, and it shows.** The estimates against the authors'
+  rotation:
+  - within 0.7 deg on the handheld sequences;
+  - 3.1 deg (playground1) and 4.3 deg (playground3) on the fast bodycam sequences, at a
+    reported std of only 0.33–0.5 deg.
+
+  None of these was judged, so no wrong verdict came out. But a longer fast recording
+  with a rolling-shutter camera could be judged with a bias several times its std. Use
+  a global-shutter camera, or slow, smooth motion, until the tracker models the readout.
+
 ## camera-lidar: targetless edge alignment
 
 `camera-lidar` audits the **rotation** of `T_camera_lidar` (the camera optical frame, `z`

@@ -15,6 +15,7 @@ rotation is that of ``T_cam_imu`` and the clock offset follows
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -32,9 +33,15 @@ from calibrex.core.imu_lidar_rotation import (
     ImuLidarWindowSummary,
 )
 from calibrex.core.provenance import git_commit
+from calibrex.data.external_camera import ExternalCameraSource, iter_external_gray
 from calibrex.data.livox_ros2 import ImuSamples, bag_input_digest
 from calibrex.data.ros2_camera_imu import image_header, iter_gray_images, load_ros2_imu
 from calibrex.data.rosbag2 import iter_messages, require_cdr_connection
+from calibrex.evaluation.clock_alignment import (
+    ClockAlignment,
+    ClockAlignmentOptions,
+    align_camera_clock,
+)
 from calibrex.evaluation.imu_lidar_rotation import (
     ImuLidarRunOptions,
     evaluate_imu_lidar_rotation,
@@ -188,6 +195,42 @@ def run_ros2_camera_imu_rotation(
         accel_mps2=np.concatenate([sample.accel_mps2 for sample in samples])[order][keep],
     )
     windows, tracks = camera_rotation_windows(bags, image_topic, camera, opts)
+    digest, scope = bag_input_digest(bags)
+    return _camera_imu_artifact(
+        imu,
+        windows,
+        tracks,
+        [Path(bag).name for bag in bags],
+        options=opts,
+        reference_rotation=reference_rotation,
+        reference=reference,
+        command=command,
+        dataset_family=dataset_family,
+        dataset_license=dataset_license,
+        stream_profile=f"ros2-image:{image_topic}+imu:{imu_topic}",
+        input_sha256=hashlib.sha256(digest.encode("ascii")).hexdigest(),
+        input_digest_scope=scope,
+    )
+
+
+def _camera_imu_artifact(
+    imu: ImuSamples,
+    windows: list[OdometryWindow],
+    tracks: Sequence[CameraRotationTrack],
+    sequence_ids: list[str],
+    *,
+    options: CameraImuRunOptions,
+    reference_rotation: FloatArray | None,
+    reference: str | None,
+    command: list[str] | None,
+    dataset_family: str,
+    dataset_license: str,
+    stream_profile: str,
+    input_sha256: str,
+    input_digest_scope: str,
+    extra: dict[str, object] | None = None,
+) -> ImuLidarRotationArtifact:
+    opts = options
     if len(windows) < 3:
         raise ValueError(f"camera tracking produced {len(windows)} windows; at least 3 are needed")
     evaluation = evaluate_imu_lidar_rotation(
@@ -196,7 +239,6 @@ def run_ros2_camera_imu_rotation(
         opts.evaluation,
         reference_rotation=reference_rotation,
     )
-    digest, scope = bag_input_digest(bags)
     frames = sum(len(track.times_s) for track in tracks)
     return rotation_artifact_from_evaluation(
         evaluation,
@@ -215,10 +257,10 @@ def run_ros2_camera_imu_rotation(
             git_commit=git_commit(),
             command=command or [],
             dataset_family=dataset_family,
-            sequence_ids=[Path(bag).name for bag in bags],
-            stream_profile=f"ros2-image:{image_topic}+imu:{imu_topic}",
-            input_sha256=hashlib.sha256(digest.encode("ascii")).hexdigest(),
-            input_digest_scope=scope,
+            sequence_ids=sequence_ids,
+            stream_profile=stream_profile,
+            input_sha256=input_sha256,
+            input_digest_scope=input_digest_scope,
             dataset_license=dataset_license,
         ),
         reference=reference,
@@ -226,13 +268,13 @@ def run_ros2_camera_imu_rotation(
             "frame_stride": opts.frame_stride,
             "visual_rotation": [
                 {
-                    "bag": Path(bag).name,
+                    "bag": name,
                     "pairs": track.stats.pairs,
                     "essential": track.stats.essential,
                     "pure_rotation": track.stats.pure_rotation,
                     "failed": track.stats.failed,
                 }
-                for bag, track in zip(bags, tracks, strict=True)
+                for name, track in zip(sequence_ids, tracks, strict=True)
             ],
             "min_window_rotation_deg": opts.evaluation.min_window_rotation_deg,
             "static_windows_excluded": evaluation.static_windows_excluded,
@@ -242,7 +284,80 @@ def run_ros2_camera_imu_rotation(
             ),
             "essential_inlier_fraction": opts.visual.essential_inlier_fraction,
             "max_features": opts.visual.max_features,
+            **(extra or {}),
         },
         limitations=list(CAMERA_LIMITATIONS),
         sensor_modality="camera",
     )
+
+
+def run_external_camera_imu_rotation(
+    bag: str | Path,
+    *,
+    source: ExternalCameraSource,
+    imu_topic: str,
+    camera: CameraModel,
+    dataset_family: str,
+    dataset_license: str,
+    acceleration_unit: Literal["mps2", "g"] = "mps2",
+    reference_rotation: FloatArray | None = None,
+    reference: str | None = None,
+    options: CameraImuRunOptions | None = None,
+    clock: ClockAlignmentOptions | None = None,
+    command: list[str] | None = None,
+) -> tuple[ImuLidarRotationArtifact, ClockAlignment]:
+    """Calibrate a camera recorded outside ``bag`` (images or a video) against its IMU.
+
+    The camera is tracked in its own clock. Unless the source gives the clock offset,
+    :func:`~calibrex.evaluation.clock_alignment.align_camera_clock` finds it from the
+    rotation speeds, and the tracked times are moved onto the IMU clock before the usual
+    evaluation, which then fits the remaining fine offset. An offset the search cannot
+    tell apart from another raises ``ValueError``: no estimate is better than one made at
+    the wrong time.
+    """
+
+    opts = options or CameraImuRunOptions()
+    imu = load_ros2_imu(bag, imu_topic, acceleration_unit=acceleration_unit)
+    track = track_camera_rotations(
+        iter_external_gray(source, stride=opts.frame_stride, max_seconds=opts.max_seconds),
+        camera,
+        opts.visual,
+    )
+    if source.clock_offset_s is not None:
+        alignment = ClockAlignment(
+            source.clock_offset_s, float("nan"), float("nan"), 0.0, True,
+            f"camera clock + {source.clock_offset_s:.3f} s = IMU clock (given)",
+        )  # fmt: skip
+    else:
+        alignment = align_camera_clock(
+            track.times_s, track.orientations, track.segment, imu.times_s, imu.gyro_rps, clock
+        )
+    if not alignment.accepted or alignment.offset_s is None:
+        raise ValueError(f"cannot place the camera on the IMU clock: {alignment.reason}")
+    shifted = dataclasses.replace(track, times_s=track.times_s + alignment.offset_s)
+    windows = [
+        OdometryWindow(f"{source.name}/{w.window_id}", 100_000 + w.block, w.times_s, w.poses)
+        for w in shifted.windows(opts.visual)
+    ]
+    digest, scope = bag_input_digest([bag])
+    combined = hashlib.sha256(f"{digest}|{source.digest()}".encode("ascii")).hexdigest()
+    artifact = _camera_imu_artifact(
+        imu,
+        windows,
+        [shifted],
+        [f"{source.path.name}"],
+        options=opts,
+        reference_rotation=reference_rotation,
+        reference=reference,
+        command=command,
+        dataset_family=dataset_family,
+        dataset_license=dataset_license,
+        stream_profile=f"external-{source.kind}:{source.path.name}+imu:{imu_topic}",
+        input_sha256=combined,
+        input_digest_scope=f"{scope}; camera {source.kind}: frame names, sizes and times",
+        extra={
+            "camera_clock_offset_s": alignment.offset_s,
+            "camera_clock_alignment": alignment.reason,
+        },
+    )
+    return artifact, alignment

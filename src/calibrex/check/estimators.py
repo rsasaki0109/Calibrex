@@ -49,6 +49,11 @@ from calibrex.core.calibration_check import (
     CheckTopicRecord,
 )
 from calibrex.core.progress import emit_stage
+from calibrex.data.external_camera import (
+    ExternalCameraSource,
+    iter_external_gray,
+)
+from calibrex.data.external_camera import frame_interval_s as external_frame_interval_s
 from calibrex.data.ros_cdr import AUTOWARE_VELOCITY_REPORT_TYPES
 from calibrex.data.rosbag2 import require_cdr_connection
 from calibrex.evaluation.edge_preparation_cache import EdgePreparationCache
@@ -83,6 +88,18 @@ DATASET_LICENSE = "user-provided"
 
 class CheckSkipError(Exception):
     """The pair cannot be run: a machine-readable reason and a message."""
+
+    def __init__(self, code: CheckReasonCode, reason: str) -> None:
+        super().__init__(reason)
+        self.code: CheckReasonCode = code
+        self.reason = reason
+
+
+class CheckInconclusiveError(Exception):
+    """The pair ran but gives no estimate it can stand behind: ``inconclusive``, not skipped.
+
+    A skipped pair does not count towards the overall verdict; this one does.
+    """
 
     def __init__(self, code: CheckReasonCode, reason: str) -> None:
         super().__init__(reason)
@@ -166,6 +183,8 @@ class RunControls:
     """Draw one scan on its image under the candidate and the estimate (``check --html``)."""
     board: str | None = None
     """camera-lidar from a checkerboard (``COLUMNSxROWSxSQUARE_M``) instead of edge alignment."""
+    external_cameras: Mapping[str, ExternalCameraSource] = field(default_factory=dict)
+    """Cameras outside the bag (``--camera-source``), keyed by their stand-in topic."""
     edge_preparation_cache: EdgePreparationCache | None = field(
         default=None, repr=False, compare=False
     )
@@ -901,6 +920,13 @@ def require_image_topic(ctx: PairContext, topics: Sequence[str]) -> str:
             f"camera topic(s) {', '.join(topics)} are neither sensor_msgs/Image nor "
             "sensor_msgs/CompressedImage camera images",
         )
+    if topic in ctx.controls.external_cameras and ctx.pair.pair not in EXTERNAL_CAMERA_PAIRS:
+        raise CheckSkipError(
+            "unsupported_sensor",
+            f"{topic} is a camera outside the bag (--camera-source); only "
+            f"{' and '.join(sorted(EXTERNAL_CAMERA_PAIRS))} read external cameras, because "
+            "only they can place its clock on the IMU's",
+        )
     if ctx.topic_types.get(topic) == COMPRESSED_IMAGE_TYPE:
         from calibrex.data.compressed_image import INSTALL_HINT, compressed_image_decoder
 
@@ -923,7 +949,12 @@ def camera_tracking_stride(ctx: PairContext, image_topic: str) -> tuple[int, str
     )
     from calibrex.solvers.imu_lidar_rotation_solver import RotationOptions
 
-    interval = camera_frame_interval_s(ctx.bag, image_topic)
+    external = ctx.controls.external_cameras.get(image_topic)
+    interval = (
+        external_frame_interval_s(external)
+        if external is not None
+        else camera_frame_interval_s(ctx.bag, image_topic)
+    )
     limit = RotationOptions().max_step_s
     if interval is not None and interval > limit:
         raise CheckSkipError(
@@ -1026,6 +1057,10 @@ def _first_image_size(ctx: PairContext, image_topic: str) -> tuple[int, int]:
     raise CheckSkipError("missing_topic", f"{image_topic} has no images")
 
 
+ATAN_CAMERA_PAIRS = frozenset({"camera-imu", "camera-focal"})
+"""Pairs that only unproject pixels, so they can use the atan model's :meth:`normalize`."""
+
+
 def resolve_camera_intrinsics(
     ctx: PairContext, image_topic: str, camera_frame: str
 ) -> tuple[CameraModel, str, str]:
@@ -1045,6 +1080,13 @@ def resolve_camera_intrinsics(
                     raise CheckSkipError(
                         "missing_intrinsics", f"{source.path.name} {key}: {exc}"
                     ) from exc
+                if model.distortion_model == "atan" and ctx.pair.pair not in ATAN_CAMERA_PAIRS:
+                    raise CheckSkipError(
+                        "unsupported_sensor",
+                        f"{source.path.name} {key}: the atan (FOV) camera model is read by "
+                        f"{' and '.join(sorted(ATAN_CAMERA_PAIRS))} only; {ctx.pair.pair} "
+                        "needs equidistant, radtan or no distortion",
+                    )
                 return model, f"{source.path.name} {key}", key
     fast_livo = _fast_livo_camera_intrinsics(ctx, image_topic, camera_frame)
     if fast_livo is not None:
@@ -1074,6 +1116,7 @@ def run_camera_imu(ctx: PairContext) -> EstimatorRun:
     from calibrex.core.imu_lidar_rotation import load_imu_lidar_rotation
     from calibrex.evaluation.camera_imu_rotation import (
         CameraImuRunOptions,
+        run_external_camera_imu_rotation,
         run_ros2_camera_imu_rotation,
     )
     from calibrex.evaluation.imu_lidar_rotation import rebase_rotation_reference
@@ -1090,6 +1133,44 @@ def run_camera_imu(ctx: PairContext) -> EstimatorRun:
     )
     candidate = ctx.candidate  # T_cam_imu
     run_options = CameraImuRunOptions(frame_stride=stride, max_seconds=ctx.controls.max_duration_s)
+    external = ctx.controls.external_cameras.get(image_topic)
+    command = ["calibrex", "check", str(ctx.bag), "camera-imu", image_topic, imu_topics[0]]
+
+    def compute() -> Any:
+        if external is None:
+            return run_ros2_camera_imu_rotation(
+                [ctx.bag],
+                image_topic=image_topic,
+                imu_topic=imu_topics[0],
+                camera=model,
+                dataset_family=DATASET_FAMILY,
+                dataset_license=DATASET_LICENSE,
+                acceleration_unit=ctx.controls.acceleration_unit,
+                reference_rotation=candidate[:3, :3],
+                reference="deployed candidate calibration (T_cam_imu)",
+                options=run_options,
+                command=command,
+            )
+        try:
+            artifact, _alignment = run_external_camera_imu_rotation(
+                ctx.bag,
+                source=external,
+                imu_topic=imu_topics[0],
+                camera=model,
+                dataset_family=DATASET_FAMILY,
+                dataset_license=DATASET_LICENSE,
+                acceleration_unit=ctx.controls.acceleration_unit,
+                reference_rotation=candidate[:3, :3],
+                reference="deployed candidate calibration (T_cam_imu)",
+                options=run_options,
+                command=command,
+            )
+        except ValueError as exc:
+            if "IMU clock" in str(exc):
+                raise CheckInconclusiveError("estimator_failed", str(exc)) from exc
+            raise
+        return artifact
+
     artifact, cached = cached_artifact(
         ctx.controls.cache,
         ctx.controls.bag_sha256,
@@ -1101,21 +1182,10 @@ def run_camera_imu(ctx: PairContext) -> EstimatorRun:
             "acceleration_unit": ctx.controls.acceleration_unit,
             "options": run_options,
             **image_decoder_key(ctx, image_topic),
+            **external_camera_key(external),
         },
         loader=load_imu_lidar_rotation,
-        compute=lambda: run_ros2_camera_imu_rotation(
-            [ctx.bag],
-            image_topic=image_topic,
-            imu_topic=imu_topics[0],
-            camera=model,
-            dataset_family=DATASET_FAMILY,
-            dataset_license=DATASET_LICENSE,
-            acceleration_unit=ctx.controls.acceleration_unit,
-            reference_rotation=candidate[:3, :3],
-            reference="deployed candidate calibration (T_cam_imu)",
-            options=run_options,
-            command=["calibrex", "check", str(ctx.bag), "camera-imu", image_topic, imu_topics[0]],
-        ),
+        compute=compute,
         rebase=lambda hit: rebase_rotation_reference(hit, candidate[:3, :3]),
     )
     solved = artifact.rotation_quat_xyzw is not None and artifact.solver_status == "converged"
@@ -1144,7 +1214,35 @@ def run_camera_imu(ctx: PairContext) -> EstimatorRun:
         estimates=tuple(estimates),
         compared=candidate,
         time_offset=time_offset_of(artifact.dofs, artifact.time_offset_s),
-        notes=(f"intrinsics: {intrinsics_source}", stride_note),
+        notes=(
+            f"intrinsics: {intrinsics_source}",
+            stride_note,
+            *(external_camera_notes(external, artifact) if external is not None else ()),
+        ),
+    )
+
+
+EXTERNAL_CAMERA_PAIRS = frozenset({"camera-imu", "camera-focal"})
+
+
+def external_camera_key(source: ExternalCameraSource | None) -> dict[str, Any]:
+    """Cache-key entry of a camera outside the bag: its frames and any given clock offset."""
+
+    if source is None:
+        return {}
+    return {
+        "external_camera": source.digest(),
+        "external_camera_clock_offset_s": source.clock_offset_s,
+    }
+
+
+def external_camera_notes(source: ExternalCameraSource, artifact: Any) -> tuple[str, ...]:
+    """Where the camera came from and how its clock was placed on the IMU's."""
+
+    alignment = artifact.options.get("camera_clock_alignment", "clock offset not recorded")
+    return (
+        f"external camera ({source.kind}): {source.path}",
+        f"{alignment}; the time offset below is the remainder after it",
     )
 
 
@@ -1250,6 +1348,7 @@ def run_camera_focal(ctx: PairContext) -> EstimatorRun:
     )
     focal_options = FocalScaleOptions()
     rotation_digest = _rotation_digest(rotation)
+    external = ctx.controls.external_cameras.get(image_topic)
     artifact, cached = cached_artifact(
         ctx.controls.cache,
         ctx.controls.bag_sha256,
@@ -1262,6 +1361,7 @@ def run_camera_focal(ctx: PairContext) -> EstimatorRun:
             "max_seconds": ctx.controls.max_duration_s,
             "options": focal_options,
             **image_decoder_key(ctx, image_topic),
+            **external_camera_key(external),
             # the camera-imu estimate, not the candidate: the rotation, clock offset, bias
             "rotation_quat_xyzw": rotation.rotation_quat_xyzw,
             "time_offset_s": rotation.time_offset_s,
@@ -1281,6 +1381,16 @@ def run_camera_focal(ctx: PairContext) -> EstimatorRun:
             max_seconds=ctx.controls.max_duration_s,
             options=focal_options,
             command=["calibrex", "check", str(ctx.bag), "camera-focal", image_topic, imu_topics[0]],
+            frames=(
+                iter_external_gray(
+                    external,
+                    stride=stride,
+                    max_seconds=ctx.controls.max_duration_s,
+                    time_shift_s=float(rotation.options["camera_clock_offset_s"]),
+                )
+                if external is not None
+                else None
+            ),
         ),
         rebase=lambda hit: hit.model_copy(
             update={
@@ -2458,9 +2568,10 @@ def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
     lidar_topic = _require_lidar_topic(ctx, ctx.sensor_topics.get("lidar", ()))
     camera_frame, lidar_frame = ctx.pair.frames[0], ctx.pair.frames[1]
     model, intrinsics_source, _key = resolve_camera_intrinsics(ctx, image_topic, camera_frame)
-    camera = EdgeCamera(
-        model.fx, model.fy, model.cx, model.cy, model.distortion_model, tuple(model.distortion)
-    )
+    distortion = model.distortion_model
+    if distortion == "atan":  # resolve_camera_intrinsics refuses it for this pair
+        raise CheckSkipError("unsupported_sensor", "camera-lidar cannot project the atan model")
+    camera = EdgeCamera(model.fx, model.fy, model.cx, model.cy, distortion, tuple(model.distortion))
     point_time = detect_point_time(ctx.bag, lidar_topic)
     candidate = ctx.candidate  # T_camera_lidar
     options = EdgeAlignmentOptions(
