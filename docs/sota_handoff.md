@@ -592,6 +592,15 @@ reads.
   unchecked. `--fail-on partial` (v2, supported) flags such a pass. The remaining unseen
   TUM-VI sequences (magistrale1, 2, 4, 6 and outdoors1-8) are 11-31 GB each.
 
+### radar-imu roll and pitch
+
+radar-imu judges yaw only. The cause is traced, on spent data, to the radar's z velocity:
+about 2.5 times noisier than x and y, and barely excited by hand-held motion. A z-scale
+nuisance, return filters and weighted least squares did not help: the remaining roll and
+pitch errors are systematic per recording, 1–3 deg between recordings
+([note](research/radar_roll_pitch.md)). Next: recordings with better z data (an imaging
+radar, or vertical and tilting motion), under a new pre-registration.
+
 ### 4. Lower priority
 
 - **imu-vehicle:** no axis was constrained on KITTI; it needs data with excitation.

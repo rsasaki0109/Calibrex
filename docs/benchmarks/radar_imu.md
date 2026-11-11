@@ -72,7 +72,8 @@ reported std, in deg.
 - **The unjudged roll.** It is up to 2.9 deg (4 std) off the authors' rotation: lab_floor
   and office_floor right, office_floor and workshop centre. That is why roll is not judged
   (its control or its std kept it out), and why only yaw should be read from this pair
-  until roll is understood.
+  until roll is understood. The [roll/pitch research note](../research/radar_roll_pitch.md) traces it to the
+  radar's z velocity: about 2.5 times noisier than x and y, and barely excited.
 
 ## v1: shorter recordings, both claims refuted
 
