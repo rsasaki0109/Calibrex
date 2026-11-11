@@ -186,7 +186,7 @@ pre-registered audit marks `supported`. Refuted audits are listed too.
 ## Quickstart
 
 ```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.3/calibrex-0.6.3-py3-none-any.whl"
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.4/calibrex-0.6.4-py3-none-any.whl"
 calibrex estimate my_bag/ --output est/ --html est.html     # no calibration yet
 calibrex check other_bag/ --tf est/frames.yaml --html check.html
 calibrex drift day1/ day2/ day3/ --output drift/
