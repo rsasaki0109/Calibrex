@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 0.6.4 - 2026-11-11
+
+Highlights:
+
+- **A new pair, `radar-imu`.** It checks the rotation of a 4D radar against the IMU from
+  the radar's Doppler returns, with no target. Two pre-registered audits ran:
+  - on 84–206 s recordings it was refuted on coverage;
+  - on longer recordings (219–368 s, three radars) honesty, coverage and detection were
+    supported, for yaw only.
+- **Cameras outside the bag (`--camera-source`).** check reads an image folder or a video,
+  and finds its clock from the motion.
+- **Rolling-shutter cameras (`readout_s`).** camera-imu and camera-focal correct for a
+  rolling shutter.
+- **Atan (FOV) camera model** in Kalibr-style camchains.
+
 - `calibrex check` judges a new pair, `radar-imu`. It checks the rotation of `T_radar_imu`
   with no target, from a 4D radar's Doppler returns against the gyro and accelerometer.
   - A `PointCloud2` topic with a float Doppler field (`v_doppler_mps`, `doppler`, ...) gets
