@@ -93,3 +93,13 @@ def test_a_missing_case_leaves_the_run_incomplete() -> None:
 
     assert not found["complete"]
     assert {found[c]["verdict"] for c in ("honesty", "coverage", "detection")} == {"refuted"}
+
+
+def test_an_evaluation_sequence_is_read_only_by_the_evaluation_run(tmp_path: Path) -> None:
+    import pytest
+
+    sequence = next(iter(harness.EVALUATION))
+    with pytest.raises(SystemExit, match="only by --evaluation"):
+        harness.main(["--sequences", sequence, "--work-dir", str(tmp_path), "--output-dir",
+                      str(tmp_path)])  # fmt: skip
+    assert harness.expected_cases(["20231019/data2", "20231105/data2"]) == 3

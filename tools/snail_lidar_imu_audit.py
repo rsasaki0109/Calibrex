@@ -24,6 +24,7 @@ estimator cache, and each (sequence, IMU) pair record is scored.
 ::
 
     python tools/snail_lidar_imu_audit.py --sequences 20230921/data4 --work-dir W --output-dir R
+    python tools/snail_lidar_imu_audit.py --evaluation --jobs 3 --work-dir W --output-dir R
 
 See docs/benchmarks/snail_lidar_imu_preregistration.yaml.
 """
@@ -72,12 +73,50 @@ AXIS_INDEX = {"roll": 0, "pitch": 1, "yaw": 2}
 CHUNK_BYTES = 32 << 20
 
 # Gates (docs/benchmarks/snail_lidar_imu_preregistration.yaml); a case is one
-# (sequence, IMU) pair.
+# (sequence, IMU) pair.  Fractions are the development rate / 1.5, rounded down to 0.25.
 MAX_REFERENCE_ROTATION_FAILS = 0
-MIN_REFERENCE_PASS_FRACTION = 0.0
-MIN_REFERENCE_JUDGED_FRACTION = 0.0
+MIN_REFERENCE_PASS_FRACTION = 0.5  # development 0.75
+MIN_REFERENCE_JUDGED_FRACTION = 0.5  # development 1.0
 MAX_JUDGED_TURNS_MISSED = 0
-MIN_DETECTING_CASE_FRACTION = 0.0
+MIN_DETECTING_CASE_FRACTION = 0.5  # development 1.0
+DEVELOPMENT_SPENT = ("20230921/data4", "20231019/data2", "20240113/data5")
+REFERENCE_FITTING = "20230921/data5"  # the X36D-XT32 rotation was fitted on it
+MTI_FROM_DAY = "20231105"  # the MTi-3 is recorded from this day on
+# The unseen sequences, pinned by the zip's size and OneDrive eTag (metadata only).
+EVALUATION: dict[str, tuple[int, str]] = {
+    "20230920/data2": (25033261305, '"{34938F8F-6EB5-49B2-AE9D-C818477208EA},6"'),
+    "20230921/data3": (23035087302, '"{1F6D146D-4F3B-47B8-9FD2-989A18975973},6"'),
+    "20231007/data2": (9972191149, '"{2122AAC9-F795-45E5-B3E9-3FB5637B6B1A},6"'),
+    "20231019/data1": (6962331607, '"{BC3B658F-33EC-4927-8770-8EE5F5670537},6"'),
+    "20231105/data2": (7102582878, '"{9380060A-3FB4-407A-B19D-0EA6F024603E},6"'),
+    "20231105/data3": (7193500349, '"{D83C2EEB-9B70-4DAA-927B-FA6B45D87688},6"'),
+    "20231105/data4": (5374912072, '"{49928D35-51F5-4241-AD59-41E4FFBFBF80},6"'),
+    "20231105/data5": (5530969277, '"{0E382E09-57DC-42C8-8A0A-49A33D9AF2D7},6"'),
+    "20231105_aft/data4": (9287469203, '"{B8F50626-13A7-4924-ABC0-883CF0B5EB01},6"'),
+    "20231105_aft/data5": (6582319327, '"{EC237446-290B-491E-AFAB-38852A781709},6"'),
+    "20231109/data3": (8053057985, '"{54919921-BA46-4003-B7B4-E135291819C1},6"'),
+    "20231109/data4": (8043548274, '"{5E42B5D0-4416-4F18-8534-BD51AB09717B},6"'),
+    "20231201/data2": (17075255586, '"{15A81429-478C-46D3-A8EF-B7967B7BB849},6"'),
+    "20231201/data3": (17260104425, '"{8F64CB7C-DAE2-4D26-9803-4CE6B9C3321A},6"'),
+    "20231208/data4": (8750824258, '"{22EF2DD9-9510-4672-8AE3-4FC064D43062},6"'),
+    "20231208/data5": (14442417452, '"{3CEAC9C7-EC6F-44DF-A595-D0C03E02E285},6"'),
+    "20231213/data2": (13591333515, '"{BCE20F08-CE94-4E26-8813-4685C677C3B6},6"'),
+    "20231213/data3": (11705309080, '"{40C59D03-39B8-4287-8B90-51D19715A12C},6"'),
+    "20231213/data4": (6769226080, '"{5B1CE686-EAD6-4FBA-82DB-69A2C66A1FE1},6"'),
+    "20231213/data5": (6505811711, '"{ACA63689-CEBE-41AE-B86F-B1BBADE7FCB4},6"'),
+    "20240113/data2": (16526178246, '"{F5AC630B-14EA-454A-B2AA-E4F831904A68},6"'),
+    "20240113/data3": (16368978716, '"{76B7E645-F1AD-4524-A120-168D86356A9D},6"'),
+    "20240115/data2": (24165399551, '"{E2FD442B-B1D9-47FC-B523-313651B8A6A6},6"'),
+    "20240115/data3": (8765886287, '"{F55FC8D0-2FCF-43E7-BC25-FC59BCEE7571},6"'),
+    "20240116/data2": (21964365294, '"{2B936414-E49A-4277-BC9A-BB2A804D35FC},6"'),
+    "20240116/data4": (25013830505, '"{85180E72-22C4-4722-B4CC-818578AE1452},6"'),
+    "20240116/data5": (8185481886, '"{59828FB6-2503-42DC-8956-5CEB2EC98F58},6"'),
+    "20240116_eve/data3": (18208252397, '"{02882A02-A5A4-4475-B17A-0E866C13FA35},6"'),
+    "20240116_eve/data4": (12196350969, '"{B30651EB-D739-40E1-AB1E-0D84054F5521},6"'),
+    "20240116_eve/data5": (6294526883, '"{1C5868ED-5106-43B1-912B-2FF55FAAFF99},6"'),
+    "20240123/data2": (27621464463, '"{439FD84D-5D0C-402B-A848-74D144F0C3B4},6"'),
+    "20240123/data3": (8891208303, '"{39113311-2A1B-44EC-B7F0-CB27E4FC6C22},6"'),
+}
 _TF = re.compile(r'args="([^"]+)"')
 
 
@@ -107,11 +146,20 @@ def open_sequence(sequence: str) -> tuple[zipfile.ZipFile, int]:
     """The sequence's folder zip (``DAY/dataN.zip``) over range requests, and its size."""
 
     item = onedrive_item(f"{sequence}.zip")
+    pin = EVALUATION.get(sequence)
+    if pin is not None and (int(item["size"]), item["eTag"]) != pin:
+        raise SystemExit(f"{sequence}.zip is not the pinned file: {item['size']} {item['eTag']}")
     remote = RemoteFile(item["@content.downloadUrl"], int(item["size"]))
     if remote.read(4) != b"PK\x03\x04":
         raise SystemExit(f"{sequence}.zip is not a zip")
     remote.seek(0)
     return zipfile.ZipFile(io.BufferedReader(remote, buffer_size=CHUNK_BYTES)), int(item["size"])
+
+
+def expected_cases(sequences: list[str]) -> int:
+    """(sequence, IMU) cases: the X36D everywhere, the MTi-3 from ``MTI_FROM_DAY`` on."""
+
+    return sum(1 + (sequence[:8] >= MTI_FROM_DAY) for sequence in sequences)
 
 
 def static_transforms(text: str) -> dict[str, tuple[np.ndarray, Rotation]]:
@@ -442,7 +490,11 @@ def run_sequence(sequence: str, work: Path, runs: Path) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--sequences", nargs="+", required=True, help="DAY/dataN ...")
+    chosen = parser.add_mutually_exclusive_group(required=True)
+    chosen.add_argument("--sequences", nargs="+", help="DAY/dataN ... (development)")
+    chosen.add_argument(
+        "--evaluation", action="store_true", help="the pre-registered unseen sequences, once"
+    )
     parser.add_argument("--work-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--jobs", type=int, default=1, help="sequences run at once")
@@ -450,6 +502,11 @@ def main(argv: list[str] | None = None) -> int:
         "--expected-cases", type=int, default=0, help="(sequence, IMU) cases the plan expects"
     )
     args = parser.parse_args(argv)
+    if args.evaluation:
+        args.sequences = list(EVALUATION)
+        args.expected_cases = expected_cases(args.sequences)
+    elif set(args.sequences) & set(EVALUATION):
+        raise SystemExit("an evaluation sequence is read only by --evaluation")
     args.work_dir.mkdir(parents=True, exist_ok=True)
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
