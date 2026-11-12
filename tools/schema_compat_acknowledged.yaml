@@ -6,6 +6,9 @@
 # checker fails when an entry no longer matches anything, so this list cannot
 # silently outlive the problem it excuses.
 #
+# Baseline v0.6.4: the radar-imu method enum (acknowledged against v0.6.3) is part of
+# v0.6.4 itself.
+#
 # Baseline v0.5.0: the narrowings acknowledged against v0.4.1
 # (external_run container_digest, result RunInfo.provenance, the A2D2 manifest)
 # are part of v0.5.0 itself and no longer show up as differences.
@@ -16,10 +19,3 @@ acknowledged:
       dataset, sensors, and frames; it was already invalid when v0.5.0 was
       released and is tracked in KNOWN_INVALID_ARTIFACTS in
       tests/unit/test_schema_registry.py.
-  - key: imu_lidar_rotation.schema.json#<root>.method
-    reason: >-
-      method was the single-value literal angular_rate_alignment/v0.1 (a JSON
-      Schema const) and became an enum of that value plus
-      doppler_velocity_alignment/v0.1 for radar-imu. Every artifact v0.6.3 accepts
-      is still accepted; the checker reads a const turning into an enum as a
-      narrowing.
