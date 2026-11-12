@@ -129,6 +129,19 @@ def test_the_rotation_clock_offset_and_lever_arm_are_recovered() -> None:
     assert found.policy_status in {"pass", "warn"}
 
 
+def test_repeated_imu_stamps_are_kept_once() -> None:
+    rig = synthetic_rig()
+    repeat = np.sort(np.r_[np.arange(len(rig.imu.times_s)), np.arange(500, 20000, 200)])
+    imu = ImuSamples(rig.imu.times_s[repeat], rig.imu.gyro_rps[repeat], rig.imu.accel_mps2[repeat])
+    velocities = RadarVelocities(rig.radar_times_s, rig.radar_velocities, len(rig.radar_times_s))
+
+    found = evaluate_radar_imu_rotation(velocities, imu, gyro_bias=rig.gyro_bias)
+
+    assert found.rotation is not None
+    error = Rotation.from_matrix(found.rotation @ rig.radar_to_imu.T).magnitude()
+    assert np.degrees(error) < 1.0
+
+
 def test_too_short_a_recording_is_inconclusive() -> None:
     rig = synthetic_rig(duration_s=30.0)
     velocities = RadarVelocities(rig.radar_times_s, rig.radar_velocities, len(rig.radar_times_s))

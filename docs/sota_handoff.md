@@ -175,6 +175,7 @@ The camera-imu v3 audit did exactly this with the camera-camera runs.
 | Doer & Trommer ICINS 2021 radar-inertial | `radar-imu` development | carried_1-carried_5, flight_1-flight_4 (the whole archive) |
 | Doer & Trommer IROS 2021 radar-thermal-visual-inertial | `radar-imu` evaluation (refuted) | the nine bags of `irs_rtvi_datasets_2021.zip` (radar and IMU topics read once by the frozen harness; [pre-registration](benchmarks/doer_radar_imu_preregistration.yaml)) |
 | Doer & Trommer JGN 2022 multi-radar | `radar-imu` evaluation v2 (supported) | office_floor, lab_floor, workshop, basement (radar and IMU topics read once by the frozen harness; [pre-registration](benchmarks/doer_radar_imu_v2_preregistration.yaml)) |
+| Snail-Radar (Huai et al.) | `radar-imu` roll/pitch development | 20230921/data4, 20231019/data2, 20240113/data5 (Eagle `pcl`, X36D IMU, tf_static and their INS reference rows); the other 41 sequences are unseen |
 
 The v2 camera-lidar runs also read the Velodyne and OXTS of the first 600 frames of its
 18 drives. A `lidar-vehicle` or `ins-lidar` audit on those drives must disclose that.
@@ -598,8 +599,14 @@ radar-imu judges yaw only. The cause is traced, on spent data, to the radar's z 
 about 2.5 times noisier than x and y, and barely excited by hand-held motion. A z-scale
 nuisance, return filters and weighted least squares did not help: the remaining roll and
 pitch errors are systematic per recording, 1–3 deg between recordings
-([note](research/radar_roll_pitch.md)). Next: recordings with better z data (an imaging
-radar, or vertical and tilting motion), under a new pre-registration.
+([note](research/radar_roll_pitch.md)). An imaging radar did not change this. On three
+spent Snail-Radar sequences (Oculii Eagle G7: hand-held, e-bike, SUV) no axis was judged:
+- its z velocity is uncorrelated with the IMU's (S/N 0.1–0.5);
+- its Doppler is quantised at 0.136 m/s;
+- a speed-proportional z bias looks like a pitch turn.
+
+So no unseen evaluation was registered. Next, if any: motion that moves the rig up and
+down and tilts it while it travels.
 
 ### 4. Lower priority
 
