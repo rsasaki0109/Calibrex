@@ -603,10 +603,15 @@ def evaluate_radar_imu_rotation(
 
     opts = options or RadarImuOptions()
     bias = np.zeros(3) if gyro_bias is None else np.asarray(gyro_bias, dtype=np.float64)
+    # in time order, with a repeated stamp kept once: the attitude is interpolated between
+    # samples, which needs strictly increasing times (some drivers repeat a stamp)
+    order = np.argsort(imu.times_s, kind="stable")
+    stamps = np.asarray(imu.times_s, dtype=np.float64)[order]
+    keep = order[np.r_[True, np.diff(stamps) > 0]]
     # times from the first IMU sample: absolute stamps (~1e9 s) cannot resolve the small
     # clock-offset steps of the search
-    origin = float(imu.times_s[0])
-    imu = ImuSamples(imu.times_s - origin, imu.gyro_rps, imu.accel_mps2)
+    origin = float(stamps[0])
+    imu = ImuSamples(imu.times_s[keep] - origin, imu.gyro_rps[keep], imu.accel_mps2[keep])
     velocities = replace(velocities, times_s=velocities.times_s - origin)
     t = velocities.times_s
     windows: list[_Window] = []

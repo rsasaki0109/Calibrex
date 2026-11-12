@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- radar-imu no longer stops when the IMU repeats a timestamp (the Bynav X36D repeats about
+  1 in 500); a repeated stamp is kept once.
+
 ## 0.6.4 - 2026-11-11
 
 Highlights:
