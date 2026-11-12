@@ -1,0 +1,139 @@
+# Pre-registration of the imu-lidar check audit on unseen Snail-Radar sequences:
+# calibrex check --pairs imu-lidar --fail-on partial run once on the first 300 s of 32
+# sequences no Calibrex method has read, with each sequence's tf_static.launch as the
+# candidate and with the LiDAR turned 3 deg about its own x, y and z axes.
+# It is binding once committed; tools/snail_lidar_imu_audit.py at frozen_code_commit is the
+# only code that reads these sequences, and it runs once.
+#
+# Written on 2026-11-12.  imu-lidar's claims so far rest on Livox MID360 recordings
+# (docs/benchmarks/mid360_imu_lidar.md).  Snail-Radar (Huai et al., IJRR; Open Database
+# License) records a Hesai Pandar XT32 spinning LiDAR with a Bynav X36D IMU on a hand-held
+# rig, an e-bike and an SUV, and from 2023-11-05 on also an Xsens MTi-3 IMU: a second LiDAR
+# make, two more IMUs and two vehicle platforms.
+#
+# Development (spent: 20230921/data4 hand-held, 20231019/data2 e-bike, 20240113/data5 SUV,
+# the three already spent by the radar roll/pitch research), first 300 s, four cases
+# (data5 has both IMUs), scored by the rules below:
+#   tf_static.launch as the candidate: no rotation axis failed; 3 of 4 cases passed every
+#     judged rotation axis (data4's yaw warned, 0.81 deg against a 0.5 deg tolerance); every
+#     case judged at least one rotation axis (hand-held and e-bike roll, pitch and yaw; the
+#     SUV roll and pitch with the X36D, pitch only with the MTi-3).
+#   LiDAR turned 3 deg: every judged turned axis failed (9 of 9), and each of the 4 cases
+#     detected at least one turn.  The uncapped run of data4 (622 s) agreed.
+#   The check's translation axes are not scored: the dataset's lever arms are hand
+#     measured (data2's y failed by 0.05 m, data4's z warned).
+# The reference is the dataset's own: the X36D-XT32 rotation was fitted by its authors
+# with KISS-ICP and the X36D on 20230921/data5 (so that sequence is excluded), the
+# MTi-3 transform comes from LI-Init.  It is reference evidence, not ground truth; a
+# disagreement beyond the gates is reported as a failure either way.
+#
+# Of the 32 sequences only the zips' sizes and OneDrive eTags (item metadata) have been
+# read, and the sequence list with durations from the dataset's web page.  They are every
+# Snail-Radar sequence of at least 300 s that is not spent and is not 20230921/data5,
+# chosen by length alone.
+claims:
+  snail-imu-lidar-check-honesty:
+    text: >-
+      On the first 300 s of the 32 sequences below (the X36D on all, the MTi-3 on the 28
+      from 2023-11-05 on: 60 cases), calibrex check with the sequence's tf_static.launch as
+      the candidate fails no roll, pitch or yaw axis of imu-lidar on any case, and passes
+      every judged rotation axis, with at least one judged, on at least 50 % of the cases.
+    gates:
+      max_reference_rotation_fails: 0
+      min_reference_pass_fraction: 0.5
+  snail-imu-lidar-check-coverage:
+    text: >-
+      With the reference candidate, check judges at least one rotation axis on at least
+      50 % of the 60 cases.
+    gates:
+      min_reference_judged_fraction: 0.5
+  snail-imu-lidar-check-detection:
+    text: >-
+      With the LiDAR turned 3 deg about its x, y or z axis (180 turned cases), check fails
+      imu-lidar with the turned axis's own status fail whenever that axis is judged, and
+      detects at least one of the three turns on at least 50 % of the 60 cases.
+    gates:
+      max_judged_turns_missed: 0
+      min_detecting_case_fraction: 0.5
+  source_of_gates: >-
+    The fractions are the development rates divided by 1.5 and rounded down to the next
+    0.25 (0.75, 1.0 and 1.0), the rule of the earlier check pre-registrations; a fail of
+    the reference or a missed judged 3 deg turn is a plain honesty/detection rule.  Fixed
+    before any of these sequences was read and not to be changed after the run.  Every
+    case exits 1 under --fail-on partial (the LiDAR's x or z translation is always
+    unchecked), so exit status is not scored.
+sessions:
+  development_spent: [20230921/data4, 20231019/data2, 20240113/data5]
+  excluded: {20230921/data5: the X36D-XT32 rotation of the reference was fitted on it}
+  share: https://1drv.ms/f/c/60208caf9367dbb1/ErHbZ5OvjCAggGAHDQAAAAABCBUW1vutI7GYt95u7EB-Mg
+  evaluation:
+    20230920/data2: {zip: 20230920/data2.zip, size_bytes: 25033261305, etag: '"{34938F8F-6EB5-49B2-AE9D-C818477208EA},6"'}
+    20230921/data3: {zip: 20230921/data3.zip, size_bytes: 23035087302, etag: '"{1F6D146D-4F3B-47B8-9FD2-989A18975973},6"'}
+    20231007/data2: {zip: 20231007/data2.zip, size_bytes: 9972191149, etag: '"{2122AAC9-F795-45E5-B3E9-3FB5637B6B1A},6"'}
+    20231019/data1: {zip: 20231019/data1.zip, size_bytes: 6962331607, etag: '"{BC3B658F-33EC-4927-8770-8EE5F5670537},6"'}
+    20231105/data2: {zip: 20231105/data2.zip, size_bytes: 7102582878, etag: '"{9380060A-3FB4-407A-B19D-0EA6F024603E},6"'}
+    20231105/data3: {zip: 20231105/data3.zip, size_bytes: 7193500349, etag: '"{D83C2EEB-9B70-4DAA-927B-FA6B45D87688},6"'}
+    20231105/data4: {zip: 20231105/data4.zip, size_bytes: 5374912072, etag: '"{49928D35-51F5-4241-AD59-41E4FFBFBF80},6"'}
+    20231105/data5: {zip: 20231105/data5.zip, size_bytes: 5530969277, etag: '"{0E382E09-57DC-42C8-8A0A-49A33D9AF2D7},6"'}
+    20231105_aft/data4: {zip: 20231105_aft/data4.zip, size_bytes: 9287469203, etag: '"{B8F50626-13A7-4924-ABC0-883CF0B5EB01},6"'}
+    20231105_aft/data5: {zip: 20231105_aft/data5.zip, size_bytes: 6582319327, etag: '"{EC237446-290B-491E-AFAB-38852A781709},6"'}
+    20231109/data3: {zip: 20231109/data3.zip, size_bytes: 8053057985, etag: '"{54919921-BA46-4003-B7B4-E135291819C1},6"'}
+    20231109/data4: {zip: 20231109/data4.zip, size_bytes: 8043548274, etag: '"{5E42B5D0-4416-4F18-8534-BD51AB09717B},6"'}
+    20231201/data2: {zip: 20231201/data2.zip, size_bytes: 17075255586, etag: '"{15A81429-478C-46D3-A8EF-B7967B7BB849},6"'}
+    20231201/data3: {zip: 20231201/data3.zip, size_bytes: 17260104425, etag: '"{8F64CB7C-DAE2-4D26-9803-4CE6B9C3321A},6"'}
+    20231208/data4: {zip: 20231208/data4.zip, size_bytes: 8750824258, etag: '"{22EF2DD9-9510-4672-8AE3-4FC064D43062},6"'}
+    20231208/data5: {zip: 20231208/data5.zip, size_bytes: 14442417452, etag: '"{3CEAC9C7-EC6F-44DF-A595-D0C03E02E285},6"'}
+    20231213/data2: {zip: 20231213/data2.zip, size_bytes: 13591333515, etag: '"{BCE20F08-CE94-4E26-8813-4685C677C3B6},6"'}
+    20231213/data3: {zip: 20231213/data3.zip, size_bytes: 11705309080, etag: '"{40C59D03-39B8-4287-8B90-51D19715A12C},6"'}
+    20231213/data4: {zip: 20231213/data4.zip, size_bytes: 6769226080, etag: '"{5B1CE686-EAD6-4FBA-82DB-69A2C66A1FE1},6"'}
+    20231213/data5: {zip: 20231213/data5.zip, size_bytes: 6505811711, etag: '"{ACA63689-CEBE-41AE-B86F-B1BBADE7FCB4},6"'}
+    20240113/data2: {zip: 20240113/data2.zip, size_bytes: 16526178246, etag: '"{F5AC630B-14EA-454A-B2AA-E4F831904A68},6"'}
+    20240113/data3: {zip: 20240113/data3.zip, size_bytes: 16368978716, etag: '"{76B7E645-F1AD-4524-A120-168D86356A9D},6"'}
+    20240115/data2: {zip: 20240115/data2.zip, size_bytes: 24165399551, etag: '"{E2FD442B-B1D9-47FC-B523-313651B8A6A6},6"'}
+    20240115/data3: {zip: 20240115/data3.zip, size_bytes: 8765886287, etag: '"{F55FC8D0-2FCF-43E7-BC25-FC59BCEE7571},6"'}
+    20240116/data2: {zip: 20240116/data2.zip, size_bytes: 21964365294, etag: '"{2B936414-E49A-4277-BC9A-BB2A804D35FC},6"'}
+    20240116/data4: {zip: 20240116/data4.zip, size_bytes: 25013830505, etag: '"{85180E72-22C4-4722-B4CC-818578AE1452},6"'}
+    20240116/data5: {zip: 20240116/data5.zip, size_bytes: 8185481886, etag: '"{59828FB6-2503-42DC-8956-5CEB2EC98F58},6"'}
+    20240116_eve/data3: {zip: 20240116_eve/data3.zip, size_bytes: 18208252397, etag: '"{02882A02-A5A4-4475-B17A-0E866C13FA35},6"'}
+    20240116_eve/data4: {zip: 20240116_eve/data4.zip, size_bytes: 12196350969, etag: '"{B30651EB-D739-40E1-AB1E-0D84054F5521},6"'}
+    20240116_eve/data5: {zip: 20240116_eve/data5.zip, size_bytes: 6294526883, etag: '"{1C5868ED-5106-43B1-912B-2FF55FAAFF99},6"'}
+    20240123/data2: {zip: 20240123/data2.zip, size_bytes: 27621464463, etag: '"{439FD84D-5D0C-402B-A848-74D144F0C3B4},6"'}
+    20240123/data3: {zip: 20240123/data3.zip, size_bytes: 8891208303, etag: '"{39113311-2A1B-44EC-B7F0-CB27E4FC6C22},6"'}
+method:
+  conversion: >-
+    tools/snail_lidar_imu_audit.py reads xt32/*.pcd, x36d/imu.txt, mti3dk/imu.txt and
+    tf_static.launch from the zip over range requests and writes a ROS 2 bag:
+    /hesai/pandar with every 4th firing of each scan (all rings, per-point absolute
+    timestamp), /x36d/imu_raw and /mti3dk/imu as recorded; the first 300 s of scans
+  check: >-
+    calibrex check BAG --tf CANDIDATE --pairs imu-lidar --max-duration-s 300 --cache-dir
+    WORK/cache-SEQ --fail-on partial, with the package's defaults (rotation tolerance
+    max(3 std, 0.5 deg) per axis, fail beyond twice the tolerance)
+  candidates: >-
+    tf_static.launch (base_link -> x36d, mti3dk, PandarXT-32), and three copies with
+    T_base_lidar' = T_base_lidar R_delta, R_delta 3 deg about the LiDAR's x (roll), y
+    (pitch) or z (yaw) axis, which turns the LiDAR against every IMU.  The four share one
+    estimator cache per sequence (the estimate does not depend on the candidate).
+  case: one (sequence, IMU), scored from its imu-lidar pair record for each candidate
+  rotation_fail: any of roll, pitch, yaw with status fail
+  pass: at least one rotation axis judged and every judged rotation axis status pass
+  detected: a turned candidate whose pair fails with the turned axis's own status fail
+  never_an_input: >-
+    The dataset's transforms are the check's candidates and the scoring reference; the
+    estimator reads only the scans and IMU samples
+run_recipe:
+  command: >-
+    python tools/snail_lidar_imu_audit.py --evaluation --jobs 3 --work-dir WORK
+    --output-dir RUNS, from a checkout whose src/ and tools/ equal frozen_code_commit, run
+    once.  Each zip's size and eTag are checked against the pins before it is read; a
+    mismatch stops that sequence (its cases then count as missing and refute every
+    claim).  RUNS/SEQ_VARIANT.json, SEQ_score.json and summary.json are the results.
+invalidates:
+  - a change to src/ or tools/ after frozen_code_commit before the run is done
+  - reading any data of the 32 sequences before the run beyond what is listed above
+  - running the harness on them more than once, or changing a gate after the run
+analysis_plan: >-
+  Report per case the verdicts and per-axis errors of the four candidates, and the three
+  claims' verdicts, in docs/benchmarks/snail_lidar_imu.md, whatever they are; record the
+  32 sequences as spent in docs/sota_handoff.md.
+frozen_code_commit: 65e107b1d243b406309180c6173fb0c82599127a
