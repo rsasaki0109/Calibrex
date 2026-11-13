@@ -1,0 +1,110 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: ins-lidar-rotation-kitti-boreas-v2-audit
+protocol_id: ins-lidar-rotation-kitti-boreas-v2
+scope:
+  modalities:
+  - ins
+  - lidar
+  quantities:
+  - rotation
+  category: trajectory_hand_eye_per_judged_axis
+claim_text: 'On the ten pre-registered KITTI raw and Boreas recording windows not
+  previously read by Calibrex INS-LiDAR methods, LiDAR-only odometry followed by the
+  default native joint trajectory hand-eye fit completes on every recording; every
+  rotation axis it reports as data-estimated is within 0.5 deg of its dataset-provided
+  reference calibration; at least half of the three rotation axes per recording are
+  estimated on average in each dataset family; and every 1 deg held-out control on
+  an estimated axis is detected with delta chi-square at least 9. A recording on which
+  the method reports no estimated axis is not a failure: its three axes count as unobserved.
+  Dataset calibrations are reference estimates, not independent metrology. No translation,
+  full-extrinsic or absolute clock-accuracy claim is made.'
+verdict: supported
+achieved_dataset_families:
+- boreas
+- kitti_raw
+achieved_independent_rig_count: 2
+minimum_dataset_families: 2
+minimum_independent_rigs: 2
+requirements:
+- requirement_id: kitti_raw-completion
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/audit/kitti_raw_unobserved_rotation_fraction.yaml
+  evidence_sha256: 4aee75cb1f7498f78094e4d9db721a033ad337955a30f6cd7ba60480d58fcc42
+- requirement_id: kitti_raw-agreement
+  required: true
+  status: achieved
+  observed_value: 0.2857285405638974
+  threshold: 0.5
+  reason: observed 0.285728540564 meets less_equal 0.5
+  evidence_path: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/audit/kitti_raw_rotation_reference_difference_deg.yaml
+  evidence_sha256: d1ab185213ae012eb4e12eb4dd379067ed1bd599e5484b1d1b92064c22371c03
+- requirement_id: kitti_raw-coverage
+  required: true
+  status: achieved
+  observed_value: 0.4444444444444445
+  threshold: 0.5
+  reason: observed 0.444444444444 meets less_equal 0.5
+  evidence_path: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/audit/kitti_raw_unobserved_rotation_fraction.yaml
+  evidence_sha256: 4aee75cb1f7498f78094e4d9db721a033ad337955a30f6cd7ba60480d58fcc42
+- requirement_id: kitti_raw-controls
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/audit/kitti_raw_missed_observed_control_fraction.yaml
+  evidence_sha256: 17bfa0766169bfb0f87b796290c273db3aeec2d40155868d8c117af7f41c37d9
+- requirement_id: boreas-completion
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/audit/boreas_unobserved_rotation_fraction.yaml
+  evidence_sha256: 83589b198251bb45d08755b2fc5780f8e2157ea38bd570326ff04dfe13d7def6
+- requirement_id: boreas-agreement
+  required: true
+  status: achieved
+  observed_value: 0.13214085532534717
+  threshold: 0.5
+  reason: observed 0.132140855325 meets less_equal 0.5
+  evidence_path: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/audit/boreas_rotation_reference_difference_deg.yaml
+  evidence_sha256: 062fbb3600495808a52ff829dc36eac05cb260eb161a060cf3e7fe98c67052f7
+- requirement_id: boreas-coverage
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.5
+  reason: observed 0 meets less_equal 0.5
+  evidence_path: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/audit/boreas_unobserved_rotation_fraction.yaml
+  evidence_sha256: 83589b198251bb45d08755b2fc5780f8e2157ea38bd570326ff04dfe13d7def6
+- requirement_id: boreas-controls
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/audit/boreas_missed_observed_control_fraction.yaml
+  evidence_sha256: 284624ef8693606455c922a786b05158d542881a509d69e3ec076d921dbd949e
+summary: Every frozen required gate and declared dataset/rig coverage criterion is
+  achieved.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.6.4
+  git_commit: 815678ca
+  command: []
+  source_sha256:
+    protocol: 5f7eb2ed420d1c80c19f8b280c8f8a5f08c49ab22683600766b8a62da8cf261d
+    kitti_raw-completion: 4aee75cb1f7498f78094e4d9db721a033ad337955a30f6cd7ba60480d58fcc42
+    kitti_raw-agreement: d1ab185213ae012eb4e12eb4dd379067ed1bd599e5484b1d1b92064c22371c03
+    kitti_raw-coverage: 4aee75cb1f7498f78094e4d9db721a033ad337955a30f6cd7ba60480d58fcc42
+    kitti_raw-controls: 17bfa0766169bfb0f87b796290c273db3aeec2d40155868d8c117af7f41c37d9
+    boreas-completion: 83589b198251bb45d08755b2fc5780f8e2157ea38bd570326ff04dfe13d7def6
+    boreas-agreement: 062fbb3600495808a52ff829dc36eac05cb260eb161a060cf3e7fe98c67052f7
+    boreas-coverage: 83589b198251bb45d08755b2fc5780f8e2157ea38bd570326ff04dfe13d7def6
+    boreas-controls: 284624ef8693606455c922a786b05158d542881a509d69e3ec076d921dbd949e
+  created_at: '2026-11-13T08:04:12.775176+00:00'

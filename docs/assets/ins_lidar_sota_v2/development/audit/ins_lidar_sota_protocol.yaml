@@ -1,0 +1,145 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: ins-lidar-rotation-kitti-boreas-v2
+scope:
+  modalities:
+  - ins
+  - lidar
+  quantities:
+  - rotation
+  category: trajectory_hand_eye_per_judged_axis
+claim_text: 'On the ten pre-registered KITTI raw and Boreas recording windows not
+  previously read by Calibrex INS-LiDAR methods, LiDAR-only odometry followed by the
+  default native joint trajectory hand-eye fit completes on every recording; every
+  rotation axis it reports as data-estimated is within 0.5 deg of its dataset-provided
+  reference calibration; at least half of the three rotation axes per recording are
+  estimated on average in each dataset family; and every 1 deg held-out control on
+  an estimated axis is detected with delta chi-square at least 9. A recording on which
+  the method reports no estimated axis is not a failure: its three axes count as unobserved.
+  Dataset calibrations are reference estimates, not independent metrology. No translation,
+  full-extrinsic or absolute clock-accuracy claim is made.'
+minimum_dataset_families: 2
+minimum_independent_rigs: 2
+requirements:
+- requirement_id: kitti_raw-completion
+  phase: phase2
+  description: 'kitti_raw: completion under the frozen per-judged-axis contract'
+  dataset_family: kitti_raw
+  independent_rig: true
+  rig_id: kitti-platform
+  evidence_path: kitti_raw_unobserved_rotation_fraction.yaml
+  evidence_sha256: 4aee75cb1f7498f78094e4d9db721a033ad337955a30f6cd7ba60480d58fcc42
+  method_id: calibrex_native_trajectory_hand_eye
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: kitti_raw-agreement
+  phase: phase2
+  description: 'kitti_raw: agreement under the frozen per-judged-axis contract'
+  dataset_family: kitti_raw
+  independent_rig: true
+  rig_id: kitti-platform
+  evidence_path: kitti_raw_rotation_reference_difference_deg.yaml
+  evidence_sha256: d1ab185213ae012eb4e12eb4dd379067ed1bd599e5484b1d1b92064c22371c03
+  method_id: calibrex_native_trajectory_hand_eye
+  metric: rotation_reference_difference_deg
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.5
+  required: true
+- requirement_id: kitti_raw-coverage
+  phase: phase2
+  description: 'kitti_raw: coverage under the frozen per-judged-axis contract'
+  dataset_family: kitti_raw
+  independent_rig: true
+  rig_id: kitti-platform
+  evidence_path: kitti_raw_unobserved_rotation_fraction.yaml
+  evidence_sha256: 4aee75cb1f7498f78094e4d9db721a033ad337955a30f6cd7ba60480d58fcc42
+  method_id: calibrex_native_trajectory_hand_eye
+  metric: unobserved_rotation_fraction
+  statistic: metric_mean
+  comparison: less_equal
+  threshold: 0.5
+  required: true
+- requirement_id: kitti_raw-controls
+  phase: phase2
+  description: 'kitti_raw: controls under the frozen per-judged-axis contract'
+  dataset_family: kitti_raw
+  independent_rig: true
+  rig_id: kitti-platform
+  evidence_path: kitti_raw_missed_observed_control_fraction.yaml
+  evidence_sha256: 17bfa0766169bfb0f87b796290c273db3aeec2d40155868d8c117af7f41c37d9
+  method_id: calibrex_native_trajectory_hand_eye
+  metric: missed_observed_control_fraction
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: boreas-completion
+  phase: phase2
+  description: 'boreas: completion under the frozen per-judged-axis contract'
+  dataset_family: boreas
+  independent_rig: true
+  rig_id: boreas-platform
+  evidence_path: boreas_unobserved_rotation_fraction.yaml
+  evidence_sha256: 83589b198251bb45d08755b2fc5780f8e2157ea38bd570326ff04dfe13d7def6
+  method_id: calibrex_native_trajectory_hand_eye
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: boreas-agreement
+  phase: phase2
+  description: 'boreas: agreement under the frozen per-judged-axis contract'
+  dataset_family: boreas
+  independent_rig: true
+  rig_id: boreas-platform
+  evidence_path: boreas_rotation_reference_difference_deg.yaml
+  evidence_sha256: 062fbb3600495808a52ff829dc36eac05cb260eb161a060cf3e7fe98c67052f7
+  method_id: calibrex_native_trajectory_hand_eye
+  metric: rotation_reference_difference_deg
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.5
+  required: true
+- requirement_id: boreas-coverage
+  phase: phase2
+  description: 'boreas: coverage under the frozen per-judged-axis contract'
+  dataset_family: boreas
+  independent_rig: true
+  rig_id: boreas-platform
+  evidence_path: boreas_unobserved_rotation_fraction.yaml
+  evidence_sha256: 83589b198251bb45d08755b2fc5780f8e2157ea38bd570326ff04dfe13d7def6
+  method_id: calibrex_native_trajectory_hand_eye
+  metric: unobserved_rotation_fraction
+  statistic: metric_mean
+  comparison: less_equal
+  threshold: 0.5
+  required: true
+- requirement_id: boreas-controls
+  phase: phase2
+  description: 'boreas: controls under the frozen per-judged-axis contract'
+  dataset_family: boreas
+  independent_rig: true
+  rig_id: boreas-platform
+  evidence_path: boreas_missed_observed_control_fraction.yaml
+  evidence_sha256: 284624ef8693606455c922a786b05158d542881a509d69e3ec076d921dbd949e
+  method_id: calibrex_native_trajectory_hand_eye
+  metric: missed_observed_control_fraction
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+provenance:
+  generator: tools.build_ins_lidar_sota_v2_audit
+  generator_version: 0.6.4
+  git_commit: 815678cacc11ddb5c1100a9ef0e79b0b4765ffe7
+  command:
+  - python
+  - tools/build_ins_lidar_sota_v2_audit.py
+  - /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/runs/run.json
+  - --development
+  - /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/audit
+  source_sha256:
+    /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/runs/run.json: 06e7be647ea27ea1766f53878e705e457b026a78f1d6a8e3bac149ef968b2751
+  created_at: '2026-11-13T08:04:12.765054+00:00'

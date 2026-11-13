@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -50,6 +51,16 @@ from calibrex.core.sota_audit import (
 )
 from calibrex.evaluation.sota_audit import audit_sota_claim
 
+V1_FAILURE_POLICY = (
+    "All cases retained. No estimate fails agreement; missing results have "
+    "zero coverage and control-miss fraction one."
+)
+V1_LIMITATIONS = (
+    "The zero anchor is not an empirical competitor or a targetless method.",
+    "Only estimated rotation axes are gated; coverage retains all axes and cases.",
+    "Different KITTI dates share one platform; Boreas supplies the second platform.",
+    "No absolute clock, translation, full-extrinsic or general superiority claim.",
+)
 METHOD = BenchmarkMethodDefinition(
     method_id=METHOD_ID,
     label="Native joint trajectory hand-eye",
@@ -72,6 +83,11 @@ def _benchmark(
     verified: bool,
     sources: dict[str, str],
     frozen: str,
+    *,
+    protocol_id: str = PROTOCOL_ID,
+    failure_policy: str = V1_FAILURE_POLICY,
+    limitations: Sequence[str] = V1_LIMITATIONS,
+    generator: str = "tools.build_ins_lidar_sota_audit",
 ) -> BenchmarkDefinition:
     splits = [
         BenchmarkSplit(
@@ -109,10 +125,10 @@ def _benchmark(
             )
         )
     return BenchmarkDefinition(
-        benchmark_id=f"{PROTOCOL_ID}-{family}-{metric_name}",
+        benchmark_id=f"{protocol_id}-{family}-{metric_name}",
         title=f"INS-LiDAR {family}: {metric_name}",
         protocol=BenchmarkProtocol(
-            protocol_id=PROTOCOL_ID,
+            protocol_id=protocol_id,
             dataset_id=family,
             dataset_source_sha256=digest,
             data_license="CC BY 4.0" if family == "boreas" else "CC BY-NC-SA 3.0",
@@ -123,10 +139,7 @@ def _benchmark(
             splits=splits,
             initial_estimate_policy="Native defaults; no INS or reference-extrinsic odometry prior",
             tuning_policy="Method and gates frozen before evaluation; no tuning on these cases",
-            failure_policy=(
-                "All cases retained. No estimate fails agreement; missing results have "
-                "zero coverage and control-miss fraction one."
-            ),
+            failure_policy=failure_policy,
         ),
         metrics=[
             BenchmarkMetricDefinition(
@@ -143,17 +156,12 @@ def _benchmark(
         reference_method_id=ANCHOR.method_id,
         bootstrap_samples=2000,
         bootstrap_seed=0,
-        limitations=[
-            "The zero anchor is not an empirical competitor or a targetless method.",
-            "Only estimated rotation axes are gated; coverage retains all axes and cases.",
-            "Different KITTI dates share one platform; Boreas supplies the second platform.",
-            "No absolute clock, translation, full-extrinsic or general superiority claim.",
-        ],
+        limitations=list(limitations),
         provenance=BenchmarkProvenance(
-            generator="tools.build_ins_lidar_sota_audit",
+            generator=generator,
             generator_version=__version__,
             git_commit=frozen,
-            command="python tools/build_ins_lidar_sota_audit.py RUN PREREG OUT",
+            command=f"python {generator.replace('.', '/')}.py RUN PREREG OUT",
             source_artifacts=sources,
             data_verified=verified,
         ),
