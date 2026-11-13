@@ -56,14 +56,18 @@ calibrex check my_bag/ --max-duration-s 120 --html check.html   # the first 120 
 calibrex check my_bag/ --max-duration-s 120 --tf fixed.urdf     # re-check another calibration: seconds, from the cache
 ```
 
-- **The calibration** is read from the bag's `/tf_static`; pass `--tf` (URDF, Kalibr,
-  FAST-LIO config, `frames.yaml`) when the bag has none.
+- **The calibration** is read from the bag's `/tf_static`. Many bags have none, and then
+  `check` needs `--tf` with the calibration you already use: the robot's URDF, a Kalibr
+  `camchain-imucam.yaml`, or the FAST-LIO / FAST-LIVO config (`--tf` can be repeated).
+  With none of those, `calibrex check my_bag/ --write-frames-template frames.yaml` writes
+  a file naming the bag's sensor frames for you to fill in.
 - **The first run is slow** for LiDAR and camera pairs: the estimators register every scan
   or track every frame. Measured on a shared CPU: 8.5 min for 40 s of Hesai LiDAR + IMU,
   28 min for 180 s of Livox MID360 with the lever arm, on one core. `check` now uses every
   CPU for its nearest-neighbour queries, about 20 % faster on four cores with identical
-  estimates. Start with `--max-duration-s 120` and `--pairs`; a re-check of the same
-  recording takes about 3 s.
+  estimates. Start with `--max-duration-s 120` and `--pairs`. The estimates are cached, so
+  a re-check of the same recording takes seconds; `camera-lidar` is not cached and runs
+  again (12 s in all on a 120 s Livox + camera bag).
 - **`inconclusive` is not a pass.** It means the recording could not judge that pair; the
   `next steps` block at the end of the output says what to try.
 - **`pass (partial: roll, pitch only)`** vouches for the named axes only.

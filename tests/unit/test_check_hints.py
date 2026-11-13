@@ -54,7 +54,9 @@ def test_pair_hint_specifics() -> None:
 def test_topic_hint_suggests_frame_map() -> None:
     topic = CheckTopicRecord(topic="/imu", message_type="x", role="imu", header_frame_id="imu_link")
     hint = topic_hint(topic, tree_frames=["base_link", "imu"])
-    assert hint is not None and "--frame-map /imu=base_link" in hint and "imu_link" in hint
+    assert hint is not None and "imu_link" in hint and "(base_link, imu)" in hint
+    # The hint names no frame to map onto: the first tree frame may be another sensor.
+    assert "--frame-map /imu=FRAME" in hint and "add this sensor's transform to --tf" in hint
     mapped = topic.model_copy(update={"mapped_frame": "imu"})
     assert topic_hint(mapped, tree_frames=["imu"]) is None
 
