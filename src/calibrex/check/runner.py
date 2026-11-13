@@ -6,6 +6,7 @@ import hashlib
 import math
 import os
 import re
+import textwrap
 import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -1210,11 +1211,40 @@ def _verdict_lines(artifact: CalibrationCheckArtifact, color: bool = False) -> l
     return lines
 
 
-def format_check_table(artifact: CalibrationCheckArtifact, *, color: bool = False) -> str:
+def wrap_notes(lines: Sequence[str], width: int) -> list[str]:
+    """Wrap the indented note lines to ``width`` columns with a hanging indent.
+
+    Table rows (which start at column zero) are left alone: a wrapped row no longer reads
+    as a row.
+    """
+
+    wrapped: list[str] = []
+    for line in lines:
+        indent = len(line) - len(line.lstrip(" "))
+        if indent == 0 or len(line) <= width or "\x1b" in line:
+            wrapped.append(line)
+            continue
+        wrapped.extend(
+            textwrap.wrap(
+                line.strip(),
+                width=width,
+                initial_indent=" " * indent,
+                subsequent_indent=" " * (indent + 4),
+                break_long_words=False,
+                break_on_hyphens=False,
+            )
+        )
+    return wrapped
+
+
+def format_check_table(
+    artifact: CalibrationCheckArtifact, *, color: bool = False, width: int | None = None
+) -> str:
     """Render the artifact as a human-readable report.
 
     ``color`` paints the verdict column (pass green, warn yellow, fail red, inconclusive and
-    skipped dim) with ANSI codes; the text is otherwise identical.
+    skipped dim) with ANSI codes; the text is otherwise identical. ``width`` wraps the notes
+    and next steps to that many columns (a terminal's); ``None`` leaves every line whole.
     """
 
     lines = [
@@ -1290,4 +1320,6 @@ def format_check_table(artifact: CalibrationCheckArtifact, *, color: bool = Fals
         + (f" ({counts})" if counts else "")
     )
     lines.extend(format_next_steps(artifact))
+    if width is not None:
+        lines = wrap_notes(lines, max(width, 40))
     return "\n".join(lines)

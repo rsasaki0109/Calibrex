@@ -29,6 +29,46 @@
   re-checking <b>passes</b> (pitch and yaw judged; roll is not observable from driving).</sub>
 </p>
 
+## Try it in one minute
+
+No dataset and no ROS installation are needed:
+
+```bash
+python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"   # the demo is newer than the v0.6.4 wheel
+calibrex demo check
+```
+
+The demo writes a small **simulated** IMU + 4D radar bag and runs `calibrex check` on it
+twice, in a few seconds:
+
+- with the true mounting as the deployed calibration, the check **passes**;
+- with the same mounting turned 4° in pitch, it **fails**, and names the axis
+  (`pitch 4.31/0.5 deg [fail]`).
+
+It shows what the command prints and how to read it. It is simulated data, not evidence
+of accuracy; the real-data results are [below](#real-data-honest-verdicts).
+
+### Your own bag in three commands
+
+```bash
+calibrex check my_bag/ --plan                                   # seconds: which sensor pairs can be checked, and why not the others
+calibrex check my_bag/ --max-duration-s 120 --html check.html   # the first 120 s
+calibrex check my_bag/ --max-duration-s 120 --tf fixed.urdf     # re-check another calibration: seconds, from the cache
+```
+
+- **The calibration** is read from the bag's `/tf_static`; pass `--tf` (URDF, Kalibr,
+  FAST-LIO config, `frames.yaml`) when the bag has none.
+- **The first run is slow** for LiDAR and camera pairs: the estimators register every scan
+  or track every frame. Measured on a shared CPU: 8.5 min for 40 s of Hesai LiDAR + IMU,
+  28 min for 180 s of Livox MID360 with the lever arm, on one core. `check` now uses every
+  CPU for its nearest-neighbour queries, about 20 % faster on four cores with identical
+  estimates. Start with `--max-duration-s 120` and `--pairs`; a re-check of the same
+  recording takes about 3 s.
+- **`inconclusive` is not a pass.** It means the recording could not judge that pair; the
+  `next steps` block at the end of the output says what to try.
+- **`pass (partial: roll, pitch only)`** vouches for the named axes only.
+- **Camera pairs** need OpenCV: `pip install 'calibrex[opencv]'` after the wheel.
+
 <table>
   <tr>
     <td width="50%"><img alt="Two Ouster LiDARs on NTU VIRAL: the second LiDAR's scans move from a perturbed extrinsic to the calibrex estimate and snap onto the first LiDAR's map; the median point-to-plane residual drops from 19.1 cm to 4.4 cm" src="docs/assets/lidar-lidar-snap.gif" width="100%"></td>
@@ -69,46 +109,6 @@
 </p>
 
 <p align="center"><sub>Every frame is rendered from a real recording by Calibrex's own code; generators, input digests and licenses are in <a href="docs/assets/readme-data-gifs.json"><code>readme-data-gifs.json</code></a>.</sub></p>
-
-## Try it in one minute
-
-No dataset and no ROS installation are needed:
-
-```bash
-python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"   # the demo is newer than the v0.6.4 wheel
-calibrex demo check
-```
-
-The demo writes a small **simulated** IMU + 4D radar bag and runs `calibrex check` on it
-twice, in a few seconds:
-
-- with the true mounting as the deployed calibration, the check **passes**;
-- with the same mounting turned 4° in pitch, it **fails**, and names the axis
-  (`pitch 4.31/0.5 deg [fail]`).
-
-It shows what the command prints and how to read it. It is simulated data, not evidence
-of accuracy; the real-data results are [below](#real-data-honest-verdicts).
-
-### Your own bag in three commands
-
-```bash
-calibrex check my_bag/ --plan                                   # seconds: which sensor pairs can be checked, and why not the others
-calibrex check my_bag/ --max-duration-s 120 --html check.html   # the first 120 s
-calibrex check my_bag/ --max-duration-s 120 --tf fixed.urdf     # re-check another calibration: seconds, from the cache
-```
-
-- **The calibration** is read from the bag's `/tf_static`; pass `--tf` (URDF, Kalibr,
-  FAST-LIO config, `frames.yaml`) when the bag has none.
-- **The first run is slow** for LiDAR and camera pairs: the estimators register every scan
-  or track every frame. Measured on a shared CPU: 8.5 min for 40 s of Hesai LiDAR + IMU,
-  28 min for 180 s of Livox MID360 with the lever arm, on one core. `check` now uses every
-  CPU for its nearest-neighbour queries, about 20 % faster on four cores with identical
-  estimates. Start with `--max-duration-s 120` and `--pairs`; a re-check of the same
-  recording takes about 3 s.
-- **`inconclusive` is not a pass.** It means the recording could not judge that pair; the
-  `next steps` block at the end of the output says what to try.
-- **`pass (partial: roll, pitch only)`** vouches for the named axes only.
-- **Camera pairs** need OpenCV: `pip install 'calibrex[opencv]'` after the wheel.
 
 ## The workflow
 

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- `calibrex check` wraps its notes and next steps to the terminal width, with a hanging
+  indent; table rows and piped or redirected output keep whole lines.
+- README: "Try it in one minute" now sits above the gallery.
 - README and the install page install from the repository for `calibrex demo check`, which
   is newer than the v0.6.4 wheel. At the next release that block goes back to the wheel.
 - A second pre-registered INS-LiDAR rotation audit, gated per judged axis, is refuted at
