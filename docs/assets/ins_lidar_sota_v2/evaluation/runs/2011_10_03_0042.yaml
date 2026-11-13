@@ -1,0 +1,212 @@
+schema_version: slac.ins_lidar_hand_eye/v0.1
+method: joint_trajectory_hand_eye/v0.1
+solver_status: converged
+policy_status: inconclusive
+policy_reasons:
+- 'not constrained by the data or a prior, so not calibrated: roll, yaw, x, y, z'
+calibrated_dofs:
+- pitch
+- reference_scale
+transform:
+  parent_frame: ins
+  child_frame: lidar
+  translation_m:
+  - 1.0073566116527828
+  - -0.5488230044890622
+  - -0.05466310417138563
+  rotation_quat_xyzw:
+  - -0.010144018578808197
+  - -0.00044888127442639094
+  - -0.004999541053024426
+  - 0.9999359489396976
+time_offset_s: 0.01677965127819877
+reference_scale: 1.003313222788418
+dofs:
+- name: roll
+  unit: deg
+  value: -1.1621675526376194
+  std_analytic: 0.03945613715278019
+  std_jackknife: 3.3393980954494347
+  std_reported: 3.3393980954494347
+  status: unobservable
+  reference_value: -0.8493269379538104
+  error_to_reference: -0.31364173139634804
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 22.840296419620245
+    detected: true
+- name: pitch
+  unit: deg
+  value: -0.05724628095002028
+  std_analytic: 0.05106330271110095
+  std_jackknife: 0.08413503215220189
+  std_reported: 0.08413503215220189
+  status: estimated
+  reference_value: 0.11664432400332657
+  error_to_reference: -0.17244473740156546
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 302.24374859280556
+    detected: true
+- name: yaw
+  unit: deg
+  value: -0.5723565253130779
+  std_analytic: 0.04024156144027065
+  std_jackknife: 0.12903762098048788
+  std_reported: 0.12903762098048788
+  status: unobservable
+  reference_value: 0.04327600301885539
+  error_to_reference: -0.6154683666582342
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 292.5115969411129
+    detected: true
+- name: x
+  unit: m
+  value: 1.0073566116527828
+  std_analytic: 0.07529561728979406
+  std_jackknife: 2.926738815070937
+  std_reported: 2.926738815070937
+  status: unobservable
+  reference_value: 0.8105439720319256
+  error_to_reference: 0.19681263962085715
+  known_bad_control:
+    amount: 0.1
+    unit: m
+    holdout_delta_chi2: -0.5766046863086558
+    detected: false
+- name: y
+  unit: m
+  value: -0.5488230044890622
+  std_analytic: 0.07343294020305481
+  std_jackknife: 1.9519176748026148
+  std_reported: 1.9519176748026148
+  status: unobservable
+  reference_value: -0.30705437225086085
+  error_to_reference: -0.24176863223820133
+  known_bad_control:
+    amount: 0.1
+    unit: m
+    holdout_delta_chi2: -0.14627509928368454
+    detected: false
+- name: z
+  unit: m
+  value: -0.05466310417138563
+  std_analytic: 1.2505176954073214
+  std_jackknife: 1.0438684202552349
+  std_reported: 1.2505176954073214
+  status: unobservable
+  reference_value: 0.8027239945583536
+  error_to_reference: -0.8573870987297393
+  known_bad_control:
+    amount: 0.1
+    unit: m
+    holdout_delta_chi2: 0.029746051876372803
+    detected: false
+- name: time_offset
+  unit: s
+  value: 0.01677965127819877
+  std_analytic: 0.0012461317434065092
+  std_jackknife: 0.023246773395570006
+  std_reported: 0.023246773395570006
+  status: unobservable
+  known_bad_control:
+    amount: 0.02
+    unit: s
+    holdout_delta_chi2: 22.59854038359458
+    detected: true
+- name: reference_scale
+  unit: ratio
+  value: 1.003313222788418
+  std_analytic: 0.000721093411246521
+  std_jackknife: 0.001913385183060029
+  std_reported: 0.001913385183060029
+  status: estimated
+options:
+  step_frames:
+  - 5
+  - 10
+  - 20
+  exclude_failed_registrations: false
+  holdout_every: 3
+  rotation_control_deg: 1.0
+  translation_control_m: 0.1
+  time_control_s: 0.02
+  detection_delta_chi2: 9.0
+  estimate_time_offset: true
+  estimate_reference_scale: true
+  rotation_sigma_rad: 0.0017453292519943296
+  translation_sigma_floor_m: 0.01
+  translation_sigma_per_m: 0.02
+  observable_rotation_std_deg: 0.1
+  observable_translation_std_m: 0.02
+  observable_time_offset_std_s: 0.005
+  priors: []
+odometry:
+  frame_count: 600
+  missing_frames: []
+  registration_count: 599
+  converged_registrations: 590
+  median_correspondences: 6342.0
+  median_registration_rmse_m: 0.1406584042165562
+block_duration_s: 5.0
+train_blocks:
+- 0
+- 1
+- 3
+- 4
+- 6
+- 7
+- 9
+- 10
+- 12
+holdout_blocks:
+- 2
+- 5
+- 8
+- 11
+jackknife_fits: 9
+train:
+  motion_count: 117
+  rotation_rmse_deg: 0.21644931729935954
+  translation_rmse_m: 0.17366923800760764
+  rotation_median_deg: 0.15028183789155072
+  translation_median_m: 0.08872968437105229
+holdout:
+  motion_count: 51
+  rotation_rmse_deg: 0.24818774325854728
+  translation_rmse_m: 0.14808288864836242
+  rotation_median_deg: 0.16625208610711442
+  translation_median_m: 0.09790068796999317
+reference_calibration: KITTI calib_imu_to_velo.txt (inverted to T_imu_velo)
+limitations:
+- Velodyne sweeps are registered as rigid snapshots; motion within a sweep is not
+  compensated.
+- The KITTI calib_imu_to_velo reference is itself an estimate, not independent metrology;
+  differences to it are not accuracy errors.
+- OXTS positions come from a Mercator projection of GNSS/INS output and their timestamps
+  are logging times; a reference scale and clock offset are estimated as nuisance
+  parameters for that reason.
+- Vehicle motion is close to planar, so the translation along the vertical rotation
+  axis cannot be observed without a prior.
+provenance:
+  generator: calibrex.evaluation.ins_lidar_hand_eye
+  generator_version: 0.6.4
+  git_commit: c002390b
+  command:
+  - /home/user/Calibrex/.venv/bin/python
+  - /home/user/calibrex-dev/tools/ins_lidar_sota_v2_evaluate.py
+  - /home/user/calibrex-dev/docs/benchmarks/ins_lidar_rotation_v2_preregistration.yaml
+  - /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/eval/work/2011_10_03_0042
+  - /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/eval/runs/2011_10_03_0042.yaml
+  - --worker-index
+  - '5'
+  dataset_family: kitti_raw
+  drive_ids:
+  - 2011_10_03_drive_0042_sync
+  input_sha256: 416f8d59b9dc21ba5c11df33f3e4bbdea9282bce30bc606b7957b6adb5162b8d
+  dataset_license: CC BY-NC-SA 3.0
+  created_at: '2026-11-13T09:08:06.999826+00:00'

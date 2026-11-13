@@ -75,6 +75,10 @@ Five pairs have only refuted audits:
   ([KITTI + Boreas](ins_lidar_rotation_v1.md)). Eight estimated axes agree within
   0.286 deg and all eight observed 1 deg controls pass. One KITTI recording has no
   observable rotation, failing the all-recordings and empty-control gates.
+  - A second audit, gated per judged axis, is **refuted, 7/8 gates**
+    ([v2](ins_lidar_rotation_v2.md)): all 17 estimated axes within 0.373 deg and all 17
+    controls detected on ten new recordings, but on KITTI only 9 of 21 axes were estimated
+    (57 % unobserved against a 50 % ceiling).
 
 - **`lidar-wheel_odometry`**: NCLT audit **refuted**
   ([LiDAR-wheel odometry](lidar_wheel_odometry.md#result-accuracy-refuted-05-sessions-check-honesty-supported)).
@@ -96,7 +100,7 @@ pair has a native method but no audited claim yet.
 | `gnss-imu` | no_claim | 0 | 0 | 0 | yes |
 | `imu-lidar` | supported | 2 | 1 | 0 | yes |
 | `imu-vehicle` | no_claim | 0 | 0 | 0 | yes |
-| `ins-lidar` | refuted | 0 | 1 | 0 | yes |
+| `ins-lidar` | refuted | 0 | 2 | 0 | yes |
 | `lidar-lidar` | refuted | 0 | 1 | 0 | yes |
 | `lidar-vehicle` | supported | 1 | 0 | 0 | yes |
 | `lidar-wheel_odometry` | refuted | 0 | 1 | 0 | yes |
@@ -117,6 +121,7 @@ pair has a native method but no audited claim yet.
 | `imu-lidar` | targetless_imu_lidar | rotation, translation, time_offset | supported | 4/4 | `mid360-imu-lidar-extrinsic-vs-li-init-v2` |
 | `imu-lidar` | targetless_imu_lidar | rotation, time_offset | supported | 4/4 | `mid360-imu-lidar-rotation-vs-li-init-v1` |
 | `ins-lidar` | trajectory_hand_eye_per_axis | rotation | refuted | 6/8 | `ins-lidar-rotation-kitti-boreas-v1` |
+| `ins-lidar` | trajectory_hand_eye_per_judged_axis | rotation | refuted | 7/8 | `ins-lidar-rotation-kitti-boreas-v2` |
 | `lidar-lidar` | targetless_lidar_lidar | rotation, translation | refuted | 2/4 | `ntu-lidar-lidar-v1` |
 | `lidar-vehicle` | targetless_lidar_vehicle | rotation | supported | 3/3 | `kitti-lidar-vehicle-v1` |
 | `lidar-wheel_odometry` | targetless_lidar_wheel_odometry | rotation, lever_arm | refuted | 4/6 | `nclt-lidar-wheel-odometry-v1` |

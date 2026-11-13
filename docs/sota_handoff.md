@@ -39,7 +39,7 @@ pre-registered audit marks `supported`. Five things follow from that:
 | `camera-lidar` | refuted | KITTI check v1 (5/9), v2 (8/9) | [v2](benchmarks/kitti_camera_lidar_v2_check.md), [v1](benchmarks/kitti_camera_lidar_check.md) |
 | `camera-camera` | refuted | Hilti (4/6): accurate, but a 1 deg turn was flagged in only 70 % of trials | [Hilti camera SOTA](benchmarks/hilti_camera_sota.md) |
 | `lidar-lidar` | refuted | NTU VIRAL (2/4): accurate, but does not beat scan-to-scan; cross-recording consistency 1.143 against 1.0 | [NTU VIRAL](benchmarks/ntu_viral_lidar_lidar.md) |
-| `ins-lidar` | refuted | KITTI + Boreas rotation v1 (6/8); one recording has no observable rotation | [INS-LiDAR rotation](benchmarks/ins_lidar_rotation_v1.md) |
+| `ins-lidar` | refuted | KITTI + Boreas rotation v1 (6/8); one recording has no observable rotation. v2, gated per judged axis, 7 KITTI + 3 Boreas recordings (7/8): all 17 estimated axes within 0.373 deg and all 17 controls detected, but only 9 of 21 KITTI axes estimated (57 % unobserved against 50 %); reached under a transport amendment written before any result was read | [v1](benchmarks/ins_lidar_rotation_v1.md), [v2](benchmarks/ins_lidar_rotation_v2.md) |
 | `camera-lidar` (checkerboard) | refuted | KITTI calibration recordings (0/5 days): no estimate on any day (stereo time bound, board fragments) | [board camera-LiDAR](benchmarks/board_camera_lidar.md#result-both-claims-refuted-no-estimate-on-any-day) |
 | `lidar-wheel_odometry` | refuted | NCLT, 5 unseen sessions: accuracy 0/5 (roll and pitch 0.1-2.4 deg off; yaw within 0.43 deg); check honesty supported (never failed NCLT's calibration) | [LiDAR-wheel odometry](benchmarks/lidar_wheel_odometry.md#result-accuracy-refuted-05-sessions-check-honesty-supported) |
 | `camera` (focal) | supported | TUM-VI check honesty and detection (5/5): never failed Kalibr's focal lengths (6/10 judged); passed none of 20 3 %-wrong cases, failed 6; half inconclusive, no accuracy claim | [camera-focal](benchmarks/hilti_camera_imu.md#result-camera-focal-check-honesty-and-detection-supported) |
@@ -122,6 +122,7 @@ calibrex sota leaderboard \
   docs/assets/ntu_viral_lidar_lidar_sota_audit.yaml \
   docs/assets/kitti_lidar_vehicle_sota_audit.yaml \
   docs/assets/ins_lidar_sota_readiness/evaluation/audit/ins_lidar_sota_audit.yaml \
+  docs/assets/ins_lidar_sota_v2/evaluation/audit/ins_lidar_sota_audit.yaml \
   docs/assets/nclt_lidar_wheel/audit/nclt-lidar-wheel-odometry-v1_sota_audit.yaml \
   docs/assets/tumvi_camera_focal/audit/tumvi-camera-focal-check-v1_sota_audit.yaml \
   docs/assets/tumvi_camera_imu/audit/tumvi-camera-imu-check-v1_sota_audit.yaml \
@@ -179,6 +180,7 @@ The camera-imu v3 audit did exactly this with the camera-camera runs.
 | Doer & Trommer ICINS 2021 radar-inertial | `radar-imu` development | carried_1-carried_5, flight_1-flight_4 (the whole archive) |
 | Doer & Trommer IROS 2021 radar-thermal-visual-inertial | `radar-imu` evaluation (refuted) | the nine bags of `irs_rtvi_datasets_2021.zip` (radar and IMU topics read once by the frozen harness; [pre-registration](benchmarks/doer_radar_imu_preregistration.yaml)) |
 | Doer & Trommer JGN 2022 multi-radar | `radar-imu` evaluation v2 (supported) | office_floor, lab_floor, workshop, basement (radar and IMU topics read once by the frozen harness; [pre-registration](benchmarks/doer_radar_imu_v2_preregistration.yaml)) |
+| KITTI raw + Boreas | `ins-lidar` evaluation v2 (refuted) | KITTI 2011_09_30 0028, 0033, 0034 and 2011_10_03 0027, 0034, 0042, 0047; Boreas 2020-12-18-13-44, 2021-01-15-12-17, 2021-01-19-15-08 (first 600 scans and the INS reference, read once by the frozen runner; [pre-registration](benchmarks/ins_lidar_rotation_v2_preregistration.yaml), [amendment 1](benchmarks/ins_lidar_rotation_v2_amendment_1.yaml)). v1's four evaluation recordings were its development data. No eligible KITTI recording is left for `ins-lidar` |
 | Snail-Radar (Huai et al.) | `radar-imu` roll/pitch development | 20230921/data4, 20231019/data2, 20240113/data5 (Eagle `pcl`, X36D IMU, tf_static and their INS reference rows) |
 | Snail-Radar (Huai et al.) | `imu-lidar` development | 20230921/data4, 20231019/data2, 20240113/data5 (XT32, X36D, MTi-3, first 300 s) |
 | Snail-Radar (Huai et al.) | `imu-lidar` evaluation (refuted) | the 30 sequences scored in [snail_lidar_imu.md](benchmarks/snail_lidar_imu.md) (XT32, X36D, MTi-3 and tf_static of the first 300 s, read once by the frozen harness; [pre-registration](benchmarks/snail_lidar_imu_preregistration.yaml)); 20231109/data3 and 20240123/data3 were planned but not read; 20230921/data5 (the authors' fitting sequence) and the sequences under 300 s are unread; post hoc, the IMU files of eight of the 30 were read again for the [gyro cross-check](benchmarks/snail_lidar_imu.md#post-hoc-the-two-imus-gyros-agree-with-check) |
@@ -228,6 +230,10 @@ The v2 camera-lidar runs also read the Velodyne and OXTS of the first 600 frames
 - **Size the evaluation to its gates.** 60 cases took 11 hours to decide gates of
   "at least 50 %" and "none missed". Choose the set size before reading anything; a
   dozen to twenty cases, a few hours, decide the same gates and leave data unspent.
+- **Space the transport attempts.** The INS-LiDAR v2 driver inherited v1's two fetch
+  attempts and ran them back to back; one connection reset spent both, and the case
+  needed an amendment (written before any result was read) to be acquired at all. Put a
+  wait between attempts, and allow more than two.
 - **A dataset's calibration can be wrong for part of the dataset.** check failed the
   Snail-Radar MTi-3 transform on the IMU's first morning, and a gyro-only fit of the two
   IMUs later agreed with check to 0.2 deg.
@@ -258,8 +264,8 @@ Priorities, in order:
    only changes that reproduce the verdicts on spent data.
 3. **The audit process** above (rerun policy, resumable harness, smaller sets).
 4. **Claims that were refuted by their own wording**, where the method did what it could:
-   `ins-lidar` (6/8; one recording has no observable rotation) is the first to look at.
-   Find unspent data before anything else.
+   `ins-lidar` was tried: [v2](benchmarks/ins_lidar_rotation_v2.md) is refuted 7/8, on KITTI
+   coverage, with accuracy and controls intact. KITTI's eligible pool is now spent.
 
 Not planned: new sensor pairs, audits for breadth on new datasets, more camera-lidar
 research along the lines below, and radar roll/pitch.

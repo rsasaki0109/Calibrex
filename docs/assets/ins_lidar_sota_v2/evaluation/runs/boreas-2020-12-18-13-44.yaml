@@ -1,0 +1,210 @@
+schema_version: slac.ins_lidar_hand_eye/v0.1
+method: joint_trajectory_hand_eye/v0.1
+solver_status: converged
+policy_status: inconclusive
+policy_reasons:
+- 'not constrained by the data or a prior, so not calibrated: x, y, z'
+calibrated_dofs:
+- roll
+- pitch
+- yaw
+- reference_scale
+transform:
+  parent_frame: ins
+  child_frame: lidar
+  translation_m:
+  - 0.1230226307979894
+  - -0.16747808483777019
+  - -0.6849480006726061
+  rotation_quat_xyzw:
+  - -0.0006253834891437952
+  - -0.00022719015203296215
+  - 0.36325018494813144
+  - 0.9316913976286756
+time_offset_s: 0.015678646330171648
+reference_scale: 0.9697036159155242
+dofs:
+- name: roll
+  unit: deg
+  value: -0.07622532855398435
+  std_analytic: 0.01794175954749961
+  std_jackknife: 0.08773035637129309
+  std_reported: 0.08773035637129309
+  status: estimated
+  reference_value: 0.0
+  error_to_reference: -0.05730996429347629
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 656.7874450645261
+    detected: true
+- name: pitch
+  unit: deg
+  value: 0.0017761184950883578
+  std_analytic: 0.019849256188513846
+  std_jackknife: 0.08445893466500333
+  std_reported: 0.08445893466500333
+  status: estimated
+  reference_value: 0.0
+  error_to_reference: -0.05028939553065464
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 508.0307453959715
+    detected: true
+- name: yaw
+  unit: deg
+  value: 42.59988011601748
+  std_analytic: 0.044630449766577616
+  std_jackknife: 0.06453434907258106
+  std_reported: 0.06453434907258106
+  status: estimated
+  reference_value: 42.60351460900684
+  error_to_reference: -0.0036333109691731066
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 262.952456364764
+    detected: true
+- name: x
+  unit: m
+  value: 0.1230226307979894
+  std_analytic: 0.019810088062987168
+  std_jackknife: 0.06068082128586421
+  std_reported: 0.06068082128586421
+  status: unobservable
+  reference_value: 0.0
+  error_to_reference: 0.1230226307979894
+  known_bad_control:
+    amount: 0.1
+    unit: m
+    holdout_delta_chi2: 11.748805138736543
+    detected: true
+- name: y
+  unit: m
+  value: -0.16747808483777019
+  std_analytic: 0.019891624373228466
+  std_jackknife: 0.07994855297640664
+  std_reported: 0.07994855297640664
+  status: unobservable
+  reference_value: 0.0
+  error_to_reference: -0.16747808483777019
+  known_bad_control:
+    amount: 0.1
+    unit: m
+    holdout_delta_chi2: -0.2004767040475599
+    detected: false
+- name: z
+  unit: m
+  value: -0.6849480006726061
+  std_analytic: 0.23630887050261595
+  std_jackknife: 0.23214154440436352
+  std_reported: 0.23630887050261595
+  status: unobservable
+  reference_value: 0.13
+  error_to_reference: -0.8149480006726061
+  known_bad_control:
+    amount: 0.1
+    unit: m
+    holdout_delta_chi2: -0.695619265406549
+    detected: false
+- name: time_offset
+  unit: s
+  value: 0.015678646330171648
+  std_analytic: 0.0006777892027648172
+  std_jackknife: 0.01400472584049867
+  std_reported: 0.01400472584049867
+  status: unobservable
+  known_bad_control:
+    amount: 0.02
+    unit: s
+    holdout_delta_chi2: 377.08496533508537
+    detected: true
+- name: reference_scale
+  unit: ratio
+  value: 0.9697036159155242
+  std_analytic: 0.0007656221773246905
+  std_jackknife: 0.0015356593209865216
+  std_reported: 0.0015356593209865216
+  status: estimated
+options:
+  step_frames:
+  - 5
+  - 10
+  - 20
+  exclude_failed_registrations: false
+  holdout_every: 3
+  rotation_control_deg: 1.0
+  translation_control_m: 0.1
+  time_control_s: 0.02
+  detection_delta_chi2: 9.0
+  estimate_time_offset: true
+  estimate_reference_scale: true
+  rotation_sigma_rad: 0.0017453292519943296
+  translation_sigma_floor_m: 0.01
+  translation_sigma_per_m: 0.02
+  observable_rotation_std_deg: 0.1
+  observable_translation_std_m: 0.02
+  observable_time_offset_std_s: 0.005
+  priors: []
+odometry:
+  frame_count: 600
+  missing_frames: []
+  registration_count: 599
+  converged_registrations: 598
+  median_correspondences: 14016.0
+  median_registration_rmse_m: 0.09948391365237737
+block_duration_s: 5.0
+train_blocks:
+- 0
+- 1
+- 3
+- 4
+- 6
+- 7
+- 9
+- 10
+- 12
+holdout_blocks:
+- 2
+- 5
+- 8
+- 11
+jackknife_fits: 9
+train:
+  motion_count: 120
+  rotation_rmse_deg: 0.2861256718720858
+  translation_rmse_m: 0.058470835094750366
+  rotation_median_deg: 0.13869538034427178
+  translation_median_m: 0.0375390665917616
+holdout:
+  motion_count: 51
+  rotation_rmse_deg: 0.4559698501488768
+  translation_rmse_m: 0.05614977869138886
+  rotation_median_deg: 0.16861958195366536
+  translation_median_m: 0.03507293751529739
+reference_calibration: Boreas T_applanix_lidar.txt (dataset-provided reference estimate)
+limitations:
+- 'Rigid-scan registration: published per-point time offsets are not used for deskewing.'
+- The Applanix post-processed trajectory is a reference estimate, not independent
+  metrology.
+- The reference extrinsic is comparison-only; no translation or full-extrinsic claim
+  follows from a partial result.
+provenance:
+  generator: calibrex.evaluation.boreas_ins_lidar
+  generator_version: 0.6.4
+  git_commit: c002390b
+  command:
+  - /home/user/Calibrex/.venv/bin/python
+  - /home/user/calibrex-dev/tools/ins_lidar_sota_v2_evaluate.py
+  - /home/user/calibrex-dev/docs/benchmarks/ins_lidar_rotation_v2_preregistration.yaml
+  - /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/eval/work/boreas-2020-12-18-13-44
+  - /tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/eval/runs/boreas-2020-12-18-13-44.yaml
+  - --worker-index
+  - '7'
+  dataset_family: boreas
+  drive_ids:
+  - boreas-2020-12-18-13-44
+  input_sha256: 2dc0b3a0be828d1d642df4430aa97b4425766347ea80e867f06b374ecb68f07f
+  dataset_license: CC BY 4.0
+  created_at: '2026-11-13T09:13:49.591623+00:00'

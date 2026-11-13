@@ -395,6 +395,35 @@
     },
     {
       "achieved_dataset_families": [
+        "boreas",
+        "kitti_raw"
+      ],
+      "achieved_independent_rig_count": 2,
+      "audit_id": "ins-lidar-rotation-kitti-boreas-v2-audit",
+      "audit_path": "docs/assets/ins_lidar_sota_v2/evaluation/audit/ins_lidar_sota_audit.yaml",
+      "audit_schema_version": "slac.sota_audit_result/v0.1",
+      "audit_sha256": "5432428101e41f84ae020375f319468dfd6b0471897abf341020406eb77cf88e",
+      "claim_text": "On the ten pre-registered KITTI raw and Boreas recording windows not previously read by Calibrex INS-LiDAR methods, LiDAR-only odometry followed by the default native joint trajectory hand-eye fit completes on every recording; every rotation axis it reports as data-estimated is within 0.5 deg of its dataset-provided reference calibration; at least half of the three rotation axes per recording are estimated on average in each dataset family; and every 1 deg held-out control on an estimated axis is detected with delta chi-square at least 9. A recording on which the method reports no estimated axis is not a failure: its three axes count as unobserved. Dataset calibrations are reference estimates, not independent metrology. No translation, full-extrinsic or absolute clock-accuracy claim is made.",
+      "pair_id": "ins-lidar",
+      "protocol_id": "ins-lidar-rotation-kitti-boreas-v2",
+      "requirement_counts": {
+        "achieved": 7,
+        "contradicted": 1
+      },
+      "scope": {
+        "category": "trajectory_hand_eye_per_judged_axis",
+        "modalities": [
+          "ins",
+          "lidar"
+        ],
+        "quantities": [
+          "rotation"
+        ]
+      },
+      "verdict": "refuted"
+    },
+    {
+      "achieved_dataset_families": [
         "ntu_viral"
       ],
       "achieved_independent_rig_count": 1,
@@ -539,7 +568,7 @@
     {
       "incomplete_claims": 0,
       "pair_id": "ins-lidar",
-      "refuted_claims": 1,
+      "refuted_claims": 2,
       "standing": "refuted",
       "supported_claims": 0,
       "target": true
@@ -584,9 +613,10 @@
       "docs/assets/mid360_imu_lidar_extrinsic_sota_audit.yaml",
       "docs/assets/mid360_imu_lidar_extrinsic_v2_sota_audit.yaml",
       "docs/assets/mid360_imu_lidar_sota_audit.yaml",
-      "docs/assets/ins_lidar_sota_readiness/evaluation/audit/ins_lidar_sota_audit.yaml",
       "docs/assets/ntu_viral_lidar_lidar_sota_audit.yaml",
       "docs/assets/kitti_lidar_vehicle_sota_audit.yaml",
+      "docs/assets/ins_lidar_sota_readiness/evaluation/audit/ins_lidar_sota_audit.yaml",
+      "docs/assets/ins_lidar_sota_v2/evaluation/audit/ins_lidar_sota_audit.yaml",
       "docs/assets/nclt_lidar_wheel/audit/nclt-lidar-wheel-odometry-v1_sota_audit.yaml",
       "docs/assets/tumvi_camera_focal/audit/tumvi-camera-focal-check-v1_sota_audit.yaml",
       "docs/assets/tumvi_camera_imu/audit/tumvi-camera-imu-check-v1_sota_audit.yaml",
@@ -616,10 +646,10 @@
       "--target-pair",
       "lidar-wheel_odometry"
     ],
-    "created_at": "2026-11-07T23:40:09.621770+00:00",
+    "created_at": "2026-11-13T12:16:56.503076+00:00",
     "generator": "calibrex.evaluation.sota_leaderboard",
-    "generator_version": "0.6.2",
-    "git_commit": "7899e471"
+    "generator_version": "0.6.4",
+    "git_commit": "72a15133"
   },
   "schema_version": "slac.sota_leaderboard/v0.1"
 }
