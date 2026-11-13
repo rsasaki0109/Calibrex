@@ -3279,6 +3279,14 @@ def _build_parser() -> argparse.ArgumentParser:
         "(0 re-reads the bag every pass; default 2048)",
     )
     check.add_argument(
+        "--threads",
+        type=int,
+        default=0,
+        metavar="N",
+        help="threads for the LiDAR estimators' nearest-neighbour queries (default 0: every "
+        "available CPU; 1: single-threaded). The estimates are identical for any N",
+    )
+    check.add_argument(
         "--evidence-dir",
         type=Path,
         default=None,
@@ -4766,6 +4774,7 @@ _ESTIMATE_SHARED_DESTS = frozenset(
         "cache_dir",
         "no_cache",
         "scan_memory_mb",
+        "threads",
     }
 )
 
@@ -4822,6 +4831,7 @@ def _cmd_estimate(args: argparse.Namespace) -> int:
         if args.no_cache
         else (args.cache_dir if args.cache_dir is not None else default_cache_dir()),
         scan_memory_mb=max(args.scan_memory_mb, 0),
+        query_threads=max(args.threads, 0),
     )
 
     from calibrex.check.progress import make_progress
@@ -4902,6 +4912,7 @@ def _cmd_drift(args: argparse.Namespace) -> int:
         if args.no_cache
         else (args.cache_dir if args.cache_dir is not None else default_cache_dir()),
         scan_memory_mb=max(args.scan_memory_mb, 0),
+        query_threads=max(args.threads, 0),
     )
     try:
         options = DriftOptions(
@@ -5021,6 +5032,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
             if args.no_cache
             else (args.cache_dir if args.cache_dir is not None else default_cache_dir()),
             scan_memory_mb=max(args.scan_memory_mb, 0),
+            query_threads=max(args.threads, 0),
         )
 
     # Progress goes to stderr only: an updating line on a terminal, one line per event
