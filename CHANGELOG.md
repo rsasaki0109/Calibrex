@@ -12,6 +12,9 @@
   - Two sequences could not be fetched, which leaves the run incomplete.
   - No judged 3 deg LiDAR turn was missed (80 of 80), and 48 of 60 cases judged a
     rotation axis.
+  - Post hoc, a gyro-only fit between the two IMUs gives the same 5 deg on those three
+    sequences: the published MTi-3 transform does not fit its first sessions. The verdict
+    is unchanged.
 
 ## 0.6.4 - 2026-11-11
 
