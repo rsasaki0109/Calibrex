@@ -9,7 +9,8 @@ This page hands the pre-registered SOTA audit work to the next agent. It covers:
 - the next candidates.
 
 Read [`AGENTS.md`](https://github.com/rsasaki0109/Calibrex/blob/main/AGENTS.md) and the
-[SOTA leaderboard](benchmarks/sota_leaderboard.md) first. State as of 2026-10-22;
+[SOTA leaderboard](benchmarks/sota_leaderboard.md) first. The audit standings are as of 2026-10-22, the direction as of 2026-11-13
+([direction reset](#direction-reset-2026-11-13));
 the INS-LiDAR audit evaluated merged `main` at `e2ac3e20`.
 
 ## Goal and the one rule
@@ -88,6 +89,9 @@ Its files are the templates:
      (size, ETag) and every calibration file (SHA-256).
    - Add a test that loads the real pre-registration and checks it against the frozen
      tools: claim text, pins, recipe, thresholds.
+   - State the rerun policy in the pre-registration, and what a case that is still
+     missing after it counts as (see
+     [the Snail-Radar pitfalls](#pitfalls-met-so-far)).
    - Open a PR and merge it.
 6. **Run once** from `main`:
    - first check that `git diff <frozen> HEAD -- src tools` is empty;
@@ -206,8 +210,61 @@ The v2 camera-lidar runs also read the Velodyne and OXTS of the first 600 frames
     failed fetch.
 - **A near miss is still a miss.** v2 failed one gate by 0.003 deg. Thresholds are not
   revisited after a run; a new version with new evaluation data is the only way on.
+- **A pre-registration without a rerun policy turns a network error into a verdict.** The
+  Snail-Radar imu-lidar plan had none.
+  - Two sequences failed their first OneDrive request, four cases were lost, and by the
+    plan's own text the missing cases refuted coverage and detection, which had met their
+    gates on the 56 cases that ran.
+  - Put the retry in the frozen harness (a few attempts, spaced, on a failed fetch), and
+    write the rerun policy into the plan.
+  - Say in the plan what a case still missing after the reruns counts as. `incomplete` is
+    a result of its own; it is not `refuted`.
+- **A long run must survive a container restart by its own command.** The cloud container
+  restarted twice in the 11 hours of that run, once with a background task running.
+  - Write one score file per item as it finishes, and make the frozen harness skip items
+    that have one, so the same command resumes the run.
+  - The Snail-Radar run was resumed by a driver written after the freeze. It called the
+    frozen functions unchanged and is disclosed, but the resume belongs in the harness.
+- **Size the evaluation to its gates.** 60 cases took 11 hours to decide gates of
+  "at least 50 %" and "none missed". Choose the set size before reading anything; a
+  dozen to twenty cases, a few hours, decide the same gates and leave data unspent.
+- **A dataset's calibration can be wrong for part of the dataset.** check failed the
+  Snail-Radar MTi-3 transform on the IMU's first morning, and a gyro-only fit of the two
+  IMUs later agreed with check to 0.2 deg.
+  - When a method fails the reference on a consistent subset (one day, one sensor), look
+    for an independent measurement before reading it as a method error.
+  - That analysis is post hoc and never changes the verdict.
 
 ## Next candidates
+
+### Direction reset, 2026-11-13
+
+The work moves from adding audits to making `calibrex check` usable by someone else.
+Three facts decided it:
+
+- the repository had no issue from an outside user;
+- a first-time dry run of the README could not reach a `check` verdict (the quickstart
+  ran another command, the first-run cost was buried, and the "own data" page led to
+  `calibrex calibrate`);
+- three of the last four audits were refuted or not judgeable for reasons outside the
+  method (short recordings, sensor noise, a failed download).
+
+Priorities, in order:
+
+1. **A first run that works.** `calibrex demo check`, the three commands for your own bag
+   and the quieter check table are merged (PR #376). Still open: lines too wide for an
+   80-column terminal, and the README gallery sitting above the quickstart.
+2. **First-run cost.** `check` takes minutes per minute of LiDAR. Profile it, and keep
+   only changes that reproduce the verdicts on spent data.
+3. **The audit process** above (rerun policy, resumable harness, smaller sets).
+4. **Claims that were refuted by their own wording**, where the method did what it could:
+   `ins-lidar` (6/8; one recording has no observable rotation) is the first to look at.
+   Find unspent data before anything else.
+
+Not planned: new sensor pairs, audits for breadth on new datasets, more camera-lidar
+research along the lines below, and radar roll/pitch.
+
+The sections below are the earlier candidates, kept as written.
 
 ### Development restart, 2026-10-27
 
