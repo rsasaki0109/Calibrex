@@ -1,0 +1,27 @@
+"""Finish the interrupted evaluation with the frozen harness: sequences that already have a
+score file are not run again; every other one runs exactly as main() runs it."""
+import json, sys
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+sys.path.insert(0, "/home/user/calibrex-dev")
+from tools import snail_lidar_imu_audit as h
+
+work, runs = Path(sys.argv[1]), Path(sys.argv[2])
+sequences = list(h.EVALUATION)
+
+def one(sequence):
+    done = runs / f"{sequence.replace('/', '_')}_score.json"
+    if done.exists():
+        return json.loads(done.read_text())
+    try:
+        return h.run_sequence(sequence, work, runs)
+    except Exception as error:
+        return {"error": repr(error), **{v: {} for v in h.VARIANTS}}
+
+with ThreadPoolExecutor(max_workers=3) as pool:
+    scores = dict(zip(sequences, pool.map(one, sequences), strict=True))
+summary = {"sequences": sequences, "scores": scores,
+           "verdicts": h.verdicts(scores, h.expected_cases(sequences)),
+           "resumed": "container restart at about 12:36 UTC; 5 sequences were done and kept"}
+(runs / "summary.json").write_text(json.dumps(summary, indent=1, default=float))
+print(json.dumps(summary["verdicts"], indent=1))
