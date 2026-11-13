@@ -1870,6 +1870,43 @@ reference fields are recomputed for the candidate, so they differ from a fresh
 solve only in the last bit). Peak memory was 0.75 GB (Hilti) and 1.2 GB (RTK-SLAM)
 with the default scan budget.
 
+### Threads
+
+A later profile, on 42 s of a hand-held Hesai XT32 with its IMU (Snail-Radar
+20230921/data4, 601 scans), ran on one core for 281 s:
+
+| Stage | Share of the time |
+| --- | ---: |
+| nearest-neighbour queries of the registration | 44 % |
+| normals of the local map (their neighbour queries, covariances, eigenvectors) | 29 % |
+| the registration's own solve | 8 % |
+| gyro deskew | 6 % |
+| voxel downsampling | 6 % |
+| KD-tree builds | 4 % |
+| reading scans and the IMU, everything else | 3 % |
+
+The estimator registers the same scans eight times: one constant-velocity pass, five
+gyro-deskew passes, the feedback check and the lever-arm pass.
+
+A KD-tree query answers each point on its own, so it can use every CPU without changing
+a result. `calibrex check`, `estimate` and `drift` now do (`--threads N`; `--threads 1`
+is the old behaviour):
+
+| `--threads` | First run | Estimate |
+| --- | ---: | --- |
+| 1 | 281 s | reference |
+| 2 | 261 s | identical |
+| 4 (every CPU of that machine) | 224 s | identical |
+
+"Identical" means the evidence files are equal byte for byte but for `created_at`. The
+thread count is not a method option: it is not written to the artifact and is not part of
+the cache key.
+
+What is left is sequential by construction. Each scan is registered against a map built
+from the scans before it, so a pass cannot be split without changing its result, and
+each gyro pass needs the rotation and clock offset of the pass before it. Of the eight
+passes only the last two (feedback check and lever arm) could run side by side.
+
 ## Real bags with /tf_static
 
 The zero-config path (no `--tf`, candidate read from the bag's `/tf_static`) was

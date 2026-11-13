@@ -24,6 +24,8 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.spatial import cKDTree
 
+from calibrex.core.query_threads import query_workers
+
 FloatArray: TypeAlias = NDArray[np.float64]
 RotationModel: TypeAlias = Callable[[float, FloatArray], FloatArray]
 OdometryBackend: TypeAlias = Literal["cpu", "cuda"]
@@ -210,7 +212,7 @@ def estimate_normals(
     """Return unit normals and a mask of locally planar points."""
 
     k = min(options.normal_neighbours, len(points))
-    _, indices = tree.query(points, k=k, workers=options.query_workers)
+    _, indices = tree.query(points, k=k, workers=query_workers(options.query_workers))
     return _normals_from_neighbours(points, indices, k, options)
 
 
@@ -272,7 +274,7 @@ class TargetNormals:
             return
         missing = np.unique(missing)
         _, neighbours = self._tree.query(
-            self._points[missing], k=self._k, workers=self._options.query_workers,
+            self._points[missing], k=self._k, workers=query_workers(self._options.query_workers),
         )
         normals, planar = _normals_from_neighbours(self._points, neighbours, self._k, self._options)
         self.normals[missing] = normals
@@ -323,7 +325,7 @@ def register_point_to_plane(
         moved = source @ transform[:3, :3].T + transform[:3, 3]
         distances, indices = tree.query(
             moved, k=1, distance_upper_bound=opts.max_correspondence_m,
-            workers=opts.query_workers,
+            workers=query_workers(opts.query_workers),
         )
         valid = np.isfinite(distances)
         hit = indices[valid]

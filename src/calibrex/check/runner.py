@@ -92,6 +92,7 @@ from calibrex.core.camera_lidar_edge import DEFAULT_MIN_CONTROL_T
 from calibrex.core.exceptions import DatasetError
 from calibrex.core.progress import progress_sink
 from calibrex.core.provenance import git_commit
+from calibrex.core.query_threads import query_threads
 from calibrex.data.external_camera import IMAGE_TYPE as EXTERNAL_IMAGE_TYPE
 from calibrex.data.external_camera import ExternalCameraSource, external_sources_by_topic
 from calibrex.data.livox_ros2 import ScanStore
@@ -223,6 +224,10 @@ class CheckRunOptions:
     """Estimator cache directory; ``None`` disables the cache (the CLI defaults to the user dir)."""
     scan_memory_mb: int = 2048
     """Memory for reusing decoded LiDAR scans across passes; 0 re-reads the bag every pass."""
+    query_threads: int | None = None
+    """Threads of the LiDAR estimators' nearest-neighbour queries: 0 uses every available
+    CPU, ``None`` leaves the process setting (one thread unless set). The estimates do not
+    depend on it."""
     camera_lidar_start_scan_min_control_t: float | None = None
     """Extra held-out control margin for adopting camera-LiDAR fits from distant starts."""
     camera_lidar_start_agreement_deg: float | None = None
@@ -568,22 +573,23 @@ def _run_pairs(
             )
             continue
         started_pairs += 1
-        results.append(
-            _run_one(
-                record,
-                run,
-                bag=bag,
-                topics=topics,
-                topic_types=topic_types,
-                sensor_topics=sensor_topics,
-                sources=sources,
-                controls=controls,
-                evidence_dir=evidence_dir,
-                base_dir=base_dir,
-                progress=progress,
-                position=(started_pairs, to_run),
+        with query_threads(run.query_threads):
+            results.append(
+                _run_one(
+                    record,
+                    run,
+                    bag=bag,
+                    topics=topics,
+                    topic_types=topic_types,
+                    sensor_topics=sensor_topics,
+                    sources=sources,
+                    controls=controls,
+                    evidence_dir=evidence_dir,
+                    base_dir=base_dir,
+                    progress=progress,
+                    position=(started_pairs, to_run),
+                )
             )
-        )
         if on_pair_result is not None:
             on_pair_result(
                 results[-1],

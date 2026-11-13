@@ -27,6 +27,8 @@ from numpy.typing import NDArray
 from scipy.spatial import cKDTree
 from scipy.spatial.transform import Rotation
 
+from calibrex.core.query_threads import query_workers
+
 FloatArray: TypeAlias = NDArray[np.float64]
 EXTRINSIC_DOFS: tuple[str, ...] = ("roll", "pitch", "yaw", "x", "y", "z")
 MapBackend: TypeAlias = Literal["cpu", "cuda"]
@@ -94,7 +96,7 @@ class _MapNormals:
             return
         k = min(self.options.normal_neighbours, len(self.points))
         _, neighbours = self.tree.query(
-            self.points[missing], k=k, workers=self.options.query_workers,
+            self.points[missing], k=k, workers=query_workers(self.options.query_workers),
         )
         values = self.points[neighbours]
         centered = values - values.mean(axis=1, keepdims=True)
@@ -149,7 +151,7 @@ class MapSample:
         world = self.target_points @ transform[:3, :3].T + transform[:3, 3]
         distances, indices = self._tree.query(
             world, distance_upper_bound=options.max_correspondence_m,
-            workers=options.query_workers,
+            workers=query_workers(options.query_workers),
         )
         valid = np.isfinite(distances)
         normals, planar = self._normals, self._planar
