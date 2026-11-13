@@ -1,0 +1,262 @@
+{
+  "schema_version": "calibrex.ins_lidar_audit_scores/v0.2",
+  "provenance": {
+    "generator": "tools.build_ins_lidar_sota_v2_audit",
+    "frozen_code_commit": "8751c3f6c3d7165041e898c8c6eb237d225cdcee",
+    "source_sha256": {
+      "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/eval/runs/run.json": "dea96bc7c12ec067f0b81015627f8ef8d57d300a6b3d72cc705eb94aa860a23b",
+      "docs/benchmarks/ins_lidar_rotation_v2_preregistration.yaml": "25b70d7f77e77d09654c1e3b19730556a4f16eebfc0534bb2c10d2dcc9e6e582"
+    },
+    "development": false
+  },
+  "case_states": {
+    "2011_09_30_0028": "scored",
+    "2011_09_30_0033": "scored",
+    "2011_09_30_0034": "scored",
+    "2011_10_03_0027": "scored",
+    "2011_10_03_0034": "scored",
+    "2011_10_03_0042": "scored",
+    "2011_10_03_0047": "scored",
+    "boreas-2020-12-18-13-44": "scored",
+    "boreas-2021-01-15-12-17": "scored",
+    "boreas-2021-01-19-15-08": "scored"
+  },
+  "interrupted_attempts": 0,
+  "acquisition_errors": [
+    {
+      "case_id": "2011_09_30_0028",
+      "error_type": "OSError",
+      "error": "curl exit 35: curl: (35) Recv failure: Connection reset by peer",
+      "at": "2026-11-13T08:56:55.780007+00:00"
+    }
+  ],
+  "cases": [
+    {
+      "case": {
+        "case_id": "2011_09_30_0028",
+        "dataset_family": "kitti_raw",
+        "rig_id": "kitti-platform",
+        "drive_ids": [
+          "2011_09_30_drive_0028_sync"
+        ],
+        "artifact_path": "2011_09_30_0028.yaml",
+        "artifact_sha256": "62af6d1d3e8fa54c02dde0423cfe39ab98dd523c069555bdd9fefb447714ce83"
+      },
+      "completed": true,
+      "rotation_axes": 3,
+      "estimated_axes": 2,
+      "errors_deg": [
+        0.09943537642192757,
+        0.372625629254338
+      ],
+      "control_misses": 0,
+      "reasons": []
+    },
+    {
+      "case": {
+        "case_id": "2011_09_30_0033",
+        "dataset_family": "kitti_raw",
+        "rig_id": "kitti-platform",
+        "drive_ids": [
+          "2011_09_30_drive_0033_sync"
+        ],
+        "artifact_path": "2011_09_30_0033.yaml",
+        "artifact_sha256": "9af6bcbf53ea04cd4b1bf4b842e2d4194b9bb8e4f685522307068471dedcaa42"
+      },
+      "completed": true,
+      "rotation_axes": 3,
+      "estimated_axes": 0,
+      "errors_deg": [],
+      "control_misses": 0,
+      "reasons": []
+    },
+    {
+      "case": {
+        "case_id": "2011_09_30_0034",
+        "dataset_family": "kitti_raw",
+        "rig_id": "kitti-platform",
+        "drive_ids": [
+          "2011_09_30_drive_0034_sync"
+        ],
+        "artifact_path": "2011_09_30_0034.yaml",
+        "artifact_sha256": "f2562c804e0b1294042998775ee62c13502d2c223556cb84a8c540ec3bcedc20"
+      },
+      "completed": true,
+      "rotation_axes": 3,
+      "estimated_axes": 2,
+      "errors_deg": [
+        0.035462081572590884,
+        0.09420231633942101
+      ],
+      "control_misses": 0,
+      "reasons": []
+    },
+    {
+      "case": {
+        "case_id": "2011_10_03_0027",
+        "dataset_family": "kitti_raw",
+        "rig_id": "kitti-platform",
+        "drive_ids": [
+          "2011_10_03_drive_0027_sync"
+        ],
+        "artifact_path": "2011_10_03_0027.yaml",
+        "artifact_sha256": "78ac8858994e56a480db285b46d3d82487aad756a5819fca2feded5ba6d441fc"
+      },
+      "completed": true,
+      "rotation_axes": 3,
+      "estimated_axes": 2,
+      "errors_deg": [
+        0.149192711112227,
+        0.10287316041574564
+      ],
+      "control_misses": 0,
+      "reasons": []
+    },
+    {
+      "case": {
+        "case_id": "2011_10_03_0034",
+        "dataset_family": "kitti_raw",
+        "rig_id": "kitti-platform",
+        "drive_ids": [
+          "2011_10_03_drive_0034_sync"
+        ],
+        "artifact_path": "2011_10_03_0034.yaml",
+        "artifact_sha256": "4d3612949cfec382c70c494ae104e64fbf9c405a30d86adc0617edfb0c708fef"
+      },
+      "completed": true,
+      "rotation_axes": 3,
+      "estimated_axes": 2,
+      "errors_deg": [
+        0.08223473210945038,
+        0.17089335734681485
+      ],
+      "control_misses": 0,
+      "reasons": []
+    },
+    {
+      "case": {
+        "case_id": "2011_10_03_0042",
+        "dataset_family": "kitti_raw",
+        "rig_id": "kitti-platform",
+        "drive_ids": [
+          "2011_10_03_drive_0042_sync"
+        ],
+        "artifact_path": "2011_10_03_0042.yaml",
+        "artifact_sha256": "fb1a6f48a8f0732f4c398191c934bc43ad9fb910efc08e15931121b618bdd70c"
+      },
+      "completed": true,
+      "rotation_axes": 3,
+      "estimated_axes": 1,
+      "errors_deg": [
+        0.17244473740156546
+      ],
+      "control_misses": 0,
+      "reasons": []
+    },
+    {
+      "case": {
+        "case_id": "2011_10_03_0047",
+        "dataset_family": "kitti_raw",
+        "rig_id": "kitti-platform",
+        "drive_ids": [
+          "2011_10_03_drive_0047_sync"
+        ],
+        "artifact_path": "2011_10_03_0047.yaml",
+        "artifact_sha256": "d202095274568ed0f0595b5bfae707985edfcb2bfa988fdd5a269b7e339d170b"
+      },
+      "completed": true,
+      "rotation_axes": 3,
+      "estimated_axes": 0,
+      "errors_deg": [],
+      "control_misses": 0,
+      "reasons": []
+    },
+    {
+      "case": {
+        "case_id": "boreas-2020-12-18-13-44",
+        "dataset_family": "boreas",
+        "rig_id": "boreas-platform",
+        "drive_ids": [
+          "boreas-2020-12-18-13-44"
+        ],
+        "artifact_path": "boreas-2020-12-18-13-44.yaml",
+        "artifact_sha256": "789f414026308f801fe3c5526482bc83d7e2ebacd82752bf99ea6a50172ba277"
+      },
+      "completed": true,
+      "rotation_axes": 3,
+      "estimated_axes": 3,
+      "errors_deg": [
+        0.05730996429347629,
+        0.05028939553065464,
+        0.0036333109691731066
+      ],
+      "control_misses": 0,
+      "reasons": []
+    },
+    {
+      "case": {
+        "case_id": "boreas-2021-01-15-12-17",
+        "dataset_family": "boreas",
+        "rig_id": "boreas-platform",
+        "drive_ids": [
+          "boreas-2021-01-15-12-17"
+        ],
+        "artifact_path": "boreas-2021-01-15-12-17.yaml",
+        "artifact_sha256": "56667eb92b06b22cd82737a0e473e416388486a1a59dfb589abdb1f260d7f73b"
+      },
+      "completed": true,
+      "rotation_axes": 3,
+      "estimated_axes": 2,
+      "errors_deg": [
+        0.03044056336872993,
+        0.0806769371737742
+      ],
+      "control_misses": 0,
+      "reasons": []
+    },
+    {
+      "case": {
+        "case_id": "boreas-2021-01-19-15-08",
+        "dataset_family": "boreas",
+        "rig_id": "boreas-platform",
+        "drive_ids": [
+          "boreas-2021-01-19-15-08"
+        ],
+        "artifact_path": "boreas-2021-01-19-15-08.yaml",
+        "artifact_sha256": "11395de6a3338a2996f7f87cc28e0353da8ba102d20e7e09a80769c5358d6f96"
+      },
+      "completed": true,
+      "rotation_axes": 3,
+      "estimated_axes": 3,
+      "errors_deg": [
+        0.009519551951616361,
+        0.09918629120381989,
+        0.17789853790499982
+      ],
+      "control_misses": 0,
+      "reasons": []
+    }
+  ],
+  "families": {
+    "boreas": {
+      "declared_recordings": 3,
+      "recording_completion": 1.0,
+      "axis_coverage": 0.8888888888888888,
+      "estimated_axes": 8,
+      "control_misses": 0,
+      "control_miss_rate": 0.0,
+      "maximum_reference_difference_deg": 0.17789853790499982
+    },
+    "kitti_raw": {
+      "declared_recordings": 7,
+      "recording_completion": 1.0,
+      "axis_coverage": 0.42857142857142855,
+      "estimated_axes": 9,
+      "control_misses": 0,
+      "control_miss_rate": 0.0,
+      "maximum_reference_difference_deg": 0.372625629254338
+    }
+  },
+  "declared_dataset_families": 2,
+  "declared_independent_rigs": 2
+}

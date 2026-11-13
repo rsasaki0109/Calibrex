@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- A second pre-registered INS-LiDAR rotation audit, gated per judged axis, is refuted at
+  7 of 8 gates ([v2](docs/benchmarks/ins_lidar_rotation_v2.md)).
+  - On ten new recordings (7 KITTI, 3 Boreas) all 17 estimated axes are within 0.373 deg of
+    the reference, all 17 controls are detected and no run failed.
+  - KITTI coverage fails: 9 of 21 axes estimated, 57 % unobserved against a 50 % ceiling.
+  - One recording was acquired under a transport amendment written before any result was
+    read.
 - `calibrex check`, `estimate` and `drift` run the LiDAR estimators' nearest-neighbour
   queries on every available CPU (`--threads N`; `--threads 1` is the old behaviour).
   - The estimates are bit-identical for any thread count, and the artifact and cache key

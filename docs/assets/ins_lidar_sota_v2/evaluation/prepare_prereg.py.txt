@@ -1,0 +1,162 @@
+"""Write the INS-LiDAR v2 pre-registration from the frozen tools and the pinned metadata."""
+import hashlib, json, subprocess, sys
+from datetime import datetime, timezone
+from pathlib import Path
+import yaml
+ROOT = Path("/home/user/calibrex-dev")
+sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT / "src"))
+from tools import ins_lidar_sota_v2_protocol as p
+from tools import ins_lidar_sota_v2_inventory as inv
+from calibrex.evaluation.ins_lidar_hand_eye import InsLidarRunOptions
+from dataclasses import asdict
+
+frozen = sys.argv[1]
+sha = lambda path: hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+A = "docs/assets/ins_lidar_sota_v2"
+dev = json.loads((ROOT / A / "development/audit/scores.json").read_text())
+v1 = yaml.safe_load((ROOT / "docs/benchmarks/ins_lidar_rotation_v1_preregistration.yaml").read_text())
+cl = yaml.safe_load((ROOT / "docs/benchmarks/kitti_camera_lidar_v2_preregistration.yaml").read_text())
+def find(node, key):
+    if isinstance(node, dict):
+        if key in node: return node[key]
+        for v in node.values():
+            r = find(v, key)
+            if r is not None: return r
+    return None
+calib = find(cl, "calibration_archive_sha256")
+doc = {
+ "schema_version": "calibrex.ins_lidar_sota_preregistration/v0.2",
+ "protocol_id": p.PROTOCOL_ID,
+ "claim_text": p.CLAIM,
+ "scope": p.SCOPE,
+ "frozen_code_commit": frozen,
+ "metadata": {
+   "kitti_raw": {"path": f"{A}/kitti_metadata.json", "sha256": sha(f"{A}/kitti_metadata.json")},
+   "boreas": {"path": f"{A}/boreas_metadata.json", "sha256": sha(f"{A}/boreas_metadata.json")},
+ },
+ "evaluation": [{"case_id": c, "dataset_family": f, "rig_id": r} for c, f, r in p.EXPECTED_CASES],
+ "calibration_archive_sha256": {d: calib[d] for d in p.CALIBRATION_DATES},
+ "thresholds": p.Thresholds().model_dump(),
+ "acquisition": p.AcquisitionPolicy().model_dump(),
+ "development": {
+   "v1_refutation": (
+     "v1 (ins-lidar-rotation-kitti-boreas-v1) was refuted 6/8. Every estimated axis was within "
+     "0.286 deg and every control on an estimated axis was detected (8 of 8). The two failed "
+     "gates were KITTI completion and KITTI controls, both because 2011_09_29_0071 had no "
+     "observable rotation axis (stds 0.378, 0.226 and 1.225 deg against the 0.1 deg ceiling): "
+     "the method reported it as unobservable, and v1 counted that as a failed recording and "
+     "as a missed control."
+   ),
+   "what_v2_changes": (
+     "The claim gates what the method judges (agreement and controls on estimated axes) and "
+     "how much it judges (coverage), as camera-imu v3 did. A recording with no estimated axis "
+     "counts in coverage with all three axes unobserved, and is not a failure. A method failure "
+     "is still a failure. No numeric gate is looser than v1's."
+   ),
+   "recordings": [c for c, _f, _r in p.DEVELOPMENT_CASES],
+   "run": {
+     "what": (
+       "tools/ins_lidar_sota_v2_evaluate.py --development on v1's four evaluation recordings "
+       "(spent), with v1's metadata pins. Run before the freeze commit from a worktree holding "
+       "these tools; one method attempt was killed on purpose to test the resume."
+     ),
+     "records": f"{A}/development/",
+     "run_json_sha256": sha(f"{A}/development/runs/run.json"),
+     "scores_json_sha256": sha(f"{A}/development/audit/scores.json"),
+     "verdict_under_v2_rules": "supported, 8 of 8 gates (a development result, not evidence)",
+     "families": dev["families"],
+     "agreement_with_v1_artifacts": (
+       "Statuses identical on all twelve axes; reference differences equal to within 2e-7 deg "
+       "(another machine and library versions)."
+     ),
+   },
+   "threshold_derivation": {
+     "error": "ceil((1.5 * 0.2857285) / 0.25) * 0.25 = 0.5 deg, v1's gate (worst development axis: 2011_09_30_0020 yaw)",
+     "coverage": (
+       "Development: KITTI 5 of 9 axes estimated, Boreas 5 of 6 (with v1's development recording). "
+       "The handoff rule floor((rate / 1.5) / 0.25) * 0.25 gives 0.25 for KITTI and 0.5 for Boreas. "
+       "v1's stricter floor of 0.5 (unobserved fraction at most 0.5) is kept in both families."
+     ),
+     "controls": (
+       "Development: 10 controls on estimated axes, none missed. The handoff rule (one-sided "
+       "95 % bound, rule of three) would allow a miss fraction of 0.30; v1's zero misses is kept."
+     ),
+     "completion": "No method failure in any declared case; a recording with no estimated axis is not one.",
+   },
+   "known_risk": (
+     "KITTI coverage has little margin: development had 4 of 9 axes unobserved against a ceiling "
+     "of 0.5. Driving recordings often leave roll or yaw unobservable, and 2011_10_03_0042 is a "
+     "highway drive (odometry sequence 01). The gate is not relaxed for that."
+   ),
+ },
+ "exposure": {
+   "complete": True,
+   "evaluation_sensor_objects_read_before_registration": False,
+   "pair": "ins-lidar",
+   "spent_kitti": ["2011_09_26_0005", "2011_09_26_0009", "2011_09_26_0014", "2011_09_26_0015",
+                   "2011_09_26_0022", "2011_09_30_0018", "2011_09_29_0071", "2011_09_30_0020",
+                   "2011_09_30_0027"],
+   "spent_boreas": ["boreas-2020-11-26-13-58", "boreas-2020-12-01-13-26"],
+   "cross_pair_reads": (
+     "All seven KITTI cases had their first-600-frame Velodyne, OXTS and image_02 read by "
+     "camera-lidar v2 (evaluation) and by the later camera-lidar v3 development captures. "
+     "calibrex check ran there with --pairs camera-lidar only; no INS-LiDAR method read them. "
+     "Selection uses download metadata counts and order, not camera-lidar scores. The three "
+     "Boreas cases appear in the repository only as prefix names in the first audit's bucket "
+     "listing."
+   ),
+   "selection": {"kitti_raw": inv.KITTI_SELECTION_RULE, "boreas": inv.BOREAS_SELECTION_RULE},
+   "history": (
+     "git log --all -S for each case ID on 2026-11-13: the KITTI IDs occur in the camera-lidar "
+     "v2 pre-registration and results, the camera-lidar v3 development inventories and the "
+     "first INS-LiDAR pre-registration (as eligible, unselected IDs); the Boreas IDs occur only "
+     "in the first INS-LiDAR pre-registration commit (listing XML)."
+   ),
+   "odometry_aliases": {"00": "2011_10_03_0027", "01": "2011_10_03_0042", "02": "2011_10_03_0034",
+                        "08": "2011_09_30_0028", "09": "2011_09_30_0033", "10": "2011_09_30_0034"},
+   "other_inputs": (
+     "For this registration: live HEAD and ZIP central directories of the seven KITTI archives, "
+     "and Boreas bucket listings (kept in boreas_metadata.responses). Calibration archive "
+     "digests are reused from the camera-lidar v2 registration."
+   ),
+ },
+ "run_recipe": {
+   "options": asdict(InsLidarRunOptions()),
+   "max_frames": 600,
+   "kitti_streams": ["velodyne_points", "oxts"],
+   "boreas_reference": v1["run_recipe"]["boreas_reference"],
+   "odometry": v1["run_recipe"]["odometry"],
+   "runner": "python tools/ins_lidar_sota_v2_evaluate.py docs/benchmarks/ins_lidar_rotation_v2_preregistration.yaml WORK RUNS",
+   "builder": "python tools/build_ins_lidar_sota_v2_audit.py RUNS/run.json docs/benchmarks/ins_lidar_rotation_v2_preregistration.yaml AUDIT",
+   "source_guard": "Merged main; src/tools identical to frozen_code_commit; registration on main; metadata digest checked; the worker refuses a calibrex imported from another checkout.",
+   "rerun_policy": (
+     "The run resumes by the same runner command. A method attempt that finished, PASS or FAIL "
+     "(a crash, a timeout), is the case's one attempt and is never repeated. A method attempt "
+     "left RUNNING by a killed process (a container restart) produced no result that anyone "
+     "saw: it is recorded under interrupted_attempts, what it left is kept under another name, "
+     "and it is run again. Transport: at most two attempts per Boreas object or whole KITTI "
+     "fetch, for transport or OS failures only; identity, ETag, SHA and budget failures are not "
+     "retried. No replacement recordings."
+   ),
+   "missing_case": (
+     "A declared case with no finished method attempt (its inputs could not be acquired within "
+     "the transport budget) leaves every gate of its dataset family without evidence. The "
+     "audit is then incomplete: neither supported nor refuted by that case."
+   ),
+   "raw_inputs": (
+     "Each case's inputs are verified against their pins at acquisition and re-hashed by the "
+     "worker before and after the fit, then deleted. The acquisition receipt keeps their digests."
+   ),
+   "publication": "Retain every declared case, failed attempt and interruption; publish supported, refuted or incomplete. No gate changes or selective reruns.",
+ },
+ "provenance": {
+   "generator": "scratch prepare_prereg.py (kept beside the audit records after the run)",
+   "source_commit": frozen,
+   "created_at": datetime.now(timezone.utc).isoformat(),
+   "notice": "Pre-registration, not an evaluation result. Must be merged before evaluation reads any sensor input.",
+ },
+}
+p.InsLidarV2Preregistration.model_validate(doc)
+out = ROOT / "docs/benchmarks/ins_lidar_rotation_v2_preregistration.yaml"
+out.write_text(yaml.safe_dump(doc, sort_keys=False, width=92, allow_unicode=True), encoding="utf-8")
+print(out, len(out.read_text().splitlines()))
