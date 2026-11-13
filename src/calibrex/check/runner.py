@@ -994,9 +994,8 @@ def _closure_lines(artifact: CalibrationCheckArtifact) -> list[str]:
     lines = ["", "closure of the estimates (independent estimates against each other):"]
     for edge in report.edges:
         if edge.role != "independent":
-            lines.append(
-                f"  {edge.pair}: {edge.role} ({_clip(edge.reason, 90, ' ...')}); not in any loop"
-            )
+            why = _clip(edge.reason or "", 90, " ...")
+            lines.append(f"  {edge.pair}: {edge.role} ({why}); not in any loop")
     if not report.loops:
         lines.append("  no loop: fewer than two independent estimates share a frame")
     for loop in report.loops:
@@ -1164,7 +1163,7 @@ def _verdict_lines(artifact: CalibrationCheckArtifact, color: bool = False) -> l
     ran = [pair.pair for pair in artifact.pairs if pair.status != "skipped"]
     for pair in artifact.pairs:
         # two records of one pair (two LiDARs against the IMU) are told apart by sensors
-        label = pair.pair
+        label: str = pair.pair
         if ran.count(pair.pair) > 1 and pair.sensors:
             label = f"{pair.pair} ({' / '.join(pair.sensors)})"
         if pair.status != "skipped" and pair.reason:
