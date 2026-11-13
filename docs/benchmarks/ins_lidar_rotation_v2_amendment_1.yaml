@@ -1,0 +1,43 @@
+# Amendment 1 to docs/benchmarks/ins_lidar_rotation_v2_preregistration.yaml
+# (protocol ins-lidar-rotation-kitti-boreas-v2, frozen code 8751c3f6).
+# Written on 2026-11-13, after the run and before any result was read.  It is binding once
+# merged; the pre-registration file itself is not edited.
+amends: docs/benchmarks/ins_lidar_rotation_v2_preregistration.yaml
+frozen_code_commit: 8751c3f6c3d7165041e898c8c6eb237d225cdcee
+state_when_written:
+  run: >-
+    The frozen runner ran once from merged main (c002390b) on 2026-11-13.  Nine of the ten
+    declared cases have a finished method attempt, all PASS.  2011_09_30_0028 has none:
+    both transport attempts of its archive fetch ended in "curl exit 35: Recv failure:
+    Connection reset by peer", about a minute apart (08:55 and 08:56 UTC).
+  results_read: >-
+    None.  Only the attempt statuses and the acquisition error in run.json were read.  No
+    method artifact was opened and no audit was built.  The run's files were committed
+    unread on branch research/ins-lidar-v2-results (commit "INS-LiDAR v2 evaluation: raw
+    run records, saved before anything is scored").
+  records: docs/assets/ins_lidar_sota_v2/evaluation/ on that branch
+why: >-
+  The registered transport budget (two attempts per whole KITTI fetch) was inherited from
+  v1 and runs its two attempts back to back, so one short network fault spends both.  By
+  the registration the case is then missing and the audit incomplete.  KITTI has no other
+  unspent eligible recording, so without this case the KITTI family can never be audited
+  for this pair.  The handoff's own rule allows repeating a failed download; the fault here
+  is the budget, not the method or the data.
+change:
+  transport: >-
+    For 2011_09_30_0028 only, up to three further acquisition rounds are allowed.  A round
+    is one invocation of the registered runner command, whose frozen code makes at most two
+    fetch attempts.  Rounds are at least ten minutes apart.  Before each round the exhausted
+    fetch record (fetch_attempts.json and the fetch-N directories) is renamed, not deleted,
+    and is published with the results.
+  nothing_else: >-
+    The claim, the gates, the cases, the method, its options, the frozen code, the archive
+    pin (size, ETag, member list) and the one-attempt rule for the method are unchanged.
+    The nine finished cases are not run again.
+if_still_missing: >-
+  If the three rounds also fail, the case stays missing and the audit is published as
+  incomplete, as registered.
+disclosure: >-
+  The results page states that the verdict was reached under this amendment, that it was
+  written after the run and before any result was read, and that it changes a plan after
+  registration.
