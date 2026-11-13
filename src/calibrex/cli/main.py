@@ -5078,7 +5078,9 @@ def _cmd_check(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
-        print(format_check_table(artifact, color=use_color(sys.stdout)))
+        # wrap the notes to the terminal; piped or redirected output keeps whole lines
+        columns = shutil.get_terminal_size().columns if sys.stdout.isatty() else None
+        print(format_check_table(artifact, color=use_color(sys.stdout), width=columns))
         if args.output:
             print(f"artifact: {args.output}")
         if args.html:
