@@ -18,7 +18,7 @@ def test_readme_uses_versioned_github_release_wheel() -> None:
         f"v{version}/calibrex-{version}-py3-none-any.whl"
     )
 
-    # hero quickstart, five-minute quickstart, and the Install section
+    # try it in one minute, the evidence pipeline quickstart, and the Install section
     assert readme.count(wheel_url) == 3
     assert "currently distributed from source" not in readme
     assert "pypi.org" not in readme.lower()

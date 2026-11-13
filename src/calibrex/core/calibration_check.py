@@ -674,6 +674,15 @@ class CalibrationCheckArtifact(StrictModel):
         return self
 
 
+def partial_pass_count(artifact: CalibrationCheckArtifact) -> int:
+    """Pairs that passed while leaving axes unchecked: the passes a reader could over-trust.
+
+    ``summary.partial_pairs`` also counts inconclusive pairs, which vouch for nothing.
+    """
+
+    return sum(1 for pair in artifact.pairs if pair.coverage == "partial" and pair.status == "pass")
+
+
 def summarize_pairs(pairs: list[CheckPairRecord]) -> CheckSummary:
     """Derive the summary counts from pair records."""
 

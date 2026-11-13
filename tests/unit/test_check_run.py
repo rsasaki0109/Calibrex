@@ -356,6 +356,105 @@ def test_partial_coverage_is_recorded_and_printed(
     assert main([*args, "--fail-on", "partial"]) == 1  # but it vouches for roll and pitch only
 
 
+def test_an_inconclusive_run_reads_plainly(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        estimators,
+        "ESTIMATORS",
+        {"camera-imu": lambda ctx: _run(estimated=False, policy="inconclusive")},
+    )
+
+    artifact = build_calibration_check(
+        bag, run=CheckRunOptions(evidence_dir=tmp_path / "ev", pairs=("camera-imu",))
+    )
+    table = format_check_table(artifact)
+
+    assert artifact.overall_verdict == "inconclusive" and artifact.summary.partial_pairs == 1
+    # nothing passed, so no pass is over-trusted: the partial-coverage warning stays quiet
+    assert "WARNING" not in table
+    assert "says nothing about its calibration" in table
+    # axes that share a reason share a line
+    assert table.count("unchecked roll, pitch, yaw: ") == 1
+    assert "unchecked pitch:" not in table
+
+
+def test_the_overall_verdict_is_explained_and_absent_sensors_take_one_line(
+    tmp_path: Path, bag: Path, calls: list[PairContext]
+) -> None:
+    run = build_calibration_check(bag, run=CheckRunOptions(evidence_dir=tmp_path / "ev"))
+    plan = build_calibration_check(bag)
+
+    table = format_check_table(run)
+    absent = [p.pair for p in run.pairs if p.reason_code == "missing_topic" and not p.sensors]
+    assert absent  # the fixture bag has no radar, among others
+
+    assert "beyond its tolerance but within twice it" in table  # overall verdict: warn
+    assert f"no topic in the bag: {', '.join(dict.fromkeys(absent))}" in table
+    rows = [line.split()[0] for line in table.splitlines() if " skipped " in line]
+    assert not set(rows) & set(absent)
+    assert "--plan lists what each expects" in table
+    # the plan keeps one row and one hint per pair: it is where those are read
+    planned = format_check_table(plan)
+    assert "no topic in the bag" not in planned
+    assert all(f"\n{name} " in planned for name in absent)
+
+
+def test_pairs_without_an_estimate_get_a_next_step(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def boom(ctx: PairContext) -> EstimatorRun:
+        raise ValueError("tracking produced 1 windows")
+
+    monkeypatch.setattr(
+        estimators,
+        "ESTIMATORS",
+        {"imu-lidar": boom, "lidar-lidar": lambda ctx: _run(solved=False)},
+    )
+
+    artifact = build_calibration_check(
+        bag,
+        run=CheckRunOptions(evidence_dir=tmp_path / "ev", pairs=("imu-lidar", "lidar-lidar")),
+    )
+    table = format_check_table(artifact)
+
+    assert "  - lidar-lidar: the estimator did not converge" in table
+    assert "  - imu-lidar: the estimator crashed" in table
+    assert table.count("the estimator crashed") == 1  # two IMU-LiDAR records, one line
+
+
+def test_the_plan_says_when_a_run_would_skip_the_camera_for_opencv(
+    bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from calibrex.check import hints
+
+    monkeypatch.setattr(hints, "opencv_missing", lambda: True)
+    without = format_check_table(build_calibration_check(bag))
+    monkeypatch.setattr(hints, "opencv_missing", lambda: False)
+    with_opencv = format_check_table(build_calibration_check(bag))
+
+    assert "a run would skip them here: OpenCV is not installed" in without
+    assert "OpenCV is not installed" not in with_opencv
+
+
+def test_a_long_reason_is_cut_in_the_table_only(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def boom(ctx: PairContext) -> EstimatorRun:
+        raise ValueError("frame skipped; " * 60)
+
+    monkeypatch.setattr(estimators, "ESTIMATORS", {"imu-lidar": boom})
+
+    artifact = build_calibration_check(
+        bag, run=CheckRunOptions(evidence_dir=tmp_path / "ev", pairs=("imu-lidar",))
+    )
+    table = format_check_table(artifact)
+
+    assert len(_by(artifact, "imu-lidar")[0].reason) > 800
+    assert "the JSON artifact has the full text" in table
+    assert max(len(line) for line in table.splitlines()) < 400
+
+
 @pytest.mark.parametrize(
     ("overall", "partial", "fail_on", "status"),
     [

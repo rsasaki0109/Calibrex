@@ -8,6 +8,7 @@ artifact carries (``unchecked_axes[].excitation``) and the hint only renders.
 
 from __future__ import annotations
 
+import importlib.util
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, get_args
@@ -100,6 +101,14 @@ REASON_HINTS: dict[str, str] = {
 }
 
 ALL_REASON_CODES: tuple[str, ...] = get_args(CheckReasonCode)
+NO_ESTIMATE_CODES = frozenset({"estimator_error", "estimator_failed"})
+"""Reason codes of a pair that ran and is inconclusive because it produced no estimate."""
+OPENCV_PAIRS = frozenset({"camera-imu", "camera-focal"})
+"""Pairs a run skips without OpenCV (camera-focal reads camera-imu's result)."""
+
+
+def opencv_missing() -> bool:
+    return importlib.util.find_spec("cv2") is None
 
 
 def _missing_slots(reason: str) -> list[str]:
@@ -109,6 +118,16 @@ def _missing_slots(reason: str) -> list[str]:
     if reason.startswith("needs two distinct "):
         return [reason.split()[3]]
     return []
+
+
+def plainly_absent(pair: CheckPairRecord) -> bool:
+    """A pair skipped because the bag has none of a sensor it needs (not a second one)."""
+
+    return (
+        pair.status == "skipped"
+        and pair.reason_code == "missing_topic"
+        and not (pair.reason or "").startswith("needs two distinct ")
+    )
 
 
 def pair_hint(pair: CheckPairRecord, topics: Sequence[CheckTopicRecord] = ()) -> str | None:
@@ -213,13 +232,39 @@ def collect_next_steps(artifact: CalibrationCheckArtifact) -> list[str]:
                 "(topics map to them by header frame_id), or map a topic explicitly "
                 f"with --frame-map TOPIC=FRAME (for example {_example_map(artifact)})"
             )
+    stuck: dict[str, list[str]] = {}  # pairs that ran and produced no estimate, by cause
+    for pair in artifact.pairs:
+        if pair.status == "inconclusive" and pair.reason_code in NO_ESTIMATE_CODES:
+            names = stuck.setdefault(pair.reason_code, [])
+            if pair.pair not in names:
+                names.append(pair.pair)
+    for code, names in stuck.items():
+        add(f"{', '.join(names)}: {REASON_HINTS[code]}")
+    absent: list[str] = []  # a run names these on one line; --plan says what each expects
     for pair in artifact.pairs:
         if pair.reason_code in {"method_not_wired", "not_selected"}:
             continue
         hint = pair_hint(pair, artifact.topics)
         if hint is None:
             continue
+        classify = "classify an odometry topic" in hint  # a topic is there, unclassified
+        if not artifact.plan_only and plainly_absent(pair) and not classify:
+            if pair.pair not in absent:
+                absent.append(pair.pair)
+            continue
         add(f"{pair.pair}: {hint}" if pair.reason_code == "missing_topic" else hint)
+    if absent:
+        add(
+            f"{', '.join(absent)}: skipped, the bag has no topic for them "
+            "(calibrex check BAG --plan lists what each expects)"
+        )
+    if artifact.plan_only and opencv_missing():
+        needs = [p.pair for p in artifact.pairs if p.pair in OPENCV_PAIRS and p.status == "planned"]
+        if needs:
+            add(
+                f"{', '.join(dict.fromkeys(needs))}: planned, but a run would skip them here: "
+                "OpenCV is not installed (pip install 'calibrex[opencv]')"
+            )
     for pair in artifact.pairs:
         for text in excitation_hints(pair.pair, pair.unchecked_axes):
             add(text)

@@ -14,6 +14,16 @@ no-source install is the versioned wheel attached to the GitHub release.
 python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.4/calibrex-0.6.4-py3-none-any.whl"
 ```
 
+## See a check before you have a bag
+
+```bash
+calibrex demo check          # new in 0.6.5
+```
+
+It writes a small simulated IMU + 4D radar bag and checks it twice, in a few seconds:
+the true mounting passes, and the same mounting turned 4 deg in pitch fails on pitch. The
+data is simulated; it shows what the command prints and how to read it.
+
 ## Check a recording
 
 Point `calibrex check` at a bag that records `/tf_static` and the sensor
@@ -27,6 +37,27 @@ calibrex check my_bag/ --html check.html
 Each pair gets a per-axis verdict. A `pass` covers only the axes the data can
 judge: pairs with partial coverage name the axes they could not check, and a
 pair the data cannot judge reads `inconclusive` rather than `pass`.
+
+On a first run, look before you wait:
+
+```bash
+calibrex check my_bag/ --plan                                   # seconds: which pairs can be checked, and why not the others
+calibrex check my_bag/ --max-duration-s 120 --html check.html   # the first 120 s
+```
+
+LiDAR and camera pairs are slow the first time, because the estimators register every scan
+or track every frame: 8.5 min for 40 s of Hesai LiDAR + IMU and 28 min for 180 s of Livox
+MID360 with the lever arm, on a shared CPU
+([measurements](tutorials/calibrex_check.md#runtime-after-the-speed-up)). The estimate is
+cached, so checking another calibration against the same recording takes about 3 s. When
+the bag has no `/tf_static`, pass the calibration with `--tf` (URDF, Kalibr, FAST-LIO
+config or `frames.yaml`); `--write-frames-template FILE` writes a starter `frames.yaml`
+naming the bag's sensor frames for you to fill in.
+
+- The `next steps` block at the end of the output says what to try for each pair that was
+  skipped or `inconclusive`.
+- The camera pairs `camera-imu` and `camera-focal` need OpenCV: `pip install
+  'calibrex[opencv]'` after the wheel. `--plan` says so when it is missing.
 
 ## Your bag format
 
