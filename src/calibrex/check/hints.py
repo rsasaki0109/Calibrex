@@ -111,6 +111,16 @@ def _missing_slots(reason: str) -> list[str]:
     return []
 
 
+def plainly_absent(pair: CheckPairRecord) -> bool:
+    """A pair skipped because the bag has none of a sensor it needs (not a second one)."""
+
+    return (
+        pair.status == "skipped"
+        and pair.reason_code == "missing_topic"
+        and not (pair.reason or "").startswith("needs two distinct ")
+    )
+
+
 def pair_hint(pair: CheckPairRecord, topics: Sequence[CheckTopicRecord] = ()) -> str | None:
     """Return the actionable hint for a skipped pair, or ``None`` for other pairs."""
 
@@ -213,13 +223,24 @@ def collect_next_steps(artifact: CalibrationCheckArtifact) -> list[str]:
                 "(topics map to them by header frame_id), or map a topic explicitly "
                 f"with --frame-map TOPIC=FRAME (for example {_example_map(artifact)})"
             )
+    absent: list[str] = []  # a run names these on one line; --plan says what each expects
     for pair in artifact.pairs:
         if pair.reason_code in {"method_not_wired", "not_selected"}:
             continue
         hint = pair_hint(pair, artifact.topics)
         if hint is None:
             continue
+        classify = "classify an odometry topic" in hint  # a topic is there, unclassified
+        if not artifact.plan_only and plainly_absent(pair) and not classify:
+            if pair.pair not in absent:
+                absent.append(pair.pair)
+            continue
         add(f"{pair.pair}: {hint}" if pair.reason_code == "missing_topic" else hint)
+    if absent:
+        add(
+            f"{', '.join(absent)}: skipped, the bag has no topic for them "
+            "(calibrex check BAG --plan lists what each expects)"
+        )
     for pair in artifact.pairs:
         for text in excitation_hints(pair.pair, pair.unchecked_axes):
             add(text)

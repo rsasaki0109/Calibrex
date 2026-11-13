@@ -27,6 +27,7 @@ from calibrex.core.calibration_check import (
     CheckFocalComponent,
     CheckFrameEdge,
     CheckPairRecord,
+    partial_pass_count,
 )
 
 ARROW = " \u2192 "
@@ -500,10 +501,11 @@ def _banner(artifact: CalibrationCheckArtifact) -> str:
     skipped = counts.get("skipped", 0)
     if skipped:
         lines.append(f"{skipped} pair(s) skipped (see below)")
-    if artifact.summary.partial_pairs:
+    partial_passes = partial_pass_count(artifact)
+    if partial_passes:
         lines.append(
-            f"{artifact.summary.partial_pairs} pair(s) have partial coverage: unchecked axes "
-            "were not judged, so a pass covers only the judged axes"
+            f"{partial_passes} pair(s) passed with partial coverage: unchecked axes "
+            "were not judged, so the pass covers only the judged axes"
         )
     report = artifact.closures
     if report is not None and report.loops:

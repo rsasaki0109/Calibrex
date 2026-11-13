@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- `calibrex demo check` shows a check without a dataset: it writes a small simulated IMU +
+  4D radar bag and runs `calibrex check` on the true mounting (pass) and on it turned 4 deg
+  (fail), in about 15 seconds.
+- `calibrex check` prints less and says more:
+  - one line under the overall verdict says what it means;
+  - pairs the bag has no sensor for take one line instead of a row and a hint each (`--plan`
+    still lists what each expects);
+  - axes left unchecked for the same reason share a line, and two records of one pair are
+    told apart by their sensors;
+  - the partial-coverage warning appears only when a pair passed with unchecked axes;
+  - a very long reason is cut in the table (the JSON artifact keeps it).
+- README and the install page start with the demo, the three commands for your own bag,
+  and how long a first run takes.
 - radar-imu no longer stops when the IMU repeats a timestamp (the Bynav X36D repeats about
   1 in 500); a repeated stamp is kept once.
 - A pre-registered imu-lidar check audit on Snail-Radar (Hesai XT32 with a Bynav X36D and

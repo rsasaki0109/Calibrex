@@ -35,7 +35,7 @@ from calibrex.check.estimators import (
     transform_matrix,
 )
 from calibrex.check.frame_tree import StaticFrameTree, normalize_frame_id
-from calibrex.check.hints import format_next_steps
+from calibrex.check.hints import format_next_steps, plainly_absent
 from calibrex.check.motion_summary import (
     ADVICE_MARK,
     read_gyro,
@@ -85,6 +85,7 @@ from calibrex.core.calibration_check import (
     CheckTopicRecord,
     CheckTransform,
     OdometryKind,
+    partial_pass_count,
     summarize_pairs,
 )
 from calibrex.core.camera_lidar_edge import DEFAULT_MIN_CONTROL_T
@@ -993,7 +994,9 @@ def _closure_lines(artifact: CalibrationCheckArtifact) -> list[str]:
     lines = ["", "closure of the estimates (independent estimates against each other):"]
     for edge in report.edges:
         if edge.role != "independent":
-            lines.append(f"  {edge.pair}: {edge.role} ({edge.reason}); not in any loop")
+            lines.append(
+                f"  {edge.pair}: {edge.role} ({_clip(edge.reason, 90, ' ...')}); not in any loop"
+            )
     if not report.loops:
         lines.append("  no loop: fewer than two independent estimates share a frame")
     for loop in report.loops:
@@ -1051,6 +1054,49 @@ def _rigid_summary(pair: str, artifact: CalibrationCheckArtifact) -> str:
     return f"scans treated as rigid (deskew none): {floors}{clock}"
 
 
+OVERALL_MEANING: dict[str, str] = {
+    "pass": "every pair that ran judged an axis, and every judged axis agrees with this "
+    "recording within its tolerance",
+    "warn": "a judged axis is beyond its tolerance but within twice it, or the estimates "
+    "disagree with each other: look at the pairs marked warn",
+    "fail": "a judged axis is beyond twice its tolerance: on this recording the deployed "
+    "transform of that pair disagrees with the estimate on that axis",
+    "inconclusive": "a pair could not judge any axis on this recording and nothing warned or "
+    "failed: an inconclusive pair says nothing about its calibration (see the notes and "
+    "next steps)",
+}
+"""One line under the overall verdict: what it means, and where to look."""
+
+_REASON_LIMIT = 240
+
+
+def _clip(
+    text: str,
+    limit: int = _REASON_LIMIT,
+    suffix: str = " ... (the JSON artifact has the full text)",
+) -> str:
+    """A long reason cut for the terminal; the artifact keeps the full text."""
+
+    if len(text) <= limit:
+        return text
+    return text[:limit].rstrip() + suffix
+
+
+def _unchecked_lines(pair: Any) -> list[str]:
+    """``unchecked AXES: reason`` with axes that share a reason on one line.
+
+    A pair whose estimator produced nothing already says so in its reason line, so its
+    axes are not listed again.
+    """
+
+    grouped: dict[str, list[str]] = {}
+    for item in pair.unchecked_axes:
+        if not pair.axes and item.reason_code == "no_estimate" and pair.reason:
+            continue
+        grouped.setdefault(item.reason, []).append(item.name)
+    return [f"unchecked {', '.join(names)}: {reason}" for reason, names in grouped.items()]
+
+
 def _verdict_lines(artifact: CalibrationCheckArtifact, color: bool = False) -> list[str]:
     lines: list[str] = []
     rows: list[list[str]] = []
@@ -1059,6 +1105,11 @@ def _verdict_lines(artifact: CalibrationCheckArtifact, color: bool = False) -> l
         sensors = " / ".join(pair.sensors) if pair.sensors else "-"
         if pair.status == "skipped" and pair.reason_code in {"not_selected", "method_not_wired"}:
             names = quiet.setdefault(pair.reason_code, [])
+            if pair.pair not in names:
+                names.append(pair.pair)
+            continue
+        if not artifact.plan_only and plainly_absent(pair):
+            names = quiet.setdefault("no topic in the bag", [])
             if pair.pair not in names:
                 names.append(pair.pair)
             continue
@@ -1110,27 +1161,31 @@ def _verdict_lines(artifact: CalibrationCheckArtifact, color: bool = False) -> l
     )
     for code, names in quiet.items():
         lines.append(f"  {code.replace('_', ' ')}: {', '.join(names)}")
+    ran = [pair.pair for pair in artifact.pairs if pair.status != "skipped"]
     for pair in artifact.pairs:
+        # two records of one pair (two LiDARs against the IMU) are told apart by sensors
+        label = pair.pair
+        if ran.count(pair.pair) > 1 and pair.sensors:
+            label = f"{pair.pair} ({' / '.join(pair.sensors)})"
         if pair.status != "skipped" and pair.reason:
-            lines.append(f"  {pair.pair}: {pair.reason}")
+            lines.append(f"  {label}: {_clip(pair.reason)}")
         if pair.deskew == "none":
-            lines.append(f"  {pair.pair}: {_rigid_summary(pair.pair, artifact)}")
+            lines.append(f"  {label}: {_rigid_summary(pair.pair, artifact)}")
         for note in pair.notes:
             if note.startswith(("external camera", "camera clock + ")):
                 lines.append(f"  {pair.pair} ({pair.sensors[0]}): {note}")
         if pair.time_offset is not None:
             lines.append(
-                f"  {pair.pair}: time offset {pair.time_offset.estimate_s * 1e3:.2f} ms "
+                f"  {label}: time offset {pair.time_offset.estimate_s * 1e3:.2f} ms "
                 f"({pair.time_offset.status}; reported, not judged)"
             )
-        for item in pair.unchecked_axes:
-            lines.append(f"  {pair.pair}: unchecked {item.name}: {item.reason}")
+        lines.extend(f"  {label}: {text}" for text in _unchecked_lines(pair))
         if pair.focal_scale is not None:
             for focal in pair.focal_scale.unchecked:
-                lines.append(f"  {pair.pair}: unchecked {focal.name}: {focal.reason}")
+                lines.append(f"  {label}: unchecked {focal.name}: {focal.reason}")
             if pair.focal_scale.optical_axis_ratio is not None:
                 lines.append(
-                    f"  {pair.pair}: optical-axis control ratio "
+                    f"  {label}: optical-axis control ratio "
                     f"{pair.focal_scale.optical_axis_ratio:.4f} (must be 1)"
                 )
     lines.extend(_closure_lines(artifact))
@@ -1138,10 +1193,13 @@ def _verdict_lines(artifact: CalibrationCheckArtifact, color: bool = False) -> l
     lines.append("")
     overall = str(artifact.overall_verdict)
     lines.append(f"overall verdict: {paint_verdict(overall) if color else overall}")
-    if artifact.summary.partial_pairs:
+    if overall in OVERALL_MEANING:
+        lines.append(f"  {OVERALL_MEANING[overall]}")
+    partial_passes = partial_pass_count(artifact)
+    if partial_passes:
         lines.append(
-            f"WARNING: {artifact.summary.partial_pairs} pair(s) have partial coverage: "
-            "unchecked axes were not judged, so a pass covers only the judged axes "
+            f"WARNING: {partial_passes} pair(s) passed with partial coverage: "
+            "unchecked axes were not judged, so the pass covers only the judged axes "
             "(--fail-on partial exits 1 on it)"
         )
     return lines

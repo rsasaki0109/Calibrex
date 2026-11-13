@@ -1,5 +1,11 @@
 # Calibrating Your Own Sensors
 
+!!! tip "Only want to know whether your deployed calibration is still right?"
+    That is `calibrex check`, not this page: start at
+    [Install and first check](../getting_started.md#check-a-recording) and the
+    [`calibrex check` tutorial](calibrex_check.md). This page is the config-driven
+    `calibrex calibrate` workflow.
+
 This tutorial walks you through calibrating your own LiDAR pair or
 LiDAR–camera combination using a rosbag — no ROS installation required.
 

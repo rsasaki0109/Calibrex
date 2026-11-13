@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
 import pytest
-import yaml
 from scipy.spatial.transform import Rotation
 
+from calibrex.check.demo import synthetic_rig, write_demo
 from calibrex.data.livox_ros2 import ImuSamples
 from calibrex.data.radar_pointcloud import doppler_field
 from calibrex.evaluation.radar_imu_rotation import (
@@ -19,71 +18,6 @@ from calibrex.evaluation.radar_imu_rotation import (
     ego_velocity,
     evaluate_radar_imu_rotation,
 )
-
-GRAVITY = np.array([0.0, 0.0, -9.81])
-
-
-def _attitude(t: np.ndarray) -> Rotation:
-    roll = 0.3 * np.sin(1.1 * t) + 0.1 * np.sin(5.0 * t)
-    pitch = 0.25 * np.sin(0.9 * t + 1.0) + 0.1 * np.sin(6.5 * t + 0.5)
-    yaw = 0.7 * np.sin(0.3 * t) + 0.3 * np.sin(1.3 * t)
-    return Rotation.from_euler("xyz", np.column_stack([roll, pitch, yaw]))
-
-
-def _position(t: np.ndarray) -> np.ndarray:
-    return np.column_stack(
-        [1.5 * np.sin(0.4 * t), 1.2 * np.cos(0.5 * t), 0.3 * np.sin(0.9 * t)]
-    )
-
-
-@dataclass(frozen=True)
-class Rig:
-    imu: ImuSamples
-    radar_times_s: np.ndarray  # radar clock
-    radar_velocities: np.ndarray  # radar frame
-    radar_to_imu: np.ndarray  # R_ir
-    lever_m: np.ndarray
-    offset_s: float  # t_imu = t_radar + offset
-    gyro_bias: np.ndarray
-
-
-def synthetic_rig(
-    *,
-    duration_s: float = 120.0,
-    offset_s: float = 0.012,
-    noise_mps: float = 0.01,
-    seed: int = 0,
-) -> Rig:
-    """A hand-held IMU and radar; the IMU samples at 200 Hz and the radar at 10 Hz."""
-
-    rng = np.random.default_rng(seed)
-    radar_to_imu = Rotation.from_euler("xyz", [20.0, -35.0, 110.0], degrees=True).as_matrix()
-    lever = np.array([0.05, 0.08, 0.07])
-    bias = np.array([0.002, -0.001, 0.0015])
-    step = 1e-3
-    t = np.arange(0.0, duration_s, 1.0 / 200.0)
-
-    def kinematics(times: np.ndarray) -> tuple[Rotation, np.ndarray, np.ndarray, np.ndarray]:
-        attitude = _attitude(times)
-        rate = (_attitude(times - step).inv() * _attitude(times + step)).as_rotvec() / (2 * step)
-        velocity = (_position(times + step) - _position(times - step)) / (2 * step)
-        acceleration = (
-            _position(times + step) - 2 * _position(times) + _position(times - step)
-        ) / step**2
-        return attitude, rate, velocity, acceleration
-
-    attitude, rate, _velocity, acceleration = kinematics(t)
-    gyro = rate + bias + rng.normal(0.0, 0.002, rate.shape)
-    accel = attitude.inv().apply(acceleration - GRAVITY) + rng.normal(0.0, 0.02, rate.shape)
-    radar_stamps = np.arange(1.0, duration_s - 1.0, 0.1)
-    when = radar_stamps + offset_s  # the IMU time the radar scan was taken at
-    attitude_r, rate_r, velocity_r, _ = kinematics(when)
-    world = velocity_r + attitude_r.apply(np.cross(rate_r, lever))
-    radar = (attitude_r.inv().apply(world)) @ radar_to_imu  # R_ir^T R_wi^T v
-    radar = radar + rng.normal(0.0, noise_mps, radar.shape)
-    return Rig(
-        ImuSamples(t, gyro, accel), radar_stamps, radar, radar_to_imu, lever, offset_s, bias
-    )
 
 
 def test_ego_velocity_ignores_moving_returns() -> None:
@@ -162,72 +96,15 @@ def test_the_doppler_field_is_found_by_name_and_float_type() -> None:
     assert doppler_field(fields(("x", 7), ("intensity", 7))) is None
 
 
-def _write_bag(rig: Rig, directory: Path) -> Path:
-    from calibrex.data.ros_cdr_writer import encode_imu, encode_pointcloud2
-    from calibrex.data.rosbag2_writer import Rosbag2Writer
-
-    rng = np.random.default_rng(5)
-    bag = directory / "rig"
-    fields = [("x", 0, 7, 1), ("y", 4, 7, 1), ("z", 8, 7, 1), ("v_doppler_mps", 12, 7, 1)]
-    with Rosbag2Writer(bag) as writer:
-        writer.add_topic("/imu", "sensor_msgs/msg/Imu")
-        writer.add_topic("/radar/scan", "sensor_msgs/msg/PointCloud2")
-        for t, g, a in zip(rig.imu.times_s, rig.imu.gyro_rps, rig.imu.accel_mps2, strict=True):
-            ns = round((t + 1.7e9) * 1e9)
-            writer.write(
-                "/imu",
-                ns,
-                encode_imu(
-                    frame_id="imu",
-                    timestamp_ns=ns,
-                    angular_velocity=tuple(g),
-                    linear_acceleration=tuple(a),
-                ),
-            )
-        for t, v in zip(rig.radar_times_s, rig.radar_velocities, strict=True):
-            points = rng.uniform([1.0, -4.0, -2.0], [12.0, 4.0, 2.0], (64, 3))
-            directions = points / np.linalg.norm(points, axis=1, keepdims=True)
-            doppler = -directions @ v
-            data = np.column_stack([points, doppler]).astype("<f4").tobytes()
-            ns = round((t + 1.7e9) * 1e9)
-            writer.write(
-                "/radar/scan",
-                ns,
-                encode_pointcloud2(
-                    frame_id="radar", timestamp_ns=ns, fields=fields, point_step=16, data=data
-                ),
-            )
-    return bag
-
-
 def test_calibrex_check_judges_radar_imu(tmp_path: Path) -> None:
     from calibrex.check.runner import CheckRunOptions, build_calibration_check
 
-    rig = synthetic_rig()
-    bag = _write_bag(rig, tmp_path)
-    good = Rotation.from_matrix(rig.radar_to_imu)  # T_imu_radar
-    turned = (Rotation.from_euler("y", 4.0, degrees=True) * good.inv()).inv()
+    bag, frames = write_demo(tmp_path)
     results = {}
-    for name, rotation in (("good", good), ("turned", turned)):
-        frames = tmp_path / f"{name}.yaml"
-        frames.write_text(
-            yaml.safe_dump(
-                {
-                    "schema_version": "slac.check_frames/v0.1",
-                    "frames": [
-                        {
-                            "name": "radar",
-                            "parent": "imu",
-                            "translation_m": rig.lever_m.tolist(),
-                            "rotation_quat_xyzw": rotation.as_quat().tolist(),
-                        }
-                    ],
-                }
-            )
-        )
+    for name, path in frames.items():
         artifact = build_calibration_check(
             bag,
-            tf_files=[frames],
+            tf_files=[path],
             wired_pairs=frozenset({"radar-imu"}),
             run=CheckRunOptions(evidence_dir=tmp_path / f"evidence-{name}"),
         )
@@ -239,3 +116,17 @@ def test_calibrex_check_judges_radar_imu(tmp_path: Path) -> None:
     assert results["turned"].status == "fail"
     pitch = next(a for a in results["turned"].axes if a.name == "pitch")
     assert pitch.status == "fail"
+
+
+def test_the_check_demo_passes_the_true_mounting_and_fails_the_turned_one(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from calibrex.cli.main import main
+
+    assert main(["demo", "check", "--output-dir", str(tmp_path / "demo")]) == 0
+
+    out = capsys.readouterr().out
+    assert "overall verdict: pass" in out and "overall verdict: fail" in out
+    assert "pitch" in out and "[fail]" in out
+    assert "synthetic" in out and "Your own bag:" in out
+    assert (tmp_path / "demo" / "check_turned.html").exists()

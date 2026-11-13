@@ -65,6 +65,44 @@
 
 <p align="center"><sub>Every frame is rendered from a real recording by Calibrex's own code; generators, input digests and licenses are in <a href="docs/assets/readme-data-gifs.json"><code>readme-data-gifs.json</code></a>.</sub></p>
 
+## Try it in one minute
+
+No dataset and no ROS installation are needed:
+
+```bash
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.4/calibrex-0.6.4-py3-none-any.whl"
+calibrex demo check          # new in 0.6.5
+```
+
+The demo writes a small **simulated** IMU + 4D radar bag and runs `calibrex check` on it
+twice, in about 15 seconds:
+
+- with the true mounting as the deployed calibration, the check **passes**;
+- with the same mounting turned 4° in pitch, it **fails**, and names the axis
+  (`pitch 4.31/0.5 deg [fail]`).
+
+It shows what the command prints and how to read it. It is simulated data, not evidence
+of accuracy; the real-data results are [below](#real-data-honest-verdicts).
+
+### Your own bag in three commands
+
+```bash
+calibrex check my_bag/ --plan                                   # seconds: which sensor pairs can be checked, and why not the others
+calibrex check my_bag/ --max-duration-s 120 --html check.html   # the first 120 s
+calibrex check my_bag/ --max-duration-s 120 --tf fixed.urdf     # re-check another calibration: seconds, from the cache
+```
+
+- **The calibration** is read from the bag's `/tf_static`; pass `--tf` (URDF, Kalibr,
+  FAST-LIO config, `frames.yaml`) when the bag has none.
+- **The first run is slow** for LiDAR and camera pairs: the estimators register every scan
+  or track every frame. Measured on a shared CPU: 8.5 min for 40 s of Hesai LiDAR + IMU,
+  28 min for 180 s of Livox MID360 with the lever arm. Start with `--max-duration-s 120`
+  and `--pairs`; a re-check of the same recording takes about 3 s.
+- **`inconclusive` is not a pass.** It means the recording could not judge that pair; the
+  `next steps` block says what to record.
+- **`pass (partial: roll, pitch only)`** vouches for the named axes only.
+- **Camera pairs** need OpenCV: `pip install 'calibrex[opencv]'` after the wheel.
+
 ## The workflow
 
 <p align="center">
@@ -221,7 +259,7 @@ calibration, evidence and CI, and the rest.
   ·
   <a href="#public-data-gallery"><strong>Gallery</strong></a>
   ·
-  <a href="#five-minute-quickstart"><strong>Quickstart</strong></a>
+  <a href="#try-it-in-one-minute"><strong>Quickstart</strong></a>
   ·
   <a href="docs/concepts/calibration_methods.md"><strong>Methods</strong></a>
 </p>
@@ -491,7 +529,11 @@ for solver-level detail, and the per-pair pages:
   <a href="docs/assets/readme-gif-gallery.json"><code>readme-gif-gallery.json</code></a>.</sub>
 </p>
 
-## Five-minute quickstart
+## Evidence pipeline quickstart
+
+For a first look at `calibrex check`, run [`calibrex demo check`](#try-it-in-one-minute).
+This section is the separate evidence pipeline (`calibrex calibrate` results, reports and
+provenance bundles).
 
 Run the complete evidence path without ROS or a dataset download. The command
 evaluates the bundled deterministic KITTI-shaped LiDAR-camera fixture, writes a
@@ -511,7 +553,7 @@ calibrex verify outputs/kitti-lidar-camera-evidence/bundle.json
 
 Open `outputs/kitti-lidar-camera-evidence/report.html` to inspect the projection
 evidence and known-bad perturbation probes. The checked fixture detects 16 of
-24 mandatory perturbation cases and passes all six falsification-policy gates
+24 mandatory perturbation cases and passes all seven falsification-policy gates
 in under one minute in the clean Windows wheel smoke test. This verifies the
 pipeline and evidence contracts; it is not a real-sensor accuracy claim or a
 standalone camera-LiDAR calibration algorithm. Supply an officially downloaded

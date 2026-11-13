@@ -955,6 +955,21 @@ def _build_parser() -> argparse.ArgumentParser:
     six_dof_sweep.add_argument("--json", action="store_true")
     six_dof_sweep.set_defaults(func=_cmd_demo_kitti_six_dof_sweep)
 
+    check_demo = demo_subcommands.add_parser(
+        "check",
+        help=(
+            "write a small simulated IMU + 4D radar bag and run calibrex check on a right "
+            "and a wrong calibration (no download, about 15 s)"
+        ),
+    )
+    check_demo.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("outputs/check-demo"),
+        help="where the bag, the two candidate files and the check outputs are written",
+    )
+    check_demo.set_defaults(func=_cmd_demo_check)
+
     kitti_demo = demo_subcommands.add_parser(
         "kitti-lidar-camera-evidence",
         help=(
@@ -5311,6 +5326,57 @@ def _write_demo_config(
     if isinstance(project, dict):
         project["output_dir"] = str(output_dir)
     write_mapping(output_config, config_payload)
+
+
+def _cmd_demo_check(args: argparse.Namespace) -> int:
+    from calibrex.check.demo import DEMO_PAIR, DEMO_TURN_DEG, write_demo
+
+    out = args.output_dir
+    bag, frames = write_demo(out)
+    print(
+        "calibrex demo check: a simulated hand-held IMU + 4D radar rig, 120 s.\n"
+        "The data is synthetic: this shows what calibrex check prints, not how well it does "
+        "on a real recording.\n"
+        f"bag: {bag}"
+    )
+    runs = (
+        ("good", "the true mounting as the deployed calibration (expect pass)", 0),
+        (
+            "turned",
+            f"the same mounting turned {DEMO_TURN_DEG:g} deg about the radar's pitch axis "
+            "(expect fail)",
+            1,
+        ),
+    )
+    as_expected = True
+    for number, (name, what, expected) in enumerate(runs, start=1):
+        argv = [
+            "check", str(bag),
+            "--tf", str(frames[name]),
+            "--pairs", DEMO_PAIR,
+            "--cache-dir", str(out / "cache"),
+            "--output", str(out / f"check_{name}.json"),
+            "--html", str(out / f"check_{name}.html"),
+        ]  # fmt: skip
+        print(f"\n=== {number}/2: {what} ===\n$ calibrex {' '.join(argv)}\n", flush=True)
+        as_expected = (main(argv) == expected) and as_expected
+    print(
+        "\nHow to read it:\n"
+        "  - each pair is judged per axis against an estimate made from the recording itself;\n"
+        "    |delta|/tolerance is how far the deployed value is from that estimate\n"
+        "  - pass: within tolerance.  warn: beyond it.  fail: beyond twice it\n"
+        "  - inconclusive: the recording could not judge the axis (it is not a pass)\n"
+        "  - the second run reused the first run's estimate from the cache, so it took seconds\n"
+        "\nYour own bag:\n"
+        "  calibrex check my_bag/ --plan                      # what can be checked, in seconds\n"
+        "  calibrex check my_bag/ --max-duration-s 120 --html check.html\n"
+        "  (add --tf rig.urdf if the bag has no /tf_static; LiDAR and camera pairs take\n"
+        "   several minutes per minute of recording the first time)"
+    )
+    if not as_expected:
+        print("calibrex: the demo did not give the expected pass and fail", file=sys.stderr)
+        return 1
+    return 0
 
 
 def _cmd_demo_kitti_lidar_camera_evidence(args: argparse.Namespace) -> int:
