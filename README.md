@@ -15,6 +15,11 @@
 </p>
 
 <p align="center">
+  <code>pip install</code> the wheel, then <code>calibrex demo check</code> shows a pass and a
+  fail in seconds with no dataset: <a href="#try-it-in-one-minute"><b>try it in one minute</b></a>.
+</p>
+
+<p align="center">
   <img alt="calibrex check catches a bad calibration and confirms the good one on KITTI: with a 3 degree yaw error in the deployed LiDAR transform the LiDAR points miss the bollards and lidar-vehicle fails; restoring the vendor calibration file puts them back on the bollards and the re-check passes" src="docs/assets/calibrex-check-story.gif" width="100%">
 </p>
 
@@ -75,7 +80,7 @@ calibrex demo check          # new in 0.6.5
 ```
 
 The demo writes a small **simulated** IMU + 4D radar bag and runs `calibrex check` on it
-twice, in about 15 seconds:
+twice, in a few seconds:
 
 - with the true mounting as the deployed calibration, the check **passes**;
 - with the same mounting turned 4° in pitch, it **fails**, and names the axis
@@ -99,7 +104,7 @@ calibrex check my_bag/ --max-duration-s 120 --tf fixed.urdf     # re-check anoth
   28 min for 180 s of Livox MID360 with the lever arm. Start with `--max-duration-s 120`
   and `--pairs`; a re-check of the same recording takes about 3 s.
 - **`inconclusive` is not a pass.** It means the recording could not judge that pair; the
-  `next steps` block says what to record.
+  `next steps` block at the end of the output says what to try.
 - **`pass (partial: roll, pitch only)`** vouches for the named axes only.
 - **Camera pairs** need OpenCV: `pip install 'calibrex[opencv]'` after the wheel.
 
@@ -117,8 +122,6 @@ calibrex check my_bag/ --max-duration-s 120 --tf fixed.urdf     # re-check anoth
 </p>
 
 ```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.4/calibrex-0.6.4-py3-none-any.whl"
-
 calibrex estimate my_bag/ --output est/ --html est.html    # 1. no calibration yet: measure it, export frames.yaml / static transforms / URDF
 calibrex check other_bag/ --tf est/frames.yaml --html check.html   # 2. is the deployed calibration still right on another recording?
 calibrex drift day1/ day2/ day3/ --output drift/ --html drift.html # 3. did it change over time, and in which bag?
@@ -318,7 +321,7 @@ calibrex check my_bag/ --output check.json --html check.html     # reads /tf_sta
 `calibrex check` asks whether the extrinsics deployed on a robot agree with what
 a recording says (step 2 of [the workflow](#the-workflow); no calibration yet? [estimate one first](#estimate-a-calibration-when-there-is-none)). It reads the candidate transforms from the bag's `/tf_static`
 (or `--tf`: the `frames.yaml` of `calibrex estimate`, URDF, Kalibr, RTK-SLAM or Hilti calibration files), detects the
-sensor topics, works out which of the ten sensor pairs the bag can check, runs
+sensor topics, works out which of its thirteen sensor pairs the bag can check, runs
 the native estimator of each, and judges the deployed transform per axis against
 the estimate and its uncertainty: `pass`, `warn`, `fail` or `inconclusive`. It
 also checks the estimates against each other (rig closure) and reports which

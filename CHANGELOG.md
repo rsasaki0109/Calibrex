@@ -4,8 +4,10 @@
 
 - `calibrex demo check` shows a check without a dataset: it writes a small simulated IMU +
   4D radar bag and runs `calibrex check` on the true mounting (pass) and on it turned 4 deg
-  (fail), in about 15 seconds.
+  (fail), in a few seconds.
 - `calibrex check` prints less and says more:
+  - a pair that ran and produced no estimate now gets a next step, and `--plan` says when a
+    run would skip the camera pairs because OpenCV is not installed;
   - one line under the overall verdict says what it means;
   - pairs the bag has no sensor for take one line instead of a row and a hint each (`--plan`
     still lists what each expects);

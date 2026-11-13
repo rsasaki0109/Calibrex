@@ -20,7 +20,7 @@ python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download
 calibrex demo check          # new in 0.6.5
 ```
 
-It writes a small simulated IMU + 4D radar bag and checks it twice, in about 15 seconds:
+It writes a small simulated IMU + 4D radar bag and checks it twice, in a few seconds:
 the true mounting passes, and the same mounting turned 4 deg in pitch fails on pitch. The
 data is simulated; it shows what the command prints and how to read it.
 
@@ -51,7 +51,13 @@ MID360 with the lever arm, on a shared CPU
 ([measurements](tutorials/calibrex_check.md#runtime-after-the-speed-up)). The estimate is
 cached, so checking another calibration against the same recording takes about 3 s. When
 the bag has no `/tf_static`, pass the calibration with `--tf` (URDF, Kalibr, FAST-LIO
-config or `frames.yaml`).
+config or `frames.yaml`); `--write-frames-template FILE` writes a starter `frames.yaml`
+naming the bag's sensor frames for you to fill in.
+
+- The `next steps` block at the end of the output says what to try for each pair that was
+  skipped or `inconclusive`.
+- The camera pairs `camera-imu` and `camera-focal` need OpenCV: `pip install
+  'calibrex[opencv]'` after the wheel. `--plan` says so when it is missing.
 
 ## Your bag format
 

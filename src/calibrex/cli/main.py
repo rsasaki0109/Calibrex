@@ -959,7 +959,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "check",
         help=(
             "write a small simulated IMU + 4D radar bag and run calibrex check on a right "
-            "and a wrong calibration (no download, about 15 s)"
+            "and a wrong calibration (no download, a few seconds)"
         ),
     )
     check_demo.add_argument(

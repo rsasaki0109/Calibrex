@@ -400,6 +400,43 @@ def test_the_overall_verdict_is_explained_and_absent_sensors_take_one_line(
     assert all(f"\n{name} " in planned for name in absent)
 
 
+def test_pairs_without_an_estimate_get_a_next_step(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def boom(ctx: PairContext) -> EstimatorRun:
+        raise ValueError("tracking produced 1 windows")
+
+    monkeypatch.setattr(
+        estimators,
+        "ESTIMATORS",
+        {"imu-lidar": boom, "lidar-lidar": lambda ctx: _run(solved=False)},
+    )
+
+    artifact = build_calibration_check(
+        bag,
+        run=CheckRunOptions(evidence_dir=tmp_path / "ev", pairs=("imu-lidar", "lidar-lidar")),
+    )
+    table = format_check_table(artifact)
+
+    assert "  - lidar-lidar: the estimator did not converge" in table
+    assert "  - imu-lidar: the estimator crashed" in table
+    assert table.count("the estimator crashed") == 1  # two IMU-LiDAR records, one line
+
+
+def test_the_plan_says_when_a_run_would_skip_the_camera_for_opencv(
+    bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from calibrex.check import hints
+
+    monkeypatch.setattr(hints, "opencv_missing", lambda: True)
+    without = format_check_table(build_calibration_check(bag))
+    monkeypatch.setattr(hints, "opencv_missing", lambda: False)
+    with_opencv = format_check_table(build_calibration_check(bag))
+
+    assert "a run would skip them here: OpenCV is not installed" in without
+    assert "OpenCV is not installed" not in with_opencv
+
+
 def test_a_long_reason_is_cut_in_the_table_only(
     tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

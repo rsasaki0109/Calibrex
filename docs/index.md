@@ -55,7 +55,7 @@ Details and real outputs: [the workflow page](tutorials/workflow.md).
 
 <div class="grid cards" markdown>
 
--   :material-console-line: **One command, ten sensor pairs**
+-   :material-console-line: **One command, thirteen sensor pairs**
 
     ---
 
