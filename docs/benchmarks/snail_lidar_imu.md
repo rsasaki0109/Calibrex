@@ -95,8 +95,10 @@ The same transform is used on every day. On later days it agrees on roll:
 The X36D on the same three sequences passes every judged axis.
 
 The fails could be a different MTi-3 mount that morning, or a check error specific to that
-day; this audit cannot tell which. Under the pre-registered rule they are honesty
-failures.
+day; the audit itself cannot tell which. Under the pre-registered rule they are honesty
+failures, and that verdict stands. A
+[post hoc cross-check](#post-hoc-the-two-imus-gyros-agree-with-check) with the two IMUs'
+gyros points to the mount.
 
 **2. Two sequences were never read, so the run is incomplete.** For 20231109/data3 and
 20240123/data3, the first OneDrive metadata request (the share's root item, before the
@@ -142,12 +144,70 @@ After each restart the remaining sequences were run by
 No completed sequence was run twice, and no result was looked at before the run finished.
 The two missing sequences failed in the resumed run, not because of a restart.
 
+## Post hoc: the two IMUs' gyros agree with check
+
+This analysis was done after the verdict. It explains the three honesty failures and
+changes no verdict.
+
+The X36D and the MTi-3 are on the same rigid rig, so their gyros measure one angular
+velocity in two frames. The rotation between the two IMUs can therefore be fitted from the
+gyro streams alone, with no LiDAR and without Calibrex's imu-lidar estimator. If the
+dataset's X36D transform is taken as right (check agrees with it on these sequences),
+that rotation gives the MTi-3's error against `tf_static.launch` directly.
+
+Method: both gyros resampled to 100 Hz, the clock offset from the cross-correlation of the
+gyro norms, the rotation by a least-squares fit with a bias and one outlier pass, on the
+whole recording. The spread is the standard deviation over five blocks. Errors are in the
+LiDAR frame with check's sign.
+
+| Sequence | Gyro-only roll / pitch / yaw (deg) | Block spread (deg) | check, MTi-3 (deg) |
+| --- | --- | --- | --- |
+| 20231105/data2 | 5.32 / -0.59 / -1.34 | 0.12 / 0.16 / 0.16 | roll 5.18 fail, pitch -0.67 warn |
+| 20231105/data3 | 5.29 / -0.58 / -1.20 | 0.03 / 0.12 / 0.20 | roll 5.09 fail, pitch -0.72 warn |
+| 20231105/data5 | 5.22 / -0.53 / -1.56 | 0.01 / 0.12 / 0.46 | roll 4.86 fail, pitch -0.64 warn |
+| 20231105_aft/data4 | 3.62 / 0.08 / 1.09 | 0.06 / 0.19 / 0.59 | inconclusive |
+| 20231105_aft/data5 | 3.79 / 0.08 / 1.18 | 0.17 / 0.29 / 0.44 | pitch 0.02 pass (roll not judged) |
+| 20231109/data4 | 1.93 / 0.27 / -0.90 | 0.83 / 0.98 / 1.07 | inconclusive |
+| 20231208/data4 | 0.19 / -0.26 / -1.22 | 0.02 / 0.08 / 0.27 | roll 0.12 pass |
+| 20240115/data3 | -0.03 / -0.11 / -1.45 | 0.03 / 0.08 / 0.35 | roll -0.40 pass, pitch -0.20 pass |
+
+What this shows:
+
+- **The published MTi-3 transform does not describe the 2023-11-05 morning.** The gyros
+  put the MTi-3 5.2-5.3 deg in roll and about -0.6 deg in pitch from it, on all three
+  sequences. check's imu-lidar estimate says 4.9-5.2 deg and about -0.7 deg. The two
+  methods share no data but the MTi-3's gyro.
+- **The mount moved over the first sessions.** The gyro-only roll error is 5.3 deg in the
+  morning, 3.7 deg that afternoon, about 2 deg on 2023-11-09 (a weak estimate) and
+  under 0.2 deg from 2023-12-08. 2023-11-05 is the first day the MTi-3 was recorded.
+- **check's passes agree too.** Where check passed an MTi-3 axis (afternoon pitch, the
+  December and January roll and pitch), the gyro-only error on that axis is within
+  0.3 deg.
+- **check missed the afternoon's 3.7 deg roll, because it did not judge roll there.** That
+  is a coverage gap, not a wrong verdict.
+- **Yaw is left open.** The gyro-only yaw error is 1-1.5 deg on every sequence and changes
+  sign between sessions. check never judged the MTi-3's yaw, and on the SUV days the
+  gyro-only yaw is weakly constrained.
+
+So the three "honesty failures" are check correctly failing a reference that was wrong for
+that morning. By the audit's own rule the reference is the dataset's calibration, and the
+claim stays refuted.
+
+Limits: the cross-check assumes the X36D transform, it says nothing about the MTi-3's
+lever arm, and it was run after the results were known.
+
+Records: [`gyro_cross_check.txt`](../assets/snail_lidar_imu/post_hoc/gyro_cross_check.txt)
+(errors there are in the MTi-3 frame, estimate relative to reference), with the two
+scripts beside it. They read the two `imu.txt` files and `tf_static.launch` of the eight
+sequences above again.
+
 ## What follows
 
 - **imu-lidar honesty on Snail-Radar is not supported.**
   - The X36D side passed every judged rotation axis except where the reference itself is
     in question.
-  - The MTi-3's 2023-11-05 roll is the open question.
+  - The MTi-3's 2023-11-05 roll is explained post hoc: the published transform does not
+    fit the MTi-3's first sessions.
 - **The claim row in the [handoff](../sota_handoff.md) stays on MID360.** This audit adds
   a refuted check audit.
 - **A later audit could retry against long-outage failures.** Retrying such failures in

@@ -1,0 +1,46 @@
+import numpy as np, io, sys, os
+from scipy.spatial.transform import Rotation as Rot
+from scipy.interpolate import interp1d
+from tools import snail_lidar_imu_audit as h
+def load(p):
+    r=np.loadtxt(p,ndmin=2)[:,:7]; r=r[np.argsort(r[:,0],kind="stable")]
+    k=np.concatenate([[True],np.diff(r[:,0])>0]); return r[k]
+def kabsch(A,B):  # find R: B ~ R A
+    Am=A-A.mean(0);Bm=B-B.mean(0);U,S,Vt=np.linalg.svd(Am.T@Bm)  # H=A^T B
+    d=np.sign(np.linalg.det(Vt.T@U.T)); D=np.diag([1,1,d])
+    return Vt.T@D@U.T
+def grid(r,t): return interp1d(r[:,0],r[:,4:7],axis=0,bounds_error=False,fill_value=np.nan)(t)
+def solve(wm,wx):
+    m=(np.linalg.norm(wm,axis=1)>0.05)&(np.linalg.norm(wx,axis=1)>0.05)&np.isfinite(wm).all(1)&np.isfinite(wx).all(1)
+    R=kabsch(wm[m],wx[m])
+    for _ in range(1):
+        res=np.linalg.norm(wx-wm@R.T-(wx[m]-wm[m]@R.T).mean(0),axis=1)
+        s=1.4826*np.median(res[m]); m2=m&(res<3*s+1e-9); R=kabsch(wm[m2],wx[m2])
+    return R,m2.sum()
+print("seq | dt_ms | errvec_deg(MTi frame) | mag | block spread(deg, per-comp std; max mag dev) | std gx,gy,gz mti (rad/s) | n")
+for s in ["20231105/data2","20231105/data3","20231105/data5","20231105_aft/data4","20231105_aft/data5","20231109/data4","20231208/data4","20240115/data3"]:
+    d="raw/"+s.replace("/","_")+"/"
+    if not os.path.exists(d+"tf_static.launch"): print(s,"MISSING");continue
+    T=h.static_transforms(open(d+"tf_static.launch").read())
+    Rref=(T["x36d"][1].inv()*T["mti3dk"][1])
+    x=load(d+"x36d_imu.txt"); m=load(d+"mti3dk_imu.txt")
+    t0=max(x[0,0],m[0,0]); t1=min(x[-1,0],m[-1,0]); t=np.arange(t0,t1,0.01)
+    wx=grid(x,t); wm=grid(m,t)
+    nx=np.linalg.norm(wx,axis=1); nm=np.linalg.norm(wm,axis=1)
+    ok=np.isfinite(nx)&np.isfinite(nm); 
+    def xc(dt):
+        a=interp1d(t,nm,bounds_error=False,fill_value=np.nan)(t+dt); g=np.isfinite(a)&ok
+        return np.corrcoef(a[g]-a[g].mean(),nx[g]-nx[g].mean())[0,1]
+    # convention: w_x(t)=R w_m(t+dt)
+    c=np.arange(-0.5,0.5001,0.01); v=[xc(q) for q in c]; b=c[int(np.argmax(v))]
+    c=np.arange(b-0.01,b+0.0101,0.001); v=[xc(q) for q in c]; dt=c[int(np.argmax(v))]
+    wms=interp1d(t,wm,axis=0,bounds_error=False,fill_value=np.nan)(t+dt)
+    R,n=solve(wms,wx); E=Rref.inv()*Rot.from_matrix(R); ev=np.degrees(E.as_rotvec())
+    edges=np.linspace(0,len(t),6).astype(int); be=[]
+    for i in range(5):
+        sl=slice(edges[i],edges[i+1])
+        try: Rb,_=solve(wms[sl],wx[sl]); be.append(np.degrees((Rref.inv()*Rot.from_matrix(Rb)).as_rotvec()))
+        except Exception: pass
+    be=np.array(be); sd=be.std(0,ddof=1) if len(be)>1 else np.full(3,np.nan)
+    ex=np.nanstd(wms,axis=0)
+    print(f"{s} | {dt*1000:.0f} | {ev.round(2)} | {np.linalg.norm(ev):.2f} | {sd.round(2)} blocks={be.round(1).tolist()} | {ex.round(3)} | {n} xcorr={max(v):.2f} dur={t1-t0:.0f}s",flush=True)

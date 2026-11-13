@@ -1,0 +1,19 @@
+import time, sys, os
+from tools import snail_lidar_imu_audit as h
+seqs=["20231105/data2","20231105/data3","20231105/data5","20231105_aft/data4","20231105_aft/data5","20231109/data4","20231208/data4","20240115/data3"]
+for s in seqs:
+    d="raw/"+s.replace("/","_"); 
+    if os.path.exists(d+"/tf_static.launch"): continue
+    for k in range(5):
+        try:
+            a,_=h.open_sequence(s); break
+        except BaseException as e:
+            print(s,"retry",k,repr(e)[:200],flush=True); time.sleep(20)
+    else:
+        print("FAILED",s); continue
+    try:
+        os.makedirs(d,exist_ok=True)
+        for m in ["x36d/imu.txt","mti3dk/imu.txt","tf_static.launch"]:
+            open(d+"/"+m.replace("/","_"),"wb").write(a.read(m))
+        print("ok",s,flush=True)
+    except BaseException as e: print("FAILED read",s,repr(e)[:200])
