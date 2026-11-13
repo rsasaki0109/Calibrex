@@ -13,6 +13,7 @@ they always did.
 from __future__ import annotations
 
 import os
+import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 
@@ -23,10 +24,9 @@ _threads: int | None = None
 def available_threads() -> int:
     """The CPUs this process may run on."""
 
-    try:
+    if sys.platform == "linux":  # the affinity mask, which a container or taskset narrows
         return max(len(os.sched_getaffinity(0)), 1)
-    except AttributeError:  # not on Linux
-        return max(os.cpu_count() or 1, 1)
+    return max(os.cpu_count() or 1, 1)
 
 
 def _from_environment() -> int:
