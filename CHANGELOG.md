@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- README and the install page install from the repository for `calibrex demo check`, which
+  is newer than the v0.6.4 wheel. At the next release that block goes back to the wheel.
 - A second pre-registered INS-LiDAR rotation audit, gated per judged axis, is refuted at
   7 of 8 gates ([v2](docs/benchmarks/ins_lidar_rotation_v2.md)).
   - On ten new recordings (7 KITTI, 3 Boreas) all 17 estimated axes are within 0.373 deg of
