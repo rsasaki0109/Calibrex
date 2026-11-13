@@ -1,0 +1,235 @@
+{
+ "zip_bytes": 23035087302,
+ "built": {
+  "scans": 3001,
+  "seconds": 293.8991599082947,
+  "imu_samples": {
+   "/x36d/imu_raw": 29945
+  }
+ },
+ "imus": [
+  "x36d"
+ ],
+ "exit_status": {
+  "reference": 1,
+  "rx3": 1,
+  "ry3": 1,
+  "rz3": 1
+ },
+ "reference": {
+  "x36d": {
+   "status": "warn",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch",
+    "yaw"
+   ],
+   "unchecked_axes": [
+    "y"
+   ],
+   "time_offset": {
+    "estimate_s": 0.01031259198934942,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 4.527199709184261e-05
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -0.2631050792346457,
+     "estimate_std": 0.02298240682942654,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "pitch": {
+     "candidate_error": -0.04098181519625163,
+     "estimate_std": 0.02070046988508362,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "yaw": {
+     "candidate_error": 0.7597742930356499,
+     "estimate_std": 0.03904653763402059,
+     "tolerance": 0.5,
+     "status": "warn"
+    },
+    "x": {
+     "candidate_error": -0.0057320807574795735,
+     "estimate_std": 0.006099768699995348,
+     "tolerance": 0.02,
+     "status": "pass"
+    },
+    "z": {
+     "candidate_error": 0.006597464478922288,
+     "estimate_std": 0.006382741207048753,
+     "tolerance": 0.02,
+     "status": "pass"
+    }
+   }
+  }
+ },
+ "rx3": {
+  "x36d": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch",
+    "yaw"
+   ],
+   "unchecked_axes": [
+    "y"
+   ],
+   "time_offset": {
+    "estimate_s": 0.01031259198934942,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 4.527199709184261e-05
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -3.263060985465287,
+     "estimate_std": 0.02298240682942654,
+     "tolerance": 0.5,
+     "status": "fail"
+    },
+    "pitch": {
+     "candidate_error": -0.02108202986191433,
+     "estimate_std": 0.02070046988508362,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "yaw": {
+     "candidate_error": 0.7606888474332874,
+     "estimate_std": 0.03904653763402059,
+     "tolerance": 0.5,
+     "status": "warn"
+    },
+    "x": {
+     "candidate_error": -0.005732080757479567,
+     "estimate_std": 0.006099768699995348,
+     "tolerance": 0.02,
+     "status": "pass"
+    },
+    "z": {
+     "candidate_error": 0.0036765815436138882,
+     "estimate_std": 0.006382741207048753,
+     "tolerance": 0.02,
+     "status": "pass"
+    }
+   }
+  }
+ },
+ "ry3": {
+  "x36d": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch",
+    "yaw"
+   ],
+   "unchecked_axes": [
+    "y"
+   ],
+   "time_offset": {
+    "estimate_s": 0.01031259198934942,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 4.527199709184261e-05
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -0.28293669382117365,
+     "estimate_std": 0.02298240682942654,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "pitch": {
+     "candidate_error": -3.040932577987051,
+     "estimate_std": 0.02070046988508362,
+     "tolerance": 0.5,
+     "status": "fail"
+    },
+    "yaw": {
+     "candidate_error": 0.7527149780388761,
+     "estimate_std": 0.03904653763402059,
+     "tolerance": 0.5,
+     "status": "warn"
+    },
+    "x": {
+     "candidate_error": 0.002641672241391448,
+     "estimate_std": 0.006099768699995348,
+     "tolerance": 0.02,
+     "status": "pass"
+    },
+    "z": {
+     "candidate_error": 0.006816738918190485,
+     "estimate_std": 0.006382741207048753,
+     "tolerance": 0.02,
+     "status": "pass"
+    }
+   }
+  }
+ },
+ "rz3": {
+  "x36d": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch",
+    "yaw"
+   ],
+   "unchecked_axes": [
+    "y"
+   ],
+   "time_offset": {
+    "estimate_s": 0.01031259198934942,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 4.527199709184261e-05
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -0.2641025861315515,
+     "estimate_std": 0.02298240682942654,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "pitch": {
+     "candidate_error": -0.03408240493315129,
+     "estimate_std": 0.02070046988508362,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "yaw": {
+     "candidate_error": -2.240220307195508,
+     "estimate_std": 0.03904653763402059,
+     "tolerance": 0.5,
+     "status": "fail"
+    },
+    "x": {
+     "candidate_error": -0.002591923382902935,
+     "estimate_std": 0.006099768699995348,
+     "tolerance": 0.02,
+     "status": "pass"
+    },
+    "z": {
+     "candidate_error": 0.006597464478922288,
+     "estimate_std": 0.006382741207048753,
+     "tolerance": 0.02,
+     "status": "pass"
+    }
+   }
+  }
+ }
+}

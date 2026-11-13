@@ -1,0 +1,317 @@
+{
+ "zip_bytes": 8765886287,
+ "built": {
+  "scans": 2998,
+  "seconds": 299.9007408618927,
+  "imu_samples": {
+   "/x36d/imu_raw": 28147,
+   "/mti3dk/imu": 26719
+  }
+ },
+ "imus": [
+  "x36d",
+  "mti3dk"
+ ],
+ "exit_status": {
+  "reference": 1,
+  "rx3": 1,
+  "ry3": 1,
+  "rz3": 1
+ },
+ "reference": {
+  "mti3dk": {
+   "status": "pass",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": -0.002264039011586507,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.0015040289387475742
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -0.403217597733307,
+     "estimate_std": 0.06683375754619125,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "pitch": {
+     "candidate_error": -0.19863120092500108,
+     "estimate_std": 0.0561347677477124,
+     "tolerance": 0.5,
+     "status": "pass"
+    }
+   }
+  },
+  "x36d": {
+   "status": "pass",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": -0.004342799942232902,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.0005680257657893925
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -0.3600570770439654,
+     "estimate_std": 0.09831477913752353,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "pitch": {
+     "candidate_error": -0.06630640977692072,
+     "estimate_std": 0.05272320544846739,
+     "tolerance": 0.5,
+     "status": "pass"
+    }
+   }
+  }
+ },
+ "rx3": {
+  "mti3dk": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": -0.002264039011586507,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.0015040289387475742
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -3.4031177772142853,
+     "estimate_std": 0.06683375754619125,
+     "tolerance": 0.5,
+     "status": "fail"
+    },
+    "pitch": {
+     "candidate_error": -0.2281092789143222,
+     "estimate_std": 0.0561347677477124,
+     "tolerance": 0.5,
+     "status": "pass"
+    }
+   }
+  },
+  "x36d": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": -0.004342799942232902,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.0005680257657893925
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -3.3600567027862844,
+     "estimate_std": 0.09831477913752353,
+     "tolerance": 0.5,
+     "status": "fail"
+    },
+    "pitch": {
+     "candidate_error": -0.06688854172712203,
+     "estimate_std": 0.05272320544846739,
+     "tolerance": 0.5,
+     "status": "pass"
+    }
+   }
+  }
+ },
+ "ry3": {
+  "mti3dk": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": -0.002264039011586507,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.0015040289387475742
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -0.37361466794797366,
+     "estimate_std": 0.06683375754619125,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "pitch": {
+     "candidate_error": -3.198522004283483,
+     "estimate_std": 0.0561347677477124,
+     "tolerance": 0.5,
+     "status": "fail"
+    }
+   }
+  },
+  "x36d": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": -0.004342799942232902,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.0005680257657893925
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -0.35938118116297096,
+     "estimate_std": 0.09831477913752353,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "pitch": {
+     "candidate_error": -3.0662964966746764,
+     "estimate_std": 0.05272320544846739,
+     "tolerance": 0.5,
+     "status": "fail"
+    }
+   }
+  }
+ },
+ "rz3": {
+  "mti3dk": {
+   "status": "pass",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": -0.002264039011586507,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.0015040289387475742
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -0.40836068875016346,
+     "estimate_std": 0.06683375754619125,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "pitch": {
+     "candidate_error": -0.1880457530154821,
+     "estimate_std": 0.0561347677477124,
+     "tolerance": 0.5,
+     "status": "pass"
+    }
+   }
+  },
+  "x36d": {
+   "status": "pass",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": -0.004342799942232902,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.0005680257657893925
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -0.3617113377216341,
+     "estimate_std": 0.09831477913752353,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "pitch": {
+     "candidate_error": -0.05686508676684572,
+     "estimate_std": 0.05272320544846739,
+     "tolerance": 0.5,
+     "status": "pass"
+    }
+   }
+  }
+ }
+}

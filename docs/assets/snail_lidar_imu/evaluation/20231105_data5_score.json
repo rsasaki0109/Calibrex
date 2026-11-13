@@ -1,0 +1,381 @@
+{
+ "zip_bytes": 5530969277,
+ "built": {
+  "scans": 3000,
+  "seconds": 299.9007000923157,
+  "imu_samples": {
+   "/x36d/imu_raw": 30929,
+   "/mti3dk/imu": 26724
+  }
+ },
+ "imus": [
+  "x36d",
+  "mti3dk"
+ ],
+ "exit_status": {
+  "reference": 1,
+  "rx3": 1,
+  "ry3": 1,
+  "rz3": 1
+ },
+ "reference": {
+  "mti3dk": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": 0.003704910173916295,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.00016110967983832427
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": 4.86356058396744,
+     "estimate_std": 0.04800625186632385,
+     "tolerance": 0.5,
+     "status": "fail"
+    },
+    "pitch": {
+     "candidate_error": -0.6366181495937491,
+     "estimate_std": 0.056418436472720074,
+     "tolerance": 0.5,
+     "status": "warn"
+    }
+   }
+  },
+  "x36d": {
+   "status": "warn",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch",
+    "yaw"
+   ],
+   "unchecked_axes": [
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": 0.002661826043669116,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.00010959757163382535
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -0.30056229794018013,
+     "estimate_std": 0.03946349452691583,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "pitch": {
+     "candidate_error": -0.11203136720962029,
+     "estimate_std": 0.023699532327786536,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "yaw": {
+     "candidate_error": -0.12099090763698005,
+     "estimate_std": 0.0637304040424645,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "x": {
+     "candidate_error": -0.019096060476288527,
+     "estimate_std": 0.003181895048976082,
+     "tolerance": 0.02,
+     "status": "pass"
+    },
+    "y": {
+     "candidate_error": 0.03606856871092387,
+     "estimate_std": 0.009408975281653943,
+     "tolerance": 0.02822692584496183,
+     "status": "warn"
+    }
+   }
+  }
+ },
+ "rx3": {
+  "mti3dk": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": 0.003704910173916295,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.00016110967983832427
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": 1.8642497904829765,
+     "estimate_std": 0.04800625186632385,
+     "tolerance": 0.5,
+     "status": "fail"
+    },
+    "pitch": {
+     "candidate_error": -0.713190549455871,
+     "estimate_std": 0.056418436472720074,
+     "tolerance": 0.5,
+     "status": "warn"
+    }
+   }
+  },
+  "x36d": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch",
+    "yaw"
+   ],
+   "unchecked_axes": [
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": 0.002661826043669116,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.00010959757163382535
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -3.300560227069084,
+     "estimate_std": 0.03946349452691583,
+     "tolerance": 0.5,
+     "status": "fail"
+    },
+    "pitch": {
+     "candidate_error": -0.11517594194496493,
+     "estimate_std": 0.023699532327786536,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "yaw": {
+     "candidate_error": -0.11803299186282057,
+     "estimate_std": 0.0637304040424645,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "x": {
+     "candidate_error": -0.01909606047628852,
+     "estimate_std": 0.003181895048976082,
+     "tolerance": 0.02,
+     "status": "pass"
+    },
+    "y": {
+     "candidate_error": 0.027612587797327268,
+     "estimate_std": 0.009408975281653943,
+     "tolerance": 0.02822692584496183,
+     "status": "pass"
+    }
+   }
+  }
+ },
+ "ry3": {
+  "mti3dk": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": 0.003704910173916295,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.00016110967983832427
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": 4.93967064190246,
+     "estimate_std": 0.04800625186632385,
+     "tolerance": 0.5,
+     "status": "fail"
+    },
+    "pitch": {
+     "candidate_error": -3.6341575297551514,
+     "estimate_std": 0.056418436472720074,
+     "tolerance": 0.5,
+     "status": "fail"
+    }
+   }
+  },
+  "x36d": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch",
+    "yaw"
+   ],
+   "unchecked_axes": [
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": 0.002661826043669116,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.00010959757163382535
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -0.2973286296161282,
+     "estimate_std": 0.03946349452691583,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "pitch": {
+     "candidate_error": -3.112023371975111,
+     "estimate_std": 0.023699532327786536,
+     "tolerance": 0.5,
+     "status": "fail"
+    },
+    "yaw": {
+     "candidate_error": -0.12883306615959206,
+     "estimate_std": 0.0637304040424645,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "x": {
+     "candidate_error": -0.010722307477417505,
+     "estimate_std": 0.003181895048976082,
+     "tolerance": 0.02,
+     "status": "pass"
+    },
+    "y": {
+     "candidate_error": 0.036068568710923864,
+     "estimate_std": 0.009408975281653943,
+     "tolerance": 0.02822692584496183,
+     "status": "warn"
+    }
+   }
+  }
+ },
+ "rz3": {
+  "mti3dk": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": 0.003704910173916295,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.00016110967983832427
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": 4.84686804367922,
+     "estimate_std": 0.04800625186632385,
+     "tolerance": 0.5,
+     "status": "fail"
+    },
+    "pitch": {
+     "candidate_error": -0.7639714809943333,
+     "estimate_std": 0.056418436472720074,
+     "tolerance": 0.5,
+     "status": "warn"
+    }
+   }
+  },
+  "x36d": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch",
+    "yaw"
+   ],
+   "unchecked_axes": [
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": 0.002661826043669116,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.00010959757163382535
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -0.3034293975992136,
+     "estimate_std": 0.03946349452691583,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "pitch": {
+     "candidate_error": -0.10413802799487537,
+     "estimate_std": 0.023699532327786536,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "yaw": {
+     "candidate_error": -3.120983071405283,
+     "estimate_std": 0.0637304040424645,
+     "tolerance": 0.5,
+     "status": "fail"
+    },
+    "x": {
+     "candidate_error": -0.01595590310171189,
+     "estimate_std": 0.003181895048976082,
+     "tolerance": 0.02,
+     "status": "pass"
+    },
+    "y": {
+     "candidate_error": 0.03598634079619831,
+     "estimate_std": 0.009408975281653943,
+     "tolerance": 0.02822692584496183,
+     "status": "warn"
+    }
+   }
+  }
+ }
+}

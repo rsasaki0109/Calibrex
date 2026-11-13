@@ -4,6 +4,14 @@
 
 - radar-imu no longer stops when the IMU repeats a timestamp (the Bynav X36D repeats about
   1 in 500); a repeated stamp is kept once.
+- A pre-registered imu-lidar check audit on Snail-Radar (Hesai XT32 with a Bynav X36D and
+  an Xsens MTi-3; hand-held, e-bike, SUV; 32 unseen sequences, first 300 s) is refuted
+  ([Snail-Radar imu-lidar](docs/benchmarks/snail_lidar_imu.md)).
+  - check failed the dataset's MTi-3 roll by about 5 deg on the three 2023-11-05 morning
+    sequences.
+  - Two sequences could not be fetched, which leaves the run incomplete.
+  - No judged 3 deg LiDAR turn was missed (80 of 80), and 48 of 60 cases judged a
+    rotation axis.
 
 ## 0.6.4 - 2026-11-11
 

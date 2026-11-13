@@ -32,7 +32,7 @@ pre-registered audit marks `supported`. Five things follow from that:
 
 | Pair | Standing | Audits | Page |
 | --- | --- | --- | --- |
-| `imu-lidar` | supported | rotation+clock (4/4), full extrinsic v2 (4/4); full extrinsic v1 refuted (0/8) | [MID360](benchmarks/mid360_imu_lidar.md) |
+| `imu-lidar` | supported (MID360) | rotation+clock (4/4), full extrinsic v2 (4/4); full extrinsic v1 refuted (0/8); check audit on Snail-Radar (Hesai XT32, X36D and MTi-3, 32 sequences) refuted: 3 reference rotation fails (MTi-3 roll ~5 deg on 2023-11-05) and 2 sequences unread; no judged 3 deg turn missed (80/80) | [MID360](benchmarks/mid360_imu_lidar.md), [Snail-Radar](benchmarks/snail_lidar_imu.md) |
 | `lidar-vehicle` | supported | KITTI motion-only rotation, 8 drives (3/3) | [KITTI lidar-vehicle](benchmarks/kitti_lidar_vehicle.md) |
 | `camera-imu` | supported | Hilti v3 per-axis verdicts (7/7); v1 (6/7) and v2 (5/7) refuted; TUM-VI check audit v1 refuted (4/5: passed 4 of 30 2 deg turns, all about an unchecked pitch); v2 with `--fail-on partial` supported (5/5: flagged all 30, failed 28 on the turned axis; Kalibr fully passed 8 of 10) | [Hilti camera-IMU](benchmarks/hilti_camera_imu.md) |
 | `camera-lidar` | refuted | KITTI check v1 (5/9), v2 (8/9) | [v2](benchmarks/kitti_camera_lidar_v2_check.md), [v1](benchmarks/kitti_camera_lidar_check.md) |
@@ -175,7 +175,9 @@ The camera-imu v3 audit did exactly this with the camera-camera runs.
 | Doer & Trommer ICINS 2021 radar-inertial | `radar-imu` development | carried_1-carried_5, flight_1-flight_4 (the whole archive) |
 | Doer & Trommer IROS 2021 radar-thermal-visual-inertial | `radar-imu` evaluation (refuted) | the nine bags of `irs_rtvi_datasets_2021.zip` (radar and IMU topics read once by the frozen harness; [pre-registration](benchmarks/doer_radar_imu_preregistration.yaml)) |
 | Doer & Trommer JGN 2022 multi-radar | `radar-imu` evaluation v2 (supported) | office_floor, lab_floor, workshop, basement (radar and IMU topics read once by the frozen harness; [pre-registration](benchmarks/doer_radar_imu_v2_preregistration.yaml)) |
-| Snail-Radar (Huai et al.) | `radar-imu` roll/pitch development | 20230921/data4, 20231019/data2, 20240113/data5 (Eagle `pcl`, X36D IMU, tf_static and their INS reference rows); the other 41 sequences are unseen |
+| Snail-Radar (Huai et al.) | `radar-imu` roll/pitch development | 20230921/data4, 20231019/data2, 20240113/data5 (Eagle `pcl`, X36D IMU, tf_static and their INS reference rows) |
+| Snail-Radar (Huai et al.) | `imu-lidar` development | 20230921/data4, 20231019/data2, 20240113/data5 (XT32, X36D, MTi-3, first 300 s) |
+| Snail-Radar (Huai et al.) | `imu-lidar` evaluation (refuted) | the 30 sequences scored in [snail_lidar_imu.md](benchmarks/snail_lidar_imu.md) (XT32, X36D, MTi-3 and tf_static of the first 300 s, read once by the frozen harness; [pre-registration](benchmarks/snail_lidar_imu_preregistration.yaml)); 20231109/data3 and 20240123/data3 were planned but not read; 20230921/data5 (the authors' fitting sequence) and the sequences under 300 s are unread |
 
 The v2 camera-lidar runs also read the Velodyne and OXTS of the first 600 frames of its
 18 drives. A `lidar-vehicle` or `ins-lidar` audit on those drives must disclose that.

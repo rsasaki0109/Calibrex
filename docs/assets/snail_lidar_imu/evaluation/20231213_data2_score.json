@@ -1,0 +1,269 @@
+{
+ "zip_bytes": 13591333515,
+ "built": {
+  "scans": 3000,
+  "seconds": 299.90060591697693,
+  "imu_samples": {
+   "/x36d/imu_raw": 30355,
+   "/mti3dk/imu": 26723
+  }
+ },
+ "imus": [
+  "x36d",
+  "mti3dk"
+ ],
+ "exit_status": {
+  "reference": 1,
+  "rx3": 1,
+  "ry3": 1,
+  "rz3": 1
+ },
+ "reference": {
+  "mti3dk": {
+   "status": "pass",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "roll",
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": -0.05314086756316993,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.000752363537116501
+   },
+   "axes": {
+    "pitch": {
+     "candidate_error": -0.07833499232368472,
+     "estimate_std": 0.06276460805749529,
+     "tolerance": 0.5,
+     "status": "pass"
+    }
+   }
+  },
+  "x36d": {
+   "status": "pass",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "roll",
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": -0.006975300549100252,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.000314442674620066
+   },
+   "axes": {
+    "pitch": {
+     "candidate_error": -0.04765857013314189,
+     "estimate_std": 0.07261485760749016,
+     "tolerance": 0.5,
+     "status": "pass"
+    }
+   }
+  }
+ },
+ "rx3": {
+  "mti3dk": {
+   "status": "pass",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "roll",
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": -0.05314086756316993,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.000752363537116501
+   },
+   "axes": {
+    "pitch": {
+     "candidate_error": -0.08279577881096747,
+     "estimate_std": 0.06276460805749529,
+     "tolerance": 0.5,
+     "status": "pass"
+    }
+   }
+  },
+  "x36d": {
+   "status": "pass",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "roll",
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": -0.006975300549100252,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.000314442674620066
+   },
+   "axes": {
+    "pitch": {
+     "candidate_error": -0.028970609399285446,
+     "estimate_std": 0.07261485760749016,
+     "tolerance": 0.5,
+     "status": "pass"
+    }
+   }
+  }
+ },
+ "ry3": {
+  "mti3dk": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "roll",
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": -0.05314086756316993,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.000752363537116501
+   },
+   "axes": {
+    "pitch": {
+     "candidate_error": -3.078315985930792,
+     "estimate_std": 0.06276460805749529,
+     "tolerance": 0.5,
+     "status": "fail"
+    }
+   }
+  },
+  "x36d": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "roll",
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": -0.006975300549100252,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.000314442674620066
+   },
+   "axes": {
+    "pitch": {
+     "candidate_error": -3.0476175493523447,
+     "estimate_std": 0.07261485760749016,
+     "tolerance": 0.5,
+     "status": "fail"
+    }
+   }
+  }
+ },
+ "rz3": {
+  "mti3dk": {
+   "status": "pass",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "roll",
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": -0.05314086756316993,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.000752363537116501
+   },
+   "axes": {
+    "pitch": {
+     "candidate_error": -0.06602940904131978,
+     "estimate_std": 0.06276460805749529,
+     "tolerance": 0.5,
+     "status": "pass"
+    }
+   }
+  },
+  "x36d": {
+   "status": "pass",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "pitch"
+   ],
+   "unchecked_axes": [
+    "roll",
+    "yaw",
+    "x",
+    "y",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": -0.006975300549100252,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 0.000314442674620066
+   },
+   "axes": {
+    "pitch": {
+     "candidate_error": -0.04313940087830727,
+     "estimate_std": 0.07261485760749016,
+     "tolerance": 0.5,
+     "status": "pass"
+    }
+   }
+  }
+ }
+}

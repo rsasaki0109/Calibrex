@@ -1,0 +1,215 @@
+{
+ "zip_bytes": 9972191149,
+ "built": {
+  "scans": 5939,
+  "seconds": 293.9996280670166,
+  "imu_samples": {
+   "/x36d/imu_raw": 59369
+  }
+ },
+ "imus": [
+  "x36d"
+ ],
+ "exit_status": {
+  "reference": 1,
+  "rx3": 1,
+  "ry3": 1,
+  "rz3": 1
+ },
+ "reference": {
+  "x36d": {
+   "status": "warn",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch",
+    "yaw"
+   ],
+   "unchecked_axes": [
+    "x",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": 0.00539720684698147,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 8.875210192044613e-05
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -0.3620816682787012,
+     "estimate_std": 0.03866142434299836,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "pitch": {
+     "candidate_error": -0.15282630087642246,
+     "estimate_std": 0.03343528239483248,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "yaw": {
+     "candidate_error": 0.03446014140312577,
+     "estimate_std": 0.09262959121702503,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "y": {
+     "candidate_error": 0.0347513163326964,
+     "estimate_std": 0.008242660380669392,
+     "tolerance": 0.02472798114200818,
+     "status": "warn"
+    }
+   }
+  }
+ },
+ "rx3": {
+  "x36d": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch",
+    "yaw"
+   ],
+   "unchecked_axes": [
+    "x",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": 0.00539720684698147,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 8.875210192044613e-05
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -3.362079798959303,
+     "estimate_std": 0.03866142434299836,
+     "tolerance": 0.5,
+     "status": "fail"
+    },
+    "pitch": {
+     "candidate_error": -0.15189340820993744,
+     "estimate_std": 0.03343528239483248,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "yaw": {
+     "candidate_error": 0.03845431175888048,
+     "estimate_std": 0.09262959121702503,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "y": {
+     "candidate_error": 0.0262953354190998,
+     "estimate_std": 0.008242660380669392,
+     "tolerance": 0.02472798114200818,
+     "status": "warn"
+    }
+   }
+  }
+ },
+ "ry3": {
+  "x36d": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch",
+    "yaw"
+   ],
+   "unchecked_axes": [
+    "x",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": 0.00539720684698147,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 8.875210192044613e-05
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -0.36290533031157807,
+     "estimate_std": 0.03866142434299836,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "pitch": {
+     "candidate_error": -3.152816225298948,
+     "estimate_std": 0.03343528239483248,
+     "tolerance": 0.5,
+     "status": "fail"
+    },
+    "yaw": {
+     "candidate_error": 0.02497328291891345,
+     "estimate_std": 0.09262959121702503,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "y": {
+     "candidate_error": 0.034751316332696396,
+     "estimate_std": 0.008242660380669392,
+     "tolerance": 0.02472798114200818,
+     "status": "warn"
+    }
+   }
+  }
+ },
+ "rz3": {
+  "x36d": {
+   "status": "fail",
+   "coverage": "partial",
+   "reason_code": null,
+   "exit_status": 1,
+   "judged_axes": [
+    "roll",
+    "pitch",
+    "yaw"
+   ],
+   "unchecked_axes": [
+    "x",
+    "z"
+   ],
+   "time_offset": {
+    "estimate_s": 0.00539720684698147,
+    "note": "reported only; not judged",
+    "status": "estimated",
+    "std_s": 8.875210192044613e-05
+   },
+   "axes": {
+    "roll": {
+     "candidate_error": -0.3659989647482321,
+     "estimate_std": 0.03866142434299836,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "pitch": {
+     "candidate_error": -0.1433117320464427,
+     "estimate_std": 0.03343528239483248,
+     "tolerance": 0.5,
+     "status": "pass"
+    },
+    "yaw": {
+     "candidate_error": -2.9655280948231124,
+     "estimate_std": 0.09262959121702503,
+     "tolerance": 0.5,
+     "status": "fail"
+    },
+    "y": {
+     "candidate_error": 0.03466908841797084,
+     "estimate_std": 0.008242660380669392,
+     "tolerance": 0.02472798114200818,
+     "status": "warn"
+    }
+   }
+  }
+ }
+}
