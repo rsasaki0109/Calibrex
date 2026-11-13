@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- `calibrex check`, `estimate` and `drift` run the LiDAR estimators' nearest-neighbour
+  queries on every available CPU (`--threads N`; `--threads 1` is the old behaviour).
+  - The estimates are bit-identical for any thread count, and the artifact and cache key
+    do not record it.
+  - Measured on 42 s of Hesai XT32 + IMU: 281 s on one thread, 224 s on four.
+  - Library callers set it with `calibrex.core.query_threads.query_threads` or
+    `CALIBREX_QUERY_THREADS`; unset, queries stay on one thread.
 - `calibrex demo check` shows a check without a dataset: it writes a small simulated IMU +
   4D radar bag and runs `calibrex check` on the true mounting (pass) and on it turned 4 deg
   (fail), in a few seconds.

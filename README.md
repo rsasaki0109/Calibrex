@@ -101,8 +101,10 @@ calibrex check my_bag/ --max-duration-s 120 --tf fixed.urdf     # re-check anoth
   FAST-LIO config, `frames.yaml`) when the bag has none.
 - **The first run is slow** for LiDAR and camera pairs: the estimators register every scan
   or track every frame. Measured on a shared CPU: 8.5 min for 40 s of Hesai LiDAR + IMU,
-  28 min for 180 s of Livox MID360 with the lever arm. Start with `--max-duration-s 120`
-  and `--pairs`; a re-check of the same recording takes about 3 s.
+  28 min for 180 s of Livox MID360 with the lever arm, on one core. `check` now uses every
+  CPU for its nearest-neighbour queries, about 20 % faster on four cores with identical
+  estimates. Start with `--max-duration-s 120` and `--pairs`; a re-check of the same
+  recording takes about 3 s.
 - **`inconclusive` is not a pass.** It means the recording could not judge that pair; the
   `next steps` block at the end of the output says what to try.
 - **`pass (partial: roll, pitch only)`** vouches for the named axes only.
