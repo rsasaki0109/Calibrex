@@ -17,7 +17,8 @@ python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download
 ## See a check before you have a bag
 
 ```bash
-calibrex demo check          # new in 0.6.5
+python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"   # the demo is newer than the v0.6.4 wheel
+calibrex demo check
 ```
 
 It writes a small simulated IMU + 4D radar bag and checks it twice, in a few seconds:

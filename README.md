@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <code>pip install</code> the wheel, then <code>calibrex demo check</code> shows a pass and a
+  <code>pip install</code> from this repository, then <code>calibrex demo check</code> shows a pass and a
   fail in seconds with no dataset: <a href="#try-it-in-one-minute"><b>try it in one minute</b></a>.
 </p>
 
@@ -75,8 +75,8 @@
 No dataset and no ROS installation are needed:
 
 ```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.4/calibrex-0.6.4-py3-none-any.whl"
-calibrex demo check          # new in 0.6.5
+python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"   # the demo is newer than the v0.6.4 wheel
+calibrex demo check
 ```
 
 The demo writes a small **simulated** IMU + 4D radar bag and runs `calibrex check` on it
@@ -124,6 +124,8 @@ calibrex check my_bag/ --max-duration-s 120 --tf fixed.urdf     # re-check anoth
 </p>
 
 ```bash
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.4/calibrex-0.6.4-py3-none-any.whl"
+
 calibrex estimate my_bag/ --output est/ --html est.html    # 1. no calibration yet: measure it, export frames.yaml / static transforms / URDF
 calibrex check other_bag/ --tf est/frames.yaml --html check.html   # 2. is the deployed calibration still right on another recording?
 calibrex drift day1/ day2/ day3/ --output drift/ --html drift.html # 3. did it change over time, and in which bag?
