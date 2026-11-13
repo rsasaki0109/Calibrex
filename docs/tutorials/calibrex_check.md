@@ -1907,6 +1907,14 @@ from the scans before it, so a pass cannot be split without changing its result,
 each gyro pass needs the rotation and clock offset of the pass before it. Of the eight
 passes only the last two (feedback check and lever arm) could run side by side.
 
+Running those two side by side was measured and not built. Its ceiling on that machine is
+about 11 %: two whole checks at once, on two threads each, took 253 s, against 220 s for
+one check on four threads, so a pair of passes would take about 32 s together instead of
+55 s one after the other. Reaching it needs the lever-arm pass to start from a rotation
+artifact that is not finished yet (its policy status waits for the feedback check), and
+two passes sharing the scan store and the progress display. That is more moving parts in
+the estimator the IMU-LiDAR claims rest on than 11 % is worth.
+
 ## Real bags with /tf_static
 
 The zero-config path (no `--tf`, candidate read from the bag's `/tf_static`) was
