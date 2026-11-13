@@ -172,8 +172,18 @@ def inventory(
     *,
     fetch: Callable[[str], bytes] = fetch_listing,
     frame_limit: int = 600,
+    skip: int = 0,
+    complete: int | None = None,
+    examine_at_most: int = 12,
+    selection_rule: str = SELECTION_RULE,
 ) -> BoreasInsLidarMetadata:
-    """Build a schema-valid metadata-only readiness record, without claiming freshness."""
+    """Build a schema-valid metadata-only readiness record, without claiming freshness.
+
+    By default the first three recording prefixes are inventoried, as the first audit
+    did. With ``complete``, the prefixes after the first ``skip`` are inventoried in
+    order until that many have every required file; the incomplete ones met on the way
+    are retained, and all are evaluation candidates.
+    """
     if not 1 <= frame_limit <= 600:
         raise ValueError("frame_limit must be between 1 and 600")
     reader = _Inventory(fetch)
@@ -183,11 +193,17 @@ def inventory(
             node.findtext("s3:Prefix", default="", namespaces=NS)
             for node in page.findall("s3:CommonPrefixes", NS)
         )
-    names = sorted({p for p in prefixes if ORIGINAL_RECORDING.fullmatch(p)})[:3]
-    if len(names) != 3:
-        raise ValueError("three original Boreas recording prefixes required")
-    recordings = []
+    names = sorted({p for p in prefixes if ORIGINAL_RECORDING.fullmatch(p)})[skip:]
+    if complete is None:
+        names = names[:3]
+        if len(names) != 3:
+            raise ValueError("three original Boreas recording prefixes required")
+    else:
+        names = names[:examine_at_most]
+    recordings: list[RecordingMetadata] = []
     for index, prefix in enumerate(names):
+        if complete is not None and sum(not r.missing_required for r in recordings) == complete:
+            break
         lidar = reader.objects(prefix + "lidar/", limit=frame_limit)
         aux = reader.objects(prefix + "applanix/") + reader.objects(prefix + "calib/")
         by_key = {obj.key: obj for obj in aux}
@@ -199,7 +215,11 @@ def inventory(
         recordings.append(
             RecordingMetadata(
                 recording_id=prefix.rstrip("/"),
-                role="development_candidate" if index == 0 else "evaluation_candidate",
+                role=(
+                    "development_candidate"
+                    if index == 0 and complete is None
+                    else "evaluation_candidate"
+                ),
                 lidar=lidar,
                 reference_trajectory=by_key.get(trajectory_key),
                 reference_calibration=by_key.get(calibration_key),
@@ -207,8 +227,11 @@ def inventory(
                 missing_required=missing,
             )
         )
+    if complete is not None and sum(not r.missing_required for r in recordings) != complete:
+        raise ValueError(f"fewer than {complete} complete Boreas recordings were found")
     return BoreasInsLidarMetadata(
         provenance=provenance,
+        selection_rule=selection_rule,
         selected_frame_limit=frame_limit,
         recordings=recordings,
         requests=reader.receipts,

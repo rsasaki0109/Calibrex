@@ -11,6 +11,7 @@ import hashlib
 import json
 import subprocess
 import sys
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
@@ -63,8 +64,19 @@ class KittiInsLidarInventory(_Strict):
     sensor_member_download_bytes: int = Field(default=0, ge=0, le=0)
 
 
-def collect(pool: Path, *, source_root: Path) -> KittiInsLidarInventory:
-    """Choose from metadata counts only, then check the selected archives' live pins."""
+def collect(
+    pool: Path,
+    *,
+    source_root: Path,
+    choose: Callable[[list[str]], list[str]] | None = None,
+    selection_rule: str = SELECTION_RULE,
+    generator: str = "tools.ins_lidar_sota_inventory",
+) -> KittiInsLidarInventory:
+    """Choose from metadata counts only, then check the selected archives' live pins.
+
+    ``choose`` maps the eligible recording IDs (in order) to the ones to pin; the default
+    is the first audit's rule, the first three.
+    """
     eligible = []
     sources = {}
     for path in sorted(pool.glob("*/download.json")):
@@ -82,8 +94,9 @@ def collect(pool: Path, *, source_root: Path) -> KittiInsLidarInventory:
             eligible.append((path.parent.name, path, record, digest))
     if len(sources) != 18 or len(eligible) < 3:
         raise ValueError("the declared eighteen-archive metadata pool is incomplete")
+    wanted = (choose or (lambda names: names[:3]))([item[0] for item in eligible])
     selected = []
-    for case_id, path, record, digest in eligible[:3]:
+    for case_id, path, record, digest in (item for item in eligible if item[0] in wanted):
         date, _, drive = case_id.rpartition("_")
         url = fetch.drive_url(date, drive)
         size, etag = fetch.head(url)
@@ -122,7 +135,7 @@ def collect(pool: Path, *, source_root: Path) -> KittiInsLidarInventory:
         )
     return KittiInsLidarInventory(
         provenance={
-            "generator": "tools.ins_lidar_sota_inventory",
+            "generator": generator,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "source_head": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
             "source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -136,6 +149,7 @@ def collect(pool: Path, *, source_root: Path) -> KittiInsLidarInventory:
             "independent_rig_policy": "All KITTI dates count as one platform, "
             "separate from Boreas.",
         },
+        selection_rule=selection_rule,
         source_pool_metadata_sha256=sources,
         eligible_recording_ids=[item[0] for item in eligible],
         selected=selected,

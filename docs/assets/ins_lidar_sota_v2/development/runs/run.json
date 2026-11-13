@@ -1,0 +1,183 @@
+{
+  "schema_version": "calibrex.ins_lidar_sota_run/v0.2",
+  "preregistration_sha256": "ca7456a21eeef754c1935917024fa90fccc6aa860004c642ecede773f70f63f1",
+  "frozen_code_commit": "815678cacc11ddb5c1100a9ef0e79b0b4765ffe7",
+  "development": true,
+  "cases": [
+    {
+      "case_id": "2011_09_29_0071",
+      "dataset_family": "kitti_raw",
+      "rig_id": "kitti-platform",
+      "drive_ids": [
+        "2011_09_29_drive_0071_sync"
+      ],
+      "artifact_path": "2011_09_29_0071.yaml",
+      "artifact_sha256": "299a4b37619399b83da595da94eac920cf64c40c421be2d05f74318f2a6ee651"
+    },
+    {
+      "case_id": "2011_09_30_0020",
+      "dataset_family": "kitti_raw",
+      "rig_id": "kitti-platform",
+      "drive_ids": [
+        "2011_09_30_drive_0020_sync"
+      ],
+      "artifact_path": "2011_09_30_0020.yaml",
+      "artifact_sha256": "8077d84429565b65874c37321c5b826d2a198e80d0295ef1d09a5beb943d0e41"
+    },
+    {
+      "case_id": "2011_09_30_0027",
+      "dataset_family": "kitti_raw",
+      "rig_id": "kitti-platform",
+      "drive_ids": [
+        "2011_09_30_drive_0027_sync"
+      ],
+      "artifact_path": "2011_09_30_0027.yaml",
+      "artifact_sha256": "dbaad9b29e8f3992b81f5ebb0b96417d5ea5480465db91a6eb41948b8c083cc6"
+    },
+    {
+      "case_id": "boreas-2020-12-01-13-26",
+      "dataset_family": "boreas",
+      "rig_id": "boreas-platform",
+      "drive_ids": [
+        "boreas-2020-12-01-13-26"
+      ],
+      "artifact_path": "boreas-2020-12-01-13-26.yaml",
+      "artifact_sha256": "4cb3141a87bed11bc9fb8f44138629146a3eac0d04c44ac552aa020ac4b52d06"
+    }
+  ],
+  "input_receipts": {
+    "2011_09_29_0071": {
+      "path": "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/work/2011_09_29_0071/acquisition.json",
+      "sha256": "484edbbbeb783d55f86beea9e1c658a61920a696530ebcbfc3dbb2b898b22261",
+      "work_dir": "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/work/2011_09_29_0071",
+      "raw_deleted": true,
+      "raw_deleted_bytes": 1172074435
+    },
+    "2011_09_30_0020": {
+      "path": "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/work/2011_09_30_0020/acquisition.json",
+      "sha256": "ebfb9679795a2f2e15c8c38f9e57d6d85c98d75d0430ae06057f2031c0f41dda",
+      "work_dir": "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/work/2011_09_30_0020",
+      "raw_deleted": true,
+      "raw_deleted_bytes": 1174649436
+    },
+    "2011_09_30_0027": {
+      "path": "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/work/2011_09_30_0027/acquisition.json",
+      "sha256": "36ce7c9f9c8cce5d22e4922fed5c3f1a33049d9bfa0abffb237b9df6cd621052",
+      "work_dir": "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/work/2011_09_30_0027",
+      "raw_deleted": true,
+      "raw_deleted_bytes": 1175050725
+    },
+    "boreas-2020-12-01-13-26": {
+      "path": "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/work/boreas-2020-12-01-13-26/acquisition.json",
+      "sha256": "f26a55beec0e16e5d6d3ab17e5be367e718843c18b556a957111d12a7b868eb2",
+      "work_dir": "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/work/boreas-2020-12-01-13-26",
+      "raw_deleted": true,
+      "raw_deleted_bytes": 3089966797
+    }
+  },
+  "attempts": {
+    "2011_09_29_0071": {
+      "status": "PASS",
+      "command": [
+        "/home/user/Calibrex/.venv/bin/python",
+        "-X",
+        "utf8",
+        "/home/user/calibrex-dev/tools/ins_lidar_sota_v2_evaluate.py",
+        "--development",
+        "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/work/2011_09_29_0071",
+        "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/runs/2011_09_29_0071.yaml",
+        "--worker-index",
+        "0"
+      ],
+      "started_at": "2026-11-13T07:55:22.521921+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-13T07:56:02.445810+00:00"
+    },
+    "2011_09_30_0020": {
+      "status": "PASS",
+      "command": [
+        "/home/user/Calibrex/.venv/bin/python",
+        "-X",
+        "utf8",
+        "/home/user/calibrex-dev/tools/ins_lidar_sota_v2_evaluate.py",
+        "--development",
+        "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/work/2011_09_30_0020",
+        "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/runs/2011_09_30_0020.yaml",
+        "--worker-index",
+        "1"
+      ],
+      "started_at": "2026-11-13T07:56:54.354818+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-13T07:57:47.369441+00:00"
+    },
+    "2011_09_30_0027": {
+      "status": "PASS",
+      "command": [
+        "/home/user/Calibrex/.venv/bin/python",
+        "-X",
+        "utf8",
+        "/home/user/calibrex-dev/tools/ins_lidar_sota_v2_evaluate.py",
+        "--development",
+        "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/work/2011_09_30_0027",
+        "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/runs/2011_09_30_0027.yaml",
+        "--worker-index",
+        "2"
+      ],
+      "started_at": "2026-11-13T07:58:46.204217+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-13T07:59:26.314036+00:00"
+    },
+    "boreas-2020-12-01-13-26": {
+      "status": "PASS",
+      "command": [
+        "/home/user/Calibrex/.venv/bin/python",
+        "-X",
+        "utf8",
+        "/home/user/calibrex-dev/tools/ins_lidar_sota_v2_evaluate.py",
+        "--development",
+        "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/work/boreas-2020-12-01-13-26",
+        "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/runs/boreas-2020-12-01-13-26.yaml",
+        "--worker-index",
+        "3"
+      ],
+      "started_at": "2026-11-13T08:02:02.879762+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-13T08:03:55.837405+00:00"
+    }
+  },
+  "interrupted_attempts": [
+    {
+      "status": "RUNNING",
+      "command": [
+        "/home/user/Calibrex/.venv/bin/python",
+        "-X",
+        "utf8",
+        "/home/user/calibrex-dev/tools/ins_lidar_sota_v2_evaluate.py",
+        "--development",
+        "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/work/2011_09_29_0071",
+        "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/runs/2011_09_29_0071.yaml",
+        "--worker-index",
+        "0"
+      ],
+      "started_at": "2026-11-13T07:54:55.537701+00:00",
+      "case_id": "2011_09_29_0071",
+      "noted_at": "2026-11-13T07:55:21.216718+00:00",
+      "kept_artifact": null,
+      "kept_log": "2011_09_29_0071.interrupted-1.log"
+    }
+  ],
+  "acquisition_errors": [],
+  "provenance": {
+    "generator": "tools.ins_lidar_sota_v2_evaluate",
+    "source_head": "815678cacc11ddb5c1100a9ef0e79b0b4765ffe7",
+    "python": "3.12.3",
+    "created_at": "2026-11-13T07:54:06.305579+00:00",
+    "command": [
+      "/home/user/Calibrex/.venv/bin/python",
+      "tools/ins_lidar_sota_v2_evaluate.py",
+      "--development",
+      "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/work",
+      "/tmp/claude-0/-home-user/dfb0a4c4-e557-5248-9cbf-de7096a50462/scratchpad/insv2/dev/runs"
+    ]
+  }
+}
