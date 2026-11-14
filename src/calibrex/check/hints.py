@@ -173,11 +173,12 @@ def topic_hint(topic: CheckTopicRecord, *, tree_frames: Sequence[str] = ()) -> s
                 f"--tf, or map the topic with --frame-map {topic.topic}=FRAME"
             )
         return f"{topic.topic}: no header frame_id; map it with --frame-map {topic.topic}=FRAME"
-    example = tree_frames[0]
     known = f"header frame '{header}' is not in the tree" if header else "no header frame_id"
+    listed = ", ".join(tree_frames[:4]) + (", ..." if len(tree_frames) > 4 else "")
     return (
-        f"{topic.topic}: {known}; map it with --frame-map {topic.topic}={example} "
-        f"(tree frames include {', '.join(tree_frames[:4])}) or add the frame to --tf"
+        f"{topic.topic}: {known}; add this sensor's transform to --tf, or, only if one of "
+        f"the tree frames ({listed}) is this sensor, map it with "
+        f"--frame-map {topic.topic}=FRAME"
     )
 
 

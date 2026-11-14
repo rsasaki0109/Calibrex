@@ -50,7 +50,8 @@ LiDAR and camera pairs are slow the first time, because the estimators register 
 or track every frame: 8.5 min for 40 s of Hesai LiDAR + IMU and 28 min for 180 s of Livox
 MID360 with the lever arm, on a shared CPU
 ([measurements](tutorials/calibrex_check.md#runtime-after-the-speed-up)). The estimate is
-cached, so checking another calibration against the same recording takes about 3 s. When
+cached, so checking another calibration against the same recording takes seconds
+(`camera-lidar` is not cached and runs again: 12 s in all on a 120 s Livox + camera bag). When
 the bag has no `/tf_static`, pass the calibration with `--tf` (URDF, Kalibr, FAST-LIO
 config or `frames.yaml`); `--write-frames-template FILE` writes a starter `frames.yaml`
 naming the bag's sensor frames for you to fill in.
