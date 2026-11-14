@@ -168,7 +168,12 @@ def iter_livox_points(
         first_s = header_s if first_s is None else first_s
         if max_seconds is not None and header_s - first_s > max_seconds:
             break
-        emit_tick(scans_read)
+        # Under a duration cap the scan count is not known up front: project it from the
+        # scan rate so far (display only; a bag shorter than the cap ends before it).
+        total = None
+        if max_seconds is not None and header_s - first_s > 1.0:
+            total = max(scans_read, round(scans_read * max_seconds / (header_s - first_s)))
+        emit_tick(scans_read, total)
         yield header_s, scan.xyz, scan.offsets_s
 
 
