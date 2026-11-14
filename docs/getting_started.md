@@ -14,11 +14,17 @@ no-source install is the versioned wheel attached to the GitHub release.
 python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.4/calibrex-0.6.4-py3-none-any.whl"
 ```
 
+The repository is newer than that wheel. `calibrex demo check`, `--threads`, the progress
+time left and the first-run fixes of `calibrex check` described below need it:
+
+```bash
+python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"
+```
+
 ## See a check before you have a bag
 
 ```bash
-python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"   # the demo is newer than the v0.6.4 wheel
-calibrex demo check
+calibrex demo check   # needs the repository install above
 ```
 
 It writes a small simulated IMU + 4D radar bag and checks it twice, in a few seconds:

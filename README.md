@@ -56,6 +56,9 @@ calibrex check my_bag/ --max-duration-s 120 --html check.html   # the first 120 
 calibrex check my_bag/ --max-duration-s 120 --tf fixed.urdf     # re-check another calibration: seconds, from the cache
 ```
 
+- **Install from the repository for this section**, as the demo above does. The v0.6.4
+  wheel is older: it has no `--threads`, shows no time left for a pair, and fails late on
+  a bag folder that holds only the `.mcap` or `.db3` file without its `metadata.yaml`.
 - **The calibration** is read from the bag's `/tf_static`. Many bags have none, and then
   `check` needs `--tf` with the calibration you already use: the robot's URDF, a Kalibr
   `camchain-imucam.yaml`, or the FAST-LIO / FAST-LIVO config (`--tf` can be repeated).
@@ -867,6 +870,13 @@ The supported no-source install is the versioned wheel attached to the
 ```bash
 python -m pip install \
   "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.4/calibrex-0.6.4-py3-none-any.whl"
+```
+
+The repository is newer than that wheel. `calibrex demo check`, `--threads`, the progress
+time left and the first-run fixes of `calibrex check` are only there:
+
+```bash
+python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"
 ```
 
 Development checkouts and optional backends remain explicit:
