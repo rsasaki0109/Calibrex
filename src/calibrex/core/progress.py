@@ -27,6 +27,8 @@ class ProgressEvent:
     """Items processed so far in the current stage (``tick`` events)."""
     total: int | None = None
     """Items expected in the current stage, when known."""
+    passes_after: int | None = None
+    """For a stage that is one pass over the data: at most this many more follow it."""
 
     metric_name: str = ""
     value: float | None = None
@@ -37,6 +39,7 @@ class ProgressEvent:
 ProgressSink = Callable[[ProgressEvent], None]
 
 _SINK: ContextVar[ProgressSink | None] = ContextVar("calibrex_progress_sink", default=None)
+_FOLLOWING: ContextVar[int] = ContextVar("calibrex_progress_following_passes", default=0)
 
 
 @contextmanager
@@ -50,12 +53,34 @@ def progress_sink(sink: ProgressSink | None) -> Iterator[None]:
         _SINK.reset(token)
 
 
-def emit_stage(text: str) -> None:
-    """Announce that a new stage (pass, solver, cache reuse) started."""
+@contextmanager
+def following_passes(count: int) -> Iterator[None]:
+    """Declare that up to ``count`` passes follow the passes announced inside the block.
+
+    A caller that runs another pass after an estimator (the lever arm after the rotation)
+    uses it so the estimator's own ``passes_after`` counts that pass too. Display only.
+    """
+
+    token = _FOLLOWING.set(_FOLLOWING.get() + count)
+    try:
+        yield
+    finally:
+        _FOLLOWING.reset(token)
+
+
+def emit_stage(text: str, *, passes_after: int | None = None) -> None:
+    """Announce that a new stage (pass, solver, cache reuse) started.
+
+    ``passes_after`` marks the stage as one pass over the data and says how many more
+    passes of about the same cost follow it at most, so a renderer can show the time left
+    for all of them.
+    """
 
     sink = _SINK.get()
     if sink is not None:
-        sink(ProgressEvent("stage", text=text))
+        if passes_after is not None:
+            passes_after += _FOLLOWING.get()
+        sink(ProgressEvent("stage", text=text, passes_after=passes_after))
 
 
 def emit_tick(done: int, total: int | None = None) -> None:

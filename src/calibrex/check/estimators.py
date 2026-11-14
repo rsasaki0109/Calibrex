@@ -48,7 +48,7 @@ from calibrex.core.calibration_check import (
     CheckTimeOffset,
     CheckTopicRecord,
 )
-from calibrex.core.progress import emit_stage
+from calibrex.core.progress import emit_stage, following_passes
 from calibrex.data.external_camera import (
     ExternalCameraSource,
     iter_external_gray,
@@ -597,26 +597,28 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
         "max_seconds": ctx.controls.max_duration_s,
         "options": imu_lidar_run_options(deskew),
     }
-    rotation, rotation_cached = cached_artifact(
-        ctx.controls.cache,
-        ctx.controls.bag_sha256,
-        "imu_lidar_rotation",
-        rotation_options,
-        loader=load_imu_lidar_rotation,
-        compute=lambda: run_livox_imu_lidar_rotation(
-            [ctx.bag],
-            profile,
-            imu_lidar_run_options(deskew),
-            dataset_family=DATASET_FAMILY,
-            dataset_license=DATASET_LICENSE,
-            reference_rotation=candidate[:3, :3],
-            max_seconds=ctx.controls.max_duration_s,
-            reference=reference,
-            command=command,
-            scan_store=ctx.controls.scan_store,
-        ),
-        rebase=lambda hit: rebase_rotation_reference(hit, candidate[:3, :3]),
-    )
+    # the lever-arm pass follows the rotation passes (display only)
+    with following_passes(1 if ctx.controls.imu_lidar_translation else 0):
+        rotation, rotation_cached = cached_artifact(
+            ctx.controls.cache,
+            ctx.controls.bag_sha256,
+            "imu_lidar_rotation",
+            rotation_options,
+            loader=load_imu_lidar_rotation,
+            compute=lambda: run_livox_imu_lidar_rotation(
+                [ctx.bag],
+                profile,
+                imu_lidar_run_options(deskew),
+                dataset_family=DATASET_FAMILY,
+                dataset_license=DATASET_LICENSE,
+                reference_rotation=candidate[:3, :3],
+                max_seconds=ctx.controls.max_duration_s,
+                reference=reference,
+                command=command,
+                scan_store=ctx.controls.scan_store,
+            ),
+            rebase=lambda hit: rebase_rotation_reference(hit, candidate[:3, :3]),
+        )
     if rigid:
         notes = [
             "deskew none: the cloud has no per-point time field"

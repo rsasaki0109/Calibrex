@@ -1103,7 +1103,35 @@ def _unchecked_lines(pair: Any) -> list[str]:
     return [f"unchecked {', '.join(names)}: {reason}" for reason, names in grouped.items()]
 
 
-def _verdict_lines(artifact: CalibrationCheckArtifact, color: bool = False) -> list[str]:
+_VERDICT_HEADERS = (
+    "pair",
+    "sensors",
+    "verdict",
+    "reason",
+    "|delta|/tolerance",
+    "unchecked",
+    "detectable",
+)
+
+
+def _stacked_rows(rows: Sequence[Sequence[str]], color: bool) -> list[str]:
+    """The verdict table as one block per pair, for a terminal narrower than the table."""
+
+    lines: list[str] = []
+    for row in rows:
+        verdict = paint_verdict(row[2]) if color else row[2]
+        lines.append(f"{row[0]}: {verdict}" + (f" [{row[3]}]" if row[3] else ""))
+        for header, cell in zip(_VERDICT_HEADERS, row, strict=True):
+            if header in {"sensors", "|delta|/tolerance", "unchecked", "detectable"} and (
+                cell not in {"", "-"}
+            ):
+                lines.append(f"    {header}: {cell}")
+    return lines
+
+
+def _verdict_lines(
+    artifact: CalibrationCheckArtifact, color: bool = False, width: int | None = None
+) -> list[str]:
     lines: list[str] = []
     rows: list[list[str]] = []
     quiet: dict[str, list[str]] = {}
@@ -1150,21 +1178,13 @@ def _verdict_lines(artifact: CalibrationCheckArtifact, color: bool = False) -> l
                 detect or "-",
             ]
         )
-    lines.extend(
-        _table(
-            [
-                "pair",
-                "sensors",
-                "verdict",
-                "reason",
-                "|delta|/tolerance",
-                "unchecked",
-                "detectable",
-            ],
-            rows,
-            paint_column=2 if color else None,
-        )
-    )
+    table = _table(_VERDICT_HEADERS, rows)
+    if width is not None and rows and max(len(line) for line in table) > width:
+        lines.extend(_stacked_rows(rows, color))
+    elif color:
+        lines.extend(_table(_VERDICT_HEADERS, rows, paint_column=2))
+    else:
+        lines.extend(table)
     for code, names in quiet.items():
         lines.append(f"  {code.replace('_', ' ')}: {', '.join(names)}")
     ran = [pair.pair for pair in artifact.pairs if pair.status != "skipped"]
@@ -1311,7 +1331,7 @@ def format_check_table(
         ]
         lines.extend(_table(["pair", "sensors", "status", "reason", "detail"], pair_rows))
     else:
-        lines.extend(_verdict_lines(artifact, color))
+        lines.extend(_verdict_lines(artifact, color, width))
     summary = artifact.summary
     counts = ", ".join(f"{name}={count}" for name, count in summary.status_counts.items())
     lines.append("")
