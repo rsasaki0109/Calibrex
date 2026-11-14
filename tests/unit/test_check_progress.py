@@ -408,8 +408,41 @@ def test_table_color_only_changes_the_verdict_column(
 
 
 def test_a_pass_reports_the_time_left_for_the_passes_after_it() -> None:
-    """Eight passes of one cost: the ETA covers the pair, not only the pass on screen."""
+    """The ETA covers the pair. Real passes after the first replay scans and send no count."""
 
+    out, clock = io.StringIO(), Clock()
+    progress = PlainProgress(out, clock, tick_interval_s=0.0)
+    progress.pair_started(1, 1, "imu-lidar (a / b)")
+
+    def last() -> str:
+        return out.getvalue().splitlines()[-1]
+
+    with progress_sink(progress.on_event):
+        with following_passes(1):  # the caller runs a lever-arm pass afterwards
+            emit_stage("pass 1 of up to 3", passes_after=2)
+            assert "eta" not in last()  # nothing measured yet
+            clock.now += 10
+            emit_tick(100)  # a count without a total: still nothing to project from
+            assert "eta" not in last()
+            clock.now += 28
+            emit_stage("rotation estimation")  # belongs to pass 1
+            clock.now += 2
+            emit_stage("pass 2 of up to 3", passes_after=1)  # pass 1 took 40 s
+            assert "eta up to 2m00s with 2 more passes" in last()
+            emit_stage("replaying decoded scans from memory")
+            clock.now += 30
+            emit_stage("rotation estimation")
+            assert "eta up to 1m30s with 2 more passes" in last()
+            clock.now += 10
+        # the fit converged early: the lever-arm pass is the last one
+        emit_stage("pass for the lever arm", passes_after=0)
+        assert "eta 40s" in last()
+        clock.now += 50  # longer than a pass took: the estimate does not go negative
+        emit_stage("lever-arm estimation")
+        assert "eta 0s" in last()
+
+
+def test_the_first_pass_projects_from_its_item_count_when_the_total_is_known() -> None:
     out, clock = io.StringIO(), Clock()
     progress = PlainProgress(out, clock, tick_interval_s=0.0)
     progress.pair_started(1, 1, "imu-lidar (a / b)")
@@ -419,22 +452,11 @@ def test_a_pass_reports_the_time_left_for_the_passes_after_it() -> None:
         clock.now += 10
         emit_tick(100)  # 10 s left in this pass, two more of 20 s each
         assert "eta up to 50s with 2 more passes" in out.getvalue().splitlines()[-1]
-        clock.now += 20  # the pass took 30 s in the end
-        emit_stage("pass 2", passes_after=1)
-        clock.now += 5
-        emit_tick(100)  # 5 s left, and one more pass of the 30 s the first one took
-        assert "eta up to 35s with 1 more pass" in out.getvalue().splitlines()[-1]
-        clock.now += 5
-        with following_passes(1):  # a caller that runs a pass after this estimator
-            emit_stage("pass 3", passes_after=0)
-        clock.now += 4
-        emit_tick(100)
-        assert "with 1 more pass" in out.getvalue().splitlines()[-1]
-        emit_stage("solving")  # not a pass: the plain per-stage ETA
-        clock.now += 4
-        emit_tick(100)
-        assert "eta 4s" in out.getvalue().splitlines()[-1]
-        emit_stage("last pass", passes_after=0)
+        emit_stage("solving")
+    progress.pair_started(2, 2, "radar-imu (a / b)")  # another pair starts clean
+    progress.set_scan_total(200)
+    with progress_sink(progress.on_event):
+        emit_stage("fitting")
         clock.now += 4
         emit_tick(100)
         assert "eta 4s" in out.getvalue().splitlines()[-1]

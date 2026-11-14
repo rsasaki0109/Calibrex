@@ -1301,7 +1301,13 @@ def format_check_table(
         ]
         for topic in artifact.topics
     ]
-    lines.extend(_table(["topic", "role", "header frame", "tree frame"], topic_rows))
+    topic_table = _table(["topic", "role", "header frame", "tree frame"], topic_rows)
+    if width is not None and max(len(line) for line in topic_table) > width:
+        for name, role, header, frame in topic_rows:  # one block per topic, cells wrap
+            lines.append(f"{name}: {role}")
+            lines.append(f"    header frame: {header}; tree frame: {frame}")
+    else:
+        lines.extend(topic_table)
     unmapped = [
         topic.topic
         for topic in artifact.topics
