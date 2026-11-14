@@ -135,3 +135,31 @@ def test_a_pair_reads_pointcloud2_first_then_custommsg() -> None:
     with pytest.raises(CheckSkipError) as skipped:
         pick({"/a/scan": "velodyne_msgs/msg/VelodyneScan"})
     assert skipped.value.code == "unsupported_sensor"
+
+
+def test_a_duration_cap_projects_the_scan_total_for_the_progress_eta(tmp_path: Path) -> None:
+    """The first pass of a capped run has no message count to go by; the scan rate gives one."""
+
+    from calibrex.core.progress import ProgressEvent, progress_sink
+
+    bag = tmp_path / "long"
+    with Rosbag2Writer(bag) as writer:
+        writer.add_topic("/livox/lidar", CLOUD)
+        for index in range(40):  # 4 s at 10 Hz
+            stamp = BASE_NS + index * 100_000_000
+            writer.write("/livox/lidar", stamp, _cloud_payload(stamp, *_scan(index)))
+    profile = LivoxStreamProfile("p", "/livox/lidar", "", "time", "offset_s", "mps2")
+
+    def ticks(max_seconds: float | None) -> tuple[int, list[ProgressEvent]]:
+        events: list[ProgressEvent] = []
+        with progress_sink(events.append):
+            scans = list(iter_livox_points(bag, profile, max_seconds=max_seconds))
+        return len(scans), events
+
+    read, capped = ticks(2.0)
+    assert [event.done for event in capped] == list(range(1, read + 1))
+    assert all(event.total is None for event in capped[:11])  # under a second of data
+    totals = [event.total for event in capped[11:]]
+    assert totals and all(total is not None and abs(total - read) <= 2 for total in totals)
+    assert capped[-1].total == read
+    assert all(event.total is None for event in ticks(None)[1])  # the runner knows that total
