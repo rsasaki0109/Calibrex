@@ -18,6 +18,9 @@ python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download
 calibrex doctor          # checks environment and optional dependencies
 ```
 
+The repository is newer than that wheel (`--threads`, the progress time left, a bag folder
+without `metadata.yaml`); install it instead with `python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"` to get them.
+
 Calibrex is distributed as a GitHub Release wheel, not on PyPI; see
 [Install](../getting_started.md#install).
 
