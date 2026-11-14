@@ -234,7 +234,7 @@ def run_livox_imu_lidar_translation(
     run_options = ImuLidarRunOptions(
         windowing=opts.windowing, coverage_margin_s=opts.coverage_margin_s
     )
-    emit_stage("odometry + gyro deskew pass for the lever arm")
+    emit_stage("odometry + gyro deskew pass for the lever arm", passes_after=0)
     _, windows = collect_livox_windows(
         bags,
         stream,

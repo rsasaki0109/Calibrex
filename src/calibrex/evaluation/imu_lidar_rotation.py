@@ -260,7 +260,8 @@ def run_livox_imu_lidar_rotation(
                 else " (LiDAR constant-velocity)"
                 if model is None
                 else " (gyro)"
-            )
+            ),
+            passes_after=max_passes - passes_started,
         )
         segmenter: OdometrySegmenter | None = None
         for bag in bags:

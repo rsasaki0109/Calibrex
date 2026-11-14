@@ -29,7 +29,7 @@ from calibrex.check.progress import (
 from calibrex.check.runner import CheckRunOptions, build_calibration_check, format_check_table
 from calibrex.cli.main import main
 from calibrex.core.calibration_check import CalibrationCheckArtifact, CheckTimeOffset
-from calibrex.core.progress import emit_stage, emit_tick, progress_sink
+from calibrex.core.progress import emit_stage, emit_tick, following_passes, progress_sink
 
 
 class FakeTty(io.StringIO):
@@ -405,3 +405,36 @@ def test_table_color_only_changes_the_verdict_column(
     assert [line.rstrip() for line in stripped.splitlines()] == [
         line.rstrip() for line in plain.splitlines()
     ]
+
+
+def test_a_pass_reports_the_time_left_for_the_passes_after_it() -> None:
+    """Eight passes of one cost: the ETA covers the pair, not only the pass on screen."""
+
+    out, clock = io.StringIO(), Clock()
+    progress = PlainProgress(out, clock, tick_interval_s=0.0)
+    progress.pair_started(1, 1, "imu-lidar (a / b)")
+    progress.set_scan_total(200)
+    with progress_sink(progress.on_event):
+        emit_stage("pass 1", passes_after=2)
+        clock.now += 10
+        emit_tick(100)  # 10 s left in this pass, two more of 20 s each
+        assert "eta up to 50s with 2 more passes" in out.getvalue().splitlines()[-1]
+        clock.now += 20  # the pass took 30 s in the end
+        emit_stage("pass 2", passes_after=1)
+        clock.now += 5
+        emit_tick(100)  # 5 s left, and one more pass of the 30 s the first one took
+        assert "eta up to 35s with 1 more pass" in out.getvalue().splitlines()[-1]
+        clock.now += 5
+        with following_passes(1):  # a caller that runs a pass after this estimator
+            emit_stage("pass 3", passes_after=0)
+        clock.now += 4
+        emit_tick(100)
+        assert "with 1 more pass" in out.getvalue().splitlines()[-1]
+        emit_stage("solving")  # not a pass: the plain per-stage ETA
+        clock.now += 4
+        emit_tick(100)
+        assert "eta 4s" in out.getvalue().splitlines()[-1]
+        emit_stage("last pass", passes_after=0)
+        clock.now += 4
+        emit_tick(100)
+        assert "eta 4s" in out.getvalue().splitlines()[-1]

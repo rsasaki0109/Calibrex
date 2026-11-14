@@ -437,7 +437,7 @@ def test_the_plan_says_when_a_run_would_skip_the_camera_for_opencv(
     assert "OpenCV is not installed" not in with_opencv
 
 
-def test_notes_wrap_to_the_terminal_and_rows_do_not(
+def test_notes_wrap_and_a_wide_verdict_table_is_stacked(
     tmp_path: Path, bag: Path, calls: list[PairContext]
 ) -> None:
     artifact = build_calibration_check(bag, run=CheckRunOptions(evidence_dir=tmp_path / "ev"))
@@ -445,13 +445,17 @@ def test_notes_wrap_to_the_terminal_and_rows_do_not(
     whole = format_check_table(artifact)
     narrow = format_check_table(artifact, width=80)
 
+    header = next(line for line in whole.splitlines() if line.startswith("pair "))
+    assert len(header) > 80 and header in format_check_table(artifact, width=1000)
+    # at 80 columns the verdict table becomes one block per pair, and its cells wrap
+    assert header not in narrow
+    assert "imu-lidar: pass" in narrow.splitlines()
+    assert any(line.startswith("    sensors: ") for line in narrow.splitlines())
     notes = [line for line in narrow.splitlines() if line.startswith(" ")]
     assert notes and max(len(line) for line in notes) <= 80
-    rows = [line for line in whole.splitlines() if not line.startswith(" ")]
-    assert all(row in narrow.splitlines() for row in rows)  # table rows are never wrapped
-    assert any(len(row) > 80 for row in rows)
-    # wrapping moves words between lines and loses none
-    assert narrow.split() == whole.split()
+    # every cell of the table is still there
+    row = next(line for line in whole.splitlines() if line.startswith("imu-lidar "))
+    assert all(word in narrow.split() for word in row.split())
 
 
 def test_a_long_reason_is_cut_in_the_table_only(
