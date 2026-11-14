@@ -293,7 +293,9 @@ def bag_input_digest(bag_dirs: Sequence[str | Path]) -> tuple[str, str]:
         root = Path(bag_dir)
         digest.update(root.name.encode("utf-8"))
         if root.is_dir():
-            digest.update((root / "metadata.yaml").read_bytes())
+            metadata = root / "metadata.yaml"
+            if metadata.is_file():  # a directory holding only the storage file is read too
+                digest.update(metadata.read_bytes())
             databases = sorted(root.glob("*.db3")) + sorted(root.glob("*.mcap"))
         else:  # a bare .db3 / .mcap / ROS 1 .bag has no metadata.yaml
             databases = [root]

@@ -576,6 +576,25 @@ def test_estimator_input_digests_accept_a_bare_bag_file(tmp_path: Path) -> None:
     assert bag_input_digest([bag])[0] != digest
 
 
+def test_estimator_input_digests_accept_a_directory_without_metadata(tmp_path: Path) -> None:
+    """``check`` reads such a directory, so the estimators must not fail on it afterwards."""
+
+    from calibrex.data.livox_ros2 import bag_input_digest
+    from calibrex.data.rtk_slam import rtk_slam_input_digest
+
+    folder = tmp_path / "recording"
+    folder.mkdir()
+    (folder / "recording.mcap").write_bytes(b"storage")  # the digests read bytes only
+    digest, _scope = bag_input_digest([folder])
+    assert len(digest) == 64
+    (tmp_path / "rtk.txt").write_text("0 0 0\n", encoding="utf-8")
+    (tmp_path / "calib.yaml").write_text("a: 1\n", encoding="utf-8")
+    rtk_digest, _ = rtk_slam_input_digest(folder, tmp_path / "rtk.txt", tmp_path / "calib.yaml")
+    assert len(rtk_digest) == 64
+    (folder / "metadata.yaml").write_text("a: 1\n", encoding="utf-8")
+    assert bag_input_digest([folder])[0] != digest  # the metadata still counts when present
+
+
 def test_a_repeat_imu_read_of_an_unchanged_bag_is_not_read_again(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
