@@ -453,6 +453,9 @@ def test_notes_wrap_and_a_wide_verdict_table_is_stacked(
     assert any(line.startswith("    sensors: ") for line in narrow.splitlines())
     notes = [line for line in narrow.splitlines() if line.startswith(" ")]
     assert notes and max(len(line) for line in notes) <= 80
+    # only the two unindented one-line facts (the bag path, the summary) are left whole
+    long = [line for line in narrow.splitlines() if len(line) > 80]
+    assert all(line.startswith(("bag:", "summary:")) for line in long)
     # every cell of the table is still there
     row = next(line for line in whole.splitlines() if line.startswith("imu-lidar "))
     assert all(word in narrow.split() for word in row.split())

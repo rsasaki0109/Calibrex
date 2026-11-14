@@ -82,8 +82,10 @@ class CheckProgress:
 
     def stage(self, text: str) -> None: ...
 
-    def set_passes_after(self, count: int | None) -> None:
-        """The current stage is one pass over the data; at most ``count`` more follow."""
+    def pass_started(self, text: str, passes_after: int) -> None:
+        """A stage that is one pass over the data; at most ``passes_after`` more follow."""
+
+        self.stage(text)
 
     def tick(self, done: int, total: int | None = None) -> None: ...
 
@@ -108,10 +110,10 @@ class CheckProgress:
     def on_event(self, event: ProgressEvent) -> None:
         """Sink for :func:`calibrex.core.progress.progress_sink`."""
 
-        if event.kind == "stage":
+        if event.kind == "stage" and event.passes_after is not None:
+            self.pass_started(event.text, event.passes_after)
+        elif event.kind == "stage":
             self.stage(event.text)
-            if event.passes_after is not None:
-                self.set_passes_after(event.passes_after)
         elif event.kind == "metric":
             if event.value is not None and event.step is not None:
                 self.metric(event.metric_name, event.value, event.unit, event.step)
@@ -171,7 +173,10 @@ class _Timeline(CheckProgress):
         self.scan_total: int | None = None
         self.done: int | None = None
         self.total: int | None = None
+        # A pass lasts until the next pass starts: the stages in between (replaying scans,
+        # the solve after the pass) belong to it.
         self.passes_after: int | None = None
+        self.pass_started_at = self.pair_started_at
         self.pass_durations: list[float] = []
 
     def run_started(self, total_pairs: int) -> None:
@@ -190,17 +195,17 @@ class _Timeline(CheckProgress):
 
     def stage(self, text: str) -> None:
         with self.lock:
-            now = self.clock()
-            if self.passes_after is not None:  # the stage that ends was a pass
-                self.pass_durations.append(now - self.stage_started_at)
-            self.passes_after = None
             self.stage_text = text
-            self.stage_started_at = now
+            self.stage_started_at = self.clock()
             self.done = self.total = None
 
-    def set_passes_after(self, count: int | None) -> None:
+    def pass_started(self, text: str, passes_after: int) -> None:
         with self.lock:
-            self.passes_after = count
+            now = self.clock()
+            if self.passes_after is not None:
+                self.pass_durations.append(now - self.pass_started_at)
+            self.passes_after, self.pass_started_at = passes_after, now
+            self.stage(text)
 
     def tick(self, done: int, total: int | None = None) -> None:
         with self.lock:
@@ -224,15 +229,25 @@ class _Timeline(CheckProgress):
             else:
                 parts.append(f"{self.done} msgs")
         parts.append(f"{format_duration(now - self.pair_started_at)} elapsed")
-        elapsed = now - self.stage_started_at
-        eta = eta_seconds(elapsed, self.done, self.total)
-        if eta is not None and self.passes_after:
-            # later passes cost about what the finished ones did (or this one will)
+        eta = eta_seconds(now - self.stage_started_at, self.done, self.total)
+        if self.passes_after is not None:
+            # A pass costs about what the finished ones did; before one has finished,
+            # what the item count projects for this one. Later passes may report no count.
             known = self.pass_durations
-            per_pass = sum(known) / len(known) if known else elapsed + eta
-            more = "pass" if self.passes_after == 1 else "passes"
-            total = format_duration(eta + self.passes_after * per_pass)
-            parts.append(f"eta up to {total} with {self.passes_after} more {more}")
+            in_pass = now - self.pass_started_at
+            if known:
+                per_pass: float | None = sum(known) / len(known)
+            else:
+                per_pass = in_pass + eta if eta is not None else None
+            if per_pass is not None:
+                left = max(per_pass - in_pass, 0.0) + self.passes_after * per_pass
+                if self.passes_after:
+                    more = "pass" if self.passes_after == 1 else "passes"
+                    parts.append(
+                        f"eta up to {format_duration(left)} with {self.passes_after} more {more}"
+                    )
+                else:
+                    parts.append(f"eta {format_duration(left)}")
         elif eta is not None:
             parts.append(f"eta {format_duration(eta)}")
         return ", ".join(parts)
@@ -272,8 +287,7 @@ class PlainProgress(_Timeline):
     def stage(self, text: str) -> None:
         super().stage(text)
         self._last_tick_line = self.clock()
-        elapsed = format_duration(self.clock() - self.pair_started_at)
-        self._write(f"check:   {text} [{elapsed} elapsed]\n")
+        self._write(f"check:   {text} [{self.bits()}]\n")
 
     def tick(self, done: int, total: int | None = None) -> None:
         super().tick(done, total)
