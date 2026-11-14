@@ -183,7 +183,8 @@ def rtk_slam_input_digest(
     inputs = [Path(rtk_path), Path(calib_path)]
     databases = [bag]  # a bare .db3 / .mcap / ROS 1 .bag has no metadata.yaml
     if bag.is_dir():
-        inputs.append(bag / "metadata.yaml")
+        if (bag / "metadata.yaml").is_file():  # a directory with only the storage file
+            inputs.append(bag / "metadata.yaml")
         databases = sorted(bag.glob("*.db3")) + sorted(bag.glob("*.mcap"))
     for path in inputs:
         digest.update(path.name.encode("utf-8"))
