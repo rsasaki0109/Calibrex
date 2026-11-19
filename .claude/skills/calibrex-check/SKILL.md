@@ -27,6 +27,8 @@ You must not:
   `--detection-probe-deg`, `--rigid-scan-rotation-floor-deg`, any `--*-deskew`,
   `--camera-lidar-*` options. If the user asks for one, run it, and label that run
   as using non-default thresholds;
+- give your own diagnosis as calibrex's. When you say which sensor you think is off,
+  say it is your reading of the pair verdicts, and quote what calibrex's own notes say;
 - edit the calibration being judged, or write transforms yourself. A changed calibration
   is a different candidate: report it as such, never as the user's calibration passing;
 - map a topic onto a frame unless that frame is that very sensor. A camera topic mapped
@@ -47,19 +49,27 @@ that turns it into a pass.
    - Otherwise look in the user's workspace for files they already use, and ask them
      which one is deployed: a URDF/xacro output, a FAST-LIO / Point-LIO / FAST-LIVO
      config (`extrinsic_R`, `extrinsic_T`), a FAST-LIVO camera file, a Kalibr
-     `camchain-imucam.yaml`. Pass each with `--tf` (repeatable).
+     `camchain-imucam.yaml`. Pass each with `--tf` (repeatable). A camera intrinsics
+     file (FAST-LIVO camera file, Kalibr camchain) goes with `--tf` too; the camera
+     pairs need it when the bag has no CameraInfo.
+   - If the user cannot be asked, pick the file the plan accepts and that names the
+     bag's topics, and say in the report which file you judged and that the user must
+     confirm it is the deployed one. Files that hold no transform (an EKF or driver
+     config) are not candidates.
    - Never invent a transform. With nothing to pass, offer two things:
      `--write-frames-template frames.yaml` writes a file naming the bag's frames for the
      user to fill in, and `calibrex estimate BAG --output DIR` estimates a calibration
      (to be checked later on a different recording).
    - Re-run `--plan` with the `--tf` files and read the `next steps` block. An
-     `UNMAPPED` topic means its sensor has no transform in the candidate; leave it
-     unmapped unless a tree frame is that sensor.
+     `UNMAPPED` topic (often one with no header `frame_id`) means its sensor has no
+     transform in the candidate; leave it unmapped unless a tree frame is that sensor,
+     and list its pairs as not checked.
 3. **First run, short.** `calibrex check BAG --tf ... --pairs <runnable pairs>
-   --max-duration-s 120 --output run1.json --html run1.html`. LiDAR and camera pairs take
-   minutes, so run it in the background and read the progress line (it shows the time
-   left for the pair). A re-run of the same bag reuses the cache and takes seconds,
-   except camera-lidar.
+   --max-duration-s 120 --output run1.json --html run1.html 2> run1.log`. LiDAR and
+   camera pairs take minutes: run it in the background, wait for that process to exit,
+   and read the progress in `run1.log` (it shows the time left for the pair). A re-run
+   with the same bag and the same options reuses the estimates and takes seconds, except
+   camera-lidar; a different `--max-duration-s` computes them again.
 4. **Read the result** from `run1.json`, not only from the table:
    - `overall_verdict`, and per pair `status`, `coverage`, `axes` (judged, with
      `candidate_error` and `tolerance`), `unchecked_axes` with their reasons;
@@ -74,6 +84,9 @@ that turns it into a pass.
 5. **Follow up once, within the rules.** If a pair was inconclusive or skipped, the
    `next steps` block says what would help (a longer window, other motion, a missing
    transform). Do what is possible inside the rules; say what needs a new recording.
+   A longer `--max-duration-s` helps only if the recording is longer than the first
+   window: check its length first (message count over rate in `--plan`, or
+   `ros2 bag info`), and do not re-run when it is not.
 6. **Report.**
 
 ## The report
