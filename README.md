@@ -71,6 +71,10 @@ calibrex check my_bag/ --max-duration-s 120 --tf fixed.urdf     # re-check anoth
   estimates. Start with `--max-duration-s 120` and `--pairs`. The estimates are cached, so
   a re-check of the same recording takes seconds; `camera-lidar` is not cached and runs
   again (12 s in all on a 120 s Livox + camera bag).
+- **With an AI coding agent** (Claude Code), the repository's
+  [`calibrex-check` skill](.claude/skills/calibrex-check/SKILL.md) walks it through these
+  steps on your bag, and forbids it from tuning thresholds or calibrations until a check
+  passes.
 - **`inconclusive` is not a pass.** It means the recording could not judge that pair; the
   `next steps` block at the end of the output says what to try.
 - **`pass (partial: roll, pitch only)`** vouches for the named axes only.
