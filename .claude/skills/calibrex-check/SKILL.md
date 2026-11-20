@@ -63,7 +63,9 @@ that turns it into a pass.
    - Re-run `--plan` with the `--tf` files and read the `next steps` block. An
      `UNMAPPED` topic (often one with no header `frame_id`) means its sensor has no
      transform in the candidate; leave it unmapped unless a tree frame is that sensor,
-     and list its pairs as not checked.
+     and list its pairs as not checked. A topic mapped with `(source_topic_hint)` (the
+     candidate file names its topic, as a Kalibr camchain or a FAST-LIO config does) is
+     mapped already and needs no `--frame-map`.
 3. **First run, short.** `calibrex check BAG --tf ... --pairs <runnable pairs>
    --max-duration-s 120 --output run1.json --html run1.html 2> run1.log`. LiDAR and
    camera pairs take minutes: run it in the background, wait for that process to exit,
@@ -89,8 +91,16 @@ that turns it into a pass.
    `ros2 bag info`), and do not re-run when it is not.
 6. **Report.**
 
+When two runs judged a pair differently (one window passes it, a longer one is
+inconclusive), report both. Do not pick the better one; if you lead with one run, say why
+(for example, it read the whole recording) and show the other beside it.
+
 ## The report
 
+- First line: calibrex's overall verdict, in its own word (`pass`, `warn`, `fail`,
+  `inconclusive`), then what it rests on. "Overall `inconclusive`: four pairs pass, one
+  could not be judged" is right; "your calibration looks good" is not, because it
+  replaces calibrex's verdict with yours.
 - The verdict per pair, in the words above, with the judged axes and their numbers.
 - What was not checked, and why.
 - The attempts table: one row per run with its command (or the flags that changed),
