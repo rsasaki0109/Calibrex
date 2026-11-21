@@ -60,6 +60,11 @@ class CameraLidarFrame:
     point_time_offsets_s: NDArray[np.float64] | None = None
     """Seconds after ``time_s`` at which each point was measured, when the cloud has a
     per-point time field (``None`` otherwise)."""
+    measured_points: NDArray[np.float32] | None = None
+    """The points as the LiDAR measured them, row for row with ``points``, once ``points``
+    have been moved (to the image time); ``None`` while ``points`` are as measured. Beams
+    and neighbouring returns are properties of the measurement, so depth edges are found
+    on these and placed at ``points``."""
 
     @property
     def gap_s(self) -> float:

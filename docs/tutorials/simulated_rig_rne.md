@@ -57,8 +57,8 @@ On a 90 s bag of all four sensors (411 MB, 7 min 41 s to check on four cores):
 | lidar-lidar | pass (all six axes) | 0.019°, 1.0 mm |
 | camera-imu | warn (pitch, yaw) | yaw 1.12° against 0.84° |
 | camera-focal | inconclusive | — |
-| camera-lidar (`lidar`) | fail (roll, pitch) | roll 2.65° |
-| camera-lidar (`lidar2`) | inconclusive | — |
+| camera-lidar (`lidar`) | inconclusive (too few depth edges) | — |
+| camera-lidar (`lidar2`) | inconclusive (too few depth edges) | — |
 
 `turned_imu.yaml` fails both imu-lidar pairs and passes lidar-lidar;
 `turned_lidar2.yaml` fails imu-lidar (`lidar2`) and lidar-lidar and passes imu-lidar
@@ -75,15 +75,18 @@ Two results are on Calibrex's side, not the simulator's:
   offset of 0 as −1.46 ms and +7 ms as +5.52 ms; at 5, 10 and 20 Hz LiDAR the
   zero-offset bag reports −1.13, −1.46 and −1.73 ms. The offset is reported, not judged;
   read it as accurate to about 2 ms.
-- **camera-lidar misjudges roll under fast hand-held motion.** With the rig still, the
-  bag's LiDAR points projected through the published `T_lidar_camera` and `CameraInfo`
-  land on the rendered depth (median difference under 5 mm), yet camera-lidar reports
-  roll errors of 2.4–3.0° on 40–90 s bags, at full and at half speed. Its evidence
-  shows `median_rings: 0`: the edge objective recovers LiDAR beams from point elevation
-  after moving the points to the image time, which recovers no beams on this motion
-  (about 1.9° per frame), and it falls back to unstructured edges. The bag's `ring`
-  field gives the beams directly. Treat camera-lidar on fast hand-held recordings with
-  care.
+- **camera-lidar used to misjudge roll under fast hand-held motion.** With the rig still,
+  the bag's LiDAR points projected through the published `T_lidar_camera` and
+  `CameraInfo` land on the rendered depth (median difference under 5 mm), yet camera-lidar
+  reported roll errors of 2.4–3.0° (`fail`, roll 2.65° on the 90 s bag). Its edge
+  objective recovered LiDAR beams from point elevation after moving the points to the
+  image time; moving a sweep by about 1.9° (the median here) smears a 16-beam LiDAR's 2°
+  beam spacing, no beams were found (`median_rings: 0`), and it fell back to unstructured
+  edges. It now recovers beams, azimuth order and range jumps from the points as
+  measured and places the edges at the moved points. On this room the beams give only
+  35–105 depth edges per frame in the image, fewer than a frame needs, so both
+  camera-lidar pairs are inconclusive rather than wrongly failed. A scene with more
+  depth discontinuities would be needed to judge them.
 
 The [RNE simulated rig workflow](https://github.com/rsasaki0109/Calibrex/blob/main/.github/workflows/rne-simulated-rig.yml)
 runs the two-LiDAR + IMU case (20 s, `--sensors imu,lidar2`) on changes to the check,

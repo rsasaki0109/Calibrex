@@ -590,3 +590,53 @@ def test_a_spinning_lidar_at_a_standing_rig_repeats_one_view(truth: np.ndarray) 
 def test_a_solid_state_lidar_at_a_standing_rig_keeps_its_frames(truth: np.ndarray) -> None:
     prepared, dropped = prepare_frames(_repeated(truth, True), CAMERA, truth, FAST)
     assert len(prepared) == 5 and not dropped
+
+
+def test_depth_edges_of_moved_points_use_the_measured_beams(truth: np.ndarray) -> None:
+    """Moving a sweep smears its beams' elevation; the measured points still give them."""
+
+    points = cast_points(make_scene(3), truth)
+    options = {"min_jump_m": 0.3, "exponent": 0.5, "max_points": 4000, "min_ring_fraction": 0.5}
+    measured_edges, measured_weights, rings, _ = lidar_depth_edges(points, **options)
+    # A 3 degree turn about x, as moving a fast sweep to an image time can apply, shifts
+    # each return's elevation by up to 3 degrees, more than the beam spacing.
+    turn = Rotation.from_rotvec([np.radians(3.0), 0.0, 0.0])
+    moved = turn.apply(points).astype(np.float32)
+
+    smeared_edges, _, _, _ = lidar_depth_edges(moved, **options)
+    edges, weights, moved_rings, _ = lidar_depth_edges(moved, measured_points=points, **options)
+
+    assert len(smeared_edges) < len(measured_edges) // 2
+    assert moved_rings == rings
+    np.testing.assert_array_equal(weights, measured_weights)
+    np.testing.assert_allclose(edges, turn.apply(measured_edges), atol=1e-4)
+    with pytest.raises(ValueError, match="row for row"):
+        lidar_depth_edges(moved, measured_points=points[:-1], **options)
+
+
+def test_moving_a_frame_keeps_its_measured_points(truth: np.ndarray) -> None:
+    from calibrex.evaluation.camera_lidar_motion import LidarMotion, move_to_image_time
+
+    points = cast_points(make_scene(2), truth)
+    frame = CameraLidarFrame(
+        time_s=1.0,
+        image_time_s=1.05,
+        image=render_image(make_scene(2)),
+        points=points,
+        cloud_frame_id="lidar",
+        image_frame_id="camera",
+    )
+    motion = LidarMotion(
+        source_topic="/imu",
+        kind="gyro",
+        times_s=np.array([0.9, 1.0, 1.1, 1.2]),
+        angular_rad_s=np.tile([0.5, 0.0, 0.0], (4, 1)),
+        linear_m_s=None,
+    )
+    result = move_to_image_time(frame, motion)
+    assert result is not None
+    moved = result[0]
+    assert moved.measured_points is points
+    assert not np.allclose(moved.points, points)
+    again = move_to_image_time(moved, motion)
+    assert again is not None and again[0].measured_points is points
