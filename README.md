@@ -48,6 +48,11 @@ twice, in a few seconds:
 It shows what the command prints and how to read it. It is simulated data, not evidence
 of accuracy; the real-data results are [below](#real-data-honest-verdicts).
 
+For a larger simulated recording with a known truth (two spinning LiDARs, an IMU and a
+camera, written as a ROS 2 MCAP bag by the
+[Robot Native Engine](https://github.com/rsasaki0109/RobotNativeEngine) simulator), see
+[Check a simulated rig](docs/tutorials/simulated_rig_rne.md).
+
 ### Your own bag in three commands
 
 ```bash

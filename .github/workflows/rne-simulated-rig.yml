@@ -1,0 +1,68 @@
+name: RNE simulated rig
+
+# calibrex check on a recording with a known truth: Robot Native Engine's example 149
+# simulates a hand-held LiDAR + IMU rig and writes a ROS 2 MCAP bag with the true mounting
+# (good.yaml) and the IMU turned 3 degrees (turned.yaml). The true mounting must pass and the
+# turned one must fail on yaw. See tools/check_rne_simulated_rig.py.
+
+on:
+  pull_request:
+    paths:
+      - "src/calibrex/check/**"
+      - "src/calibrex/evaluation/imu_lidar*"
+      - "src/calibrex/solvers/imu_lidar*"
+      - "src/calibrex/solvers/scan_to_scan_odometry.py"
+      - "src/calibrex/data/rosbag2.py"
+      - "src/calibrex/data/ros_cdr.py"
+      - "tools/check_rne_simulated_rig.py"
+      - ".github/workflows/rne-simulated-rig.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/calibrex/check/**"
+      - "src/calibrex/evaluation/imu_lidar*"
+      - "src/calibrex/solvers/imu_lidar*"
+      - "src/calibrex/solvers/scan_to_scan_odometry.py"
+      - "src/calibrex/data/rosbag2.py"
+      - "src/calibrex/data/ros_cdr.py"
+      - "tools/check_rne_simulated_rig.py"
+      - ".github/workflows/rne-simulated-rig.yml"
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+env:
+  # A Robot Native Engine commit whose example 149 records LiDAR + IMU by default.
+  RNE_REF: 067a22c36ee08d708fd584c17b8bb39bb6b7496f
+  RIG_DURATION_S: "20"
+
+jobs:
+  imu-lidar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+        with:
+          repository: rsasaki0109/RobotNativeEngine
+          ref: ${{ env.RNE_REF }}
+          path: rne
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rne -> target
+          key: calibrex-rig-bag
+      - name: Simulate the rig
+        working-directory: rne
+        run: |
+          # rust-toolchain.toml selects RNE's pinned toolchain.
+          cargo build --release --locked -p calibrex_rig_bag --example 149_calibrex_rig_bag
+          target/release/examples/149_calibrex_rig_bag \
+            --out "$RUNNER_TEMP/rig" --duration-s "$RIG_DURATION_S"
+          ls -l "$RUNNER_TEMP/rig"
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m pip install -e .
+      - name: Check the true and the turned mounting
+        run: python tools/check_rne_simulated_rig.py "$RUNNER_TEMP/rig" --cache-dir "$RUNNER_TEMP/cache"
