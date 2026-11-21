@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- The simulated-rig tutorial traces the −1.5 ms imu-lidar time-offset bias: the rotation
+  solver is exact on true poses, the gyro-deskewed odometry poses are not shifted in time
+  (+0.2 ms), and the joint fit of rotation, gyro bias and offset moves the odometry's
+  scan-to-scan error into the offset (−1.2 ms on Calibrex's own noise-free synthetic bag),
+  beyond its reported 0.6 ms standard deviation. The offset stays reported, not judged.
+
 - camera-lidar finds LiDAR depth edges on the points as measured when it has moved them
   to the image time: beams, azimuth order and range jumps come from the measured points
   and the edges are placed at the moved ones. Moving a fast sweep smeared a 16-beam

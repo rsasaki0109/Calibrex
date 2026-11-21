@@ -73,8 +73,22 @@ Two results are on Calibrex's side, not the simulator's:
   exact accelerometer, a noiseless LiDAR or a 1–2 kHz IMU report −1.7 to −1.8 ms.
   Calibrex's own `calibrex.data.synthetic_lidar_imu_bag` (no RNE code) reports a true
   offset of 0 as −1.46 ms and +7 ms as +5.52 ms; at 5, 10 and 20 Hz LiDAR the
-  zero-offset bag reports −1.13, −1.46 and −1.73 ms. The offset is reported, not judged;
-  read it as accurate to about 2 ms.
+  zero-offset bag reports −1.13, −1.46 and −1.73 ms. On that bag without noise:
+  - the rotation solver is exact: given the true LiDAR poses at the scan stamps and the
+    gyro (with its bias), it returns 0 and +7 ms to the microsecond, at any IMU or scan
+    rate;
+  - the gyro-deskewed odometry poses are not shifted in time: the true trajectory fits
+    their scan-to-scan rotations best 0.19–0.27 ms later, whatever offset the deskew
+    used (−2, 0 or +2 ms), with a residual of about 0.2° per scan pair;
+  - with the rotation and gyro bias held at the truth, the solver's cost on those poses
+    is lowest near +0.3 ms; solved jointly, the offset moves to −1.2 ms while the gyro
+    bias takes up to 3.3·10⁻⁴ rad/s.
+
+  The scan-to-scan odometry error is shared between the rotation, the gyro bias and
+  the offset, and the offset, whose cost changes by 0.4 % over ±3 ms, takes the part
+  that moves it. Its reported standard deviation (0.6 ms, analytic) does not include
+  that error, so the estimate sits 2–3 deviations from the truth. The offset is
+  reported, not judged; read it as accurate to about 2 ms.
 - **camera-lidar used to misjudge roll under fast hand-held motion.** With the rig still,
   the bag's LiDAR points projected through the published `T_lidar_camera` and
   `CameraInfo` land on the rendered depth (median difference under 5 mm), yet camera-lidar
