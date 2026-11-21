@@ -86,7 +86,10 @@ Two results are on Calibrex's side, not the simulator's:
   care.
 
 The [RNE simulated rig workflow](https://github.com/rsasaki0109/Calibrex/blob/main/.github/workflows/rne-simulated-rig.yml)
-runs the LiDAR + IMU case on changes to the check and imu-lidar code, with
+runs the two-LiDAR + IMU case (20 s, `--sensors imu,lidar2`) on changes to the check,
+imu-lidar and odometry code, with
 [`tools/check_rne_simulated_rig.py`](https://github.com/rsasaki0109/Calibrex/blob/main/tools/check_rne_simulated_rig.py):
-the true mounting must pass with every rotation axis judged, and the turned one must
-fail on yaw by 2–4°.
+with the true mountings, imu-lidar (both LiDARs) and lidar-lidar must pass with roll,
+pitch and yaw judged; `turned_imu.yaml` must fail both imu-lidar pairs and pass
+lidar-lidar; `turned_lidar2.yaml` must fail imu-lidar (`lidar2`) and lidar-lidar and pass
+imu-lidar (`lidar`). Each failing pair's rotation error must be within 2–4°.

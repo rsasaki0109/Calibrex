@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- The `RNE simulated rig` workflow checks two LiDARs and an IMU: RNE's example 149 at
+  `0edf1e6` records 20 s with `--sensors imu,lidar2`, and
+  `tools/check_rne_simulated_rig.py` requires the true mountings to pass imu-lidar for both
+  LiDARs and lidar-lidar, and each sensor turned 3° to fail exactly its own pairs (rotation
+  error 2–4°). Locally the three checks take 79 s.
+
 - A tutorial and a CI workflow run `calibrex check` on a recording with a known truth,
   simulated by Robot Native Engine
   ([Check a simulated rig](docs/tutorials/simulated_rig_rne.md)).
