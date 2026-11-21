@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- A tutorial and a CI workflow run `calibrex check` on a recording with a known truth,
+  simulated by Robot Native Engine
+  ([Check a simulated rig](docs/tutorials/simulated_rig_rne.md)).
+  - The `RNE simulated rig` workflow builds RNE's example 149 at a pinned commit, records
+    20 s of LiDAR + IMU, and `tools/check_rne_simulated_rig.py` requires the true mounting
+    to pass imu-lidar with every rotation axis judged and the IMU turned 3° to fail on yaw
+    (2.98° here).
+  - On a 90 s bag of two LiDARs, an IMU and a camera, imu-lidar passes for both LiDARs
+    and lidar-lidar on all six axes, and each sensor turned 3° fails only its pairs.
+  - It shows two limits: the imu-lidar time offset is biased by about −1.5 ms (also on
+    `calibrex.data.synthetic_lidar_imu_bag`: 0 reads −1.46 ms, +7 ms reads +5.52 ms),
+    and camera-lidar reports 2.4–3.0° roll errors on fast hand-held motion, where its
+    edge objective recovers no LiDAR beams (`median_rings: 0`).
+
 - `calibrex check` wraps its notes and next steps to the terminal width, with a hanging
   indent; table rows and piped or redirected output keep whole lines.
 - README: "Try it in one minute" now sits above the gallery.
