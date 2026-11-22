@@ -53,3 +53,18 @@ intrinsics from the file, `T_cam_imu` from the bag, the format Kalibr and VIO sy
 ```bash
 calibrex camera-imu rotation robot_bag --camchain front_camchain.yaml --imu-topic /imu ...
 ```
+
+## On a simulated rig
+
+[RobotNativeEngine](https://github.com/rsasaki0109/RobotNativeEngine)'s example 149
+records a camera with barrel distortion (k1 −0.18) and no `CameraInfo`, an IMU and a
+LiDAR on a rig turned about the camera (`--motion turn --camera-info none`). Without
+intrinsics `calibrex check` skips every camera pair. `intrinsics rotate --bag` on 20 s of
+it gave the focal lengths within 0.13 % (fx) and 0.61 % (fy) and the principal point
+within 0.25 px; with `--intrinsics` the 40 s bag's camera-imu passed (within 0.063°)
+and camera-lidar passed (within 0.25°). With the camera turned 3° both failed (roll 3.06°
+and 2.9°); with the IMU turned 3° camera-imu failed (pitch 2.99°) and camera-lidar, which
+does not involve the IMU, passed. The full tables are in the example's README.
+
+The test `tests/unit/test_intrinsics_pipeline.py` runs the same path on a synthetic bag
+in CI.

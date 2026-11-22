@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- An end-to-end test (`tests/unit/test_intrinsics_pipeline.py`) runs `intrinsics rotate
+  --bag` and `check --intrinsics` on a synthetic camera + IMU bag without `CameraInfo`.
+  The intrinsics tutorial reports the same path on RobotNativeEngine's simulated rig:
+  focal lengths within 0.6 %, and camera-imu and camera-lidar judged with them.
+
 - `calibrex check`, `calibrex estimate` and `calibrex drift` take `--intrinsics
   [TOPIC=]CAMCHAIN[:camN]`: camera intrinsics by image topic, before every other source
   (a `--tf` camchain is matched by frame name, which on most bags is not the camera's header
