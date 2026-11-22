@@ -15,9 +15,10 @@ the focal lengths and the principal point are known to the bounds of
 :class:`GuideOptions`. :func:`draw_guide` paints the advice over the frame;
 :func:`run_guided_calibration` is the live loop behind ``calibrex intrinsics guide``.
 
-The model is OpenCV's pinhole with radial-tangential distortion (k1, k2, p1, p2; k3 is
-fixed at 0), which Kalibr calls ``pinhole`` / ``radtan``: :func:`camchain_entry` writes it
-as a Kalibr camchain entry that Calibrex's camera pairs read.
+Two models, Kalibr's names: ``radtan``, OpenCV's pinhole with radial-tangential distortion
+(k1, k2, p1, p2; k3 fixed at 0), and ``equidistant``, OpenCV's fisheye (Kannala-Brandt,
+k1..k4) for wide-angle lenses. :func:`camchain_entry` writes a Kalibr camchain entry that
+Calibrex's camera pairs read.
 """
 
 from __future__ import annotations
@@ -38,6 +39,18 @@ FloatArray: TypeAlias = NDArray[np.float64]
 Tilt = Literal["left", "right", "up", "down"]
 TILTS: tuple[Tilt, ...] = ("left", "right", "up", "down")
 AdviceKind = Literal["find", "hold", "move", "tilt", "vary", "done"]
+DistortionModel = Literal["radtan", "equidistant"]
+DISTORTION_MODELS: tuple[DistortionModel, ...] = ("radtan", "equidistant")
+
+
+def distortion_names(model: str) -> tuple[str, str, str, str]:
+    """The four distortion coefficients' names under ``model``."""
+
+    if model == "equidistant":
+        return ("k1", "k2", "k3", "k4")
+    if model == "radtan":
+        return ("k1", "k2", "p1", "p2")
+    raise ValueError(f"unknown distortion model {model!r}: use radtan or equidistant")
 
 
 @dataclass(frozen=True)
@@ -67,11 +80,13 @@ class GuideOptions:
     """...the principal point's std is below this many pixels..."""
     max_rms_px: float = 1.0
     """...and the reprojection RMS is below this many pixels."""
+    distortion_model: DistortionModel = "radtan"
+    """``radtan`` (pinhole lenses) or ``equidistant`` (fisheye lenses)."""
 
 
 @dataclass(frozen=True)
 class IntrinsicsEstimate:
-    """OpenCV pinhole + radial-tangential intrinsics with their standard deviations."""
+    """Pinhole intrinsics and distortion, with their standard deviations."""
 
     width: int
     height: int
@@ -80,11 +95,34 @@ class IntrinsicsEstimate:
     cx: float
     cy: float
     distortion: tuple[float, float, float, float]
-    """``(k1, k2, p1, p2)``."""
+    """``(k1, k2, p1, p2)`` (radtan) or ``(k1, k2, k3, k4)`` (equidistant)."""
     std: dict[str, float]
-    """Standard deviations of ``fx fy cx cy k1 k2 p1 p2``."""
+    """Standard deviations of ``fx fy cx cy`` and the distortion coefficients, by name."""
     rms_px: float
     views: int
+    model: DistortionModel = "radtan"
+
+    @property
+    def opencv_distortion(self) -> FloatArray:
+        """The coefficients as OpenCV takes them (radtan with k3 = 0)."""
+
+        if self.model == "equidistant":
+            return np.array(self.distortion, dtype=np.float64)
+        return np.array([*self.distortion, 0.0])
+
+    def normalized(self, pixels: FloatArray) -> FloatArray:
+        """Undistorted normalized coordinates ``(x, y)`` of pixels."""
+
+        cv2 = _opencv()
+        points = np.asarray(pixels, np.float64).reshape(-1, 1, 2)
+        if self.model == "equidistant":
+            result = cv2.fisheye.undistortPoints(points, self.matrix, self.opencv_distortion)
+        else:
+            criteria = (cv2.TERM_CRITERIA_COUNT | cv2.TERM_CRITERIA_EPS, 30, 1e-10)
+            result = cv2.undistortPointsIter(
+                points, self.matrix, self.opencv_distortion, None, None, criteria
+            )
+        return np.asarray(result, np.float64).reshape(-1, 2)
 
     @property
     def matrix(self) -> FloatArray:
@@ -179,14 +217,16 @@ class IntrinsicsGuide:
 
     def _view(self, corners: FloatArray) -> _View:
         cv2 = _opencv()
-        distortion = (
-            np.array([*self.estimate.distortion, 0.0]) if self.estimate is not None else None
-        )
+        if self.estimate is not None:
+            # Undistorted normalized points: the same for both lens models.
+            points, camera = self.estimate.normalized(corners), np.eye(3)
+        else:
+            points, camera = corners, self._camera_guess()
         ok, rvec, _ = cv2.solvePnP(
             self.board.object_points(),
-            corners.reshape(-1, 1, 2),
-            self._camera_guess(),
-            distortion,
+            points.reshape(-1, 1, 2),
+            camera,
+            None,
             flags=cv2.SOLVEPNP_IPPE,
         )
         rotation = cv2.Rodrigues(rvec)[0] if ok else np.eye(3)
@@ -224,9 +264,14 @@ class IntrinsicsGuide:
             self.coverage[row, column] += 1
         self.tilts.update(view_tilts(view.rotation, self.options))
         if len(self.views) >= self.options.min_views and len(self.tilts) >= 2:
-            self.estimate = calibrate(
-                [kept.corners for kept in self.views], self.board, self.width, self.height
+            estimate = calibrate(
+                [kept.corners for kept in self.views],
+                self.board,
+                self.width,
+                self.height,
+                self.options.distortion_model,
             )
+            self.estimate = estimate if estimate is not None else self.estimate
 
     # ------------------------------------------------------------------ advice
 
@@ -357,10 +402,21 @@ def _angle_deg(rotation: FloatArray) -> float:
 
 
 def calibrate(
-    corners: list[FloatArray], board: Checkerboard, width: int, height: int
-) -> IntrinsicsEstimate:
-    """OpenCV calibration (k3 fixed at 0) of the kept views, with parameter stds."""
+    corners: list[FloatArray],
+    board: Checkerboard,
+    width: int,
+    height: int,
+    model: DistortionModel = "radtan",
+) -> IntrinsicsEstimate | None:
+    """OpenCV calibration of the kept views, with parameter stds.
 
+    ``radtan``: ``calibrateCameraExtended`` with k3 fixed. ``equidistant``:
+    ``cv2.fisheye.calibrate``, with the stds from its Jacobian (the views' poses
+    marginalized out). ``None`` when the fisheye calibration does not converge.
+    """
+
+    if model == "equidistant":
+        return _calibrate_fisheye(corners, board, width, height)
     cv2 = _opencv()
     objects = [board.object_points().astype(np.float32)] * len(corners)
     images = [view.reshape(-1, 1, 2).astype(np.float32) for view in corners]
@@ -368,7 +424,7 @@ def calibrate(
         objects, images, (width, height), None, None, flags=cv2.CALIB_FIX_K3
     )
     std = np.asarray(std_intrinsics, dtype=np.float64).ravel()
-    names = ("fx", "fy", "cx", "cy", "k1", "k2", "p1", "p2")
+    names = ("fx", "fy", "cx", "cy", *distortion_names("radtan"))
     coefficients = np.asarray(distortion, dtype=np.float64).ravel()
     return IntrinsicsEstimate(
         width=width,
@@ -389,13 +445,67 @@ def calibrate(
     )
 
 
+def _calibrate_fisheye(
+    corners: list[FloatArray], board: Checkerboard, width: int, height: int
+) -> IntrinsicsEstimate | None:
+    cv2 = _opencv()
+    objects = [board.object_points().reshape(1, -1, 3).astype(np.float64)] * len(corners)
+    images = [view.reshape(1, -1, 2).astype(np.float64) for view in corners]
+    flags = cv2.fisheye.CALIB_RECOMPUTE_EXTRINSIC | cv2.fisheye.CALIB_FIX_SKEW
+    criteria = (cv2.TERM_CRITERIA_COUNT | cv2.TERM_CRITERIA_EPS, 100, 1e-9)
+    try:
+        rms, matrix, distortion, rvecs, tvecs = cv2.fisheye.calibrate(
+            objects, images, (width, height), None, None, flags=flags, criteria=criteria
+        )
+    except cv2.error:
+        return None
+    coefficients = np.asarray(distortion, np.float64).ravel()
+    # Gauss-Newton covariance: J^T J over the 8 intrinsics and 6 pose parameters per view,
+    # the poses eliminated by their Schur complement.
+    information = np.zeros((8, 8))
+    squared, count = 0.0, 0
+    for obj, img, rvec, tvec in zip(objects, images, rvecs, tvecs, strict=True):
+        projected, jacobian = cv2.fisheye.projectPoints(obj, rvec, tvec, matrix, coefficients)
+        squared += float(np.sum((projected.reshape(-1, 2) - img.reshape(-1, 2)) ** 2))
+        count += img.size
+        # Columns: fx fy, cx cy, k1..k4, rvec, tvec, alpha (skew, fixed).
+        j_intrinsic, j_pose = jacobian[:, :8], jacobian[:, 8:14]
+        b = j_intrinsic.T @ j_pose
+        information += j_intrinsic.T @ j_intrinsic - b @ np.linalg.solve(j_pose.T @ j_pose, b.T)
+    dof = max(count - 8 - 6 * len(corners), 1)
+    try:
+        covariance = squared / dof * np.linalg.inv(information)
+    except np.linalg.LinAlgError:
+        return None
+    std = np.sqrt(np.clip(np.diag(covariance), 0.0, None))
+    names = ("fx", "fy", "cx", "cy", *distortion_names("equidistant"))
+    return IntrinsicsEstimate(
+        width=width,
+        height=height,
+        fx=float(matrix[0, 0]),
+        fy=float(matrix[1, 1]),
+        cx=float(matrix[0, 2]),
+        cy=float(matrix[1, 2]),
+        distortion=(
+            float(coefficients[0]),
+            float(coefficients[1]),
+            float(coefficients[2]),
+            float(coefficients[3]),
+        ),
+        std={name: float(std[index]) for index, name in enumerate(names)},
+        rms_px=float(rms),
+        views=len(corners),
+        model="equidistant",
+    )
+
+
 def camchain_entry(estimate: IntrinsicsEstimate) -> dict[str, Any]:
-    """The estimate as one camera of a Kalibr camchain (``pinhole`` / ``radtan``)."""
+    """The estimate as one camera of a Kalibr camchain (``pinhole`` with its distortion)."""
 
     return {
         "camera_model": "pinhole",
         "intrinsics": [estimate.fx, estimate.fy, estimate.cx, estimate.cy],
-        "distortion_model": "radtan",
+        "distortion_model": estimate.model,
         "distortion_coeffs": list(estimate.distortion),
         "resolution": [estimate.width, estimate.height],
     }
@@ -496,6 +606,7 @@ def status_lines(guide: IntrinsicsGuide) -> list[str]:
         lines.append(
             f"cx {estimate.cx:.1f}+-{s['cx']:.1f}  cy {estimate.cy:.1f}+-{s['cy']:.1f}  "
             f"k1 {estimate.distortion[0]:+.3f} k2 {estimate.distortion[1]:+.3f}"
+            + ("  fisheye" if estimate.model == "equidistant" else "")
         )
     return lines
 

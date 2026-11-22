@@ -1499,6 +1499,13 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     intrinsics_guide.add_argument("--camera-name", default="cam0", help="camchain entry name")
     intrinsics_guide.add_argument(
+        "--distortion",
+        choices=("radtan", "equidistant"),
+        default="radtan",
+        help="lens model (Kalibr names): radtan for ordinary lenses, equidistant for fisheye "
+        "(default radtan)",
+    )
+    intrinsics_guide.add_argument(
         "--grid", default="5x4", help="COLUMNSxROWS image cells the board must visit"
     )
     intrinsics_guide.add_argument(
@@ -1568,6 +1575,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Kalibr camchain to write (default intrinsics_camchain.yaml)",
     )
     intrinsics_rotate.add_argument("--camera-name", default="cam0", help="camchain entry name")
+    intrinsics_rotate.add_argument(
+        "--distortion",
+        choices=("radtan", "equidistant"),
+        default="radtan",
+        help="lens model (Kalibr names): radtan for ordinary lenses, equidistant for fisheye "
+        "(default radtan)",
+    )
     intrinsics_rotate.add_argument("--json", action="store_true")
     intrinsics_rotate.set_defaults(func=_cmd_intrinsics_rotate)
 
@@ -8527,12 +8541,13 @@ def _rotate_sources(args: argparse.Namespace) -> tuple[Any, Any, Any]:
 def _guided_recording(args: argparse.Namespace, frames: Any, stop_when_done: bool) -> list[Any]:
     """Run the turning guide over ``(time, image)`` frames; the grey frames it kept."""
 
-    from calibrex.evaluation.rotation_guide import run_rotation_guide
+    from calibrex.evaluation.rotation_guide import RotationGuideOptions, run_rotation_guide
 
     if not args.no_window:
         print("turn the camera as the window says; s calibrates now, q quits")
     run = run_rotation_guide(
         frames,
+        options=RotationGuideOptions(distortion_model=args.distortion),
         show=not args.no_window,
         record=args.record,
         stride=args.stride,
@@ -8579,15 +8594,19 @@ def _cmd_intrinsics_rotate(args: argparse.Namespace) -> int:
     import yaml
 
     from calibrex.evaluation.intrinsics_guide import camchain_entry
-    from calibrex.evaluation.rotation_self_calibration import self_calibrate
+    from calibrex.evaluation.rotation_self_calibration import (
+        SelfCalibrationOptions,
+        self_calibrate,
+    )
     from calibrex.evaluation.stereo_self_calibration import combine
 
     stereo = bool(args.right_topic or args.right_video or args.right_camera is not None)
     stereo = stereo or args.side_by_side
     try:
         left_frames, right_frames, pairs = _rotate_sources(args)
-        left = self_calibrate(left_frames())
-        right = self_calibrate(right_frames()) if stereo and right_frames else None
+        options = SelfCalibrationOptions(distortion_model=args.distortion)
+        left = self_calibrate(left_frames(), options)
+        right = self_calibrate(right_frames(), options) if stereo and right_frames else None
         rig = combine(left, right, pairs(), args.baseline_m) if right is not None else None
     except (OSError, ValueError, ImportError) as exc:
         raise CalibrexError(str(exc)) from exc
@@ -8632,7 +8651,9 @@ def _cmd_intrinsics_guide(args: argparse.Namespace) -> int:
         board = Checkerboard.parse(args.board)
     except ValueError as exc:
         raise CalibrexError(str(exc)) from exc
-    options = GuideOptions(grid=_pair_of_ints(args.grid, "--grid"))
+    options = GuideOptions(
+        grid=_pair_of_ints(args.grid, "--grid"), distortion_model=args.distortion
+    )
     resolution = _pair_of_ints(args.resolution, "--resolution") if args.resolution else None
 
     def save(estimate: IntrinsicsEstimate) -> None:

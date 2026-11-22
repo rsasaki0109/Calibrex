@@ -5,7 +5,8 @@ turned in place: no checkerboard. When a camera only rotates, where a scene poin
 in one frame fixes where it appears in every other frame through the intrinsics and the
 rotation alone, so panning, tilting and rolling the camera over a textured, static scene
 determines the focal lengths, the principal point and the lens distortion. The result is a
-Kalibr camchain entry (`pinhole` / `radtan`: `k1 k2 p1 p2`), like
+Kalibr camchain entry (`pinhole` / `radtan`: `k1 k2 p1 p2`, or `equidistant`: `k1..k4`
+with `--distortion equidistant` for fisheye lenses), like
 [`calibrex intrinsics guide`](intrinsics_guide.md) writes.
 
 ## Run it
@@ -20,6 +21,12 @@ calibrex intrinsics rotate --camera 0 --resolution 1280x720 --seconds 20
 
 With a live camera a window guides the turning (below) and the calibration starts as soon
 as the turns are enough; `--no-window` records for `--seconds` without it.
+
+For a fisheye lens add `--distortion equidistant`. On a simulated 110 deg fisheye
+(480 x 360, f = 235 px, Kannala-Brandt k1..k4) turned for 8 s, the focal lengths came
+within 0.2 %, the principal point within 0.5 px, and the fitted model put pixels in the
+image corners within 0.5 deg of their true directions. The guide window then reads the
+turns through an ideal fisheye of 0.45 times the image width.
 
 It needs OpenCV (`pip install 'calibrex[opencv]'`; the live window needs `opencv-python`,
 not the headless build). `--output` (default

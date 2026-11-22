@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- `calibrex intrinsics guide` and `calibrex intrinsics rotate` take `--distortion
+  equidistant` for fisheye lenses (Kalibr's `pinhole` / `equidistant`, OpenCV's fisheye
+  model, k1..k4). The board guide uses `cv2.fisheye.calibrate` with stds from its Jacobian
+  (poses marginalized); the stereo baseline is fitted on undistorted points, so any pair of
+  models works; the targetless fit and the turning guide use the equidistant projection.
+  On a simulated 110 deg fisheye both gave the focal lengths within 1 %
+  ([guide](docs/tutorials/intrinsics_guide.md#the-model-and-its-limits),
+  [rotate](docs/tutorials/intrinsics_rotate.md)).
+
 - `calibrex intrinsics rotate` estimates a camera's intrinsics without a target, from a
   ROS 2 bag (`--bag --topic`), a video (`--video`) or a live camera (`--camera`) of the
   camera turned in place. Features are tracked (forward-backward checked) into keyframes;

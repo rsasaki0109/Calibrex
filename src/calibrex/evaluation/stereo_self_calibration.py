@@ -148,8 +148,8 @@ def baseline_direction(
             continue
         pl = np.array([kl[m.queryIdx].pt for m in matches], dtype=np.float64)
         pr = np.array([kr[m.trainIdx].pt for m in matches], dtype=np.float64)
-        rotated = undistort_points(_params(left), pl) @ rotation.T
-        xr = undistort_points(_params(right), pr)
+        rotated = undistort_points(_params(left), pl, left.model) @ rotation.T
+        xr = undistort_points(_params(right), pr, right.model)
         row = np.cross(rotated, xr)
         rows.append(row / np.linalg.norm(row, axis=1, keepdims=True).clip(1e-12))
         rays_l.append(rotated)

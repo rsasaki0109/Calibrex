@@ -36,6 +36,7 @@ from calibrex.evaluation.intrinsics_guide import (
     IntrinsicsEstimate,
     IntrinsicsGuide,
     camchain_entry,
+    distortion_names,
     draw_guide,
 )
 
@@ -173,14 +174,6 @@ def _prefixed(camera: str, advice: Advice) -> Advice:
     return Advice(advice.kind, f"{camera}: {advice.text}", advice.target_cell, advice.tilt)
 
 
-def _matrix(estimate: IntrinsicsEstimate) -> FloatArray:
-    return estimate.matrix
-
-
-def _distortion(estimate: IntrinsicsEstimate) -> FloatArray:
-    return np.array([*estimate.distortion, 0.0])
-
-
 def stereo_extrinsics(
     views: list[tuple[FloatArray, FloatArray]],
     board: Checkerboard,
@@ -235,13 +228,13 @@ def stereo_extrinsics(
 
 
 def _perturbed(estimate: IntrinsicsEstimate, name: str, delta: float) -> IntrinsicsEstimate:
-    distortion_names = ("k1", "k2", "p1", "p2")
-    if name in distortion_names:
-        k1, k2, p1, p2 = (
-            value + (delta if index == distortion_names.index(name) else 0.0)
+    names = distortion_names(estimate.model)
+    if name in names:
+        d1, d2, d3, d4 = (
+            value + (delta if index == names.index(name) else 0.0)
             for index, value in enumerate(estimate.distortion)
         )
-        return replace(estimate, distortion=(k1, k2, p1, p2))
+        return replace(estimate, distortion=(d1, d2, d3, d4))
     return replace(estimate, **{name: getattr(estimate, name) + delta})
 
 
@@ -251,25 +244,30 @@ def _stereo_calibrate(
     left: IntrinsicsEstimate,
     right: IntrinsicsEstimate,
 ) -> tuple[FloatArray, FloatArray, float]:
+    # On undistorted normalized points (an identity camera), so that pinhole and fisheye
+    # lenses go through the same solver; the RMS is scaled back to pixels.
     cv2 = _opencv()
     objects = [board.object_points().astype(np.float32)] * len(views)
-    image_left = [v[0].reshape(-1, 1, 2).astype(np.float32) for v in views]
-    image_right = [v[1].reshape(-1, 1, 2).astype(np.float32) for v in views]
+    image_left = [left.normalized(v[0]).reshape(-1, 1, 2).astype(np.float32) for v in views]
+    image_right = [right.normalized(v[1]).reshape(-1, 1, 2).astype(np.float32) for v in views]
+    identity, none = np.eye(3), np.zeros(5)
     rms, *_, rotation, translation, _, _ = cv2.stereoCalibrate(
         objects,
         image_left,
         image_right,
-        _matrix(left),
-        _distortion(left),
-        _matrix(right),
-        _distortion(right),
+        identity,
+        none,
+        identity,
+        none,
         (left.width, left.height),
         flags=cv2.CALIB_FIX_INTRINSIC,
+        criteria=(cv2.TERM_CRITERIA_COUNT | cv2.TERM_CRITERIA_EPS, 100, 1e-12),
     )
+    focal = 0.25 * (left.fx + left.fy + right.fx + right.fy)
     return (
         np.asarray(rotation, np.float64),
         np.asarray(translation, np.float64).ravel(),
-        float(rms),
+        float(rms) * focal,
     )
 
 
