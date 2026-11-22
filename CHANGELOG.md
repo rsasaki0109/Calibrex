@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- `calibrex intrinsics rotate` estimates a camera's intrinsics without a target, from a
+  ROS 2 bag (`--bag --topic`), a video (`--video`) or a live camera (`--camera`) of the
+  camera turned in place. Features are tracked (forward-backward checked) into keyframes;
+  the focal length and k1 are found together on a grid from the requirement that
+  undistorted keyframe correspondences be related by a rotation, then a least-squares fit of
+  the transfer error refines the eight pinhole / radtan intrinsics and the keyframe
+  rotations. It writes a Kalibr camchain entry and reports the stds, how far the camera
+  turned about each axis (warning below 20 deg about two axes) and the transfer RMS. On a
+  simulated camera turned about its lens the focal length came out within 0.1 % and the
+  principal point within 0.2 px; a lens offset L from the rotation centre at scene distance
+  D lengthens the focal length by about 0.8 L/D (5 cm at 4 m: +0.9 %), which the residuals do
+  not show ([tutorial](docs/tutorials/intrinsics_rotate.md)).
+
 - `calibrex intrinsics guide --board COLUMNSxROWSxSQUARE_M` calibrates a camera's intrinsics
   with a checkerboard, live from a camera (`--camera`, `--resolution`) or from a video
   (`--video`, `--no-window`), and draws on each frame what to do next: show the board, hold

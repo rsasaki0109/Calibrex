@@ -1494,6 +1494,34 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     intrinsics_guide.add_argument("--json", action="store_true")
     intrinsics_guide.set_defaults(func=_cmd_intrinsics_guide)
+    intrinsics_rotate = intrinsics_subcommands.add_parser(
+        "rotate",
+        help="calibrate a camera's intrinsics without a target, from a recording of the "
+        "camera turned in place about its lens",
+    )
+    rotate_source = intrinsics_rotate.add_mutually_exclusive_group(required=True)
+    rotate_source.add_argument("--bag", type=Path, help="ROS 2 bag (with --topic)")
+    rotate_source.add_argument("--video", type=Path, help="a video file")
+    rotate_source.add_argument("--camera", type=int, help="a live camera index for OpenCV")
+    intrinsics_rotate.add_argument("--topic", help="image topic in --bag")
+    intrinsics_rotate.add_argument(
+        "--seconds",
+        type=_positive_float,
+        help="use at most this many seconds (--camera: record this long, default 20)",
+    )
+    intrinsics_rotate.add_argument(
+        "--stride", type=_positive_int, default=1, help="use every n-th frame"
+    )
+    intrinsics_rotate.add_argument("--resolution", help="WIDTHxHEIGHT to ask --camera for")
+    intrinsics_rotate.add_argument(
+        "--output",
+        type=Path,
+        default=Path("intrinsics_camchain.yaml"),
+        help="Kalibr camchain to write (default intrinsics_camchain.yaml)",
+    )
+    intrinsics_rotate.add_argument("--camera-name", default="cam0", help="camchain entry name")
+    intrinsics_rotate.add_argument("--json", action="store_true")
+    intrinsics_rotate.set_defaults(func=_cmd_intrinsics_rotate)
 
     lidar_lidar = subcommands.add_parser(
         "lidar-lidar",
@@ -8355,6 +8383,53 @@ def _pair_of_ints(text: str, name: str) -> tuple[int, int]:
     if len(parts) != 2 or not all(part.isdigit() and int(part) > 0 for part in parts):
         raise CalibrexError(f"{name} {text!r}: expected AxB with positive integers, e.g. 5x4")
     return int(parts[0]), int(parts[1])
+
+
+def _cmd_intrinsics_rotate(args: argparse.Namespace) -> int:
+    import yaml
+
+    from calibrex.data.frame_sources import bag_frames, camera_frames, video_frames
+    from calibrex.evaluation.intrinsics_guide import camchain_entry
+    from calibrex.evaluation.rotation_self_calibration import self_calibrate
+
+    if args.bag is not None and not args.topic:
+        raise CalibrexError("--bag needs --topic (the image topic)")
+    try:
+        if args.bag is not None:
+            frames = bag_frames(args.bag, args.topic, stride=args.stride, max_seconds=args.seconds)
+        elif args.video is not None:
+            frames = video_frames(args.video, stride=args.stride, max_seconds=args.seconds)
+        else:
+            resolution = _pair_of_ints(args.resolution, "--resolution") if args.resolution else None
+            frames = camera_frames(
+                args.camera, seconds=args.seconds or 20.0, resolution=resolution, stride=args.stride
+            )
+        result = self_calibrate(frames)
+    except (OSError, ValueError, ImportError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    estimate = result.estimate
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(
+        yaml.safe_dump({args.camera_name: camchain_entry(estimate)}, sort_keys=False)
+    )
+    _emit(
+        {
+            "saved": str(args.output),
+            "intrinsics": [estimate.fx, estimate.fy, estimate.cx, estimate.cy],
+            "distortion_coeffs": list(estimate.distortion),
+            "std": estimate.std,
+            "rms_px": estimate.rms_px,
+            "keyframes": result.keyframes,
+            "rotation_span_deg": {
+                "tilt": result.rotation_span_deg[0],
+                "pan": result.rotation_span_deg[1],
+                "roll": result.rotation_span_deg[2],
+            },
+            "warnings": list(result.warnings),
+        },
+        args.json,
+    )
+    return 0
 
 
 def _cmd_intrinsics_guide(args: argparse.Namespace) -> int:
