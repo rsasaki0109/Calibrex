@@ -1452,6 +1452,49 @@ def _build_parser() -> argparse.ArgumentParser:
     camera_imu_focal.add_argument("--json", action="store_true")
     camera_imu_focal.set_defaults(func=_cmd_camera_imu_focal)
 
+    intrinsics = subcommands.add_parser(
+        "intrinsics", help="camera intrinsics with a checkerboard"
+    )
+    intrinsics_subcommands = intrinsics.add_subparsers(dest="intrinsics_command", required=True)
+    intrinsics_guide = intrinsics_subcommands.add_parser(
+        "guide",
+        help="calibrate a camera's intrinsics live, with on-screen advice on how to move "
+        "the checkerboard next",
+    )
+    intrinsics_guide.add_argument(
+        "--board",
+        required=True,
+        help="COLUMNSxROWSxSQUARE_M: inner corners and square size in metres, e.g. 9x6x0.025",
+    )
+    intrinsics_source = intrinsics_guide.add_mutually_exclusive_group()
+    intrinsics_source.add_argument(
+        "--camera", type=int, default=0, help="camera index for OpenCV (default 0)"
+    )
+    intrinsics_source.add_argument("--video", type=Path, help="a recorded video instead")
+    intrinsics_guide.add_argument(
+        "--resolution", help="WIDTHxHEIGHT to ask the camera for, e.g. 1280x720"
+    )
+    intrinsics_guide.add_argument(
+        "--output",
+        type=Path,
+        default=Path("intrinsics_camchain.yaml"),
+        help="Kalibr camchain to write (default intrinsics_camchain.yaml)",
+    )
+    intrinsics_guide.add_argument("--camera-name", default="cam0", help="camchain entry name")
+    intrinsics_guide.add_argument(
+        "--grid", default="5x4", help="COLUMNSxROWS image cells the board must visit"
+    )
+    intrinsics_guide.add_argument(
+        "--no-window",
+        action="store_true",
+        help="no window: run to the end of the video (or until done) and save",
+    )
+    intrinsics_guide.add_argument(
+        "--record", type=Path, help="write the annotated frames to this video (MJPG .avi)"
+    )
+    intrinsics_guide.add_argument("--json", action="store_true")
+    intrinsics_guide.set_defaults(func=_cmd_intrinsics_guide)
+
     lidar_lidar = subcommands.add_parser(
         "lidar-lidar",
         help="LiDAR-LiDAR extrinsic from registering one LiDAR's scans to the other's maps",
@@ -8305,6 +8348,76 @@ def _cmd_lidar_wheel_kitti(args: argparse.Namespace) -> int:
     except (OSError, ValueError) as exc:
         raise CalibrexError(str(exc)) from exc
     return _emit_lidar_wheel(artifact, args.output, args.json)
+
+
+def _pair_of_ints(text: str, name: str) -> tuple[int, int]:
+    parts = text.lower().split("x")
+    if len(parts) != 2 or not all(part.isdigit() and int(part) > 0 for part in parts):
+        raise CalibrexError(f"{name} {text!r}: expected AxB with positive integers, e.g. 5x4")
+    return int(parts[0]), int(parts[1])
+
+
+def _cmd_intrinsics_guide(args: argparse.Namespace) -> int:
+    import yaml
+
+    from calibrex.evaluation.board_camera_lidar import Checkerboard
+    from calibrex.evaluation.intrinsics_guide import (
+        GuideOptions,
+        IntrinsicsEstimate,
+        camchain_entry,
+        frames_from,
+        run_guided_calibration,
+    )
+
+    try:
+        board = Checkerboard.parse(args.board)
+    except ValueError as exc:
+        raise CalibrexError(str(exc)) from exc
+    options = GuideOptions(grid=_pair_of_ints(args.grid, "--grid"))
+    resolution = _pair_of_ints(args.resolution, "--resolution") if args.resolution else None
+
+    def save(estimate: IntrinsicsEstimate) -> None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(
+            yaml.safe_dump({args.camera_name: camchain_entry(estimate)}, sort_keys=False)
+        )
+        if not args.json:
+            print(f"saved {args.output} ({estimate.views} views, rms {estimate.rms_px:.3f} px)")
+
+    source: int | str = str(args.video) if args.video is not None else args.camera
+    try:
+        run = run_guided_calibration(
+            frames_from(source, resolution),
+            board,
+            options=options,
+            show=not args.no_window,
+            record=args.record,
+            save=save,
+            stop_when_done=args.no_window,
+        )
+    except (OSError, RuntimeError, ImportError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    estimate = run.estimate
+    payload: dict[str, Any] = {
+        "done": run.done,
+        "saved": str(args.output) if run.saved else None,
+        "frames": run.frames,
+    }
+    if estimate is not None:
+        payload.update(
+            views=estimate.views,
+            rms_px=estimate.rms_px,
+            intrinsics=[estimate.fx, estimate.fy, estimate.cx, estimate.cy],
+            distortion_coeffs=list(estimate.distortion),
+            std=estimate.std,
+        )
+    _emit(payload, args.json)
+    if estimate is None:
+        raise CalibrexError(
+            "no calibration: the board was kept in fewer than 6 still views "
+            "(is --board the inner-corner count?)"
+        )
+    return 0 if run.saved else 1
 
 
 def _cmd_camera_imu_focal(args: argparse.Namespace) -> int:

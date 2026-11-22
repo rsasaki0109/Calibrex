@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- `calibrex intrinsics guide --board COLUMNSxROWSxSQUARE_M` calibrates a camera's intrinsics
+  with a checkerboard, live from a camera (`--camera`, `--resolution`) or from a video
+  (`--video`, `--no-window`), and draws on each frame what to do next: show the board, hold
+  it still, move it to the uncovered image cell nearest to it, tilt it the way it has not
+  been tilted, then vary distance and tilt until the focal lengths' std is under 0.3 % and
+  the principal point's under 2 px (at least 15 views, reprojection RMS under 1 px). Only
+  still frames that add a cell, a tilt or a new pose are kept, and the intrinsics are
+  re-estimated after each (OpenCV `calibrateCameraExtended`, pinhole / radtan with `k3`
+  fixed). `s` saves a Kalibr camchain entry that the camera pairs read; `--record` writes
+  the annotated frames. Large frames are searched at 640 px and the corners refined at full
+  resolution (1280 x 960: 53 ms per frame). On a synthetic distorted camera, following the
+  advice gave the focal lengths within 0.5 % in 15 views
+  ([tutorial](docs/tutorials/intrinsics_guide.md)).
+
 - `calibrex check` prints each clock offset with its data-only std, and the gyro-deskewed
   imu-lidar offset with a note: fitted jointly with the rotation and the gyro bias, it also
   takes up scan-to-scan odometry errors that follow the motion, the same way in every
