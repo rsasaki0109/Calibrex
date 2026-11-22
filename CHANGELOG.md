@@ -14,6 +14,10 @@
   principal point within 0.2 px; a lens offset L from the rotation centre at scene distance
   D lengthens the focal length by about 0.8 L/D (5 cm at 4 m: +0.9 %), which the residuals do
   not show ([tutorial](docs/tutorials/intrinsics_rotate.md)).
+  Stereo rigs: `--right-topic`, `--right-video` or `--side-by-side` give both cameras'
+  intrinsics and their relative rotation (the two rotation sequences aligned); the baseline
+  direction comes from simultaneous left-right matches when their parallax outweighs the
+  rotation's error, and `T_cn_cnm1` is written with `--baseline-m`.
 
 - `calibrex intrinsics guide --board COLUMNSxROWSxSQUARE_M` calibrates a camera's intrinsics
   with a checkerboard, live from a camera (`--camera`, `--resolution`) or from a video

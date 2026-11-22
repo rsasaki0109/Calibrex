@@ -104,3 +104,35 @@ def camera_frames(
             count += 1
     finally:
         capture.release()
+
+
+def split_side_by_side(frames: Iterator[GrayFrame], half: int) -> Iterator[GrayFrame]:
+    """The left (``half=0``) or right (``half=1``) half of side-by-side stereo frames."""
+
+    for time_s, image in frames:
+        width = image.shape[1] // 2
+        yield time_s, image[:, half * width : (half + 1) * width]
+
+
+def paired_frames(
+    left: Iterator[GrayFrame],
+    right: Iterator[GrayFrame],
+    *,
+    max_gap_s: float = 0.01,
+    every_s: float = 1.0,
+) -> Iterator[tuple[NDArray[np.uint8], NDArray[np.uint8]]]:
+    """Simultaneous (within ``max_gap_s``) left and right images, about one per ``every_s``."""
+
+    right_iter = iter(right)
+    pending = next(right_iter, None)
+    last = -float("inf")
+    for time_s, image in left:
+        if time_s - last < every_s:
+            continue
+        while pending is not None and pending[0] < time_s - max_gap_s:
+            pending = next(right_iter, None)
+        if pending is None:
+            return
+        if abs(pending[0] - time_s) <= max_gap_s:
+            yield image, pending[1]
+            last = time_s

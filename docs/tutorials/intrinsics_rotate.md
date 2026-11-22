@@ -22,6 +22,41 @@ It needs OpenCV (`pip install 'calibrex[opencv]'`). `--output` (default
 `intrinsics_camchain.yaml`) and `--camera-name` (default `cam0`) name the camchain; `--json`
 prints the result as JSON.
 
+### Stereo
+
+A stereo rig turned in place gives both cameras' intrinsics and their relative rotation.
+Pass the right camera as a second topic, a second video, or a side-by-side stream:
+
+```bash
+calibrex intrinsics rotate --bag my_bag --topic /left/image_raw --right-topic /right/image_raw
+calibrex intrinsics rotate --video left.mp4 --right-video right.mp4
+calibrex intrinsics rotate --video stereo.mp4 --side-by-side --baseline-m 0.12
+calibrex intrinsics rotate --camera 0 --side-by-side --seconds 20
+```
+
+The camchain gets `cam0` (left) and `cam1` (right). Both cameras turn together, so between
+any two moments the right camera's rotation is the left camera's seen in the right
+camera's axes; aligning the two rotation sequences (keyframes matched by time, left
+orientations interpolated) gives the relative rotation. Bag topics are paired by their
+header stamps, so the cameras must share a clock. Two separate live cameras cannot be
+recorded in step here: record them to a bag or to videos.
+
+The baseline is harder. Its **length** is not observable from rotation, so `T_cn_cnm1` is
+written only with `--baseline-m`. Its **direction** comes from features matched between
+simultaneous left and right images, and a rotation error tilts it by about the rotation
+error over the parallax angle (in a narrow field a rotation about the camera's y axis and a
+translation along x look alike). It is reported only when the matches' median parallax is
+at least 2 px and ten times the rotation's error in pixels; otherwise the command says so
+and leaves `T_cn_cnm1` out. On a simulated 10 cm rig turned in a room 16 m across, the
+intrinsics came within 0.4 % (focal) and 4 px (principal point), the relative rotation
+within 0.7 deg (0.2 deg in a room 40 m across), and the parallax (under 1 px) was too small
+for a direction. With the true rotation and objects 2-3.5 m away the direction came within
+3 deg, but a rotation 0.5 deg off is already too coarse for it. Use a checkerboard when the
+full stereo extrinsics matter.
+
+Turning a rig about its middle also offsets each lens by half the baseline from the rotation
+centre, which lengthens the focal lengths by about 0.8 (b/2)/D: face a distant scene.
+
 ## How to record
 
 - **Turn the camera about its lens.** This is what matters most. A camera on a tripod or a

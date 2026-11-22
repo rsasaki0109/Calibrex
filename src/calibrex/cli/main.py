@@ -1505,6 +1505,23 @@ def _build_parser() -> argparse.ArgumentParser:
     rotate_source.add_argument("--camera", type=int, help="a live camera index for OpenCV")
     intrinsics_rotate.add_argument("--topic", help="image topic in --bag")
     intrinsics_rotate.add_argument(
+        "--right-topic", help="stereo: the right camera's image topic in --bag"
+    )
+    intrinsics_rotate.add_argument("--right-video", type=Path, help="stereo: the right video")
+    intrinsics_rotate.add_argument(
+        "--right-camera", type=int, help="stereo: the right live camera index"
+    )
+    intrinsics_rotate.add_argument(
+        "--side-by-side",
+        action="store_true",
+        help="stereo: --video or --camera frames hold left and right side by side",
+    )
+    intrinsics_rotate.add_argument(
+        "--baseline-m",
+        type=_positive_float,
+        help="stereo: the baseline length, to write T_cn_cnm1 (rotation cannot measure it)",
+    )
+    intrinsics_rotate.add_argument(
         "--seconds",
         type=_positive_float,
         help="use at most this many seconds (--camera: record this long, default 20)",
@@ -8385,50 +8402,132 @@ def _pair_of_ints(text: str, name: str) -> tuple[int, int]:
     return int(parts[0]), int(parts[1])
 
 
+def _rotate_sources(args: argparse.Namespace) -> tuple[Any, Any, Any]:
+    """Factories of the left (or only) frames, the right frames and simultaneous pairs."""
+
+    from calibrex.data.frame_sources import (
+        bag_frames,
+        camera_frames,
+        paired_frames,
+        split_side_by_side,
+        video_frames,
+    )
+
+    stride, seconds = args.stride, args.seconds
+    if args.bag is not None:
+        if not args.topic:
+            raise CalibrexError("--bag needs --topic (the image topic)")
+
+        def left_bag() -> Any:
+            return bag_frames(args.bag, args.topic, stride=stride, max_seconds=seconds)
+
+        if not args.right_topic:
+            return left_bag, None, None
+
+        def right_bag() -> Any:
+            return bag_frames(args.bag, args.right_topic, stride=stride, max_seconds=seconds)
+
+        return left_bag, right_bag, lambda: paired_frames(
+            bag_frames(args.bag, args.topic, max_seconds=seconds),
+            bag_frames(args.bag, args.right_topic, max_seconds=seconds),
+        )
+    if args.video is not None:
+
+        def left_video() -> Any:
+            frames = video_frames(args.video, stride=stride, max_seconds=seconds)
+            return split_side_by_side(frames, 0) if args.side_by_side else frames
+
+        if args.side_by_side:
+
+            def right_half() -> Any:
+                frames = video_frames(args.video, stride=stride, max_seconds=seconds)
+                return split_side_by_side(frames, 1)
+
+            return left_video, right_half, lambda: paired_frames(left_video(), right_half())
+        if args.right_video is None:
+            return left_video, None, None
+
+        def right_video() -> Any:
+            return video_frames(args.right_video, stride=stride, max_seconds=seconds)
+
+        return left_video, right_video, lambda: paired_frames(left_video(), right_video())
+    # Live cameras: record once, then replay from memory for each pass.
+    if args.right_camera is not None:
+        raise CalibrexError(
+            "two live cameras cannot be recorded in step here: record both to a bag or to "
+            "videos, or use one side-by-side stereo camera with --side-by-side"
+        )
+    resolution = _pair_of_ints(args.resolution, "--resolution") if args.resolution else None
+    duration = seconds or 20.0
+    print(f"recording {duration:g} s: turn the camera about its lens (pan, tilt and roll)")
+    left = list(camera_frames(args.camera, seconds=duration, resolution=resolution, stride=stride))
+    if args.side_by_side:
+        right = list(split_side_by_side(iter(left), 1))
+        left = list(split_side_by_side(iter(left), 0))
+    else:
+        return lambda: iter(left), None, None
+    return (
+        lambda: iter(left),
+        lambda: iter(right),
+        lambda: paired_frames(iter(left), iter(right)),
+    )
+
+
+def _rotation_payload(result: Any) -> dict[str, Any]:
+    estimate = result.estimate
+    return {
+        "intrinsics": [estimate.fx, estimate.fy, estimate.cx, estimate.cy],
+        "distortion_coeffs": list(estimate.distortion),
+        "std": estimate.std,
+        "rms_px": estimate.rms_px,
+        "keyframes": result.keyframes,
+        "rotation_span_deg": {
+            "tilt": result.rotation_span_deg[0],
+            "pan": result.rotation_span_deg[1],
+            "roll": result.rotation_span_deg[2],
+        },
+        "warnings": list(result.warnings),
+    }
+
+
 def _cmd_intrinsics_rotate(args: argparse.Namespace) -> int:
     import yaml
 
-    from calibrex.data.frame_sources import bag_frames, camera_frames, video_frames
     from calibrex.evaluation.intrinsics_guide import camchain_entry
     from calibrex.evaluation.rotation_self_calibration import self_calibrate
+    from calibrex.evaluation.stereo_self_calibration import combine
 
-    if args.bag is not None and not args.topic:
-        raise CalibrexError("--bag needs --topic (the image topic)")
+    stereo = bool(args.right_topic or args.right_video or args.right_camera is not None)
+    stereo = stereo or args.side_by_side
     try:
-        if args.bag is not None:
-            frames = bag_frames(args.bag, args.topic, stride=args.stride, max_seconds=args.seconds)
-        elif args.video is not None:
-            frames = video_frames(args.video, stride=args.stride, max_seconds=args.seconds)
-        else:
-            resolution = _pair_of_ints(args.resolution, "--resolution") if args.resolution else None
-            frames = camera_frames(
-                args.camera, seconds=args.seconds or 20.0, resolution=resolution, stride=args.stride
-            )
-        result = self_calibrate(frames)
+        left_frames, right_frames, pairs = _rotate_sources(args)
+        left = self_calibrate(left_frames())
+        right = self_calibrate(right_frames()) if stereo and right_frames else None
+        rig = combine(left, right, pairs(), args.baseline_m) if right is not None else None
     except (OSError, ValueError, ImportError) as exc:
         raise CalibrexError(str(exc)) from exc
-    estimate = result.estimate
+    chain: dict[str, Any] = {args.camera_name: camchain_entry(left.estimate)}
+    payload: dict[str, Any] = {"saved": str(args.output), args.camera_name: _rotation_payload(left)}
+    if rig is not None and right is not None:
+        entry = camchain_entry(right.estimate)
+        transform = rig.t_cam1_cam0()
+        if transform is not None:
+            entry["T_cn_cnm1"] = transform.tolist()
+        chain["cam1"] = entry
+        payload["cam1"] = _rotation_payload(right)
+        payload["stereo"] = {
+            "rotation_cam1_cam0": rig.rotation_lr.T.tolist(),
+            "rotation_rms_deg": rig.rotation_rms_deg,
+            "baseline_direction": None
+            if rig.baseline_direction is None
+            else rig.baseline_direction.tolist(),
+            "baseline_matches": rig.baseline_matches,
+            "baseline_m": rig.baseline_m,
+            "warnings": list(rig.warnings),
+        }
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
-        yaml.safe_dump({args.camera_name: camchain_entry(estimate)}, sort_keys=False)
-    )
-    _emit(
-        {
-            "saved": str(args.output),
-            "intrinsics": [estimate.fx, estimate.fy, estimate.cx, estimate.cy],
-            "distortion_coeffs": list(estimate.distortion),
-            "std": estimate.std,
-            "rms_px": estimate.rms_px,
-            "keyframes": result.keyframes,
-            "rotation_span_deg": {
-                "tilt": result.rotation_span_deg[0],
-                "pan": result.rotation_span_deg[1],
-                "roll": result.rotation_span_deg[2],
-            },
-            "warnings": list(result.warnings),
-        },
-        args.json,
-    )
+    args.output.write_text(yaml.safe_dump(chain, sort_keys=False))
+    _emit(payload, args.json)
     return 0
 
 

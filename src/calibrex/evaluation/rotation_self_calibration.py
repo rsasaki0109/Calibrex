@@ -82,6 +82,9 @@ class SelfCalibration:
     tracks: int
     pairs: int
     warnings: tuple[str, ...]
+    keyframe_times_s: tuple[float, ...] = ()
+    rotations: FloatArray | None = None
+    """Keyframe orientations, camera to a world frame fixed at the first keyframe: (N, 3, 3)."""
 
 
 @dataclass
@@ -397,7 +400,16 @@ def self_calibrate(
         rms_px=rms,
         views=n_kf,
     )
-    return SelfCalibration(estimate, span, n_kf, pairs.tracks, m, tuple(warnings))
+    return SelfCalibration(
+        estimate,
+        span,
+        n_kf,
+        pairs.tracks,
+        m,
+        tuple(warnings),
+        tuple(tracks.keyframe_times),
+        rs,
+    )
 
 
 def _intrinsic_std(jacobian: Any, errors: FloatArray, n_params: int, reuse: float) -> list[float]:
