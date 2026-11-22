@@ -83,6 +83,7 @@ from calibrex.core.calibration_check import (
     CheckPairRecord,
     CheckProvenance,
     CheckRotationAttribution,
+    CheckTimeOffset,
     CheckTopicRecord,
     CheckTransform,
     OdometryKind,
@@ -1201,10 +1202,16 @@ def _verdict_lines(
             if note.startswith(("external camera", "camera clock + ")):
                 lines.append(f"  {pair.pair} ({pair.sensors[0]}): {note}")
         if pair.time_offset is not None:
+            offset = pair.time_offset
+            std = f" +- {offset.std_s * 1e3:.2f}" if offset.std_s is not None else ""
             lines.append(
-                f"  {label}: time offset {pair.time_offset.estimate_s * 1e3:.2f} ms "
-                f"({pair.time_offset.status}; reported, not judged)"
+                f"  {label}: time offset {offset.estimate_s * 1e3:.2f}{std} ms "
+                f"({offset.status}; reported, not judged)"
             )
+            if offset.note != CheckTimeOffset.model_fields["note"].default:
+                lines.append(
+                    f"    {_clip(offset.note.removeprefix('reported only; not judged. '), 400)}"
+                )
         lines.extend(f"  {label}: {text}" for text in _unchecked_lines(pair))
         if pair.focal_scale is not None:
             for focal in pair.focal_scale.unchecked:

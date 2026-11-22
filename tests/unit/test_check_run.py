@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
@@ -255,7 +257,32 @@ def test_table_lists_axes_unchecked_and_detectable(
     assert "|delta|/tolerance" in table and "detectable" in table
     assert "pitch 0.9/0.5 deg [warn]" in table
     assert "overall verdict: warn" in table
-    assert "time offset 2.00 ms" in table
+    assert "time offset 2.00 +- 1.00 ms (estimated; reported, not judged)" in table
+
+
+def test_a_time_offset_note_beyond_the_default_is_printed_under_it(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run = dataclasses.replace(
+        _run(),
+        time_offset=estimators.time_offset_of(
+            [SimpleNamespace(name="time_offset", std_reported=0.0004, status="estimated")],
+            -0.0031,
+            estimators.IMU_LIDAR_TIME_OFFSET_NOTE,
+        ),
+    )
+    monkeypatch.setattr(estimators, "ESTIMATORS", {"imu-lidar": lambda ctx: run})
+    artifact = build_calibration_check(
+        bag, run=CheckRunOptions(evidence_dir=tmp_path / "ev", pairs=("imu-lidar",))
+    )
+
+    record = _by(artifact, "imu-lidar")[0]
+    assert record.time_offset is not None
+    assert record.time_offset.note == estimators.IMU_LIDAR_TIME_OFFSET_NOTE
+    table = format_check_table(artifact)
+    assert "time offset -3.10 +- 0.40 ms (estimated; reported, not judged)" in table
+    assert "    Its std is data-only" in table
+    assert "reported only; not judged. Its std" not in table
 
 
 # ------------------------------------------------------------------------ CLI
