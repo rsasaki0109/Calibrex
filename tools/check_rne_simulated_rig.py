@@ -3,19 +3,20 @@
 Robot Native Engine's example 149 (``calibrex_rig_bag``) simulates a hand-held rig in a
 room and writes ``rig.mcap`` with ``good.yaml`` (the true mountings in the ``lidar``
 frame) and one candidate per sensor turned 3 degrees. Recorded with
-``--sensors imu,lidar2`` it holds a LiDAR, a second LiDAR and an IMU. This script runs
-``calibrex check --pairs imu-lidar,lidar-lidar`` on three candidates and fails unless
-every pair gets the verdict in :data:`EXPECTED`:
+``--sensors imu,lidar2,camera`` it holds a LiDAR, a second LiDAR, an IMU and a camera.
+This script runs ``calibrex check --pairs imu-lidar,lidar-lidar,camera-lidar`` on four
+candidates and fails unless every pair gets the verdict in :data:`EXPECTED`:
 
-* a pair that should pass passes, with roll, pitch and yaw judged and every judged axis
-  within its tolerance;
+* a pair that should pass passes, with every judged axis within its tolerance and roll,
+  pitch and yaw judged (camera-lidar: at least one rotation axis, as its edge objective
+  may leave an axis unchecked);
 * a pair that should fail fails, and its rotation error (the norm of the roll, pitch and
   yaw errors) is between 2 and 4 degrees, the 3 degree turn.
 
 It is what the ``RNE simulated rig`` workflow runs; locally::
 
     cargo run --release -p calibrex_rig_bag --example 149_calibrex_rig_bag -- \\
-        --out /tmp/rne_rig --duration-s 20 --sensors imu,lidar2  # in RobotNativeEngine
+        --out /tmp/rne_rig --duration-s 20 --sensors imu,lidar2,camera  # in RobotNativeEngine
     python tools/check_rne_simulated_rig.py /tmp/rne_rig
 
 The data is simulated: a pass shows the estimator and verdict path work end to end on a
@@ -34,20 +35,49 @@ from pathlib import Path
 from typing import Any
 
 ROTATION_AXES = ("roll", "pitch", "yaw")
-PAIRS = "imu-lidar,lidar-lidar"
+PAIRS = "imu-lidar,lidar-lidar,camera-lidar"
 TURN_RANGE_DEG = (2.0, 4.0)
 
 PairKey = tuple[str, frozenset[str]]
 IMU_LIDAR: PairKey = ("imu-lidar", frozenset({"imu", "lidar"}))
 IMU_LIDAR2: PairKey = ("imu-lidar", frozenset({"imu", "lidar2"}))
 LIDAR_LIDAR: PairKey = ("lidar-lidar", frozenset({"lidar", "lidar2"}))
+CAMERA_LIDAR: PairKey = ("camera-lidar", frozenset({"camera", "lidar"}))
+CAMERA_LIDAR2: PairKey = ("camera-lidar", frozenset({"camera", "lidar2"}))
+CAMERA_PAIRS = frozenset({"camera-lidar"})
 
 EXPECTED: dict[str, dict[PairKey, str]] = {
-    "good.yaml": {IMU_LIDAR: "pass", IMU_LIDAR2: "pass", LIDAR_LIDAR: "pass"},
-    # The IMU turned about the LiDAR z axis: both IMU pairs fail, the LiDARs agree.
-    "turned_imu.yaml": {IMU_LIDAR: "fail", IMU_LIDAR2: "fail", LIDAR_LIDAR: "pass"},
-    # lidar2 turned about its own z axis: its pairs fail, imu-lidar still passes.
-    "turned_lidar2.yaml": {IMU_LIDAR: "pass", IMU_LIDAR2: "fail", LIDAR_LIDAR: "fail"},
+    "good.yaml": {
+        IMU_LIDAR: "pass",
+        IMU_LIDAR2: "pass",
+        LIDAR_LIDAR: "pass",
+        CAMERA_LIDAR: "pass",
+        CAMERA_LIDAR2: "pass",
+    },
+    # The IMU turned about the LiDAR z axis: both IMU pairs fail, the rest agree.
+    "turned_imu.yaml": {
+        IMU_LIDAR: "fail",
+        IMU_LIDAR2: "fail",
+        LIDAR_LIDAR: "pass",
+        CAMERA_LIDAR: "pass",
+        CAMERA_LIDAR2: "pass",
+    },
+    # lidar2 turned about its own z axis: its pairs fail, the others still pass.
+    "turned_lidar2.yaml": {
+        IMU_LIDAR: "pass",
+        IMU_LIDAR2: "fail",
+        LIDAR_LIDAR: "fail",
+        CAMERA_LIDAR: "pass",
+        CAMERA_LIDAR2: "fail",
+    },
+    # The camera turned about its optical x axis: only the camera pairs fail.
+    "turned_camera.yaml": {
+        IMU_LIDAR: "pass",
+        IMU_LIDAR2: "pass",
+        LIDAR_LIDAR: "pass",
+        CAMERA_LIDAR: "fail",
+        CAMERA_LIDAR2: "fail",
+    },
 }
 
 
@@ -109,13 +139,18 @@ def check_pair(
         problems.append(f"{where}: verdict {verdict}, expected {expected}")
         return
     if expected == "pass":
-        for name in ROTATION_AXES:
-            if name not in axes:
-                problems.append(f"{where}: {name} was not judged")
+        judged = [name for name in ROTATION_AXES if name in axes]
+        if key[0] in CAMERA_PAIRS:
+            if not judged:
+                problems.append(f"{where}: no rotation axis was judged")
+        else:
+            for name in ROTATION_AXES:
+                if name not in judged:
+                    problems.append(f"{where}: {name} was not judged")
         for name, axis in axes.items():
             if axis["status"] != "pass" or abs(axis["candidate_error"]) > axis["tolerance"]:
                 problems.append(
-                    f"{where}: {name} {axis['candidate_error']:.3f}/{axis['tolerance']} "
+                    f"{where}: {name} {axis['candidate_error']:.3f}/{axis['tolerance']:.3g} "
                     f"{axis['status']}"
                 )
     else:
@@ -130,7 +165,7 @@ def check_pair(
 
 def summary_line(candidate: str, key: PairKey, pair: dict[str, Any]) -> str:
     judged = "; ".join(
-        f"{name} {axis['candidate_error']:.3f}/{axis['tolerance']} {axis['status']}"
+        f"{name} {axis['candidate_error']:.3f}/{axis['tolerance']:.3g} {axis['status']}"
         for name, axis in axes_of(pair).items()
     )
     return f"{candidate}: {label(key)} {pair['verdict']} ({judged})"
