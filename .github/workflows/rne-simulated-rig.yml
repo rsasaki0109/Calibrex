@@ -1,10 +1,12 @@
 name: RNE simulated rig
 
 # calibrex check on a recording with a known truth: Robot Native Engine's example 149
-# simulates a hand-held rig with two LiDARs and an IMU and writes a ROS 2 MCAP bag with the
-# true mountings (good.yaml) and each sensor turned 3 degrees (turned_imu.yaml,
-# turned_lidar2.yaml). The true mountings must pass imu-lidar and lidar-lidar; each turned
-# sensor must fail exactly its own pairs. See tools/check_rne_simulated_rig.py.
+# simulates a hand-held rig with two LiDARs, an IMU and a camera and writes a ROS 2 MCAP bag
+# with the true mountings (good.yaml) and each sensor turned 3 degrees (turned_imu.yaml,
+# turned_lidar2.yaml, turned_camera.yaml). The true mountings must pass imu-lidar,
+# lidar-lidar and camera-lidar; each turned sensor must fail exactly its own pairs. A second
+# bag turns the rig twice as fast so imu-lidar also judges the IMU's lever arm, which the IMU
+# shifted 5 cm (shifted_imu.yaml) must fail. See tools/check_rne_simulated_rig.py.
 
 on:
   pull_request:
@@ -13,6 +15,8 @@ on:
       - "src/calibrex/evaluation/imu_lidar*"
       - "src/calibrex/solvers/imu_lidar*"
       - "src/calibrex/solvers/scan_to_scan_odometry.py"
+      - "src/calibrex/evaluation/camera_lidar*"
+      - "src/calibrex/data/ros2_camera_lidar.py"
       - "src/calibrex/data/rosbag2.py"
       - "src/calibrex/data/ros_cdr.py"
       - "tools/check_rne_simulated_rig.py"
@@ -24,6 +28,8 @@ on:
       - "src/calibrex/evaluation/imu_lidar*"
       - "src/calibrex/solvers/imu_lidar*"
       - "src/calibrex/solvers/scan_to_scan_odometry.py"
+      - "src/calibrex/evaluation/camera_lidar*"
+      - "src/calibrex/data/ros2_camera_lidar.py"
       - "src/calibrex/data/rosbag2.py"
       - "src/calibrex/data/ros_cdr.py"
       - "tools/check_rne_simulated_rig.py"
@@ -33,12 +39,14 @@ on:
   workflow_dispatch:
 
 env:
-  # A Robot Native Engine commit whose example 149 records two LiDARs, an IMU and a camera.
-  RNE_REF: 0edf1e684b7a586ad5aac32e601bed242100bdad
+  # A Robot Native Engine commit whose example 149 has posts (so camera-lidar can judge the
+  # camera), --rotation-speed and shifted_imu.yaml.
+  RNE_REF: 1370849ef6bd50379fe90f016ccda3b5b3c6de4e
   RIG_DURATION_S: "20"
+  LEVER_ARM_DURATION_S: "90"
 
 jobs:
-  imu-lidar-lidar:
+  simulated-rig:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -58,8 +66,10 @@ jobs:
           # rust-toolchain.toml selects RNE's pinned toolchain.
           cargo build --release --locked -p calibrex_rig_bag --example 149_calibrex_rig_bag
           target/release/examples/149_calibrex_rig_bag \
-            --out "$RUNNER_TEMP/rig" --duration-s "$RIG_DURATION_S" --sensors imu,lidar2
-          ls -l "$RUNNER_TEMP/rig"
+            --out "$RUNNER_TEMP/rig" --duration-s "$RIG_DURATION_S" --sensors imu,lidar2,camera
+          target/release/examples/149_calibrex_rig_bag --out "$RUNNER_TEMP/lever_arm" \
+            --duration-s "$LEVER_ARM_DURATION_S" --sensors imu --rotation-speed 2
+          ls -l "$RUNNER_TEMP/rig" "$RUNNER_TEMP/lever_arm"
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -67,3 +77,7 @@ jobs:
         run: python -m pip install -e .
       - name: Check the true and the turned mountings
         run: python tools/check_rne_simulated_rig.py "$RUNNER_TEMP/rig" --cache-dir "$RUNNER_TEMP/cache"
+      - name: Check the lever arm
+        run: >-
+          python tools/check_rne_simulated_rig.py "$RUNNER_TEMP/lever_arm" --profile lever-arm
+          --cache-dir "$RUNNER_TEMP/cache_lever_arm"

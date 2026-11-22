@@ -334,8 +334,26 @@ def translation_axis_estimates(
     ]
 
 
-def time_offset_of(records: Sequence[Any], estimate_s: float) -> CheckTimeOffset | None:
-    """The clock-offset record of a rotation artifact."""
+IMU_LIDAR_TIME_OFFSET_NOTE = (
+    "reported only; not judged. Its std is data-only: fitted jointly with the rotation "
+    "and the gyro bias, the offset also takes up scan-to-scan odometry errors that follow "
+    "the motion, the same way in every window. On simulated recordings with a true offset "
+    "of 0 that moved it by -1.1 to -3.6 ms (several stds), so read one recording's offset "
+    "as accurate to a few ms; recordings of one rig and scene share the error."
+)
+"""Note on the gyro-deskewed imu-lidar clock offset (docs/tutorials/simulated_rig_rne.md).
+
+Calibrex's ``synthetic_lidar_imu_bag`` (noise-free, 5-20 Hz LiDAR, with and without
+translation) gives -1.1 to -1.7 ms and Robot Native Engine's simulated rig -1.7 to
+-3.6 ms depending on its room, with data-only stds of 0.2-0.6 ms; on true poses the
+estimator recovers the offset to the microsecond.
+"""
+
+
+def time_offset_of(
+    records: Sequence[Any], estimate_s: float, note: str | None = None
+) -> CheckTimeOffset | None:
+    """The clock-offset record of a rotation artifact (``note`` replaces the default note)."""
 
     for record in records:
         if record.name == "time_offset":
@@ -343,6 +361,7 @@ def time_offset_of(records: Sequence[Any], estimate_s: float) -> CheckTimeOffset
                 estimate_s=float(estimate_s),
                 std_s=float(record.std_reported),
                 status="estimated" if record.status == "estimated" else "unobservable",
+                **({"note": note} if note is not None else {}),
             )
     return None
 
@@ -711,7 +730,11 @@ def run_imu_lidar(ctx: PairContext) -> EstimatorRun:
         policy_reasons=tuple(reasons),
         estimates=tuple(estimates),
         compared=candidate,
-        time_offset=time_offset_of(rotation.dofs, rotation.time_offset_s),
+        time_offset=time_offset_of(
+            rotation.dofs,
+            rotation.time_offset_s,
+            IMU_LIDAR_TIME_OFFSET_NOTE if deskew == "gyro" else None,
+        ),
         notes=tuple(notes),
         deskew=deskew,
     )
