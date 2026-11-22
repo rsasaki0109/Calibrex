@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- `calibrex check` prints each clock offset with its data-only std, and the gyro-deskewed
+  imu-lidar offset with a note: fitted jointly with the rotation and the gyro bias, it also
+  takes up scan-to-scan odometry errors that follow the motion, the same way in every
+  window, so one recording's offset is accurate to a few ms (−1.1 to −3.6 ms with a true
+  offset of 0 on simulated recordings, against data-only stds of 0.2–0.6 ms). The
+  estimator, its std and `calibrex drift` are unchanged.
+
+- The `RNE simulated rig` workflow checks camera-lidar and the IMU's lever arm. RNE's
+  example 149 at `1370849` has a room with thin, partly leaning posts, `--rotation-speed`
+  and `shifted_imu.yaml`. A 20 s bag with `--sensors imu,lidar2,camera` must pass
+  imu-lidar, lidar-lidar and both camera-lidar pairs with the true mountings and fail
+  exactly the turned sensor's pairs (IMU, `lidar2` or camera); a 90 s IMU + LiDAR bag
+  turning twice as fast (`tools/check_rne_simulated_rig.py --profile lever-arm`) must pass
+  imu-lidar on all six axes and fail with the IMU shifted 5 cm (x 4.7 cm).
+
+- The simulated-rig tutorial traces camera-imu's 1° yaw error on that rig to its
+  pure-rotation fits taking up the rig's translation (the check passes within 0.02° when
+  the rig only rotates), and shows that the imu-lidar lever arm needs brisker rotation
+  rather than a longer recording.
+
 - The simulated-rig tutorial traces the −1.5 ms imu-lidar time-offset bias: the rotation
   solver is exact on true poses, the gyro-deskewed odometry poses are not shifted in time
   (+0.2 ms), and the joint fit of rotation, gyro bias and offset moves the odometry's
