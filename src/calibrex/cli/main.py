@@ -3359,6 +3359,17 @@ def _build_parser() -> argparse.ArgumentParser:
         "and camera-focal; repeatable",
     )
     check.add_argument(
+        "--intrinsics",
+        type=_intrinsics_override,
+        action="append",
+        default=[],
+        metavar="[TOPIC=]CAMCHAIN[:camN]",
+        help="camera intrinsics for an image topic, from a Kalibr camchain (calibrex "
+        "intrinsics guide / rotate write one): [TOPIC=]CAMCHAIN[:camN]; without TOPIC it "
+        "applies to entries whose rostopic matches, or to the only camera; comes before "
+        "--tf camchains and CameraInfo; repeatable",
+    )
+    check.add_argument(
         "--board",
         type=_board_spec,
         default=None,
@@ -3495,6 +3506,17 @@ def _build_parser() -> argparse.ArgumentParser:
         "pair with an estimator)",
     )
     estimate.add_argument(
+        "--intrinsics",
+        type=_intrinsics_override,
+        action="append",
+        default=[],
+        metavar="[TOPIC=]CAMCHAIN[:camN]",
+        help="camera intrinsics for an image topic, from a Kalibr camchain (calibrex "
+        "intrinsics guide / rotate write one): [TOPIC=]CAMCHAIN[:camN]; without TOPIC it "
+        "applies to entries whose rostopic matches, or to the only camera; comes before "
+        "--tf camchains and CameraInfo; repeatable",
+    )
+    estimate.add_argument(
         "--board",
         type=_board_spec,
         default=None,
@@ -3542,6 +3564,17 @@ def _build_parser() -> argparse.ArgumentParser:
             "calibration_drift.json (slac.calibration_drift/v0.1) and each bag's "
             "bag_estimate.json under OUTPUT/<bag-name>/."
         ),
+    )
+    drift.add_argument(
+        "--intrinsics",
+        type=_intrinsics_override,
+        action="append",
+        default=[],
+        metavar="[TOPIC=]CAMCHAIN[:camN]",
+        help="camera intrinsics for an image topic, from a Kalibr camchain (calibrex "
+        "intrinsics guide / rotate write one): [TOPIC=]CAMCHAIN[:camN]; without TOPIC it "
+        "applies to entries whose rostopic matches, or to the only camera; comes before "
+        "--tf camchains and CameraInfo; repeatable",
     )
     drift.add_argument(
         "bags",
@@ -4912,6 +4945,18 @@ _ESTIMATE_SHARED_DESTS = frozenset(
 )
 
 
+def _intrinsics_override(text: str) -> Any:
+    from calibrex.check.intrinsics_override import IntrinsicsOverride
+
+    try:
+        override = IntrinsicsOverride.parse(text)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+    if not override.path.is_file():
+        raise argparse.ArgumentTypeError(f"{override.path}: no such camchain file")
+    return override
+
+
 def _board_spec(text: str) -> str:
     from calibrex.evaluation.board_camera_lidar import Checkerboard
 
@@ -4958,6 +5003,7 @@ def _cmd_estimate(args: argparse.Namespace) -> int:
         camera_lidar_start_scan_min_control_t=args.camera_lidar_start_scan_min_control_t,
         camera_lidar_start_agreement_deg=args.camera_lidar_start_agreement_deg,
         board=args.board,
+        intrinsics=tuple(args.intrinsics),
         evidence_dir=output_dir / "evidence",
         base_dir=output_dir,
         cache_dir=None
@@ -5041,6 +5087,7 @@ def _cmd_drift(args: argparse.Namespace) -> int:
         camera_lidar_motion=args.camera_lidar_motion,
         camera_lidar_start_scan_min_control_t=args.camera_lidar_start_scan_min_control_t,
         camera_lidar_start_agreement_deg=args.camera_lidar_start_agreement_deg,
+        intrinsics=tuple(args.intrinsics),
         cache_dir=None
         if args.no_cache
         else (args.cache_dir if args.cache_dir is not None else default_cache_dir()),
@@ -5153,6 +5200,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
             camera_lidar_start_agreement_deg=args.camera_lidar_start_agreement_deg,
             camera_lidar_overlay=bool(args.html),
             board=args.board,
+            intrinsics=tuple(args.intrinsics),
             external_cameras=tuple(args.camera_source),
             rigid_scan_rotation_floor_deg=(
                 args.rigid_scan_rotation_floor_deg
@@ -8573,6 +8621,31 @@ def _recorded_sources(args: argparse.Namespace, recorded: list[Any]) -> tuple[An
     )
 
 
+def _print_next_step(args: argparse.Namespace) -> None:
+    """The command that uses the camchain for the robot's extrinsics, when from a bag."""
+
+    if getattr(args, "bag", None) is None or args.json:
+        return
+    print(
+        "next: check (or estimate with calibrex estimate ... --output DIR) the extrinsics "
+        f"with these intrinsics:\n  calibrex check {shlex.quote(str(args.bag))} --intrinsics "
+        f"{shlex.quote(str(args.output))}",
+        file=sys.stderr,
+    )
+
+
+def _tag_bag_topics(args: argparse.Namespace, chain: dict[str, Any]) -> dict[str, Any]:
+    """Name each camera's bag topic (``rostopic``), so ``check --intrinsics`` finds it."""
+
+    if getattr(args, "bag", None) is None:
+        return chain
+    names = list(chain)
+    for name, topic in zip(names, (args.topic, getattr(args, "right_topic", None)), strict=False):
+        if topic:
+            chain[name]["rostopic"] = topic
+    return chain
+
+
 def _rotation_payload(result: Any) -> dict[str, Any]:
     estimate = result.estimate
     return {
@@ -8630,8 +8703,10 @@ def _cmd_intrinsics_rotate(args: argparse.Namespace) -> int:
             "warnings": list(rig.warnings),
         }
     args.output.parent.mkdir(parents=True, exist_ok=True)
+    _tag_bag_topics(args, chain)
     args.output.write_text(yaml.safe_dump(chain, sort_keys=False))
     _emit(payload, args.json)
+    _print_next_step(args)
     return 0
 
 
@@ -8659,10 +8734,14 @@ def _cmd_intrinsics_guide(args: argparse.Namespace) -> int:
     def save(estimate: IntrinsicsEstimate) -> None:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(
-            yaml.safe_dump({args.camera_name: camchain_entry(estimate)}, sort_keys=False)
+            yaml.safe_dump(
+                _tag_bag_topics(args, {args.camera_name: camchain_entry(estimate)}),
+                sort_keys=False,
+            )
         )
         if not args.json:
             print(f"saved {args.output} ({estimate.views} views, rms {estimate.rms_px:.3f} px)")
+            _print_next_step(args)
 
     stereo = _guide_stereo_pairs(args, resolution)
     if stereo is not None:
@@ -8758,7 +8837,8 @@ def _guide_stereo(args: argparse.Namespace, board: Any, options: Any, pairs: Any
 
     def save(guide: StereoGuide) -> None:
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(yaml.safe_dump(stereo_camchain(guide), sort_keys=False))
+        chain = _tag_bag_topics(args, stereo_camchain(guide))
+        args.output.write_text(yaml.safe_dump(chain, sort_keys=False))
         if not args.json:
             baseline = (
                 f", baseline {guide.extrinsics.baseline_m:.4f} m"
@@ -8766,6 +8846,7 @@ def _guide_stereo(args: argparse.Namespace, board: Any, options: Any, pairs: Any
                 else ", no baseline yet"
             )
             print(f"saved {args.output} ({len(guide.views)} stereo views{baseline})")
+            _print_next_step(args)
 
     try:
         run = run_stereo_guide(

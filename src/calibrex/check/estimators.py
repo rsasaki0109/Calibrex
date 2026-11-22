@@ -33,6 +33,7 @@ from numpy.typing import NDArray
 
 from calibrex.check.cache import EstimatorCache, cached_artifact
 from calibrex.check.frame_tree import StaticFrameTree
+from calibrex.check.intrinsics_override import IntrinsicsOverride, match_intrinsics
 from calibrex.check.roles import image_transport_base
 from calibrex.check.tf_sources import LoadedSource, camchain_entries
 from calibrex.check.verdict import (
@@ -185,6 +186,8 @@ class RunControls:
     """camera-lidar from a checkerboard (``COLUMNSxROWSxSQUARE_M``) instead of edge alignment."""
     external_cameras: Mapping[str, ExternalCameraSource] = field(default_factory=dict)
     """Cameras outside the bag (``--camera-source``), keyed by their stand-in topic."""
+    intrinsics: tuple[IntrinsicsOverride, ...] = ()
+    """Camera intrinsics by image topic (``--intrinsics``); they come before any other source."""
     edge_preparation_cache: EdgePreparationCache | None = field(
         default=None, repr=False, compare=False
     )
@@ -1093,6 +1096,28 @@ def resolve_camera_intrinsics(
 
     from calibrex.evaluation.visual_rotation import CameraModel
 
+    overrides = getattr(getattr(ctx, "controls", None), "intrinsics", ())
+    if overrides:
+        try:
+            matched = match_intrinsics(
+                overrides, image_topic, tuple(ctx.sensor_topics.get("camera", ()))
+            )
+        except (OSError, ValueError) as exc:
+            raise CheckSkipError("missing_intrinsics", f"--intrinsics: {exc}") from exc
+        if matched is not None:
+            override, key, entry = matched
+            try:
+                model = CameraModel.from_kalibr(entry)
+            except ValueError as exc:
+                raise CheckSkipError(
+                    "missing_intrinsics", f"{override.describe(key)}: {exc}"
+                ) from exc
+            if model.distortion_model == "atan" and ctx.pair.pair not in ATAN_CAMERA_PAIRS:
+                raise CheckSkipError(
+                    "unsupported_sensor",
+                    f"{override.describe(key)}: {ctx.pair.pair} cannot use the atan model",
+                )
+            return model, override.describe(key), key
     for source in ctx.sources:
         if source.path is None or source.kind not in {"kalibr_camchain", "rtk_slam_calib"}:
             continue
@@ -1126,7 +1151,8 @@ def resolve_camera_intrinsics(
         )
     raise CheckSkipError(
         "missing_intrinsics",
-        f"no intrinsics for {image_topic}: give a Kalibr camchain with --tf or record a "
+        f"no intrinsics for {image_topic}: give a camchain with --intrinsics "
+        f"{image_topic}=FILE (calibrex intrinsics guide or rotate writes one) or record a "
         "CameraInfo topic next to the image topic",
     )
 

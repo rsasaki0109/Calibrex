@@ -37,6 +37,7 @@ from calibrex.check.estimators import (
 )
 from calibrex.check.frame_tree import StaticFrameTree, normalize_frame_id
 from calibrex.check.hints import format_next_steps, plainly_absent
+from calibrex.check.intrinsics_override import IntrinsicsOverride
 from calibrex.check.motion_summary import (
     ADVICE_MARK,
     read_gyro,
@@ -239,6 +240,8 @@ class CheckRunOptions:
     board: str | None = None
     external_cameras: tuple[ExternalCameraSource, ...] = ()
     """Cameras outside the bag (``--camera-source NAME=PATH``): image folders or videos."""
+    intrinsics: tuple[IntrinsicsOverride, ...] = ()
+    """Camera intrinsics by image topic (``--intrinsics [TOPIC=]CAMCHAIN[:camN]``)."""
     """camera-lidar from a checkerboard held still at several poses (``COLUMNSxROWSxSQUARE_M``,
     inner corners and square size) instead of targetless edge alignment."""
     edge_preparation_cache: EdgePreparationCache | None = field(
@@ -536,6 +539,7 @@ def _run_pairs(
         camera_lidar_overlay=run.camera_lidar_overlay,
         board=run.board,
         external_cameras=external_sources_by_topic(run.external_cameras),
+        intrinsics=run.intrinsics,
         frame_tree=frame_tree,
         progress=progress,
         cache=EstimatorCache(run.cache_dir) if run.cache_dir is not None else None,

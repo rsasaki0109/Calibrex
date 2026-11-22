@@ -79,8 +79,9 @@ REASON_HINTS: dict[str, str] = {
         "pair with --pairs"
     ),
     "missing_intrinsics": (
-        "the camera has no usable intrinsics: record a calibrated CameraInfo topic, "
-        "or pass a Kalibr camchain-imucam file with --tf"
+        "the camera has no usable intrinsics: calibrate them (calibrex intrinsics guide "
+        "with a checkerboard, or calibrex intrinsics rotate without one) and pass the "
+        "camchain with --intrinsics TOPIC=FILE, or record a calibrated CameraInfo topic"
     ),
     "missing_dependency": (
         "an optional dependency is missing: install the extra named in the reason "

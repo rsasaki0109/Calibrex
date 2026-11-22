@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- `calibrex check`, `calibrex estimate` and `calibrex drift` take `--intrinsics
+  [TOPIC=]CAMCHAIN[:camN]`: camera intrinsics by image topic, before every other source
+  (a `--tf` camchain is matched by frame name, which on most bags is not the camera's header
+  frame, so it was passed over). Without `TOPIC` it applies to entries whose `rostopic` is
+  the topic, or to the only camera. `calibrex intrinsics guide` / `rotate` record the bag
+  topic in their camchain and print the check command; `calibrex estimate` writes
+  `camchain-imucam.yaml` from the `--intrinsics` camchain too. The `missing_intrinsics`
+  hint names the flow ([tutorial](docs/tutorials/intrinsics_to_extrinsics.md)).
+
 - `calibrex intrinsics guide` and `calibrex intrinsics rotate` take `--distortion
   equidistant` for fisheye lenses (Kalibr's `pinhole` / `equidistant`, OpenCV's fisheye
   model, k1..k4). The board guide uses `cv2.fisheye.calibrate` with stds from its Jacobian
