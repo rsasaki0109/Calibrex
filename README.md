@@ -322,7 +322,11 @@ observe is **never** written as if measured: it is written only when a rough `--
 supplies that axis (the YAML marks it `NOT MEASURED`), otherwise it is omitted and listed
 under `next steps`. Rotation-only estimators (camera-IMU, the vehicle pairs) therefore need a
 rough lever arm from `--tf`; lidar-lidar registration and camera-lidar edge alignment (rotation only) also start from a `--tf` prior, and
-camera-IMU and camera-LiDAR need the camera intrinsics (a `CameraInfo` topic or a Kalibr camchain).
+camera-IMU and camera-LiDAR need the camera intrinsics (a `CameraInfo` topic or a Kalibr camchain;
+`calibrex intrinsics guide --board 9x6x0.025` calibrates them live from a webcam or video and says
+how to move the board next: [Camera intrinsics with live guidance](docs/tutorials/intrinsics_guide.md);
+`calibrex intrinsics rotate` estimates them without a target, from the camera turned in place:
+[Camera intrinsics without a target](docs/tutorials/intrinsics_rotate.md)).
 For the camera-LiDAR translation, record a checkerboard held still at a dozen poses and run
 `calibrex estimate BAG --board 7x5x0.08` (inner corners and square size; `calibrex check
 --board` judges a deployed one): all six axes, each with its std and whether the poses observed it

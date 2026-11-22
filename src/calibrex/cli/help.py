@@ -23,6 +23,7 @@ COMMAND_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
         (
             "imu-lidar",
             "camera-imu",
+            "intrinsics",
             "lidar-lidar",
             "lidar-vehicle",
             "imu-vehicle",

@@ -2,6 +2,52 @@
 
 ## Unreleased
 
+- `calibrex intrinsics rotate` estimates a camera's intrinsics without a target, from a
+  ROS 2 bag (`--bag --topic`), a video (`--video`) or a live camera (`--camera`) of the
+  camera turned in place. Features are tracked (forward-backward checked) into keyframes;
+  the focal length and k1 are found together on a grid from the requirement that
+  undistorted keyframe correspondences be related by a rotation, then a least-squares fit of
+  the transfer error refines the eight pinhole / radtan intrinsics and the keyframe
+  rotations. It writes a Kalibr camchain entry and reports the stds, how far the camera
+  turned about each axis (warning below 20 deg about two axes) and the transfer RMS. On a
+  simulated camera turned about its lens the focal length came out within 0.1 % and the
+  principal point within 0.2 px; a lens offset L from the rotation centre at scene distance
+  D lengthens the focal length by about 0.8 L/D (5 cm at 4 m: +0.9 %), which the residuals do
+  not show ([tutorial](docs/tutorials/intrinsics_rotate.md)).
+  Stereo rigs: `--right-topic`, `--right-video` or `--side-by-side` give both cameras'
+  intrinsics and their relative rotation (the two rotation sequences aligned); the baseline
+  direction comes from simultaneous left-right matches when their parallax outweighs the
+  rotation's error, and `T_cn_cnm1` is written with `--baseline-m`.
+
+- `calibrex intrinsics rotate --camera` shows a guide window while the camera is turned:
+  point at more texture, turn more slowly, then pan, tilt and roll each 25 deg (a bar per
+  axis, angles from a guessed focal length), and calibrates once done (`s` earlier, `q`
+  quits). `--video --guide` shows it over a recording, `--record` writes the annotated
+  frames, and `--no-window` keeps the timed recording
+  ([tutorial](docs/tutorials/intrinsics_rotate.md#the-guide-window)).
+
+- `calibrex intrinsics guide` calibrates stereo rigs too: `--right-camera`, `--right-video`,
+  `--side-by-side` or `--bag --topic --right-topic`. After both cameras' intrinsics, it asks
+  for the board in front of both and keeps each new still pose; `stereoCalibrate` with the
+  intrinsics fixed gives `T_cn_cnm1`, with a std combining the views' jackknife spread and
+  the intrinsics' stds. Done at 10 shared views and the baseline length to 1 %. Still
+  frames only, so unsynchronized cameras work. A bag also works for one camera
+  (`--bag --topic`) ([tutorial](docs/tutorials/intrinsics_guide.md#stereo)).
+
+- `calibrex intrinsics guide --board COLUMNSxROWSxSQUARE_M` calibrates a camera's intrinsics
+  with a checkerboard, live from a camera (`--camera`, `--resolution`) or from a video
+  (`--video`, `--no-window`), and draws on each frame what to do next: show the board, hold
+  it still, move it to the uncovered image cell nearest to it, tilt it the way it has not
+  been tilted, then vary distance and tilt until the focal lengths' std is under 0.3 % and
+  the principal point's under 2 px (at least 15 views, reprojection RMS under 1 px). Only
+  still frames that add a cell, a tilt or a new pose are kept, and the intrinsics are
+  re-estimated after each (OpenCV `calibrateCameraExtended`, pinhole / radtan with `k3`
+  fixed). `s` saves a Kalibr camchain entry that the camera pairs read; `--record` writes
+  the annotated frames. Large frames are searched at 640 px and the corners refined at full
+  resolution (1280 x 960: 53 ms per frame). On a synthetic distorted camera, following the
+  advice gave the focal lengths within 0.5 % in 15 views
+  ([tutorial](docs/tutorials/intrinsics_guide.md)).
+
 - `calibrex check` prints each clock offset with its data-only std, and the gyro-deskewed
   imu-lidar offset with a note: fitted jointly with the rotation and the gyro bias, it also
   takes up scan-to-scan odometry errors that follow the motion, the same way in every

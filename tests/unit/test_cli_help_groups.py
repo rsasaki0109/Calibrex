@@ -60,6 +60,7 @@ EXPECTED_COMMANDS = [
     "drift",
     "inspect",
     "export",
+    "intrinsics",
 ]
 
 
