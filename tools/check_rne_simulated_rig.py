@@ -1,18 +1,21 @@
-"""Check a bag simulated by Robot Native Engine: the true mounting passes, a turned one fails.
+"""Check a bag simulated by Robot Native Engine: true mountings pass, a turned sensor fails.
 
-Robot Native Engine's example 149 (``calibrex_rig_bag``) simulates a hand-held LiDAR + IMU
-rig in a room and writes ``rig.mcap`` with ``good.yaml`` (the true ``lidar -> imu``
-mounting) and ``turned.yaml`` (the IMU turned 3 degrees about the LiDAR z axis). This
-script runs ``calibrex check --pairs imu-lidar`` on both and fails unless:
+Robot Native Engine's example 149 (``calibrex_rig_bag``) simulates a hand-held rig in a
+room and writes ``rig.mcap`` with ``good.yaml`` (the true mountings in the ``lidar``
+frame) and one candidate per sensor turned 3 degrees. Recorded with
+``--sensors imu,lidar2`` it holds a LiDAR, a second LiDAR and an IMU. This script runs
+``calibrex check --pairs imu-lidar,lidar-lidar`` on three candidates and fails unless
+every pair gets the verdict in :data:`EXPECTED`:
 
-* ``good.yaml`` passes, with roll, pitch and yaw judged and each within its tolerance;
-* ``turned.yaml`` fails, on yaw, with a yaw error between 2 and 4 degrees, and roll and
-  pitch still pass.
+* a pair that should pass passes, with roll, pitch and yaw judged and every judged axis
+  within its tolerance;
+* a pair that should fail fails, and its rotation error (the norm of the roll, pitch and
+  yaw errors) is between 2 and 4 degrees, the 3 degree turn.
 
 It is what the ``RNE simulated rig`` workflow runs; locally::
 
     cargo run --release -p calibrex_rig_bag --example 149_calibrex_rig_bag -- \\
-        --out /tmp/rne_rig --duration-s 20           # in a RobotNativeEngine checkout
+        --out /tmp/rne_rig --duration-s 20 --sensors imu,lidar2  # in RobotNativeEngine
     python tools/check_rne_simulated_rig.py /tmp/rne_rig
 
 The data is simulated: a pass shows the estimator and verdict path work end to end on a
@@ -23,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import subprocess
 import sys
 import tempfile
@@ -30,6 +34,21 @@ from pathlib import Path
 from typing import Any
 
 ROTATION_AXES = ("roll", "pitch", "yaw")
+PAIRS = "imu-lidar,lidar-lidar"
+TURN_RANGE_DEG = (2.0, 4.0)
+
+PairKey = tuple[str, frozenset[str]]
+IMU_LIDAR: PairKey = ("imu-lidar", frozenset({"imu", "lidar"}))
+IMU_LIDAR2: PairKey = ("imu-lidar", frozenset({"imu", "lidar2"}))
+LIDAR_LIDAR: PairKey = ("lidar-lidar", frozenset({"lidar", "lidar2"}))
+
+EXPECTED: dict[str, dict[PairKey, str]] = {
+    "good.yaml": {IMU_LIDAR: "pass", IMU_LIDAR2: "pass", LIDAR_LIDAR: "pass"},
+    # The IMU turned about the LiDAR z axis: both IMU pairs fail, the LiDARs agree.
+    "turned_imu.yaml": {IMU_LIDAR: "fail", IMU_LIDAR2: "fail", LIDAR_LIDAR: "pass"},
+    # lidar2 turned about its own z axis: its pairs fail, imu-lidar still passes.
+    "turned_lidar2.yaml": {IMU_LIDAR: "pass", IMU_LIDAR2: "fail", LIDAR_LIDAR: "fail"},
+}
 
 
 def run_check(bag: Path, frames: Path, extra: list[str]) -> dict[str, Any]:
@@ -44,7 +63,7 @@ def run_check(bag: Path, frames: Path, extra: list[str]) -> dict[str, Any]:
         "--tf",
         str(frames),
         "--pairs",
-        "imu-lidar",
+        PAIRS,
         "--fail-on",
         "never",
         "--json",
@@ -56,70 +75,65 @@ def run_check(bag: Path, frames: Path, extra: list[str]) -> dict[str, Any]:
     return result
 
 
-def imu_lidar_axes(result: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
-    """The imu-lidar pair's verdict and its axes by name."""
+def judged_pairs(result: dict[str, Any]) -> dict[PairKey, dict[str, Any]]:
+    """The pairs that got a verdict, by pair name and sensor frames."""
 
-    pairs = [
-        pair
+    return {
+        (str(pair["pair"]), frozenset(pair["frames"])): pair
         for pair in result["pairs"]
-        if pair.get("pair") == "imu-lidar" and pair.get("verdict") is not None
-    ]
-    if len(pairs) != 1:
-        raise SystemExit(f"expected one judged imu-lidar pair, found {len(pairs)}")
-    pair = pairs[0]
-    return str(pair["verdict"]), {str(axis["name"]): axis for axis in pair.get("axes", [])}
+        if pair.get("verdict") is not None
+    }
 
 
-def expect(condition: bool, message: str, problems: list[str]) -> None:
-    if not condition:
-        problems.append(message)
+def axes_of(pair: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {str(axis["name"]): axis for axis in pair.get("axes", [])}
 
 
-def check_good(result: dict[str, Any], problems: list[str]) -> None:
-    verdict, axes = imu_lidar_axes(result)
-    expect(verdict == "pass", f"good.yaml: imu-lidar verdict {verdict}, expected pass", problems)
-    for name in ROTATION_AXES:
-        axis = axes.get(name)
-        if axis is None:
-            problems.append(f"good.yaml: {name} was not judged")
-            continue
-        expect(
-            axis["status"] == "pass" and abs(axis["candidate_error"]) <= axis["tolerance"],
-            f"good.yaml: {name} {axis['candidate_error']:.3f}/{axis['tolerance']} {axis['status']}",
-            problems,
-        )
+def rotation_error_deg(axes: dict[str, dict[str, Any]]) -> float:
+    return math.sqrt(
+        sum(float(axes[name]["candidate_error"]) ** 2 for name in ROTATION_AXES if name in axes)
+    )
 
 
-def check_turned(result: dict[str, Any], problems: list[str]) -> None:
-    verdict, axes = imu_lidar_axes(result)
-    expect(verdict == "fail", f"turned.yaml: imu-lidar verdict {verdict}, expected fail", problems)
-    yaw = axes.get("yaw")
-    if yaw is None:
-        problems.append("turned.yaml: yaw was not judged")
+def label(key: PairKey) -> str:
+    return f"{key[0]} ({' / '.join(sorted(key[1]))})"
+
+
+def check_pair(
+    candidate: str, key: PairKey, pair: dict[str, Any], expected: str, problems: list[str]
+) -> None:
+    where = f"{candidate}: {label(key)}"
+    verdict = str(pair["verdict"])
+    axes = axes_of(pair)
+    if verdict != expected:
+        problems.append(f"{where}: verdict {verdict}, expected {expected}")
+        return
+    if expected == "pass":
+        for name in ROTATION_AXES:
+            if name not in axes:
+                problems.append(f"{where}: {name} was not judged")
+        for name, axis in axes.items():
+            if axis["status"] != "pass" or abs(axis["candidate_error"]) > axis["tolerance"]:
+                problems.append(
+                    f"{where}: {name} {axis['candidate_error']:.3f}/{axis['tolerance']} "
+                    f"{axis['status']}"
+                )
     else:
-        expect(
-            yaw["status"] == "fail" and 2.0 <= abs(yaw["candidate_error"]) <= 4.0,
-            f"turned.yaml: yaw {yaw['candidate_error']:.3f} deg {yaw['status']}, "
-            "expected a fail near the 3 deg turn",
-            problems,
-        )
-    for name in ("roll", "pitch"):
-        axis = axes.get(name)
-        expect(
-            axis is not None and axis["status"] == "pass",
-            f"turned.yaml: {name} should still pass ({axis and axis['status']})",
-            problems,
-        )
+        error = rotation_error_deg(axes)
+        low, high = TURN_RANGE_DEG
+        if not low <= error <= high:
+            problems.append(
+                f"{where}: rotation error {error:.3f} deg, expected the 3 deg turn "
+                f"({low}-{high} deg)"
+            )
 
 
-def summary_line(label: str, result: dict[str, Any]) -> str:
-    verdict, axes = imu_lidar_axes(result)
+def summary_line(candidate: str, key: PairKey, pair: dict[str, Any]) -> str:
     judged = "; ".join(
         f"{name} {axis['candidate_error']:.3f}/{axis['tolerance']} {axis['status']}"
-        for name in ROTATION_AXES
-        if (axis := axes.get(name)) is not None
+        for name, axis in axes_of(pair).items()
     )
-    return f"{label}: imu-lidar {verdict} ({judged})"
+    return f"{candidate}: {label(key)} {pair['verdict']} ({judged})"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -131,21 +145,23 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     bag = args.rig_dir / "rig.mcap"
-    for path in (bag, args.rig_dir / "good.yaml", args.rig_dir / "turned.yaml"):
+    for path in (bag, *(args.rig_dir / name for name in EXPECTED)):
         if not path.exists():
             raise SystemExit(f"missing {path}")
-    # The estimate does not depend on the candidate: the second check reuses the first's.
+    # The estimates do not depend on the candidate: later checks reuse the first's.
     cache = ["--cache-dir", str(args.cache_dir)] if args.cache_dir else []
-    with tempfile.TemporaryDirectory() as evidence:
-        extra = [*cache, "--evidence-dir", evidence]
-        good = run_check(bag, args.rig_dir / "good.yaml", extra)
-        turned = run_check(bag, args.rig_dir / "turned.yaml", extra)
-
     problems: list[str] = []
-    check_good(good, problems)
-    check_turned(turned, problems)
-    print(summary_line("good.yaml", good))
-    print(summary_line("turned.yaml", turned))
+    with tempfile.TemporaryDirectory() as evidence:
+        for candidate, expected in EXPECTED.items():
+            result = run_check(bag, args.rig_dir / candidate, [*cache, "--evidence-dir", evidence])
+            pairs = judged_pairs(result)
+            for key, verdict in expected.items():
+                pair = pairs.get(key)
+                if pair is None:
+                    problems.append(f"{candidate}: {label(key)} was not judged")
+                    continue
+                print(summary_line(candidate, key, pair))
+                check_pair(candidate, key, pair, verdict, problems)
     for problem in problems:
         print(f"FAIL {problem}")
     return 1 if problems else 0

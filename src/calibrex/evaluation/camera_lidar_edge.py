@@ -26,6 +26,7 @@ compensated, which limits how small a rotation error can be resolved.
 
 from __future__ import annotations
 
+import hashlib
 import math
 from collections.abc import Callable, Generator, Sequence
 from dataclasses import asdict, dataclass, field
@@ -452,6 +453,7 @@ def lidar_depth_edges(
     max_points: int,
     min_ring_fraction: float,
     unstructured: bool = False,
+    measured_points: Float32Array | None = None,
 ) -> tuple[Float32Array, Float32Array, int, float]:
     """Near-side depth discontinuities along each beam (Levinson-Thrun Eq. 2).
 
@@ -460,23 +462,38 @@ def lidar_depth_edges(
     solid-state, non-repetitive LiDAR) gives no edge points, unless ``unstructured`` is
     set: its discontinuities are then found among angular neighbours instead (ring count
     0), see :func:`_unstructured_depth_edges`.
+
+    ``measured_points``, row for row with ``points``, are the returns as measured when
+    ``points`` have since been moved (to an image time).  Beams, azimuth order and range
+    jumps are then read from them, and the edge points are placed at ``points``: moving a
+    sweep by up to a few degrees smears the elevation of its beams, which a 16-beam
+    LiDAR's 2 degree spacing does not survive.
     """
 
     xyz = np.asarray(points, dtype=np.float64)
-    horizontal = np.hypot(xyz[:, 0], xyz[:, 1])
-    ranges = np.sqrt(horizontal * horizontal + xyz[:, 2] * xyz[:, 2])
+    measured = xyz if measured_points is None else np.asarray(measured_points, np.float64)
+    if measured.shape != xyz.shape:
+        raise ValueError("measured_points must match points row for row")
+    horizontal = np.hypot(measured[:, 0], measured[:, 1])
+    ranges = np.sqrt(horizontal * horizontal + measured[:, 2] * measured[:, 2])
     keep = ranges > 0.5
-    xyz, horizontal, ranges = xyz[keep], horizontal[keep], ranges[keep]
+    xyz, measured = xyz[keep], measured[keep]
+    horizontal, ranges = horizontal[keep], ranges[keep]
     empty = np.empty((0, 3), dtype=np.float32), np.empty(0, dtype=np.float32)
     if xyz.shape[0] < 1000:
         return (*empty, 0, 0.0)
-    elevation = np.degrees(np.arctan2(xyz[:, 2], horizontal))
+    elevation = np.degrees(np.arctan2(measured[:, 2], horizontal))
     centers = _ring_centers(elevation)
     if centers.size < 8 or centers.size > 200:
         if not unstructured:
             return (*empty, int(centers.size), 0.0)
+        # Without beams, the neighbours are found among the points as given.
         edge_points, weights = _unstructured_depth_edges(
-            xyz, ranges, min_jump_m=min_jump_m, exponent=exponent, max_points=max_points
+            xyz,
+            ranges if measured_points is None else np.linalg.norm(xyz, axis=1),
+            min_jump_m=min_jump_m,
+            exponent=exponent,
+            max_points=max_points,
         )
         return edge_points, weights, 0, 0.0
     ring = _nearest_ring_indices(elevation, centers)
@@ -484,11 +501,16 @@ def lidar_depth_edges(
     if on_beam < min_ring_fraction:
         if not unstructured:
             return (*empty, int(centers.size), on_beam)
+        # Without beams, the neighbours are found among the points as given.
         edge_points, weights = _unstructured_depth_edges(
-            xyz, ranges, min_jump_m=min_jump_m, exponent=exponent, max_points=max_points
+            xyz,
+            ranges if measured_points is None else np.linalg.norm(xyz, axis=1),
+            min_jump_m=min_jump_m,
+            exponent=exponent,
+            max_points=max_points,
         )
         return edge_points, weights, 0, on_beam
-    azimuth = np.degrees(np.arctan2(xyz[:, 1], xyz[:, 0]))
+    azimuth = np.degrees(np.arctan2(measured[:, 1], measured[:, 0]))
     order = np.lexsort((azimuth, ring))
     ring_s, azimuth_s, range_s = ring[order], azimuth[order], ranges[order]
     same = ring_s[1:] == ring_s[:-1]
@@ -608,6 +630,7 @@ def _body_frame_diagnosis(
             max_points=options.max_edge_points_per_frame,
             min_ring_fraction=options.min_ring_fraction,
             unstructured=options.unstructured_lidar,
+            measured_points=frame.measured_points,
         )[0]
         for frame in sample
     ]
@@ -800,21 +823,23 @@ def _depth_edge_inputs(
             max_points=options.max_edge_points_per_frame,
             min_ring_fraction=options.min_ring_fraction,
             unstructured=options.unstructured_lidar,
+            measured_points=frame.measured_points,
         )
 
     if preparation_cache is None:
         return compute()
+    settings: tuple[object, ...] = (
+        options.min_jump_m,
+        options.jump_exponent,
+        options.max_edge_points_per_frame,
+        options.min_ring_fraction,
+        options.unstructured_lidar,
+    )
+    if frame.measured_points is not None:
+        measured = np.ascontiguousarray(frame.measured_points)
+        settings += (hashlib.sha256(measured).hexdigest(), measured.dtype.str, measured.shape)
     return preparation_cache._get_or_compute(
-        "lidar-depth-edges/v1",
-        frame.points,
-        (
-            options.min_jump_m,
-            options.jump_exponent,
-            options.max_edge_points_per_frame,
-            options.min_ring_fraction,
-            options.unstructured_lidar,
-        ),
-        compute,
+        "lidar-depth-edges/v1", frame.points, settings, compute
     )
 
 

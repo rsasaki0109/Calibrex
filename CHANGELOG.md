@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- The simulated-rig tutorial traces the −1.5 ms imu-lidar time-offset bias: the rotation
+  solver is exact on true poses, the gyro-deskewed odometry poses are not shifted in time
+  (+0.2 ms), and the joint fit of rotation, gyro bias and offset moves the odometry's
+  scan-to-scan error into the offset (−1.2 ms on Calibrex's own noise-free synthetic bag),
+  beyond its reported 0.6 ms standard deviation. The offset stays reported, not judged.
+
+- camera-lidar finds LiDAR depth edges on the points as measured when it has moved them
+  to the image time: beams, azimuth order and range jumps come from the measured points
+  and the edges are placed at the moved ones. Moving a fast sweep smeared a 16-beam
+  LiDAR's beam elevations (about 1.9° of motion against 2° beam spacing), no beams were
+  recovered and the unstructured fallback produced a false roll failure (2.65°) on
+  Robot Native Engine's simulated rig with the true mounting; that rig is now
+  inconclusive (too few depth edges). Clouds that are not moved are unchanged.
+
+- The `RNE simulated rig` workflow checks two LiDARs and an IMU: RNE's example 149 at
+  `0edf1e6` records 20 s with `--sensors imu,lidar2`, and
+  `tools/check_rne_simulated_rig.py` requires the true mountings to pass imu-lidar for both
+  LiDARs and lidar-lidar, and each sensor turned 3° to fail exactly its own pairs (rotation
+  error 2–4°). Locally the three checks take 79 s.
+
 - A tutorial and a CI workflow run `calibrex check` on a recording with a known truth,
   simulated by Robot Native Engine
   ([Check a simulated rig](docs/tutorials/simulated_rig_rne.md)).

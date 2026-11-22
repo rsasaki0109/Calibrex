@@ -186,7 +186,13 @@ def move_to_image_time(
         moved += linear[None, :] * dt[:, None]
     translation = float(np.linalg.norm(linear) * abs(gap)) if linear is not None else 0.0
     return (
-        dataclasses.replace(frame, points=moved.astype(np.float32)),
+        dataclasses.replace(
+            frame,
+            points=moved.astype(np.float32),
+            measured_points=(
+                frame.measured_points if frame.measured_points is not None else frame.points
+            ),
+        ),
         float(np.degrees(np.linalg.norm(omega) * abs(gap))),
         translation,
     )
