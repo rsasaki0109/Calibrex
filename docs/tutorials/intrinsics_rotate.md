@@ -172,3 +172,12 @@ must be known to 0.1 %, use a checkerboard ([`calibrex intrinsics guide`](intrin
 A model of the translation (a fixed lens offset from the rotation centre plus each point's
 depth) was tried on the simulated camera and did not converge to the true offset, so the
 translation remains a documented limit rather than an estimated quantity.
+
+A gyro does not lift it either. Holding the keyframe rotations to an IMU's (with the
+camera-IMU rotation and the gyro bias fitted alongside) left the focal length of the
+camera whose lens is 15 cm off the rotation centre 3.4 % long, as without it: the fitted
+rotations already matched the gyro's to 0.01 deg. Turning the camera moves the offset
+lens sideways with the turn, so a scene point at distance Z moves in the image by the
+rotation's f θ plus the translation's f L θ / Z: f (1 + L/Z) θ. Where the scene's depth
+varies little that is a longer focal length and the right rotation, which no rotation
+measurement can tell apart.
