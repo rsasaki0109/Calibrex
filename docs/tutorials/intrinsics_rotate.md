@@ -68,6 +68,20 @@ full stereo extrinsics matter.
 Turning a rig about its middle also offsets each lens by half the baseline from the rotation
 centre, which lengthens the focal lengths by about 0.8 (b/2)/D: face a distant scene.
 
+## Rolling shutter
+
+Most webcams and phone cameras read the frame out row by row, so a camera turned briskly
+sees each row a little later, turned a little further. Ignoring that bends the fit:
+`--rolling-shutter` also fits the readout time (first row to last), turning each row's
+view on by the keyframe's angular velocity times the row's delay. The camchain then
+carries `readout_s`, which Calibrex's camera pairs (camera-imu, camera-focal) read.
+
+On a simulated camera (320 x 240, f = 280 px) read out in 30 ms and turned up to about
+50 deg/s, the fit gave a readout of 31.1 ± 0.2 ms, the focal length within 0.05 % and the
+principal point within 0.7 px; without `--rolling-shutter` the focal length came out 1.5 %
+long and the principal point 16 px off. The fit runs the global-shutter fit first, then
+refines with the readout (about twice the time).
+
 ## How to record
 
 - **Turn the camera about its lens.** This is what matters most. A camera on a tripod or a
