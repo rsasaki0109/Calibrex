@@ -62,8 +62,9 @@ LiDAR on a rig turned about the camera (`--motion turn --camera-info none`). Wit
 intrinsics `calibrex check` skips every camera pair. `intrinsics rotate --bag` on 20 s of
 it gave the focal lengths within 0.13 % (fx) and 0.61 % (fy) and the principal point
 within 0.25 px; with `--intrinsics` the 40 s bag's camera-imu passed (within 0.063°)
-and camera-lidar passed (within 0.25°), and both failed the candidates with the camera or
-the IMU turned 3° (2.9-3.1°). The full tables are in the example's README.
+and camera-lidar passed (within 0.25°). With the camera turned 3° both failed (roll 3.06°
+and 2.9°); with the IMU turned 3° camera-imu failed (pitch 2.99°) and camera-lidar, which
+does not involve the IMU, passed. The full tables are in the example's README.
 
 The test `tests/unit/test_intrinsics_pipeline.py` runs the same path on a synthetic bag
 in CI.
