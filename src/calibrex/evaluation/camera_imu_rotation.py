@@ -59,8 +59,8 @@ from calibrex.solvers.imu_lidar_rotation_solver import GyroSeries, RotationOptio
 FloatArray: TypeAlias = NDArray[np.float64]
 CAMERA_LIMITATIONS: tuple[str, ...] = (
     "Camera rotations come from tracked features: essential-matrix fits, or "
-    "pure-rotation fits where the essential matrix is degenerate, whose parallax bias "
-    "grows with near scenes and the camera's translation.",
+    "pure-rotation fits for small-baseline pairs, whose parallax bias grows with "
+    "near scenes.",
     "The artifact calls the camera frame 'lidar': the rotation is that of T_cam_imu.",
     "The reference, when given, is a target-based calibration (for example Kalibr); "
     "it is a comparison, not ground truth.",
@@ -76,22 +76,6 @@ CAMERA_LIMITATIONS: tuple[str, ...] = (
 # turn by under 0.2 deg, the smallest moving one by 2.5 deg.
 CAMERA_OBSERVABLE_ROTATION_STD_DEG: float = 0.3
 CAMERA_MIN_WINDOW_ROTATION_DEG: float = 1.0
-
-
-def camera_imu_visual_options() -> VisualRotationOptions:
-    """Tracking settings of camera-imu: forward-backward checked tracks, and the
-    essential rotation kept when only the triangulation count rejects it.
-
-    A hand-held camera translates as it turns. Fitted as a pure rotation, a frame
-    pair's parallax is taken up as rotation, and because the translation follows the
-    rotation that error does not average out: on Robot Native Engine's simulated rig
-    (480 x 360, walls 2-6 m away) most pairs fell back to the pure rotation and the
-    rotation came out about 1 deg off; with these settings the essential rotation is
-    used on almost every pair and the error halves
-    (docs/tutorials/simulated_rig_rne.md).
-    """
-
-    return VisualRotationOptions(forward_backward_px=0.5, essential_nearest_pure=True)
 
 
 def default_camera_evaluation_options() -> ImuLidarRunOptions:
@@ -147,7 +131,7 @@ class CameraImuRunOptions:
 
     frame_stride: int = 4
     max_seconds: float | None = None
-    visual: VisualRotationOptions = field(default_factory=camera_imu_visual_options)
+    visual: VisualRotationOptions = field(default_factory=VisualRotationOptions)
     evaluation: ImuLidarRunOptions = field(default_factory=default_camera_evaluation_options)
 
 

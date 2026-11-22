@@ -146,23 +146,11 @@ class VisualRotationOptions:
     min_feature_distance_px: float = 10.0
     lk_window_px: int = 21
     lk_levels: int = 3
-    # A track is kept only when tracking it back lands within this many pixels of where
-    # it started (0, the default, disables the check). camera-imu enables it
-    # (:func:`calibrex.evaluation.camera_imu_rotation.camera_imu_visual_options`).
-    forward_backward_px: float = 0.0
     redetect_below: int = 150
     min_inliers: int = 30
     ransac_threshold_px: float = 1.0
     ransac_iterations: int = 200
     essential_inlier_fraction: float = 0.0
-    # With a small baseline few points triangulate in front of both cameras, and
-    # recoverPose's count rejects the essential matrix, so the pair falls back to the
-    # pure rotation, which takes up the camera's translation. When set, the rotation of
-    # the decomposition nearest the pure rotation is used instead, with the essential
-    # RANSAC inliers and the same degeneracy test. Off by default: with wrong
-    # intrinsics (what camera-focal measures) the essential model does not hold;
-    # camera-imu enables it.
-    essential_nearest_pure: bool = False
     degenerate_disagreement_deg: float = 2.0
     degenerate_parallax_px: float = 0.5
     window_duration_s: float = 10.0
@@ -307,24 +295,11 @@ def relative_rotation(
         previous, current, np.eye(3), method=cv2.RANSAC, prob=0.999, threshold=threshold
     )
     if essential is not None and essential.shape == (3, 3):
-        # recoverPose overwrites the mask with the points it triangulates in front
-        inliers = np.asarray(mask).ravel() > 0
         count, rotation, _, pose_mask = cv2.recoverPose(
             essential, previous, current, np.eye(3), mask=mask
         )
         enough = max(options.min_inliers, options.essential_inlier_fraction * len(previous))
         rotation = np.asarray(rotation, dtype=np.float64)
-        if count < enough and options.essential_nearest_pure and inliers.sum() >= enough:
-            pure = pure_rotation_ransac(
-                _bearings(previous), _bearings(current), threshold, options.ransac_iterations, rng
-            )
-            if pure is not None:
-                first, second, _ = cv2.decomposeEssentialMat(essential)
-                rotation = min(
-                    (np.asarray(first, np.float64), np.asarray(second, np.float64)),
-                    key=lambda candidate: float(np.linalg.norm(_rotvec(candidate.T @ pure[0]))),
-                )
-                count, pose_mask = int(inliers.sum()), inliers
         if count >= enough and not _degenerate(
             rotation, previous, current, focal_px, threshold, options, rng
         ):
@@ -446,17 +421,6 @@ def track_camera_rotations(
                 maxLevel=opts.lk_levels,
             )
             good = status.ravel() == 1
-            if opts.forward_backward_px > 0.0:
-                back, back_status, _ = cv2.calcOpticalFlowPyrLK(
-                    image,
-                    previous_image,
-                    tracked,
-                    None,
-                    winSize=(opts.lk_window_px, opts.lk_window_px),
-                    maxLevel=opts.lk_levels,
-                )
-                drift = np.linalg.norm((back - features).reshape(-1, 2), axis=1)
-                good &= (back_status.ravel() == 1) & (drift < opts.forward_backward_px)
             features, tracked = features[good], tracked[good]
             before = camera.normalize(features.reshape(-1, 2))
             after = camera.normalize(tracked.reshape(-1, 2))
