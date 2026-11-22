@@ -37,6 +37,47 @@ calibrex intrinsics guide --board 9x6x0.025 --video board.mp4 --no-window \
 what it has. `--record` writes the annotated frames, which is also a way to see the
 guidance on a machine whose OpenCV has no window support.
 
+A ROS 2 bag works the same way: `--bag my_bag --topic /camera/image_raw --no-window`.
+
+## Stereo
+
+Give the right camera too, and the guide calibrates both cameras and the right camera's
+pose in the left frame (`T_cn_cnm1`, in metres):
+
+```bash
+calibrex intrinsics guide --board 9x6x0.025 --camera 0 --right-camera 1
+calibrex intrinsics guide --board 9x6x0.025 --camera 0 --side-by-side
+calibrex intrinsics guide --board 9x6x0.025 --video left.mp4 --right-video right.mp4 --no-window
+calibrex intrinsics guide --board 9x6x0.025 --bag my_bag --topic /left/image_raw \
+    --right-topic /right/image_raw --no-window
+```
+
+Both images are shown side by side. The guide first takes the left camera through its
+cells, tilts and precision (advice starting `Left:`), then the right (`Right:`); the board
+usually serves both at once. Then it asks for the board in front of both cameras, at
+varied distances and tilts, and keeps each still pose both cameras see. With the
+intrinsics fixed, OpenCV's `stereoCalibrate` gives the relative rotation and the baseline
+from those views; the status line shows the stereo views and the baseline with its std.
+It is done when both cameras are done and at least 10 shared views give the baseline
+length to 1 %.
+
+Only still frames are used, so two cameras that are not synchronized (two USB cameras,
+`--right-camera`) work: the board does not move between their exposures. Bag topics are
+paired by header stamp. The camchain gets `cam0` (left) and `cam1` (right, with
+`T_cn_cnm1`).
+
+The baseline's std combines the spread of the estimate over the views (jackknife) with
+both cameras' intrinsics moved by their stds: a principal point 1 px off moves the baseline
+by about the board distance over the focal length (1.7 mm at 0.7 m with f = 420 px) and
+turns the rotation by 1/f rad, and the views cannot show it. On a simulated rig (6 cm
+baseline, 480 x 360, the board 0.55-0.9 m away), following the advice took 13 shared views
+and gave the baseline length within 1.1 %, each axis within 2.3 mm (under two stds) and the
+rotation within 0.25 deg; with the true intrinsics the baseline came within 0.3 mm. For a
+better baseline, improve the intrinsics: a larger board, sharper focus, more views.
+
+The right corners are put in the left corners' order assuming the cameras are rolled by
+less than 90 deg relative to each other, which every ordinary rig is.
+
 ## What the screen shows
 
 - **The advice**, at the top, in this order:

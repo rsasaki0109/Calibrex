@@ -411,9 +411,17 @@ _GREY = (150, 150, 150)
 
 
 def draw_guide(
-    image: NDArray[np.uint8], guide: IntrinsicsGuide, frame: GuideFrame
+    image: NDArray[np.uint8],
+    guide: IntrinsicsGuide,
+    frame: GuideFrame,
+    advice: Advice | None = None,
+    extra_lines: tuple[str, ...] = (),
 ) -> NDArray[np.uint8]:
-    """The frame (BGR or grey) with the coverage, the target, the advice and the estimate."""
+    """The frame (BGR or grey) with the coverage, the target, the advice and the estimate.
+
+    ``advice`` replaces the frame's own (a stereo guide's), and ``extra_lines`` are added
+    to the status.
+    """
 
     cv2 = _opencv()
     canvas = image.copy() if image.ndim == 3 else cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
@@ -428,7 +436,7 @@ def draw_guide(
                 cv2.rectangle(tint, top_left, bottom_right, _GREEN, -1)
             cv2.rectangle(canvas, top_left, bottom_right, _GREY, 1)
     canvas = cv2.addWeighted(tint, 0.18, canvas, 0.82, 0.0)
-    advice = frame.advice
+    advice = advice if advice is not None else frame.advice
     if frame.corners is not None:
         color = _GREEN if frame.still else _RED
         for x, y in frame.corners:
@@ -457,9 +465,14 @@ def draw_guide(
     color = _YELLOW if advice.kind != "done" else _GREEN
     for index, line in enumerate(_wrapped(advice.text, scale * 0.9, width - 24)):
         _text(canvas, line, (12, int((34 + 32 * index) * scale)), scale * 0.9, color)
-    for index, line in enumerate(status_lines(guide)):
+    lines = [*status_lines(guide), *extra_lines]
+    for index, line in enumerate(lines):
         _text(
-            canvas, line, (12, height - int((12 + 26 * (3 - index)) * scale)), scale * 0.6, _WHITE
+            canvas,
+            line,
+            (12, height - int((12 + 26 * (len(lines) - index)) * scale)),
+            scale * 0.6,
+            _WHITE,
         )
     return canvas
 

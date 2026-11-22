@@ -19,6 +19,14 @@
   direction comes from simultaneous left-right matches when their parallax outweighs the
   rotation's error, and `T_cn_cnm1` is written with `--baseline-m`.
 
+- `calibrex intrinsics guide` calibrates stereo rigs too: `--right-camera`, `--right-video`,
+  `--side-by-side` or `--bag --topic --right-topic`. After both cameras' intrinsics, it asks
+  for the board in front of both and keeps each new still pose; `stereoCalibrate` with the
+  intrinsics fixed gives `T_cn_cnm1`, with a std combining the views' jackknife spread and
+  the intrinsics' stds. Done at 10 shared views and the baseline length to 1 %. Still
+  frames only, so unsynchronized cameras work. A bag also works for one camera
+  (`--bag --topic`) ([tutorial](docs/tutorials/intrinsics_guide.md#stereo)).
+
 - `calibrex intrinsics guide --board COLUMNSxROWSxSQUARE_M` calibrates a camera's intrinsics
   with a checkerboard, live from a camera (`--camera`, `--resolution`) or from a video
   (`--video`, `--no-window`), and draws on each frame what to do next: show the board, hold

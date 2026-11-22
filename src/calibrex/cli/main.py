@@ -1453,7 +1453,7 @@ def _build_parser() -> argparse.ArgumentParser:
     camera_imu_focal.set_defaults(func=_cmd_camera_imu_focal)
 
     intrinsics = subcommands.add_parser(
-        "intrinsics", help="camera intrinsics with a checkerboard"
+        "intrinsics", help="camera intrinsics, mono or stereo: checkerboard guide or targetless"
     )
     intrinsics_subcommands = intrinsics.add_subparsers(dest="intrinsics_command", required=True)
     intrinsics_guide = intrinsics_subcommands.add_parser(
@@ -1471,6 +1471,23 @@ def _build_parser() -> argparse.ArgumentParser:
         "--camera", type=int, default=0, help="camera index for OpenCV (default 0)"
     )
     intrinsics_source.add_argument("--video", type=Path, help="a recorded video instead")
+    intrinsics_source.add_argument("--bag", type=Path, help="a ROS 2 bag instead (with --topic)")
+    intrinsics_guide.add_argument("--topic", help="the bag's image topic (left, for stereo)")
+    intrinsics_guide.add_argument(
+        "--right-topic", help="stereo: the bag's right image topic (paired by header stamp)"
+    )
+    intrinsics_guide.add_argument(
+        "--right-camera",
+        type=int,
+        help="stereo: the right camera's index (the board is used only when still, so the "
+        "cameras need not be synchronized)",
+    )
+    intrinsics_guide.add_argument("--right-video", type=Path, help="stereo: the right video")
+    intrinsics_guide.add_argument(
+        "--side-by-side",
+        action="store_true",
+        help="stereo: each frame holds the left image, then the right",
+    )
     intrinsics_guide.add_argument(
         "--resolution", help="WIDTHxHEIGHT to ask the camera for, e.g. 1280x720"
     )
@@ -8558,10 +8575,21 @@ def _cmd_intrinsics_guide(args: argparse.Namespace) -> int:
         if not args.json:
             print(f"saved {args.output} ({estimate.views} views, rms {estimate.rms_px:.3f} px)")
 
-    source: int | str = str(args.video) if args.video is not None else args.camera
+    stereo = _guide_stereo_pairs(args, resolution)
+    if stereo is not None:
+        return _guide_stereo(args, board, options, stereo)
+    if args.bag is not None:
+        from calibrex.data.frame_sources import bag_frames
+
+        if not args.topic:
+            raise CalibrexError("--bag needs --topic (the image topic)")
+        frames: Any = (image for _, image in bag_frames(args.bag, args.topic))
+    else:
+        source: int | str = str(args.video) if args.video is not None else args.camera
+        frames = frames_from(source, resolution)
     try:
         run = run_guided_calibration(
-            frames_from(source, resolution),
+            frames,
             board,
             options=options,
             show=not args.no_window,
@@ -8590,6 +8618,116 @@ def _cmd_intrinsics_guide(args: argparse.Namespace) -> int:
         raise CalibrexError(
             "no calibration: the board was kept in fewer than 6 still views "
             "(is --board the inner-corner count?)"
+        )
+    return 0 if run.saved else 1
+
+
+def _guide_stereo_pairs(args: argparse.Namespace, resolution: tuple[int, int] | None) -> Any:
+    """Left and right frames for a stereo guide, or ``None`` for one camera."""
+
+    from calibrex.evaluation.intrinsics_guide import frames_from
+
+    if args.bag is not None:
+        if not args.right_topic:
+            return None
+        from calibrex.data.frame_sources import bag_frames, paired_frames
+
+        if not args.topic:
+            raise CalibrexError("--bag needs --topic (the left image topic)")
+        return paired_frames(
+            bag_frames(args.bag, args.topic), bag_frames(args.bag, args.right_topic), every_s=0.0
+        )
+    source: int | str = str(args.video) if args.video is not None else args.camera
+    if args.side_by_side:
+
+        def halves() -> Any:
+            for image in frames_from(source, resolution):
+                width = image.shape[1] // 2
+                yield image[:, :width], image[:, width : 2 * width]
+
+        return halves()
+    right: int | str | None = None
+    if args.video is not None and args.right_video is not None:
+        right = str(args.right_video)
+    elif args.video is None and args.right_camera is not None:
+        right = args.right_camera
+    elif args.right_video is not None or args.right_camera is not None:
+        raise CalibrexError("pair --right-video with --video, and --right-camera with --camera")
+    if right is None:
+        return None
+    return zip(frames_from(source, resolution), frames_from(right, resolution), strict=False)
+
+
+def _guide_stereo(args: argparse.Namespace, board: Any, options: Any, pairs: Any) -> int:
+    import yaml
+
+    from calibrex.evaluation.intrinsics_stereo_guide import (
+        StereoGuide,
+        run_stereo_guide,
+        stereo_camchain,
+    )
+
+    def save(guide: StereoGuide) -> None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(yaml.safe_dump(stereo_camchain(guide), sort_keys=False))
+        if not args.json:
+            baseline = (
+                f", baseline {guide.extrinsics.baseline_m:.4f} m"
+                if guide.extrinsics is not None
+                else ", no baseline yet"
+            )
+            print(f"saved {args.output} ({len(guide.views)} stereo views{baseline})")
+
+    try:
+        run = run_stereo_guide(
+            pairs,
+            board,
+            options=options,
+            show=not args.no_window,
+            record=args.record,
+            save=save,
+            stop_when_done=args.no_window,
+        )
+    except (OSError, RuntimeError, ImportError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    guide = run.guide
+    payload: dict[str, Any] = {
+        "done": run.done,
+        "saved": str(args.output) if run.saved else None,
+        "frames": run.frames,
+    }
+    if guide is not None:
+        for name, side in (("cam0", guide.left), ("cam1", guide.right)):
+            estimate = side.estimate
+            if estimate is not None:
+                payload[name] = {
+                    "views": estimate.views,
+                    "rms_px": estimate.rms_px,
+                    "intrinsics": [estimate.fx, estimate.fy, estimate.cx, estimate.cy],
+                    "distortion_coeffs": list(estimate.distortion),
+                    "std": estimate.std,
+                }
+        e = guide.extrinsics
+        if e is not None:
+            payload["stereo"] = {
+                "views": e.views,
+                "rms_px": e.rms_px,
+                "T_cn_cnm1": e.transform().tolist(),
+                "baseline_m": e.baseline_m,
+                "baseline_std_m": e.baseline_std_m,
+                "translation_std_m": e.translation_std_m.tolist(),
+                "rotation_std_deg": e.rotation_std_deg,
+            }
+    _emit(payload, args.json)
+    if guide is None or guide.left.estimate is None or guide.right.estimate is None:
+        raise CalibrexError(
+            "no calibration: each camera needs the board in 6 still views "
+            "(is --board the inner-corner count?)"
+        )
+    if guide.extrinsics is None:
+        print(
+            "warning: fewer than 3 views had the board still in both cameras: no baseline",
+            file=sys.stderr,
         )
     return 0 if run.saved else 1
 
