@@ -42,10 +42,16 @@ from scipy.sparse import lil_matrix
 from scipy.spatial.transform import Rotation
 
 from calibrex.evaluation.board_camera_lidar import _opencv
-from calibrex.evaluation.intrinsics_guide import IntrinsicsEstimate
+from calibrex.evaluation.intrinsics_guide import (
+    DistortionModel,
+    IntrinsicsEstimate,
+    distortion_names,
+)
 
 FloatArray: TypeAlias = NDArray[np.float64]
-INTRINSIC_NAMES = ("fx", "fy", "cx", "cy", "k1", "k2", "p1", "p2")
+MAX_FISHEYE_ANGLE_RAD = 1.45
+"""Rays further than this from the optical axis (83 deg) are not undistorted onto the
+normalized plane, where they would land at infinity."""
 
 
 @dataclass(frozen=True)
@@ -69,6 +75,8 @@ class SelfCalibrationOptions:
     min_axis_span_deg: float = 20.0
     """Rotation about at least two camera axes must span this much."""
     max_nfev: int = 150
+    distortion_model: DistortionModel = "radtan"
+    """``radtan`` (k1 k2 p1 p2) or ``equidistant`` (fisheye, k1..k4)."""
 
 
 @dataclass(frozen=True)
@@ -171,9 +179,11 @@ def track_keyframes(
 # ----------------------------------------------------------------------- model
 
 
-def undistort_points(params: FloatArray, pixels: FloatArray) -> FloatArray:
-    """Normalized rays ``(x, y, 1)`` of pixels under pinhole / radtan ``params``."""
+def undistort_points(params: FloatArray, pixels: FloatArray, model: str = "radtan") -> FloatArray:
+    """Normalized rays ``(x, y, 1)`` of pixels under pinhole ``params`` and ``model``."""
 
+    if model == "equidistant":
+        return _undistort_equidistant(params, pixels)
     fx, fy, cx, cy, k1, k2, p1, p2 = params
     xd, yd = (pixels[:, 0] - cx) / fx, (pixels[:, 1] - cy) / fy
     x, y = xd.copy(), yd.copy()
@@ -185,9 +195,11 @@ def undistort_points(params: FloatArray, pixels: FloatArray) -> FloatArray:
     return np.column_stack([x, y, np.ones_like(x)])
 
 
-def project_points(params: FloatArray, rays: FloatArray) -> FloatArray:
-    """Pixels of camera-frame directions under pinhole / radtan ``params``."""
+def project_points(params: FloatArray, rays: FloatArray, model: str = "radtan") -> FloatArray:
+    """Pixels of camera-frame directions under pinhole ``params`` and ``model``."""
 
+    if model == "equidistant":
+        return _project_equidistant(params, rays)
     fx, fy, cx, cy, k1, k2, p1, p2 = params
     x, y = rays[:, 0] / rays[:, 2], rays[:, 1] / rays[:, 2]
     r2 = x * x + y * y
@@ -197,11 +209,46 @@ def project_points(params: FloatArray, rays: FloatArray) -> FloatArray:
     return np.column_stack([fx * xd + cx, fy * yd + cy])
 
 
-def _orthonormality(params: FloatArray, pairs: list[tuple[FloatArray, FloatArray]]) -> float:
+def _theta_polynomial(theta: FloatArray, k: FloatArray) -> FloatArray:
+    t2 = theta * theta
+    return theta * (1 + t2 * (k[0] + t2 * (k[1] + t2 * (k[2] + t2 * k[3]))))
+
+
+def _undistort_equidistant(params: FloatArray, pixels: FloatArray) -> FloatArray:
+    fx, fy, cx, cy = params[:4]
+    k = np.asarray(params[4:8], np.float64)
+    xd, yd = (pixels[:, 0] - cx) / fx, (pixels[:, 1] - cy) / fy
+    theta_d = np.hypot(xd, yd)
+    theta = theta_d.copy()
+    for _ in range(10):  # Newton on theta (1 + k1 theta^2 + ...) = theta_d
+        t2 = theta * theta
+        derivative = 1 + t2 * (3 * k[0] + t2 * (5 * k[1] + t2 * (7 * k[2] + t2 * 9 * k[3])))
+        theta = theta - (_theta_polynomial(theta, k) - theta_d) / np.where(
+            np.abs(derivative) > 1e-6, derivative, 1e-6
+        )
+    theta = np.clip(theta, 0.0, MAX_FISHEYE_ANGLE_RAD)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        scale = np.where(theta_d > 1e-12, np.tan(theta) / theta_d, 1.0)
+    return np.column_stack([xd * scale, yd * scale, np.ones_like(xd)])
+
+
+def _project_equidistant(params: FloatArray, rays: FloatArray) -> FloatArray:
+    fx, fy, cx, cy = params[:4]
+    k = np.asarray(params[4:8], np.float64)
+    r = np.hypot(rays[:, 0], rays[:, 1])
+    theta = np.arctan2(r, rays[:, 2])
+    with np.errstate(divide="ignore", invalid="ignore"):
+        scale = np.where(r > 1e-12, _theta_polynomial(theta, k) / r, 1.0 / rays[:, 2])
+    return np.column_stack([fx * rays[:, 0] * scale + cx, fy * rays[:, 1] * scale + cy])
+
+
+def _orthonormality(
+    params: FloatArray, pairs: list[tuple[FloatArray, FloatArray]], model: str = "radtan"
+) -> float:
     cv2 = _opencv()
     cost = 0.0
     for before, after in pairs:
-        a, b = undistort_points(params, before), undistort_points(params, after)
+        a, b = undistort_points(params, before, model), undistort_points(params, after, model)
         homography, _ = cv2.findHomography(a[:, :2], b[:, :2], 0)
         if homography is None:
             return math.inf
@@ -239,7 +286,7 @@ def initial_focal_k1(tracks: _Tracks, options: SelfCalibrationOptions) -> tuple[
 
     def cost(focal: float, k1: float) -> float:
         params = np.array([focal, focal, width / 2, height / 2, k1, 0.0, 0.0, 0.0])
-        return _orthonormality(params, pairs)
+        return _orthonormality(params, pairs, options.distortion_model)
 
     f_low, f_high, f_count = options.focal_grid
     k_low, k_high, k_count = options.k1_grid
@@ -257,7 +304,7 @@ def initial_focal_k1(tracks: _Tracks, options: SelfCalibrationOptions) -> tuple[
     return float(refined.x[0]), float(refined.x[1])
 
 
-def _initial_rotations(tracks: _Tracks, params: FloatArray) -> FloatArray:
+def _initial_rotations(tracks: _Tracks, params: FloatArray, model: str) -> FloatArray:
     """Keyframe orientations (camera to world, first = identity) chained from rotations."""
 
     cv2 = _opencv()
@@ -267,7 +314,7 @@ def _initial_rotations(tracks: _Tracks, params: FloatArray) -> FloatArray:
         if len(before) < 8:
             rotations.append(rotations[-1])
             continue
-        a, b = undistort_points(params, before), undistort_points(params, after)
+        a, b = undistort_points(params, before, model), undistort_points(params, after, model)
         homography, _ = cv2.findHomography(a[:, :2], b[:, :2], cv2.RANSAC, 2.0 / params[0])
         u, _, vt = np.linalg.svd(homography if homography is not None else np.eye(3))
         relative = u @ vt
@@ -347,7 +394,8 @@ def self_calibrate(
     focal, k1 = initial_focal_k1(tracks, opts)
     width, height = tracks.width, tracks.height
     start = np.array([focal, focal, width / 2, height / 2, k1, 0.0, 0.0, 0.0])
-    rotations = _initial_rotations(tracks, start)
+    model = opts.distortion_model
+    rotations = _initial_rotations(tracks, start, model)
     pairs = _transfer_pairs(tracks, opts)
     n_kf = len(tracks.observations)
 
@@ -357,9 +405,11 @@ def self_calibrate(
 
     def residual(x: FloatArray) -> FloatArray:
         params, rs = unpack(x)
-        world = np.einsum("nij,nj->ni", rs[pairs.a], undistort_points(params, pairs.before))
+        rays = undistort_points(params, pairs.before, model)
+        world = np.einsum("nij,nj->ni", rs[pairs.a], rays)
         camera = np.einsum("nji,nj->ni", rs[pairs.b], world)
-        return np.asarray((project_points(params, camera) - pairs.after).ravel(), np.float64)
+        projected = project_points(params, camera, model)
+        return np.asarray((projected - pairs.after).ravel(), np.float64)
 
     x0 = np.concatenate([start, Rotation.from_matrix(rotations[1:]).as_rotvec().ravel()])
     m = len(pairs.a)
@@ -370,7 +420,11 @@ def self_calibrate(
             if k > 0:
                 sparsity[2 * j : 2 * j + 2, 8 + 3 * (k - 1) : 8 + 3 * k] = 1
     scale = np.concatenate(
-        [[10.0, 10.0, 5.0, 5.0, 0.01, 0.01, 0.001, 0.001], np.full(len(x0) - 8, 0.003)]
+        [
+            [10.0, 10.0, 5.0, 5.0, 0.01, 0.01],
+            [0.01, 0.01] if model == "equidistant" else [0.001, 0.001],
+            np.full(len(x0) - 8, 0.003),
+        ]
     )
     solution = least_squares(
         residual,
@@ -396,9 +450,10 @@ def self_calibrate(
         cx=float(params[2]),
         cy=float(params[3]),
         distortion=(float(params[4]), float(params[5]), float(params[6]), float(params[7])),
-        std=dict(zip(INTRINSIC_NAMES, std, strict=True)),
+        std=dict(zip(("fx", "fy", "cx", "cy", *distortion_names(model)), std, strict=True)),
         rms_px=rms,
         views=n_kf,
+        model=model,
     )
     return SelfCalibration(
         estimate,

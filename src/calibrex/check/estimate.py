@@ -35,6 +35,7 @@ from calibrex.check import estimators
 from calibrex.check.estimators import EstimatorRun, invert_transform, transform_matrix
 from calibrex.check.frame_tree import StaticEdge, StaticFrameTree, normalize_frame_id
 from calibrex.check.hints import excitation_hints, pair_hint
+from calibrex.check.intrinsics_override import IntrinsicsOverride, match_intrinsics
 from calibrex.check.planner import PAIR_SLOTS, plan_pairs, slot_of
 from calibrex.check.progress import CheckProgress, as_progress
 from calibrex.check.roles import image_transport_base, map_topics_to_frames
@@ -660,56 +661,86 @@ def camchain_export(
     frames: EstimateFrames,
     *,
     bag_name: str,
+    intrinsics: Sequence[IntrinsicsOverride] = (),
+    topics: Sequence[CheckTopicRecord] = (),
 ) -> str | None:
     """A Kalibr camchain-imucam whose ``T_cam_imu`` are the exported camera-IMU transforms.
 
     Built from the ``--tf`` Kalibr camchain (it carries the intrinsics a camera
-    pair needs): each camera whose camera-imu edge is in the exported tree gets its
+    pair needs), or else from the ``--intrinsics`` camchains matched to the bag's camera
+    topics: each camera whose camera-imu edge is in the exported tree gets its
     ``T_cam_imu`` replaced (inverted from the frames YAML edge, so both exports
     agree); other cameras are dropped. A translation the data did not observe is
     the prior's. ``timeshift_cam_imu`` is removed because its sign convention
     differs from the estimator's clock offset.
     """
 
-    import yaml
-
     from calibrex.check.tf_sources import camchain_entries
 
-    by_frame = {entry.frame: entry for entry in frames.entries if entry.pair == "camera-imu"}
-    by_parent = {entry.parent: entry for entry in frames.entries if entry.pair == "camera-imu"}
     for source in sources:
         if source.kind != "kalibr_camchain" or source.path is None:
             continue
-        out: dict[str, Any] = {}
-        notes: list[str] = []
-        for key, frame, entry in camchain_entries(source.path):
-            edge = by_frame.get(frame) or by_parent.get(frame)
-            if edge is None:
+        cameras = [(key, frame, entry) for key, frame, entry in camchain_entries(source.path)]
+        text = _camchain_text(cameras, frames, bag_name, source.path.name)
+        if text is not None:
+            return text
+    if intrinsics:
+        camera_topics = tuple(t.topic for t in topics if t.role == "camera")
+        cameras = []
+        names: list[str] = []
+        for record in topics:
+            if record.role != "camera" or record.mapped_frame is None:
                 continue
-            matrix = transform_matrix(
-                edge.transform.translation_m, edge.transform.rotation_quat_xyzw
+            matched = match_intrinsics(tuple(intrinsics), record.topic, camera_topics)
+            if matched is None:
+                continue
+            override, _key, entry = matched
+            cameras.append(
+                (f"cam{len(cameras)}", record.mapped_frame, {**entry, "rostopic": record.topic})
             )
-            # T_cam_imu: the edge is T_parent_child between the camera and the IMU frame.
-            t_cam_imu = invert_transform(matrix) if edge.frame == frame else matrix
-            updated = {k: v for k, v in entry.items() if k != "timeshift_cam_imu"}
-            updated["T_cam_imu"] = [[float(v) for v in row] for row in t_cam_imu]
-            out[key] = updated
-            quality = (
-                "all axes observed"
-                if not edge.axes_from_prior
-                else f"NOT MEASURED {', '.join(edge.axes_from_prior)} (kept from the prior)"
-            )
-            notes.append(f"{key}: {quality}")
-        if not out:
-            continue
-        header = [
-            f"# calibrex estimate: Kalibr camchain-imucam estimated from bag {bag_name}.",
-            f"# Intrinsics are copied from {source.path.name}; only T_cam_imu is estimated.",
-            "# Cameras without an exported camera-imu edge are omitted.",
-            *(f"# {note}" for note in notes),
-        ]
-        return "\n".join(header) + "\n" + yaml.safe_dump(out, sort_keys=True)
+            names.append(override.path.name)
+        if cameras:
+            return _camchain_text(cameras, frames, bag_name, ", ".join(sorted(set(names))))
     return None
+
+
+def _camchain_text(
+    cameras: Sequence[tuple[str, str, dict[str, Any]]],
+    frames: EstimateFrames,
+    bag_name: str,
+    origin: str,
+) -> str | None:
+    import yaml
+
+    by_frame = {entry.frame: entry for entry in frames.entries if entry.pair == "camera-imu"}
+    by_parent = {entry.parent: entry for entry in frames.entries if entry.pair == "camera-imu"}
+    out: dict[str, Any] = {}
+    notes: list[str] = []
+    for key, frame, entry in cameras:
+        edge = by_frame.get(frame) or by_parent.get(frame)
+        if edge is None:
+            continue
+        matrix = transform_matrix(edge.transform.translation_m, edge.transform.rotation_quat_xyzw)
+        # T_cam_imu: the edge is T_parent_child between the camera and the IMU frame.
+        t_cam_imu = invert_transform(matrix) if edge.frame == frame else matrix
+        updated = {k: v for k, v in entry.items() if k != "timeshift_cam_imu"}
+        updated["T_cam_imu"] = [[float(v) for v in row] for row in t_cam_imu]
+        out[key] = updated
+        quality = (
+            "all axes observed"
+            if not edge.axes_from_prior
+            else f"NOT MEASURED {', '.join(edge.axes_from_prior)} (kept from the prior)"
+        )
+        notes.append(f"{key}: {quality}")
+    if not out:
+        return None
+    header = [
+        f"# calibrex estimate: Kalibr camchain-imucam estimated from bag {bag_name}.",
+        f"# Intrinsics are copied from {origin}; only T_cam_imu is estimated.",
+        "# Cameras without an exported camera-imu edge are omitted.",
+        *(f"# {note}" for note in notes),
+    ]
+    return "\n".join(header) + "\n" + yaml.safe_dump(out, sort_keys=True)
 
 
 def _path_entries(frames: EstimateFrames, first: str, second: str) -> list[EstimateFrameEntry]:
@@ -1146,7 +1177,9 @@ def build_bag_estimate(
         bag_name=bag_path.name,
         bag_sha256=input_sha256,
         topic_frames=topic_frames,
-        camchain=camchain_export(sources, frames, bag_name=bag_path.name),
+        camchain=camchain_export(
+            sources, frames, bag_name=bag_path.name, intrinsics=run.intrinsics, topics=topics
+        ),
         fast_lio=fast_lio_export(records, frames, bag_name=bag_path.name),
     )
     steps = next_steps(records, frames, topics, bag_name=bag_path.name, output_dir=output_dir)

@@ -104,9 +104,24 @@ less than 90 deg relative to each other, which every ordinary rig is.
 
 ## The model and its limits
 
-The model is OpenCV's pinhole with radial-tangential distortion `k1 k2 p1 p2` (`k3` fixed
-at 0), which Kalibr calls `pinhole` / `radtan`. Fisheye lenses need another model and are
-not supported here.
+Two lens models, with Kalibr's names (`--distortion`):
+
+- `radtan` (default): OpenCV's pinhole with radial-tangential distortion `k1 k2 p1 p2`
+  (`k3` fixed at 0), for ordinary lenses up to about 90 deg across.
+- `equidistant`: OpenCV's fisheye (Kannala-Brandt) model `k1 k2 k3 k4`, for wide-angle and
+  fisheye lenses. The camchain says `distortion_model: equidistant`, which Kalibr and
+  Calibrex's camera pairs read.
+
+```bash
+calibrex intrinsics guide --board 9x6x0.025 --camera 0 --distortion equidistant
+```
+
+For the fisheye model the stds come from the calibration's Jacobian, with each view's
+pose marginalized out (OpenCV's fisheye calibration does not report them). On a simulated
+110 deg fisheye (480 x 360, f = 235 px) following the advice gave the focal lengths within
+1 % and the principal point within 2 px. Stereo works the same way: both cameras' corners
+are undistorted with their own model before the baseline is fitted, so a fisheye and a
+pinhole camera can be paired too. Keep the board within about 80 deg of the optical axis.
 
 The stds are OpenCV's, from the reprojection residuals of the kept views. They assume
 independent corner errors, so they understate the error when the corners carry an error

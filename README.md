@@ -326,7 +326,8 @@ camera-IMU and camera-LiDAR need the camera intrinsics (a `CameraInfo` topic or 
 `calibrex intrinsics guide --board 9x6x0.025` calibrates them live from a webcam or video and says
 how to move the board next: [Camera intrinsics with live guidance](docs/tutorials/intrinsics_guide.md);
 `calibrex intrinsics rotate` estimates them without a target, from the camera turned in place:
-[Camera intrinsics without a target](docs/tutorials/intrinsics_rotate.md)).
+[Camera intrinsics without a target](docs/tutorials/intrinsics_rotate.md); pass the result with
+`--intrinsics`: [From intrinsics to extrinsics](docs/tutorials/intrinsics_to_extrinsics.md)).
 For the camera-LiDAR translation, record a checkerboard held still at a dozen poses and run
 `calibrex estimate BAG --board 7x5x0.08` (inner corners and square size; `calibrex check
 --board` judges a deployed one): all six axes, each with its std and whether the poses observed it

@@ -28,6 +28,7 @@ from scipy.spatial.transform import Rotation
 
 from calibrex.evaluation.board_camera_lidar import _opencv
 from calibrex.evaluation.intrinsics_guide import _GREEN, _GREY, _WHITE, _YELLOW, _text, _wrapped
+from calibrex.evaluation.rotation_self_calibration import undistort_points
 
 FloatArray: TypeAlias = NDArray[np.float64]
 GrayFrame: TypeAlias = tuple[float, NDArray[np.uint8]]
@@ -49,6 +50,11 @@ class RotationGuideOptions:
     """Each axis's span to reach (the guide's spans are approximate)."""
     focal_guess: float = 0.8
     """Focal length guess as a fraction of the image width (about 64 deg across)."""
+    distortion_model: str = "radtan"
+    """``equidistant`` (fisheye): the image motion is turned into rays through an ideal
+    equidistant lens of ``fisheye_focal_guess`` instead of a pinhole."""
+    fisheye_focal_guess: float = 0.45
+    """Fisheye focal length guess as a fraction of the image width (about 130 deg across)."""
     min_features: int = 60
     max_features: int = 300
     keyframe_motion_px: float = 15.0
@@ -92,7 +98,12 @@ class RotationGuide:
 
     @property
     def focal_px(self) -> float:
-        return self.options.focal_guess * self.width
+        fraction = (
+            self.options.fisheye_focal_guess
+            if self.options.distortion_model == "equidistant"
+            else self.options.focal_guess
+        )
+        return fraction * self.width
 
     @property
     def done(self) -> bool:
@@ -181,13 +192,16 @@ class RotationGuide:
 
     def _rotation(self, before: FloatArray, after: FloatArray) -> FloatArray | None:
         cv2 = _opencv()
-        homography, inliers = cv2.findHomography(before, after, cv2.RANSAC, 2.0)
-        if homography is None or int(inliers.sum()) < 12:
-            return None
-        k = np.array(
-            [[self.focal_px, 0.0, self.width / 2], [0.0, self.focal_px, self.height / 2], [0, 0, 1]]
+        # Rays of the guessed lens on the normalized plane: a rotation maps them by K^-1 H K.
+        guess = np.array(
+            [self.focal_px, self.focal_px, self.width / 2, self.height / 2, 0.0, 0.0, 0.0, 0.0]
         )
-        m = np.linalg.solve(k, homography @ k)
+        model = self.options.distortion_model
+        a = undistort_points(guess, before, model)[:, :2]
+        b = undistort_points(guess, after, model)[:, :2]
+        m, inliers = cv2.findHomography(a, b, cv2.RANSAC, 2.0 / self.focal_px)
+        if m is None or int(inliers.sum()) < 12:
+            return None
         m *= np.sign(np.linalg.det(m))
         u, _, vt = np.linalg.svd(m)
         rotation: FloatArray = u @ vt
