@@ -4,8 +4,9 @@ name: RNE simulated rig
 # simulates a hand-held rig with two LiDARs, an IMU and a camera and writes a ROS 2 MCAP bag
 # with the true mountings (good.yaml) and each sensor turned 3 degrees (turned_imu.yaml,
 # turned_lidar2.yaml, turned_camera.yaml). The true mountings must pass imu-lidar,
-# lidar-lidar and camera-lidar; each turned sensor must fail exactly its own pairs. See
-# tools/check_rne_simulated_rig.py.
+# lidar-lidar and camera-lidar; each turned sensor must fail exactly its own pairs. A second
+# bag turns the rig twice as fast so imu-lidar also judges the IMU's lever arm, which the IMU
+# shifted 5 cm (shifted_imu.yaml) must fail. See tools/check_rne_simulated_rig.py.
 
 on:
   pull_request:
@@ -38,12 +39,14 @@ on:
   workflow_dispatch:
 
 env:
-  # A Robot Native Engine commit whose example 149 has the room with posts (camera-lidar judgeable).
-  RNE_REF: f76e134f97d7b16f51fa3613b67ca9f3c019e852
+  # A Robot Native Engine commit whose example 149 has posts (so camera-lidar can judge the
+  # camera), --rotation-speed and shifted_imu.yaml.
+  RNE_REF: 1370849ef6bd50379fe90f016ccda3b5b3c6de4e
   RIG_DURATION_S: "20"
+  LEVER_ARM_DURATION_S: "90"
 
 jobs:
-  imu-lidar-camera:
+  simulated-rig:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -64,7 +67,9 @@ jobs:
           cargo build --release --locked -p calibrex_rig_bag --example 149_calibrex_rig_bag
           target/release/examples/149_calibrex_rig_bag \
             --out "$RUNNER_TEMP/rig" --duration-s "$RIG_DURATION_S" --sensors imu,lidar2,camera
-          ls -l "$RUNNER_TEMP/rig"
+          target/release/examples/149_calibrex_rig_bag --out "$RUNNER_TEMP/lever_arm" \
+            --duration-s "$LEVER_ARM_DURATION_S" --sensors imu --rotation-speed 2
+          ls -l "$RUNNER_TEMP/rig" "$RUNNER_TEMP/lever_arm"
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -72,3 +77,7 @@ jobs:
         run: python -m pip install -e .
       - name: Check the true and the turned mountings
         run: python tools/check_rne_simulated_rig.py "$RUNNER_TEMP/rig" --cache-dir "$RUNNER_TEMP/cache"
+      - name: Check the lever arm
+        run: >-
+          python tools/check_rne_simulated_rig.py "$RUNNER_TEMP/lever_arm" --profile lever-arm
+          --cache-dir "$RUNNER_TEMP/cache_lever_arm"
