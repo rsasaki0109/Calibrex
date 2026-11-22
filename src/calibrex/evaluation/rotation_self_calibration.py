@@ -49,6 +49,10 @@ from calibrex.evaluation.intrinsics_guide import (
 )
 
 FloatArray: TypeAlias = NDArray[np.float64]
+MAX_MEDIAN_TRANSFER_PX = 1.0
+"""Above this median transfer error the tracks do not fit a turning camera. The median,
+not the RMS: on a simulated room rendered one ray per pixel the aliased edges gave a
+median of 0.48 px and an RMS of 1.13 px, with nothing but the camera turning."""
 MAX_FISHEYE_ANGLE_RAD = 1.45
 """Rays further than this from the optical axis (83 deg) are not undistorted onto the
 normalized plane, where they would land at infinity."""
@@ -93,6 +97,8 @@ class SelfCalibration:
     keyframe_times_s: tuple[float, ...] = ()
     rotations: FloatArray | None = None
     """Keyframe orientations, camera to a world frame fixed at the first keyframe: (N, 3, 3)."""
+    median_px: float = 0.0
+    """Median transfer error: robust to the long tail of poorly tracked features."""
 
 
 @dataclass
@@ -439,9 +445,10 @@ def self_calibrate(
     params, rs = unpack(solution.x)
     errors = solution.fun.reshape(-1, 2)
     rms = float(np.sqrt(np.mean(np.sum(errors**2, axis=1))))
+    median = float(np.median(np.linalg.norm(errors, axis=1)))
     std = _intrinsic_std(solution.jac, errors, len(x0), pairs.reuse)
     span = _rotation_span_deg(rs)
-    warnings = _warnings(span, opts, rms)
+    warnings = _warnings(span, opts, median)
     estimate = IntrinsicsEstimate(
         width=width,
         height=height,
@@ -464,6 +471,7 @@ def self_calibrate(
         tuple(warnings),
         tuple(tracks.keyframe_times),
         rs,
+        median,
     )
 
 
@@ -483,7 +491,7 @@ def _intrinsic_std(jacobian: Any, errors: FloatArray, n_params: int, reuse: floa
 
 
 def _warnings(
-    span: tuple[float, float, float], options: SelfCalibrationOptions, rms: float
+    span: tuple[float, float, float], options: SelfCalibrationOptions, median: float
 ) -> list[str]:
     warnings = []
     names = ("tilt (about x)", "pan (about y)", "roll (about z)")
@@ -497,10 +505,11 @@ def _warnings(
             f"{span[1]:.0f}, roll {span[2]:.0f} deg): the focal length is poorly determined; "
             "pan and tilt the camera further"
         )
-    if rms > 1.0:
+    if median > MAX_MEDIAN_TRANSFER_PX:
         warnings.append(
-            f"the transfer RMS is {rms:.2f} px: the camera may have translated, or the scene "
-            "moved; turn it about its lens and face a static scene"
+            f"tracked features miss a pure rotation by {median:.2f} px (median): the scene "
+            "moved, or the features are tracked poorly (motion blur, low texture); a "
+            "translation of the camera does not show here"
         )
     warnings.append(
         "the camera must turn about its lens: a lens offset L from the rotation centre at "

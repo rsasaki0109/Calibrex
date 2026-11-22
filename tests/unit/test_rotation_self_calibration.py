@@ -139,3 +139,14 @@ def test_cli_calibrates_a_camera_turned_about_its_lens_from_a_video(tmp_path: Pa
     assert cy == pytest.approx(TRUE_K[1, 2], abs=2.0)
     assert entry["distortion_coeffs"][0] == pytest.approx(TRUE_DISTORTION[0], abs=0.015)
     assert entry["distortion_model"] == "radtan" and entry["resolution"] == [WIDTH, HEIGHT]
+
+
+def test_the_tracking_warning_follows_the_median_and_does_not_blame_translation() -> None:
+    from calibrex.evaluation.rotation_self_calibration import SelfCalibrationOptions, _warnings
+
+    options = SelfCalibrationOptions()
+    turned = (40.0, 40.0, 40.0)
+    assert not any("tracked" in w for w in _warnings(turned, options, 0.48))
+    [tracking] = [w for w in _warnings(turned, options, 1.6) if "tracked" in w]
+    assert "1.60 px (median)" in tracking
+    assert "does not show here" in tracking

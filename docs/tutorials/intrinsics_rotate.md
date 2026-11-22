@@ -107,10 +107,16 @@ motion as much as a few centimetres of translation, so it only reminds you.
 
 ## What it reports
 
-The camchain, the intrinsics with their stds, the transfer RMS (how far a tracked feature
-lands from where the fitted rotation and intrinsics put it, in pixels), the number of
-keyframes, how far the camera turned about its x (tilt), y (pan) and z (roll) axes, and
-warnings.
+The camchain, the intrinsics with their stds, the transfer error (how far a tracked
+feature lands from where the fitted rotation and intrinsics put it, in pixels: its RMS and
+its median), the number of keyframes, how far the camera turned about its x (tilt), y (pan)
+and z (roll) axes, and warnings.
+
+The command warns when the median transfer error is above 1 px: the scene moved or the
+features are tracked poorly. It judges the median, not the RMS, because the RMS follows the
+tail of poorly tracked features: on RobotNativeEngine's simulated room, rendered one ray
+per pixel so its edges alias, a camera that only turned gave a median of 0.48 px and an
+RMS of 1.13 px. A translation of the camera does not raise either (see below).
 
 The stds come from the fit's Jacobian, scaled for each tracked point entering several
 keyframe pairs. They do not include the bias below.

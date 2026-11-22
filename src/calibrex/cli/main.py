@@ -8653,6 +8653,7 @@ def _rotation_payload(result: Any) -> dict[str, Any]:
         "distortion_coeffs": list(estimate.distortion),
         "std": estimate.std,
         "rms_px": estimate.rms_px,
+        "median_px": result.median_px,
         "keyframes": result.keyframes,
         "rotation_span_deg": {
             "tilt": result.rotation_span_deg[0],
