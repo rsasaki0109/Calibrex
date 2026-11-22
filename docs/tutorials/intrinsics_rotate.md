@@ -80,7 +80,9 @@ On a simulated camera (320 x 240, f = 280 px) read out in 30 ms and turned up to
 50 deg/s, the fit gave a readout of 31.1 ± 0.2 ms, the focal length within 0.05 % and the
 principal point within 0.7 px; without `--rolling-shutter` the focal length came out 1.5 %
 long and the principal point 16 px off. The fit runs the global-shutter fit first, then
-refines with the readout (about twice the time).
+refines with the readout (about twice the time). On RobotNativeEngine's simulated camera
+read out in 30 ms (in 24 bands) and turned more slowly, it estimated 25.9 ± 0.5 ms and
+moved the principal point from 0.9 px to 0.5 px off; there the readout cost little.
 
 ## How to record
 
