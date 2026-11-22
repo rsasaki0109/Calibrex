@@ -19,6 +19,13 @@
   direction comes from simultaneous left-right matches when their parallax outweighs the
   rotation's error, and `T_cn_cnm1` is written with `--baseline-m`.
 
+- `calibrex intrinsics rotate --camera` shows a guide window while the camera is turned:
+  point at more texture, turn more slowly, then pan, tilt and roll each 25 deg (a bar per
+  axis, angles from a guessed focal length), and calibrates once done (`s` earlier, `q`
+  quits). `--video --guide` shows it over a recording, `--record` writes the annotated
+  frames, and `--no-window` keeps the timed recording
+  ([tutorial](docs/tutorials/intrinsics_rotate.md#the-guide-window)).
+
 - `calibrex intrinsics guide` calibrates stereo rigs too: `--right-camera`, `--right-video`,
   `--side-by-side` or `--bag --topic --right-topic`. After both cameras' intrinsics, it asks
   for the board in front of both and keeps each new still pose; `stereoCalibrate` with the

@@ -1541,7 +1541,21 @@ def _build_parser() -> argparse.ArgumentParser:
     intrinsics_rotate.add_argument(
         "--seconds",
         type=_positive_float,
-        help="use at most this many seconds (--camera: record this long, default 20)",
+        help="use at most this many seconds (--camera: at most 60 with the guide window, "
+        "exactly this long with --no-window, default 20)",
+    )
+    intrinsics_rotate.add_argument(
+        "--guide",
+        action="store_true",
+        help="--video: show the turning guidance on the video too (always on for --camera)",
+    )
+    intrinsics_rotate.add_argument(
+        "--no-window",
+        action="store_true",
+        help="no guide window (--camera: record for --seconds; --video --guide: with --record)",
+    )
+    intrinsics_rotate.add_argument(
+        "--record", type=Path, help="write the guide's annotated frames to this video (MJPG .avi)"
     )
     intrinsics_rotate.add_argument(
         "--stride", type=_positive_int, default=1, help="use every n-th frame"
@@ -8448,6 +8462,10 @@ def _rotate_sources(args: argparse.Namespace) -> tuple[Any, Any, Any]:
             bag_frames(args.bag, args.topic, max_seconds=seconds),
             bag_frames(args.bag, args.right_topic, max_seconds=seconds),
         )
+    if args.video is not None and args.guide:
+        frames = video_frames(args.video, stride=1, max_seconds=seconds)
+        recorded = _guided_recording(args, frames, stop_when_done=False)
+        return _recorded_sources(args, recorded)
     if args.video is not None:
 
         def left_video() -> Any:
@@ -8475,6 +8493,22 @@ def _rotate_sources(args: argparse.Namespace) -> tuple[Any, Any, Any]:
             "videos, or use one side-by-side stereo camera with --side-by-side"
         )
     resolution = _pair_of_ints(args.resolution, "--resolution") if args.resolution else None
+    if not args.no_window or args.record is not None:
+        import time
+
+        from calibrex.evaluation.intrinsics_guide import frames_from
+
+        limit = seconds or 60.0
+
+        def live() -> Any:
+            start = time.monotonic()
+            for image in frames_from(args.camera, resolution):
+                elapsed = time.monotonic() - start
+                if elapsed > limit:
+                    return
+                yield elapsed, image
+
+        return _recorded_sources(args, _guided_recording(args, live(), stop_when_done=True))
     duration = seconds or 20.0
     print(f"recording {duration:g} s: turn the camera about its lens (pan, tilt and roll)")
     left = list(camera_frames(args.camera, seconds=duration, resolution=resolution, stride=stride))
@@ -8483,6 +8517,40 @@ def _rotate_sources(args: argparse.Namespace) -> tuple[Any, Any, Any]:
         left = list(split_side_by_side(iter(left), 0))
     else:
         return lambda: iter(left), None, None
+    return (
+        lambda: iter(left),
+        lambda: iter(right),
+        lambda: paired_frames(iter(left), iter(right)),
+    )
+
+
+def _guided_recording(args: argparse.Namespace, frames: Any, stop_when_done: bool) -> list[Any]:
+    """Run the turning guide over ``(time, image)`` frames; the grey frames it kept."""
+
+    from calibrex.evaluation.rotation_guide import run_rotation_guide
+
+    if not args.no_window:
+        print("turn the camera as the window says; s calibrates now, q quits")
+    run = run_rotation_guide(
+        frames,
+        show=not args.no_window,
+        record=args.record,
+        stride=args.stride,
+        side_by_side=args.side_by_side,
+        stop_when_done=stop_when_done,
+    )
+    if not run.accepted:
+        raise CalibrexError("quit before calibrating")
+    return run.recorded
+
+
+def _recorded_sources(args: argparse.Namespace, recorded: list[Any]) -> tuple[Any, Any, Any]:
+    from calibrex.data.frame_sources import paired_frames, split_side_by_side
+
+    if not args.side_by_side:
+        return lambda: iter(recorded), None, None
+    left = list(split_side_by_side(iter(recorded), 0))
+    right = list(split_side_by_side(iter(recorded), 1))
     return (
         lambda: iter(left),
         lambda: iter(right),

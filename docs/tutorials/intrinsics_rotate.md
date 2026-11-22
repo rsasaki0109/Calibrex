@@ -18,7 +18,11 @@ calibrex intrinsics rotate --video turning.mp4
 calibrex intrinsics rotate --camera 0 --resolution 1280x720 --seconds 20
 ```
 
-It needs OpenCV (`pip install 'calibrex[opencv]'`). `--output` (default
+With a live camera a window guides the turning (below) and the calibration starts as soon
+as the turns are enough; `--no-window` records for `--seconds` without it.
+
+It needs OpenCV (`pip install 'calibrex[opencv]'`; the live window needs `opencv-python`,
+not the headless build). `--output` (default
 `intrinsics_camchain.yaml`) and `--camera-name` (default `cam0`) name the camchain; `--json`
 prints the result as JSON.
 
@@ -68,6 +72,31 @@ centre, which lengthens the focal lengths by about 0.8 (b/2)/D: face a distant s
   20 deg.
 - Turn smoothly: features are tracked frame to frame and dropped when tracking them back
   misses by more than 0.3 px.
+
+## The guide window
+
+`--camera` shows the live image with what to do next, and `--video --guide` shows the same
+over a recording (`--no-window --record annotated.avi` writes it to a video instead):
+
+- **Point the camera at a static scene with more texture**: fewer than 60 features are
+  tracked.
+- **Slower**: the features moved more than 6 % of the image width in one frame, or half
+  of them were lost.
+- **Pan**, then **Tilt**, then **Roll**, with how far the camera has turned about that axis
+  and the 25 deg it should reach. A bar per axis fills as you turn and turns green.
+- **Done**: all three axes turned 25 deg over at least 20 keyframes. The live camera then
+  stops and calibrates; `s` calibrates earlier, `q` quits.
+
+The guide turns the image motion between keyframes into a rotation with a guessed focal
+length (0.8 times the image width, about 64 deg across), so its angles are approximate: a
+guess 20 % off reads pan and tilt 20 % off, while roll is exact. The 25 deg target leaves
+room above the 20 deg the calibration needs. On a simulated camera (280 px focal length,
+k1 = -0.12) a person sweeping each axis as told reached done in about 80 frames (8 s at 10 fps),
+pan and tilt read within 10 % of the truth, roll within 1.5 deg, and the calibration of
+those frames gave the focal length within 0.3 %.
+
+The guide cannot tell whether you turn about the lens: the lens distortion bends the image
+motion as much as a few centimetres of translation, so it only reminds you.
 
 ## What it reports
 
