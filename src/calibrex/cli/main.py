@@ -1552,6 +1552,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "exactly this long with --no-window, default 20)",
     )
     intrinsics_rotate.add_argument(
+        "--rolling-shutter",
+        action="store_true",
+        help="also fit the frame's readout time (a rolling-shutter camera turned briskly); "
+        "written to the camchain as readout_s, which the camera pairs read",
+    )
+    intrinsics_rotate.add_argument(
         "--guide",
         action="store_true",
         help="--video: show the turning guidance on the video too (always on for --camera)",
@@ -8646,6 +8652,15 @@ def _tag_bag_topics(args: argparse.Namespace, chain: dict[str, Any]) -> dict[str
     return chain
 
 
+def _rotation_entry(result: Any) -> dict[str, Any]:
+    from calibrex.evaluation.intrinsics_guide import camchain_entry
+
+    entry = camchain_entry(result.estimate)
+    if result.readout_s is not None:
+        entry["readout_s"] = result.readout_s
+    return entry
+
+
 def _rotation_payload(result: Any) -> dict[str, Any]:
     estimate = result.estimate
     return {
@@ -8653,6 +8668,9 @@ def _rotation_payload(result: Any) -> dict[str, Any]:
         "distortion_coeffs": list(estimate.distortion),
         "std": estimate.std,
         "rms_px": estimate.rms_px,
+        "median_px": result.median_px,
+        "readout_s": result.readout_s,
+        "readout_std_s": result.readout_std_s,
         "keyframes": result.keyframes,
         "rotation_span_deg": {
             "tilt": result.rotation_span_deg[0],
@@ -8666,7 +8684,6 @@ def _rotation_payload(result: Any) -> dict[str, Any]:
 def _cmd_intrinsics_rotate(args: argparse.Namespace) -> int:
     import yaml
 
-    from calibrex.evaluation.intrinsics_guide import camchain_entry
     from calibrex.evaluation.rotation_self_calibration import (
         SelfCalibrationOptions,
         self_calibrate,
@@ -8677,16 +8694,18 @@ def _cmd_intrinsics_rotate(args: argparse.Namespace) -> int:
     stereo = stereo or args.side_by_side
     try:
         left_frames, right_frames, pairs = _rotate_sources(args)
-        options = SelfCalibrationOptions(distortion_model=args.distortion)
+        options = SelfCalibrationOptions(
+            distortion_model=args.distortion, rolling_shutter=args.rolling_shutter
+        )
         left = self_calibrate(left_frames(), options)
         right = self_calibrate(right_frames(), options) if stereo and right_frames else None
         rig = combine(left, right, pairs(), args.baseline_m) if right is not None else None
     except (OSError, ValueError, ImportError) as exc:
         raise CalibrexError(str(exc)) from exc
-    chain: dict[str, Any] = {args.camera_name: camchain_entry(left.estimate)}
+    chain: dict[str, Any] = {args.camera_name: _rotation_entry(left)}
     payload: dict[str, Any] = {"saved": str(args.output), args.camera_name: _rotation_payload(left)}
     if rig is not None and right is not None:
-        entry = camchain_entry(right.estimate)
+        entry = _rotation_entry(right)
         transform = rig.t_cam1_cam0()
         if transform is not None:
             entry["T_cn_cnm1"] = transform.tolist()

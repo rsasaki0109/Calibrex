@@ -66,5 +66,12 @@ and camera-lidar passed (within 0.25°). With the camera turned 3° both failed 
 and 2.9°); with the IMU turned 3° camera-imu failed (pitch 2.99°) and camera-lidar, which
 does not involve the IMU, passed. The full tables are in the example's README.
 
-The test `tests/unit/test_intrinsics_pipeline.py` runs the same path on a synthetic bag
-in CI.
+With a checkerboard (`--board 7x5x0.08 --motion board --sensors imu,camera,camera2`), the
+stereo board guide on the bag (`intrinsics guide --bag --topic --right-topic`) gave both
+focal lengths within 0.34 % and the baseline 0.0996 ± 0.0008 m (true 0.10 m); with those
+intrinsics `check --board` passed camera-lidar on all six axes for both cameras (within
+0.08° and 5 mm) and camera-camera (within 0.044°), and failed camera-lidar (roll 2.93°)
+and camera-imu (roll 2.84°) with the first camera turned 3°.
+
+The test `tests/unit/test_intrinsics_pipeline.py` runs the targetless path on a synthetic
+bag in CI.

@@ -68,6 +68,22 @@ full stereo extrinsics matter.
 Turning a rig about its middle also offsets each lens by half the baseline from the rotation
 centre, which lengthens the focal lengths by about 0.8 (b/2)/D: face a distant scene.
 
+## Rolling shutter
+
+Most webcams and phone cameras read the frame out row by row, so a camera turned briskly
+sees each row a little later, turned a little further. Ignoring that bends the fit:
+`--rolling-shutter` also fits the readout time (first row to last), turning each row's
+view on by the keyframe's angular velocity times the row's delay. The camchain then
+carries `readout_s`, which Calibrex's camera pairs (camera-imu, camera-focal) read.
+
+On a simulated camera (320 x 240, f = 280 px) read out in 30 ms and turned up to about
+50 deg/s, the fit gave a readout of 31.1 ± 0.2 ms, the focal length within 0.05 % and the
+principal point within 0.7 px; without `--rolling-shutter` the focal length came out 1.5 %
+long and the principal point 16 px off. The fit runs the global-shutter fit first, then
+refines with the readout (about twice the time). On RobotNativeEngine's simulated camera
+read out in 30 ms (in 24 bands) and turned more slowly, it estimated 25.9 ± 0.5 ms and
+moved the principal point from 0.9 px to 0.5 px off; there the readout cost little.
+
 ## How to record
 
 - **Turn the camera about its lens.** This is what matters most. A camera on a tripod or a
@@ -107,10 +123,16 @@ motion as much as a few centimetres of translation, so it only reminds you.
 
 ## What it reports
 
-The camchain, the intrinsics with their stds, the transfer RMS (how far a tracked feature
-lands from where the fitted rotation and intrinsics put it, in pixels), the number of
-keyframes, how far the camera turned about its x (tilt), y (pan) and z (roll) axes, and
-warnings.
+The camchain, the intrinsics with their stds, the transfer error (how far a tracked
+feature lands from where the fitted rotation and intrinsics put it, in pixels: its RMS and
+its median), the number of keyframes, how far the camera turned about its x (tilt), y (pan)
+and z (roll) axes, and warnings.
+
+The command warns when the median transfer error is above 1 px: the scene moved or the
+features are tracked poorly. It judges the median, not the RMS, because the RMS follows the
+tail of poorly tracked features: on RobotNativeEngine's simulated room, rendered one ray
+per pixel so its edges alias, a camera that only turned gave a median of 0.48 px and an
+RMS of 1.13 px. A translation of the camera does not raise either (see below).
 
 The stds come from the fit's Jacobian, scaled for each tracked point entering several
 keyframe pairs. They do not include the bias below.
@@ -152,3 +174,12 @@ must be known to 0.1 %, use a checkerboard ([`calibrex intrinsics guide`](intrin
 A model of the translation (a fixed lens offset from the rotation centre plus each point's
 depth) was tried on the simulated camera and did not converge to the true offset, so the
 translation remains a documented limit rather than an estimated quantity.
+
+A gyro does not lift it either. Holding the keyframe rotations to an IMU's (with the
+camera-IMU rotation and the gyro bias fitted alongside) left the focal length of the
+camera whose lens is 15 cm off the rotation centre 3.4 % long, as without it: the fitted
+rotations already matched the gyro's to 0.01 deg. Turning the camera moves the offset
+lens sideways with the turn, so a scene point at distance Z moves in the image by the
+rotation's f θ plus the translation's f L θ / Z: f (1 + L/Z) θ. Where the scene's depth
+varies little that is a longer focal length and the right rotation, which no rotation
+measurement can tell apart.

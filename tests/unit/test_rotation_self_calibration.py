@@ -139,3 +139,65 @@ def test_cli_calibrates_a_camera_turned_about_its_lens_from_a_video(tmp_path: Pa
     assert cy == pytest.approx(TRUE_K[1, 2], abs=2.0)
     assert entry["distortion_coeffs"][0] == pytest.approx(TRUE_DISTORTION[0], abs=0.015)
     assert entry["distortion_model"] == "radtan" and entry["resolution"] == [WIDTH, HEIGHT]
+
+
+def test_the_tracking_warning_follows_the_median_and_does_not_blame_translation() -> None:
+    from calibrex.evaluation.rotation_self_calibration import SelfCalibrationOptions, _warnings
+
+    options = SelfCalibrationOptions()
+    turned = (40.0, 40.0, 40.0)
+    assert not any("tracked" in w for w in _warnings(turned, options, 0.48))
+    [tracking] = [w for w in _warnings(turned, options, 1.6) if "tracked" in w]
+    assert "1.60 px (median)" in tracking
+    assert "does not show here" in tracking
+
+
+def _rolling_frames(seconds: float, fps: float, readout_s: float, speed: float):
+    """Frames read out row by row over ``readout_s``, the middle row at the frame time."""
+
+    rays = _rays()
+    row = (np.arange(len(rays)) % (HEIGHT * WIDTH)) // WIDTH
+    out = []
+    for time_s in np.arange(0.0, seconds, 1.0 / fps):
+        row_times = time_s + (np.arange(HEIGHT) - HEIGHT / 2) / HEIGHT * readout_s
+        rotations = np.array([turning(speed * t) for t in row_times])
+        directions = np.einsum("nij,nj->ni", rotations[row], rays)
+        out.append((float(time_s), _render_directions(directions)))
+    return out
+
+
+def _render_directions(directions: np.ndarray) -> np.ndarray:
+    with np.errstate(divide="ignore", invalid="ignore"):
+        exits = np.where(directions > 0, ROOM_HALF_M / directions, -ROOM_HALF_M / directions)
+    exits[~np.isfinite(exits)] = np.inf
+    axis = np.argmin(exits, axis=1)
+    rows = np.arange(len(axis))
+    hit = directions * exits[rows, axis][:, None]
+    face = axis * 2 + (directions[rows, axis] > 0)
+    a = np.where(axis == 0, hit[:, 1], hit[:, 0]) + 10
+    b = np.where(axis == 2, hit[:, 1], hit[:, 2]) + 10
+    grey = 40 + 150 * _hash(
+        np.floor(a / 0.25).astype(np.int64), np.floor(b / 0.25).astype(np.int64), face
+    )
+    grey += 50 * _hash(
+        np.floor(a / 0.08).astype(np.int64) + 7, np.floor(b / 0.08).astype(np.int64) + 11, face + 9
+    )
+    image = grey.reshape(len(SUBSAMPLES), HEIGHT, WIDTH).mean(axis=0)
+    return np.clip(cv2.GaussianBlur(image, (0, 0), 0.5), 0, 255).astype(np.uint8)
+
+
+def test_a_rolling_shutter_readout_is_fitted() -> None:
+    from calibrex.evaluation.rotation_self_calibration import SelfCalibrationOptions
+
+    readout = 0.03
+    recording = _rolling_frames(8.0, 10.0, readout, speed=1.6)
+
+    shutter = self_calibrate(iter(recording), SelfCalibrationOptions(rolling_shutter=True))
+    plain = self_calibrate(iter(recording))
+
+    assert shutter.readout_s == pytest.approx(readout, rel=0.15)
+    assert shutter.readout_std_s is not None and shutter.readout_std_s < 0.005
+    error = abs(shutter.estimate.fx / TRUE_K[0, 0] - 1)
+    assert error < 0.005
+    # Ignoring the readout leaves a larger transfer error.
+    assert shutter.median_px < plain.median_px

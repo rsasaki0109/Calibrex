@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- `calibrex intrinsics rotate --rolling-shutter` also fits the frame's readout time: each
+  row's view is turned on by the keyframe's angular velocity times its delay. On a
+  simulated 30 ms readout it gave 31.1 ± 0.2 ms and the focal length within 0.05 %
+  (1.5 % long without it); the camchain carries `readout_s` for the camera pairs.
+- `calibrex intrinsics rotate` warns on the median transfer error (above 1 px), not the
+  RMS, and no longer says a high error means the camera translated: a translation does not
+  raise it, while the RMS follows the tail of poorly tracked features (0.48 px median and
+  1.13 px RMS on a simulated camera that only turned). The JSON reports `median_px`.
+
 - An end-to-end test (`tests/unit/test_intrinsics_pipeline.py`) runs `intrinsics rotate
   --bag` and `check --intrinsics` on a synthetic camera + IMU bag without `CameraInfo`.
   The intrinsics tutorial reports the same path on RobotNativeEngine's simulated rig:

@@ -49,6 +49,10 @@ from calibrex.evaluation.intrinsics_guide import (
 )
 
 FloatArray: TypeAlias = NDArray[np.float64]
+MAX_MEDIAN_TRANSFER_PX = 1.0
+"""Above this median transfer error the tracks do not fit a turning camera. The median,
+not the RMS: on a simulated room rendered one ray per pixel the aliased edges gave a
+median of 0.48 px and an RMS of 1.13 px, with nothing but the camera turning."""
 MAX_FISHEYE_ANGLE_RAD = 1.45
 """Rays further than this from the optical axis (83 deg) are not undistorted onto the
 normalized plane, where they would land at infinity."""
@@ -77,6 +81,9 @@ class SelfCalibrationOptions:
     max_nfev: int = 150
     distortion_model: DistortionModel = "radtan"
     """``radtan`` (k1 k2 p1 p2) or ``equidistant`` (fisheye, k1..k4)."""
+    rolling_shutter: bool = False
+    """Also fit the frame's readout time: each row is seen at its own time, the camera's
+    orientation then moved on at the keyframe's angular velocity."""
 
 
 @dataclass(frozen=True)
@@ -93,6 +100,11 @@ class SelfCalibration:
     keyframe_times_s: tuple[float, ...] = ()
     rotations: FloatArray | None = None
     """Keyframe orientations, camera to a world frame fixed at the first keyframe: (N, 3, 3)."""
+    median_px: float = 0.0
+    """Median transfer error: robust to the long tail of poorly tracked features."""
+    readout_s: float | None = None
+    """With ``rolling_shutter``: the time from the first row to the last."""
+    readout_std_s: float | None = None
 
 
 @dataclass
@@ -399,49 +411,92 @@ def self_calibrate(
     pairs = _transfer_pairs(tracks, opts)
     n_kf = len(tracks.observations)
 
-    def unpack(x: FloatArray) -> tuple[FloatArray, FloatArray]:
-        rotvecs = np.vstack([np.zeros(3), x[8:].reshape(-1, 3)])
+    rolling = opts.rolling_shutter
+    times = np.asarray(tracks.keyframe_times, dtype=np.float64)
+    index = np.arange(n_kf)
+    previous, following = np.maximum(index - 1, 0), np.minimum(index + 1, n_kf - 1)
+    spacing = np.maximum(times[following] - times[previous], 1e-6)
+    # Rows are timed from the middle row, the frame's stamp.
+    row_before = (pairs.before[:, 1] - height / 2) / height
+    row_after = (pairs.after[:, 1] - height / 2) / height
+    m = len(pairs.a)
+
+    def unpack(x: FloatArray, n_intrinsic: int) -> tuple[FloatArray, FloatArray]:
+        rotvecs = np.vstack([np.zeros(3), x[n_intrinsic:].reshape(-1, 3)])
         return x[:8], Rotation.from_rotvec(rotvecs).as_matrix()
 
-    def residual(x: FloatArray) -> FloatArray:
-        params, rs = unpack(x)
-        rays = undistort_points(params, pairs.before, model)
-        world = np.einsum("nij,nj->ni", rs[pairs.a], rays)
-        camera = np.einsum("nji,nj->ni", rs[pairs.b], world)
-        projected = project_points(params, camera, model)
-        return np.asarray((projected - pairs.after).ravel(), np.float64)
+    def rates(rs: FloatArray) -> FloatArray:
+        """Each keyframe's angular velocity in its own axes, from its neighbours."""
 
-    x0 = np.concatenate([start, Rotation.from_matrix(rotations[1:]).as_rotvec().ravel()])
-    m = len(pairs.a)
-    sparsity = lil_matrix((2 * m, len(x0)), dtype=int)
-    sparsity[:, :8] = 1
-    for j in range(m):
-        for k in (pairs.a[j], pairs.b[j]):
-            if k > 0:
-                sparsity[2 * j : 2 * j + 2, 8 + 3 * (k - 1) : 8 + 3 * k] = 1
-    scale = np.concatenate(
-        [
-            [10.0, 10.0, 5.0, 5.0, 0.01, 0.01],
-            [0.01, 0.01] if model == "equidistant" else [0.001, 0.001],
-            np.full(len(x0) - 8, 0.003),
-        ]
-    )
-    solution = least_squares(
-        residual,
-        x0,
-        jac_sparsity=sparsity,
-        method="trf",
-        loss="soft_l1",
-        f_scale=2.0,
-        x_scale=scale,
-        max_nfev=opts.max_nfev,
-    )
-    params, rs = unpack(solution.x)
+        relative = np.einsum("nji,njk->nik", rs[previous], rs[following])
+        return np.asarray(Rotation.from_matrix(relative).as_rotvec() / spacing[:, None])
+
+    def solve(x0: FloatArray, with_readout: bool) -> Any:
+        n_intrinsic = 9 if with_readout else 8
+
+        def residual(x: FloatArray) -> FloatArray:
+            params, rs = unpack(x, n_intrinsic)
+            rays = undistort_points(params, pairs.before, model)
+            if with_readout:
+                # A row read readout * row later sees the camera turned on by rate *
+                # that time; the turn is a fraction of a degree: first order suffices.
+                readout = float(x[8])
+                omega = rates(rs)
+                turn_a = omega[pairs.a] * (readout * row_before)[:, None]
+                rays = rays + np.cross(turn_a, rays)
+            world = np.einsum("nij,nj->ni", rs[pairs.a], rays)
+            camera = np.einsum("nji,nj->ni", rs[pairs.b], world)
+            if with_readout:
+                turn_b = omega[pairs.b] * (readout * row_after)[:, None]
+                camera = camera - np.cross(turn_b, camera)
+            projected = project_points(params, camera, model)
+            return np.asarray((projected - pairs.after).ravel(), np.float64)
+
+        sparsity = lil_matrix((2 * m, len(x0)), dtype=int)
+        sparsity[:, :n_intrinsic] = 1
+        for j in range(m):
+            for k in (pairs.a[j], pairs.b[j]):
+                # A keyframe's rate (rolling shutter) also depends on its neighbours'
+                # orientations; that coupling is left out of the Jacobian, which keeps
+                # it as sparse as without a rolling shutter.
+                if k > 0:
+                    column = n_intrinsic + 3 * (k - 1)
+                    sparsity[2 * j : 2 * j + 2, column : column + 3] = 1
+        scale = np.concatenate(
+            [
+                [10.0, 10.0, 5.0, 5.0, 0.01, 0.01],
+                [0.01, 0.01] if model == "equidistant" else [0.001, 0.001],
+                [0.005] if with_readout else [],
+                np.full(len(x0) - n_intrinsic, 0.003),
+            ]
+        )
+        return least_squares(
+            residual,
+            x0,
+            jac_sparsity=sparsity,
+            method="trf",
+            loss="soft_l1",
+            f_scale=2.0,
+            x_scale=scale,
+            max_nfev=opts.max_nfev,
+        )
+
+    rotvecs0 = Rotation.from_matrix(rotations[1:]).as_rotvec().ravel()
+    solution = solve(np.concatenate([start, rotvecs0]), with_readout=False)
+    n_intrinsic = 8
+    if rolling:
+        # From the global-shutter fit the readout only refines: far fewer iterations
+        # than fitting everything from the grid's start.
+        x = solution.x
+        solution = solve(np.concatenate([x[:8], [0.0], x[8:]]), with_readout=True)
+        n_intrinsic = 9
+    params, rs = unpack(solution.x, n_intrinsic)
     errors = solution.fun.reshape(-1, 2)
     rms = float(np.sqrt(np.mean(np.sum(errors**2, axis=1))))
-    std = _intrinsic_std(solution.jac, errors, len(x0), pairs.reuse)
+    median = float(np.median(np.linalg.norm(errors, axis=1)))
+    std = _intrinsic_std(solution.jac, errors, n_intrinsic, pairs.reuse)
     span = _rotation_span_deg(rs)
-    warnings = _warnings(span, opts, rms)
+    warnings = _warnings(span, opts, median)
     estimate = IntrinsicsEstimate(
         width=width,
         height=height,
@@ -450,7 +505,7 @@ def self_calibrate(
         cx=float(params[2]),
         cy=float(params[3]),
         distortion=(float(params[4]), float(params[5]), float(params[6]), float(params[7])),
-        std=dict(zip(("fx", "fy", "cx", "cy", *distortion_names(model)), std, strict=True)),
+        std=dict(zip(("fx", "fy", "cx", "cy", *distortion_names(model)), std[:8], strict=True)),
         rms_px=rms,
         views=n_kf,
         model=model,
@@ -464,10 +519,13 @@ def self_calibrate(
         tuple(warnings),
         tuple(tracks.keyframe_times),
         rs,
+        median,
+        float(solution.x[8]) if rolling else None,
+        std[8] if rolling else None,
     )
 
 
-def _intrinsic_std(jacobian: Any, errors: FloatArray, n_params: int, reuse: float) -> list[float]:
+def _intrinsic_std(jacobian: Any, errors: FloatArray, count: int, reuse: float) -> list[float]:
     """Stds of the intrinsics from the Jacobian, the residual RMS per coordinate, and the
     observation reuse (each tracked point enters several pairs, so the residuals are not
     independent: the variance is scaled by how many pairs use a point on average)."""
@@ -478,12 +536,12 @@ def _intrinsic_std(jacobian: Any, errors: FloatArray, n_params: int, reuse: floa
     try:
         covariance = np.linalg.pinv(normal) * sigma2
     except np.linalg.LinAlgError:
-        return [math.nan] * 8
-    return [float(math.sqrt(max(covariance[i, i], 0.0))) for i in range(8)]
+        return [math.nan] * count
+    return [float(math.sqrt(max(covariance[i, i], 0.0))) for i in range(count)]
 
 
 def _warnings(
-    span: tuple[float, float, float], options: SelfCalibrationOptions, rms: float
+    span: tuple[float, float, float], options: SelfCalibrationOptions, median: float
 ) -> list[str]:
     warnings = []
     names = ("tilt (about x)", "pan (about y)", "roll (about z)")
@@ -497,10 +555,11 @@ def _warnings(
             f"{span[1]:.0f}, roll {span[2]:.0f} deg): the focal length is poorly determined; "
             "pan and tilt the camera further"
         )
-    if rms > 1.0:
+    if median > MAX_MEDIAN_TRANSFER_PX:
         warnings.append(
-            f"the transfer RMS is {rms:.2f} px: the camera may have translated, or the scene "
-            "moved; turn it about its lens and face a static scene"
+            f"tracked features miss a pure rotation by {median:.2f} px (median): the scene "
+            "moved, or the features are tracked poorly (motion blur, low texture); a "
+            "translation of the camera does not show here"
         )
     warnings.append(
         "the camera must turn about its lens: a lens offset L from the rotation centre at "
