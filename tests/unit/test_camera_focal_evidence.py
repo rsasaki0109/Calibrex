@@ -16,7 +16,7 @@ from calibrex.core.camera_focal_scale import (
 )
 from calibrex.core.imu_lidar_rotation import load_imu_lidar_rotation
 from calibrex.evaluation import camera_focal, visual_rotation
-from calibrex.evaluation.camera_focal import estimate_focal_scale
+from calibrex.evaluation.camera_focal import FocalScaleOptions, estimate_focal_scale
 from calibrex.evaluation.visual_rotation import CameraModel
 from calibrex.solvers.gnss_lever_arm_solver import OdometryWindow
 from calibrex.solvers.imu_lidar_rotation_solver import GyroSeries
@@ -50,7 +50,9 @@ def test_exact_rates_recover_training_and_heldout_ratios(scale: float) -> None:
     assert result.status == "pass"
     assert result.ratio == pytest.approx([1 / scale, 1 / scale, 1], abs=1e-10)
     assert result.holdout_ratio == pytest.approx(result.ratio, abs=1e-10)
-    assert np.all(result.ratio_std < 1e-10)
+    # Exact rates scatter by nothing: the std is the floor for how parts of a recording
+    # differ (FocalScaleOptions.min_ratio_std).
+    assert result.ratio_std == pytest.approx(np.full(3, FocalScaleOptions().min_ratio_std))
 
 
 @pytest.mark.parametrize("axes", [(0,), (1,), (2,), (0, 1, 2)])
