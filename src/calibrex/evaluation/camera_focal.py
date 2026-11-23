@@ -54,10 +54,12 @@ class FocalScaleOptions:
     max_holdout_sigma: float = 3.0
     max_optical_axis_deviation_sigma: float = 3.0
     observable_ratio_std: float = 0.005
-    min_ratio_std: float = 0.001
-    """Floor of the reported std: on simulated recordings the train and held-out ratios
-    differed by 0.07-0.15 % while the jackknife said 0.03 %; the parts of a recording
-    differ by more than its blocks' scatter shows."""
+    min_ratio_std: float = 0.002
+    """Floor of the reported std. On simulated 40 s recordings the jackknife said
+    0.03-0.05 %, while the train and held-out ratios differed by up to 0.15 %, the
+    ratios of intervals binned by rotation rate by up to 0.3 %, and the tracked
+    rotations against the true ones by 0.1-0.4 %: tracking errors shared within a
+    recording that its blocks' scatter does not show."""
 
 
 @dataclass(frozen=True)
