@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- camera-focal holds out and jackknifes 2 s blocks instead of 10 s tracking windows
+  (a 40 s recording had four, too few groups) and floors the ratio std at 0.2 %: on
+  RobotNativeEngine's simulated rig the jackknife said 0.03 % while parts of the recording
+  differed by up to 0.3 %, so the held-out check failed on a correct estimate. With the
+  true intrinsics it now passes (scales within 0.06 %); with self-calibrated ones whose fy
+  is 0.6 % long it reads fy scale 0.9937-0.9941. Too little turning (a camera held still
+  at board poses) is inconclusive (`no_judgeable_axes`), no longer an estimator crash.
+
 - `calibrex intrinsics rotate --rolling-shutter` also fits the frame's readout time: each
   row's view is turned on by the keyframe's angular velocity times its delay. On a
   simulated 30 ms readout it gave 31.1 ± 0.2 ms and the focal length within 0.05 %

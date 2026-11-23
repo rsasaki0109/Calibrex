@@ -12,8 +12,11 @@ The optical-axis ratio ``k_z`` is a control: it should be 1, and when it is
 not, something other than the focal length (for example tracking
 attenuation) is scaling the rotations.
 
-Evidence: blocks of windows with every third held out, the train and held-out
-ratios must agree, and an 8-group block jackknife sets the std.
+Evidence: the rate intervals are cut into blocks of ``block_s`` seconds, every
+third held out; the train and held-out ratios must agree, and an 8-group
+jackknife over contiguous train blocks sets the std, floored at
+``min_ratio_std``. Blocks rather than the 10 s tracking windows: a 40 s
+recording has four windows, too few groups for a jackknife.
 """
 
 from __future__ import annotations
@@ -45,11 +48,18 @@ class FocalScaleOptions:
 
     holdout_every: int = 3
     jackknife_groups: int = 8
+    block_s: float = 2.0
     outlier_mad: float = 5.0
     min_rate_rps: float = 0.05
     max_holdout_sigma: float = 3.0
     max_optical_axis_deviation_sigma: float = 3.0
     observable_ratio_std: float = 0.005
+    min_ratio_std: float = 0.002
+    """Floor of the reported std. On simulated 40 s recordings the jackknife said
+    0.03-0.05 %, while the train and held-out ratios differed by up to 0.15 %, the
+    ratios of intervals binned by rotation rate by up to 0.3 %, and the tracked
+    rotations against the true ones by 0.1-0.4 %: tracking errors shared within a
+    recording that its blocks' scatter does not show."""
 
 
 @dataclass(frozen=True)
@@ -76,7 +86,7 @@ def _rates(
     end = intervals.end_s + time_offset_s
     gyro_rate = (gyro.integral_at(end) - gyro.integral_at(start)) / (end - start)[:, None]
     predicted = (gyro_rate - gyro_bias_rps) @ rotation.T
-    return intervals.lidar_rate_rps, predicted, intervals.window_ids
+    return intervals.lidar_rate_rps, predicted, np.asarray(intervals.start_s, dtype=np.float64)
 
 
 def _ratio(camera: FloatArray, predicted: FloatArray, opts: FocalScaleOptions) -> FloatArray:
@@ -110,7 +120,11 @@ def estimate_focal_scale(
     """Per-axis camera/gyro rate ratios with a held-out and jackknife check."""
 
     opts = options or FocalScaleOptions()
-    camera, predicted, window_ids = _rates(gyro, windows, rotation, time_offset_s, gyro_bias_rps)
+    camera, predicted, starts = _rates(gyro, windows, rotation, time_offset_s, gyro_bias_rps)
+    if len(starts) == 0:
+        window_ids = np.zeros(0, dtype=np.int64)
+    else:
+        window_ids = np.floor((starts - starts.min()) / opts.block_s).astype(np.int64)
     positions = np.unique(window_ids)
     holdout_windows = positions[np.arange(len(positions)) % opts.holdout_every == 1]
     holdout = np.isin(window_ids, holdout_windows)
@@ -128,6 +142,7 @@ def estimate_focal_scale(
         if groups >= 3
         else np.full(3, math.inf)
     )
+    std = np.maximum(std, opts.min_ratio_std)
     reasons: list[str] = []
     status = "pass"
     if not (np.all(np.isfinite(ratio)) and np.all(np.isfinite(std))):
@@ -275,9 +290,17 @@ def run_camera_focal_check(
         np.asarray(rotation_artifact.gyro_bias_rps, dtype=np.float64),
         opts,
     )
-    if not np.all(np.isfinite(np.concatenate([
-        result.ratio, result.ratio_std, result.holdout_ratio,
-    ]))):
+    if not np.all(
+        np.isfinite(
+            np.concatenate(
+                [
+                    result.ratio,
+                    result.ratio_std,
+                    result.holdout_ratio,
+                ]
+            )
+        )
+    ):
         raise ValueError("camera focal evidence is incomplete: " + "; ".join(result.reasons))
     digest, _ = bag_input_digest([bag])
     return CameraFocalScaleArtifact(

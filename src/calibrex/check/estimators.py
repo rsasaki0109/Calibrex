@@ -1400,57 +1400,74 @@ def run_camera_focal(ctx: PairContext) -> EstimatorRun:
     focal_options = FocalScaleOptions()
     rotation_digest = _rotation_digest(rotation)
     external = ctx.controls.external_cameras.get(image_topic)
-    artifact, cached = cached_artifact(
-        ctx.controls.cache,
-        ctx.controls.bag_sha256,
-        "camera_focal_scale",
-        {
-            "image_topic": image_topic,
-            "imu_topic": imu_topics[0],
-            "camera": model,
-            "frame_stride": stride,
-            "max_seconds": ctx.controls.max_duration_s,
-            "options": focal_options,
-            **image_decoder_key(ctx, image_topic),
-            **external_camera_key(external),
-            # the camera-imu estimate, not the candidate: the rotation, clock offset, bias
-            "rotation_quat_xyzw": rotation.rotation_quat_xyzw,
-            "time_offset_s": rotation.time_offset_s,
-            "gyro_bias_rps": rotation.gyro_bias_rps,
-        },
-        loader=load_camera_focal_scale,
-        compute=lambda: run_camera_focal_check(
-            str(ctx.bag),
-            image_topic=image_topic,
-            imu_topic=imu_topics[0],
-            camera=model,
-            rotation_artifact=rotation,
-            rotation_artifact_sha256=rotation_digest,
-            dataset_family=DATASET_FAMILY,
-            dataset_license=DATASET_LICENSE,
-            frame_stride=stride,
-            max_seconds=ctx.controls.max_duration_s,
-            options=focal_options,
-            command=["calibrex", "check", str(ctx.bag), "camera-focal", image_topic, imu_topics[0]],
-            frames=(
-                iter_external_gray(
-                    external,
-                    stride=stride,
-                    max_seconds=ctx.controls.max_duration_s,
-                    time_shift_s=float(rotation.options["camera_clock_offset_s"]),
-                )
-                if external is not None
-                else None
+    try:
+        artifact, cached = cached_artifact(
+            ctx.controls.cache,
+            ctx.controls.bag_sha256,
+            "camera_focal_scale",
+            {
+                "image_topic": image_topic,
+                "imu_topic": imu_topics[0],
+                "camera": model,
+                "frame_stride": stride,
+                "max_seconds": ctx.controls.max_duration_s,
+                "options": focal_options,
+                **image_decoder_key(ctx, image_topic),
+                **external_camera_key(external),
+                # the camera-imu estimate, not the candidate: the rotation, clock offset, bias
+                "rotation_quat_xyzw": rotation.rotation_quat_xyzw,
+                "time_offset_s": rotation.time_offset_s,
+                "gyro_bias_rps": rotation.gyro_bias_rps,
+            },
+            loader=load_camera_focal_scale,
+            compute=lambda: run_camera_focal_check(
+                str(ctx.bag),
+                image_topic=image_topic,
+                imu_topic=imu_topics[0],
+                camera=model,
+                rotation_artifact=rotation,
+                rotation_artifact_sha256=rotation_digest,
+                dataset_family=DATASET_FAMILY,
+                dataset_license=DATASET_LICENSE,
+                frame_stride=stride,
+                max_seconds=ctx.controls.max_duration_s,
+                options=focal_options,
+                command=[
+                    "calibrex",
+                    "check",
+                    str(ctx.bag),
+                    "camera-focal",
+                    image_topic,
+                    imu_topics[0],
+                ],
+                frames=(
+                    iter_external_gray(
+                        external,
+                        stride=stride,
+                        max_seconds=ctx.controls.max_duration_s,
+                        time_shift_s=float(rotation.options["camera_clock_offset_s"]),
+                    )
+                    if external is not None
+                    else None
+                ),
             ),
-        ),
-        rebase=lambda hit: hit.model_copy(
-            update={
-                "provenance": hit.provenance.model_copy(
-                    update={"rotation_artifact_sha256": rotation_digest}
-                )
-            }
-        ),
-    )
+            rebase=lambda hit: hit.model_copy(
+                update={
+                    "provenance": hit.provenance.model_copy(
+                        update={"rotation_artifact_sha256": rotation_digest}
+                    )
+                }
+            ),
+        )
+    except ValueError as exc:
+        if "evidence is incomplete" not in str(exc):
+            raise
+        raise CheckInconclusiveError(
+            "no_judgeable_axes",
+            f"{exc}: camera-focal compares the camera's and the gyro's rotation rates about "
+            "each camera axis, so the camera must turn about all three, briskly (above "
+            "3 deg/s) for much of the recording",
+        ) from exc
     assert isinstance(artifact, CameraFocalScaleArtifact)
     return EstimatorRun(
         estimator=f"{artifact.method} (camera focal)",

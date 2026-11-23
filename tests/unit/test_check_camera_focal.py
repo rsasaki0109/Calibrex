@@ -566,3 +566,23 @@ def test_cli_focal_scale_floor_and_run(
     assert len(stubbed_run.calls) == 1
     with pytest.raises(SystemExit):
         main(["check", str(bag), "--focal-scale-floor", "0"])
+
+
+def test_too_little_turning_is_inconclusive_not_a_crash(
+    tracker: Tracker, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import calibrex.evaluation.camera_focal as module
+
+    def incomplete(bag: str, **kwargs: Any) -> CameraFocalScaleArtifact:
+        raise ValueError(
+            "camera focal evidence is incomplete: too few intervals rotate fast enough "
+            "about every camera axis"
+        )
+
+    monkeypatch.setattr(module, "run_camera_focal_check", incomplete)
+
+    with pytest.raises(estimators.CheckInconclusiveError) as inconclusive:
+        estimators.run_camera_focal(_context(_memo(_camera_imu_run())))
+
+    assert inconclusive.value.code == "no_judgeable_axes"
+    assert "turn about all three" in inconclusive.value.reason
