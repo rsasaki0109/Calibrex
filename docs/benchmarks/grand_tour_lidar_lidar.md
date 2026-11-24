@@ -121,3 +121,50 @@ and none appeared.
   development data that is representative of the evaluation scenes.
 
 The four evaluation missions are now spent for `lidar-lidar`. No SOTA claim is made.
+
+## Post hoc: where the cross-mission scatter comes from
+
+*Post hoc*, on missions now spent. It explains the verdict and does not change it. The
+analysis ran on the four evaluation missions and the development mission. The files are
+in [`post_hoc/`](../assets/grand_tour_lidar_lidar/post_hoc/).
+
+### Translation: the map window biases it
+
+Each mission was refit with `--map-half-window-scans 0`. In that setting every target scan
+is registered to the single nearest Hesai scan, so the reference odometry cancels.
+
+| | Map window ±5 scans (audited) | Map window 0 |
+| --- | --- | --- |
+| Verdicts | 4 pass, 1 warn (11-14) | 5 pass |
+| Largest z deviation from the all-mission mean | 1.6 cm (11-11) | 0.6 cm |
+| Consistency, 11-04 excluded | 0.30–0.73 | 0.22–0.65 |
+| Consistency, 11-04 | 1.49 | 1.41 |
+
+The two windows agree on rotation to within 0.025 deg. In translation they differ by up
+to 2 cm (11-11: x −0.8, y −1.6, z +2.0 cm). The odometry drift over a ±5-scan map
+therefore biases translation. The block jackknife does not see this bias, because it
+affects every block of a mission alike.
+
+### An odometry-free cross-check agrees
+
+`same_time_cross_and_odometry_free.json` holds 60 same-time scan pairs per mission. Two
+results:
+
+- **11-11 is a biased estimate.** The audited 11-11 estimate fits its own mission's pairs
+  worse (28.1 mm) than other missions' estimates do (21.5 mm).
+- **11-04 is a real difference.** The 11-04 estimate fits 11-04 best, and the odometry-free
+  fit reproduces its pitch +0.2 deg and yaw +0.35 deg. The 0.3 deg yaw on that day is
+  likely a real change of the mount, which a calibration should report rather than
+  absorb into its uncertainty.
+
+### What changed in Calibrex
+
+`--window-sensitivity HALF_WINDOW` refits on the same train blocks with another map window
+and stores each DoF's shift as `std_systematic`. `std_reported` must then cover it.
+`--preset unitree-go2-l1` sets `--window-sensitivity 0`.
+
+On these five missions, the reported std then covers the translation scatter: the worst
+deviation falls from 9.3 to 2.3 standard errors in z. It does not cover rotation. The
+missions scatter by about 0.1 deg in roll and yaw, against reported stds of 0.01–0.04 deg,
+and nothing measured here explains it. A between-recording rotation floor would have to
+be learnt on development data and validated on unseen missions in a new pre-registration.

@@ -312,6 +312,7 @@ def test_cli_go2_preset_sets_target_options(
     assert options.target_preprocess.min_range_m == pytest.approx(0.5)
     assert captured["target_point_time_field"] == "time"
     assert captured["time_offset_search"] == (0.1, 0.01)
+    assert options.sensitivity_half_window_scans == 0
     assert "--preset" in captured["command"] and "--time-offset-search" in captured["command"]
 
 

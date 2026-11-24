@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- `calibrex lidar-lidar ros2 --window-sensitivity HALF_WINDOW` refits on the same train
+  blocks with another map half window and adds each DoF's shift to its reported std (new
+  optional `std_systematic`). `--map-half-window-scans` sets the map window; 0 registers each
+  target scan to the nearest reference scan alone, so the reference odometry cancels.
+  `--preset unitree-go2-l1` turns `--window-sensitivity 0` on.
+  - Post hoc on the spent GrandTour missions: the ±5-scan map biased translation by up to
+    2 cm; window 0 passed on all five missions, with the z scatter down from 1.6 to 0.6 cm.
+  - The systematic term covers the translation scatter (worst z from 9.3 to 2.3 standard
+    errors) but not the ~0.1 deg rotation scatter.
 - **GrandTour lidar-lidar audit v1: refuted, 2 of 6 gates.** Pre-registered, four unseen
   missions, Hesai XT-32 → MID360 on ANYmal. See the
   [audit page](docs/benchmarks/grand_tour_lidar_lidar.md).

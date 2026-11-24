@@ -59,6 +59,14 @@ class LidarLidarDofRecord(StrictModel):
     value: float
     std_analytic: float = Field(ge=0.0)
     std_jackknife: float | None = Field(default=None, ge=0.0)
+    std_systematic: float | None = Field(
+        default=None,
+        ge=0.0,
+        description=(
+            "Shift of this DoF when the extrinsic is refit on the same train blocks with a "
+            "different map window (the map-window sensitivity): a bias the jackknife misses."
+        ),
+    )
     std_reported: float = Field(ge=0.0)
     status: Literal["estimated", "unobservable"]
     reference_value: float | None = None
@@ -69,8 +77,11 @@ class LidarLidarDofRecord(StrictModel):
     def check_reported_std(self) -> LidarLidarDofRecord:
         """Never report less uncertainty than either estimate provides."""
 
-        if self.std_reported + 1e-15 < max(self.std_analytic, self.std_jackknife or 0.0):
-            raise ValueError("std_reported must be the larger of the analytic and jackknife std")
+        floor = max(self.std_analytic, self.std_jackknife or 0.0, self.std_systematic or 0.0)
+        if self.std_reported + 1e-15 < floor:
+            raise ValueError(
+                "std_reported must be the largest of the analytic, jackknife and systematic std"
+            )
         return self
 
 

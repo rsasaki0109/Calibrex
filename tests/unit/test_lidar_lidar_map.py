@@ -188,3 +188,26 @@ def test_artifact_refuses_a_pass_without_every_dof() -> None:
                 },
             }
         )
+
+
+def test_window_sensitivity_shift_enters_the_reported_std() -> None:
+    rng = np.random.default_rng(4)
+    data = samples(rng, count=18)
+    biased = []
+    for sample in data:
+        pose = sample.reference_pose.copy()
+        pose[:3, 3] += pose[:3, :3] @ np.array([0.0, 0.0, 0.03])  # 3 cm along reference z
+        biased.append(
+            MapSample(sample.time_s, sample.block, pose, sample.target_points, sample.map_points)
+        )
+    options = LidarLidarMapOptions(jackknife_groups=4)
+    plain = evaluate_lidar_lidar_map(data, TRUE_X, options)
+    shifted = evaluate_lidar_lidar_map(data, TRUE_X, options, sensitivity_samples=biased)
+    z_plain = next(record for record in plain.records if record.name == "z")
+    z = next(record for record in shifted.records if record.name == "z")
+    assert z_plain.std_systematic is None and z_plain.status == "estimated"
+    assert z.std_systematic == pytest.approx(0.03, abs=0.004)
+    assert z.std_reported >= z.std_systematic and z.status == "unobservable"
+    roll = next(record for record in shifted.records if record.name == "roll")
+    assert roll.std_systematic is not None and roll.std_systematic < 0.05
+    assert shifted.policy_status in {"inconclusive", "warn"}

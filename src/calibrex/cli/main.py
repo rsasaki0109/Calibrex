@@ -1623,7 +1623,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="target-LiDAR settings for a known platform. unitree-go2-l1: the Go2's built-in "
         "L1 (/utlidar/cloud) as the target, placed per point along the reference "
         "trajectory, 10 scans accumulated per sample, 5 cm voxels, 0.5 m minimum range "
-        "(drops the robot's own legs), per-point 'time' offsets; explicit flags override it",
+        "(drops the robot's own legs), per-point 'time' offsets, --window-sensitivity 0; "
+        "explicit flags override it",
     )
     lidar_lidar_ros2.add_argument(
         "--point-time-encoding", choices=("offset_s", "absolute_ns", "absolute_s"),
@@ -1649,6 +1650,11 @@ def _build_parser() -> argparse.ArgumentParser:
     lidar_lidar_ros2.add_argument("--target-voxel-size", type=float, help="target voxel (m)")
     lidar_lidar_ros2.add_argument("--target-min-range", type=float, help="target min range (m)")
     lidar_lidar_ros2.add_argument("--target-max-range", type=float, help="target max range (m)")
+    lidar_lidar_ros2.add_argument(
+        "--window-sensitivity", type=int, metavar="HALF_WINDOW",
+        help="also refit with this map half window (0: the nearest reference scan alone, "
+        "where odometry cancels) and count each DoF's shift in its reported std",
+    )
     lidar_lidar_ros2.add_argument(
         "--map-half-window-scans", type=int,
         help="reference scans on each side of a sample's map (default 5); 0 maps each target "
@@ -8408,6 +8414,8 @@ def _lidar_lidar_target_options(
     if args.preset == "unitree-go2-l1":
         command += ["--preset", args.preset]
         motion, accumulate = "reference_trajectory", 10
+        if args.window_sensitivity is None:
+            args.window_sensitivity = 0
         voxel, min_range, max_range = 0.05, 0.5, 30.0
         target_field = target_field or "time"
         target_encoding = target_encoding or "offset_s"
@@ -8418,6 +8426,7 @@ def _lidar_lidar_target_options(
         ("--target-min-range", args.target_min_range),
         ("--target-max-range", args.target_max_range),
         ("--map-half-window-scans", args.map_half_window_scans),
+        ("--window-sensitivity", args.window_sensitivity),
         ("--point-time-encoding", args.point_time_encoding),
         ("--target-point-time-field", args.target_point_time_field),
         ("--target-point-time-encoding", args.target_point_time_encoding),
@@ -8451,6 +8460,10 @@ def _lidar_lidar_target_options(
         if args.map_half_window_scans < 0:
             raise ValueError("--map-half-window-scans must be >= 0")
         options = replace(options, map_half_window_scans=args.map_half_window_scans)
+    if args.window_sensitivity is not None:
+        if args.window_sensitivity < 0:
+            raise ValueError("--window-sensitivity must be >= 0")
+        options = replace(options, sensitivity_half_window_scans=args.window_sensitivity)
     options = replace(
         options,
         target_motion=motion,

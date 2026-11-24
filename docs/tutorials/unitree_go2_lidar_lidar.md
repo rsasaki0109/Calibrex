@@ -82,6 +82,11 @@ calibrex lidar-lidar ros2 go2_bag \
 - Explicit flags override the preset: `--target-accumulate-scans`, `--target-voxel-size`,
   `--target-min-range`, `--target-max-range`, `--target-point-time-field`.
 - The per-point trajectory mode runs on the CPU registration backend only.
+- The preset also sets `--window-sensitivity 0`. The extrinsic is refit with each L1
+  sample mapped onto only the reference scans it spans, and each DoF's shift is added to
+  its reported std (`std_systematic`). On GrandTour, a ±5-scan map biased the translation
+  by up to 2 cm through odometry drift
+  ([post hoc analysis](../benchmarks/grand_tour_lidar_lidar.md#post-hoc-where-the-cross-mission-scatter-comes-from)).
 
 ## Reading the result
 

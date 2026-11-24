@@ -140,6 +140,11 @@ class LidarLidarMapOptions:
     # Target preprocessing; None reuses ``preprocess``.  A sparse target (L1) keeps
     # more of its points with a finer voxel.
     target_preprocess: ScanOdometryOptions | None = None
+    # Refit on the same train blocks with this map half window and count each DoF's
+    # shift in its reported std.  None (or equal to map_half_window_scans) disables it.
+    # 0 maps a target scan onto the nearest reference scan alone, where the reference
+    # odometry cancels: the shift bounds the odometry's bias over the map window.
+    sensitivity_half_window_scans: int | None = None
 
     def __post_init__(self) -> None:
         if self.target_accumulate_scans < 1:
@@ -180,8 +185,14 @@ def evaluate_lidar_lidar_map(
     *,
     reference_transform: FloatArray | None = None,
     backend: MapBackend = "cpu",
+    sensitivity_samples: Sequence[MapSample] | None = None,
 ) -> LidarLidarEvaluation:
-    """Fit on train blocks; collect jackknife, control, and holdout evidence."""
+    """Fit on train blocks; collect jackknife, control, and holdout evidence.
+
+    ``sensitivity_samples`` are the same target scans with another map window (keyed by
+    the same blocks).  The extrinsic refit on their train blocks, from the estimate,
+    gives each DoF's systematic shift, which the reported std must cover.
+    """
 
     opts = options or LidarLidarMapOptions()
     runtime = _map_runtime(samples, opts.solver, backend)
@@ -204,6 +215,14 @@ def evaluate_lidar_lidar_map(
         holdout, transform, result.sigma_m, opts.solver, _runtime=runtime
     )
     analytic = np.sqrt(np.clip(np.diag(result.covariance), 0.0, None))
+    systematic = None
+    if sensitivity_samples:
+        refit = solve_map_extrinsic(
+            [sample for sample in sensitivity_samples if sample.block in train_blocks],
+            transform, opts.solver,
+        )  # fmt: skip
+        if refit.transform is not None:
+            systematic = np.abs(_local_difference(refit.transform, transform))
     records = tuple(
         _record(
             dof,
@@ -214,13 +233,15 @@ def evaluate_lidar_lidar_map(
             _control(dof, holdout, transform, result.sigma_m, base, opts, _runtime=runtime),
             reference_transform,
             opts,
+            None if systematic is None else float(systematic[index]),
         )
         for index, dof in enumerate(EXTRINSIC_DOFS)
     )
     reference_delta = None
     if reference_transform is not None and holdout:
-        moved, _, _ = chi_square(holdout, reference_transform, result.sigma_m, opts.solver,
-                                _runtime=runtime)
+        moved, _, _ = chi_square(
+            holdout, reference_transform, result.sigma_m, opts.solver, _runtime=runtime
+        )
         reference_delta = moved - base
     train_median = _median_residual(train, transform, result.sigma_m, opts, _runtime=runtime)
     status, reasons = _policy(records, train_median, holdout_median, holdout_count, opts)
@@ -253,8 +274,12 @@ def collect_map_samples(
     target_point_time_encoding: PointTimeEncoding | None = None,
     odometry_backend: OdometryBackend = "cpu",
     _odometry_execution: dict[str, Any] | None = None,
+    _sensitivity: list[MapSample] | None = None,
 ) -> tuple[list[MapSample], int]:
     """Run the reference odometry, then build one sample per strided target scan.
+
+    With ``options.sensitivity_half_window_scans`` set, ``_sensitivity`` receives the
+    same samples with that map half window.
 
     ``point_time_field``/``point_time_encoding`` describe the reference LiDAR's
     per-point time; the target uses the same unless ``target_point_time_field``
@@ -337,6 +362,19 @@ def collect_map_samples(
                 ),
             )
         )
+        other = opts.sensitivity_half_window_scans
+        if _sensitivity is not None and other is not None and other != half:
+            _sensitivity.append(
+                MapSample(
+                    time_s=float(time_s),
+                    block=samples[-1].block,
+                    reference_pose=samples[-1].reference_pose,
+                    target_points=target,
+                    map_points=np.concatenate(
+                        scans[max(0, nearest - other) : nearest + other + 1]
+                    ).astype(np.float64),
+                )
+            )
     return samples, len(scans)
 
 
@@ -718,6 +756,8 @@ def run_ros2_lidar_lidar_map(
     time_offset: LidarLidarTimeOffset | None = None
     if time_offset_search is not None and opts.target_motion != "reference_trajectory":
         raise ValueError("a time offset search needs target_motion='reference_trajectory'")
+    sensitivity: list[MapSample] = []
+    other = opts.sensitivity_half_window_scans
     if opts.target_motion == "rigid_nearest":
         samples, reference_scans = collect_map_samples(
             bag,
@@ -731,6 +771,7 @@ def run_ros2_lidar_lidar_map(
             target_point_time_encoding=target_point_time_encoding,
             odometry_backend=odometry_backend,
             _odometry_execution=odometry_execution,
+            _sensitivity=sensitivity,
         )
     else:
         trajectory = read_reference_trajectory(
@@ -757,7 +798,12 @@ def run_ros2_lidar_lidar_map(
             half_width, step = time_offset_search
             emit_stage("target clock offset profile (train blocks)")
             estimate = estimate_time_offset(
-                trajectory, targets, initial, opts, half_width_s=half_width, step_s=step,
+                trajectory,
+                targets,
+                initial,
+                opts,
+                half_width_s=half_width,
+                step_s=step,
                 center_s=opts.target_time_offset_s,
             )
             time_offset = LidarLidarTimeOffset(
@@ -779,9 +825,15 @@ def run_ros2_lidar_lidar_map(
         else:
             time_offset = LidarLidarTimeOffset(value_s=opts.target_time_offset_s, source="given")
         samples = build_trajectory_samples(trajectory, targets, opts)
+        if other is not None and other != opts.map_half_window_scans:
+            sensitivity = build_trajectory_samples(
+                trajectory, targets, replace(opts, map_half_window_scans=other),
+                times_s={sample.time_s for sample in samples},
+            )  # fmt: skip
     evaluation = evaluate_lidar_lidar_map(
-        samples, initial, opts, reference_transform=reference_transform, backend=backend
-    )
+        samples, initial, opts, reference_transform=reference_transform, backend=backend,
+        sensitivity_samples=sensitivity or None,
+    )  # fmt: skip
     policy_status = evaluation.policy_status
     policy_reasons = list(evaluation.policy_reasons)
     if time_offset is not None and time_offset.at_search_edge:
@@ -840,17 +892,32 @@ def run_ros2_lidar_lidar_map(
             "max_correspondence_m": opts.solver.max_correspondence_m,
             "huber_m": opts.solver.huber_m,
             "iterations": opts.solver.iterations,
-            **({"registration_query_workers": opts.solver.query_workers}
-               if opts.solver.query_workers != 1 else {}),
+            **(
+                {"registration_query_workers": opts.solver.query_workers}
+                if opts.solver.query_workers != 1
+                else {}
+            ),
             **({"deskew": "none"} if opts.deskew == "none" else {}),
-            **({"target_motion": opts.target_motion,
-                "target_accumulate_scans": opts.target_accumulate_scans,
-                "target_voxel_size_m": (opts.target_preprocess or opts.preprocess).voxel_size_m}
-               if opts.target_motion == "reference_trajectory" else {}),
-            **({"registration_backend": "cuda", "registration_execution": result.execution_backend}
-               if backend == "cuda" else {}),
-            **({"odometry_backend": "cuda", **odometry_execution}
-               if odometry_backend == "cuda" else {}),
+            **({"sensitivity_half_window_scans": other} if sensitivity else {}),
+            **(
+                {
+                    "target_motion": opts.target_motion,
+                    "target_accumulate_scans": opts.target_accumulate_scans,
+                    "target_voxel_size_m": (opts.target_preprocess or opts.preprocess).voxel_size_m,
+                }
+                if opts.target_motion == "reference_trajectory"
+                else {}
+            ),
+            **(
+                {"registration_backend": "cuda", "registration_execution": result.execution_backend}
+                if backend == "cuda"
+                else {}
+            ),
+            **(
+                {"odometry_backend": "cuda", **odometry_execution}
+                if odometry_backend == "cuda"
+                else {}
+            ),
         },
         reference=reference,
         limitations=[
@@ -873,6 +940,13 @@ def run_ros2_lidar_lidar_map(
     )
 
 
+def _local_difference(moved: FloatArray, base: FloatArray) -> FloatArray:
+    """Rotation about the reference axes (rad) and translation (m) from ``base`` to ``moved``."""
+
+    rotation = Rotation.from_matrix(moved[:3, :3] @ base[:3, :3].T).as_rotvec()
+    return np.asarray(np.r_[rotation, moved[:3, 3] - base[:3, 3]], dtype=np.float64)
+
+
 def _jackknife(
     train: Sequence[MapSample],
     train_blocks: Sequence[int],
@@ -888,7 +962,9 @@ def _jackknife(
     for members in np.array_split(np.asarray(train_blocks), groups):
         left_out = set(members.tolist())
         fit = solve_map_extrinsic(
-            [sample for sample in train if sample.block not in left_out], transform, opts.solver,
+            [sample for sample in train if sample.block not in left_out],
+            transform,
+            opts.solver,
             _runtime=_runtime,
         )
         if fit.transform is None:
@@ -909,10 +985,11 @@ def _record(
     control: LidarLidarControl | None,
     reference_transform: FloatArray | None,
     opts: LidarLidarMapOptions,
+    systematic: float | None = None,
 ) -> LidarLidarDofRecord:
     rotation = dof in _ROTATIONS
     convert = math.degrees if rotation else (lambda value: value)
-    reported = max(analytic, jackknife or 0.0)
+    reported = max(analytic, jackknife or 0.0, systematic or 0.0)
     threshold = (
         math.radians(opts.observable_rotation_std_deg)
         if rotation
@@ -942,6 +1019,7 @@ def _record(
         value=convert(value),
         std_analytic=convert(analytic),
         std_jackknife=None if jackknife is None else convert(jackknife),
+        std_systematic=None if systematic is None else convert(systematic),
         std_reported=convert(reported),
         status="estimated" if reported <= threshold else "unobservable",
         reference_value=None if reference_value is None else convert(reference_value),
@@ -981,8 +1059,12 @@ def _control(
 
 
 def _median_residual(
-    samples: Sequence[MapSample], transform: FloatArray, sigma: float, opts: LidarLidarMapOptions,
-    *, _runtime: _MapRuntime | None = None,
+    samples: Sequence[MapSample],
+    transform: FloatArray,
+    sigma: float,
+    opts: LidarLidarMapOptions,
+    *,
+    _runtime: _MapRuntime | None = None,
 ) -> float | None:
     if not samples:
         return None

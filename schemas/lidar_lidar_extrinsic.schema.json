@@ -116,6 +116,20 @@
           "title": "Std Reported",
           "type": "number"
         },
+        "std_systematic": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Shift of this DoF when the extrinsic is refit on the same train blocks with a different map window (the map-window sensitivity): a bias the jackknife misses.",
+          "title": "Std Systematic"
+        },
         "unit": {
           "enum": [
             "deg",
