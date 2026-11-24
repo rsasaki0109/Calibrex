@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <code>pip install</code> from this repository, then <code>calibrex demo check</code> shows a pass and a
+  <code>pip install calibrex</code>, then <code>calibrex demo check</code> shows a pass and a
   fail in seconds with no dataset: <a href="#try-it-in-one-minute"><b>try it in one minute</b></a>.
 </p>
 
@@ -34,7 +34,7 @@
 No dataset and no ROS installation are needed:
 
 ```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.5/calibrex-0.6.5-py3-none-any.whl"
+python -m pip install calibrex
 calibrex demo check
 ```
 
@@ -80,7 +80,7 @@ calibrex check my_bag/ --max-duration-s 120 --tf fixed.urdf     # re-check anoth
 - **`inconclusive` is not a pass.** It means the recording could not judge that pair; the
   `next steps` block at the end of the output says what to try.
 - **`pass (partial: roll, pitch only)`** vouches for the named axes only.
-- **Camera pairs** need OpenCV: `pip install 'calibrex[opencv]'` after the wheel.
+- **Camera pairs** need OpenCV: `pip install 'calibrex[opencv]'`.
 
 <table>
   <tr>
@@ -137,7 +137,7 @@ calibrex check my_bag/ --max-duration-s 120 --tf fixed.urdf     # re-check anoth
 </p>
 
 ```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.5/calibrex-0.6.5-py3-none-any.whl"
+python -m pip install calibrex
 
 calibrex estimate my_bag/ --output est/ --html est.html    # 1. no calibration yet: measure it, export frames.yaml / static transforms / URDF
 calibrex check other_bag/ --tf est/frames.yaml --html check.html   # 2. is the deployed calibration still right on another recording?
@@ -566,8 +566,7 @@ schema-valid result and review report, and verifies a digest-bound provenance
 bundle:
 
 ```bash
-python -m pip install \
-  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.5/calibrex-0.6.5-py3-none-any.whl"
+python -m pip install calibrex
 
 calibrex demo kitti-lidar-camera-evidence \
   --output-dir outputs/kitti-lidar-camera-evidence \
@@ -875,18 +874,18 @@ not silently ranked together.
 
 ## Install
 
-The supported no-source install is the versioned wheel attached to the
-[v0.6.5 GitHub Release](https://github.com/rsasaki0109/Calibrex/releases/tag/v0.6.5):
+Calibrex is on [PyPI](https://pypi.org/project/calibrex/):
 
 ```bash
-python -m pip install \
-  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.5/calibrex-0.6.5-py3-none-any.whl"
+python -m pip install calibrex
 ```
 
-The repository is newer than that wheel. `calibrex demo check`, `--threads`, the progress
-time left and the first-run fixes of `calibrex check` are only there:
+Each release also attaches the same wheel and sdist to its
+[GitHub Release](https://github.com/rsasaki0109/Calibrex/releases/tag/v0.6.5), and the
+repository head can be installed for changes that are not released yet:
 
 ```bash
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.5/calibrex-0.6.5-py3-none-any.whl"
 python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"
 ```
 

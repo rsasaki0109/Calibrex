@@ -6,19 +6,12 @@ recordings?). This page installs it and runs the first check; [the workflow
 page](tutorials/workflow.md) shows all three with real outputs.
 
 Calibrex is alpha research software with a ROS-independent core. The supported
-no-source install is the versioned wheel attached to the GitHub release.
+no-source install is `pip install calibrex` from PyPI; each release also attaches the same wheel to its GitHub release.
 
 ## Install
 
 ```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.5/calibrex-0.6.5-py3-none-any.whl"
-```
-
-The repository is newer than that wheel. `calibrex demo check`, `--threads`, the progress
-time left and the first-run fixes of `calibrex check` described below need it:
-
-```bash
-python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"
+python -m pip install calibrex
 ```
 
 ## See a check before you have a bag
@@ -65,7 +58,7 @@ naming the bag's sensor frames for you to fill in.
 - The `next steps` block at the end of the output says what to try for each pair that was
   skipped or `inconclusive`.
 - The camera pairs `camera-imu` and `camera-focal` need OpenCV: `pip install
-  'calibrex[opencv]'` after the wheel. `--plan` says so when it is missing.
+  'calibrex[opencv]'`. `--plan` says so when it is missing.
 
 ## Your bag format
 

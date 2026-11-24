@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- README and docs install with `pip install calibrex` (published on PyPI since 0.6.5); the
+  release wheel stays available on the GitHub Release.
+
 ## 0.6.5 - 2026-11-24
 
 Highlights:

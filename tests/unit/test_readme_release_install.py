@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_readme_uses_versioned_github_release_wheel() -> None:
+def test_readme_installs_from_pypi_and_pins_the_release_wheel() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     version_match = re.search(r'^version = "([^"]+)"$', pyproject, flags=re.MULTILINE)
@@ -18,13 +18,12 @@ def test_readme_uses_versioned_github_release_wheel() -> None:
         f"v{version}/calibrex-{version}-py3-none-any.whl"
     )
 
+    # the demo and the quickstarts install the PyPI package; the Install section also
+    # names the release wheel of the current version for a pinned, no-index-free install
     demo = readme.split("## Try it in one minute")[1].split("```bash")[1].split("```")[0]
-    # the workflow block, the evidence pipeline quickstart, and the Install section,
-    # plus the demo block once the released wheel has the demo
-    assert readme.count(wheel_url) == 3 + (wheel_url in demo)
+    assert "python -m pip install calibrex" in demo
+    assert readme.count("python -m pip install calibrex\n") >= 3
+    assert readme.count(wheel_url) == 1
+    assert "https://pypi.org/project/calibrex/" in readme
     assert "currently distributed from source" not in readme
-    assert "pypi.org" not in readme.lower()
-    assert "python -m pip install calibrex" not in readme.lower()
-    # the check demo is newer than the released wheel, so its block installs from the repo
-    if "calibrex demo check" in demo and wheel_url not in demo:
-        assert 'pip install "git+https://github.com/rsasaki0109/Calibrex.git"' in demo
+    assert "not on pypi" not in readme.lower()
