@@ -1,0 +1,263 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: grand-tour-lidar-lidar-dense
+title: 'GrandTour Hesai -> MID360: dense estimate'
+protocol:
+  protocol_id: grand-tour-lidar-lidar-v1
+  dataset_id: grand_tour_evaluation_missions
+  dataset_source_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+  data_license: MIT
+  split_policy: one split per pre-registered evaluation mission
+  splits:
+  - split_id: 2024-11-03-07-52-45
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 1a4820d299adec172b5931aef53818f560ba9ecb7c622656b6d5d441ae4c2113
+    holdout_ids_sha256: 1a4820d299adec172b5931aef53818f560ba9ecb7c622656b6d5d441ae4c2113
+  - split_id: 2024-11-04-13-07-13
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 0e5e085ebb4d2a81a51b13beabdcdcb7720005a038089fe8b03769dc2aca0bab
+    holdout_ids_sha256: 0e5e085ebb4d2a81a51b13beabdcdcb7720005a038089fe8b03769dc2aca0bab
+  - split_id: 2024-11-11-12-42-47
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 2450dd0ac7785ff27867cca08f0a4af4cc8a498ca16771865177a0073879573d
+    holdout_ids_sha256: 2450dd0ac7785ff27867cca08f0a4af4cc8a498ca16771865177a0073879573d
+  - split_id: 2024-11-14-13-45-37
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 8c6944f7ea9ee8709cf768b340d3aeb7f03e6cf07894f73366f6766d5e8a9b9e
+    holdout_ids_sha256: 8c6944f7ea9ee8709cf768b340d3aeb7f03e6cf07894f73366f6766d5e8a9b9e
+  initial_estimate_policy: every Calibrex run starts from the dataset's static tf
+  tuning_policy: procedure and thresholds pre-registered before the evaluation runs
+  failure_policy: no estimate, or a verdict other than pass, fails the mission; a
+    sparse trial also fails without a dense estimate of its mission
+metrics:
+- name: same_time_median_m
+  label: same-time median point-to-plane
+  unit: m
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: median over the pre-registered frames of the median |point-to-plane|
+    of single target scans against the nearest Hesai scan
+- name: cross_mission_consistency
+  label: cross-mission consistency
+  unit: ratio
+  display_scale: 1.0
+  direction: lower
+  primary: false
+  interpretation: max(rotation / 0.3 deg, translation / 3 cm) to the chordal mean
+    of the other missions' estimates
+methods:
+- method_id: calibrex_dense
+  label: Calibrex lidar-lidar, Hesai XT-32 -> MID360, default options
+  implementation: calibrex_native
+  tool_name: calibrex
+- method_id: dataset_tf
+  label: GrandTour static tf inv(T_box_hesai) T_box_livox
+  implementation: calibrex_native
+  tool_name: grand_tour
+trials:
+- method_id: calibrex_dense
+  split_id: 2024-11-03-07-52-45
+  status: success
+  metrics:
+    same_time_median_m: 0.023786824249637184
+    cross_mission_consistency: 0.6553337383339957
+  provenance:
+    command: tools/grand_tour_lidar_lidar_evaluate.py 2024-11-03-07-52-45
+    config_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+    input_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+    notes: []
+- method_id: dataset_tf
+  split_id: 2024-11-03-07-52-45
+  status: success
+  metrics:
+    same_time_median_m: 0.2248939208000352
+    cross_mission_consistency: 0.0
+  provenance:
+    command: tools/grand_tour_lidar_lidar_evaluate.py 2024-11-03-07-52-45
+    config_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+    input_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+    notes: []
+- method_id: calibrex_dense
+  split_id: 2024-11-04-13-07-13
+  status: success
+  metrics:
+    same_time_median_m: 0.027426044964882143
+    cross_mission_consistency: 1.5188334494661757
+  provenance:
+    command: tools/grand_tour_lidar_lidar_evaluate.py 2024-11-04-13-07-13
+    config_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+    input_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+    notes: []
+- method_id: dataset_tf
+  split_id: 2024-11-04-13-07-13
+  status: success
+  metrics:
+    same_time_median_m: 0.22431996313937835
+    cross_mission_consistency: 0.0
+  provenance:
+    command: tools/grand_tour_lidar_lidar_evaluate.py 2024-11-04-13-07-13
+    config_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+    input_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+    notes: []
+- method_id: calibrex_dense
+  split_id: 2024-11-11-12-42-47
+  status: success
+  metrics:
+    same_time_median_m: 0.024862459165357252
+    cross_mission_consistency: 0.6742339340466286
+  provenance:
+    command: tools/grand_tour_lidar_lidar_evaluate.py 2024-11-11-12-42-47
+    config_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+    input_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+    notes: []
+- method_id: dataset_tf
+  split_id: 2024-11-11-12-42-47
+  status: success
+  metrics:
+    same_time_median_m: 0.08891951478229998
+    cross_mission_consistency: 0.0
+  provenance:
+    command: tools/grand_tour_lidar_lidar_evaluate.py 2024-11-11-12-42-47
+    config_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+    input_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+    notes: []
+- method_id: calibrex_dense
+  split_id: 2024-11-14-13-45-37
+  status: failed
+  metrics: {}
+  failure_reason: verdict warn
+  provenance:
+    command: tools/grand_tour_lidar_lidar_evaluate.py 2024-11-14-13-45-37
+    config_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+    input_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+    notes: []
+- method_id: dataset_tf
+  split_id: 2024-11-14-13-45-37
+  status: success
+  metrics:
+    same_time_median_m: 0.21337553118515643
+    cross_mission_consistency: 0.0
+  provenance:
+    command: tools/grand_tour_lidar_lidar_evaluate.py 2024-11-14-13-45-37
+    config_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+    input_sha256: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+    notes: []
+method_summaries:
+  calibrex_dense:
+    method_id: calibrex_dense
+    trial_count: 4
+    success_count: 3
+    failure_count: 1
+    failure_rate: 0.25
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      same_time_median_m:
+        metric: same_time_median_m
+        distribution:
+          count: 3
+          mean: 0.02535844279329219
+          median: 0.024862459165357252
+          standard_deviation: 0.0015265389334376937
+          minimum: 0.023786824249637184
+          maximum: 0.027426044964882143
+          p90: 0.026913327804977162
+          p95: 0.027169686384929653
+          mean_ci95_low: 0.023786824249637184
+          mean_ci95_high: 0.027426044964882143
+        rank: 1
+      cross_mission_consistency:
+        metric: cross_mission_consistency
+        distribution:
+          count: 3
+          mean: 0.9494670406156
+          median: 0.6742339340466286
+          standard_deviation: 0.4026767810498843
+          minimum: 0.6553337383339957
+          maximum: 1.5188334494661757
+          p90: 1.3499135463822665
+          p95: 1.4343734979242209
+          mean_ci95_low: 0.6553337383339957
+          mean_ci95_high: 1.518833449466176
+        rank: 2
+  dataset_tf:
+    method_id: dataset_tf
+    trial_count: 4
+    success_count: 4
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      same_time_median_m:
+        metric: same_time_median_m
+        distribution:
+          count: 4
+          mean: 0.1878772324767175
+          median: 0.2188477471622674
+          standard_deviation: 0.05731732059528276
+          minimum: 0.08891951478229998
+          maximum: 0.2248939208000352
+          p90: 0.22472173350183813
+          p95: 0.22480782715093667
+          mean_ci95_low: 0.12276962687156957
+          mean_ci95_high: 0.22460694196970676
+        rank: 2
+      cross_mission_consistency:
+        metric: cross_mission_consistency
+        distribution:
+          count: 4
+          mean: 0.0
+          median: 0.0
+          standard_deviation: 0.0
+          minimum: 0.0
+          maximum: 0.0
+          p90: 0.0
+          p95: 0.0
+          mean_ci95_low: 0.0
+          mean_ci95_high: 0.0
+        rank: 1
+paired_comparisons:
+- reference_method_id: dataset_tf
+  candidate_method_id: calibrex_dense
+  metric: same_time_median_m
+  direction: lower
+  paired_count: 3
+  raw_delta_mean: -0.15401935678061232
+  improvement_mean: 0.15401935678061232
+  improvement_ci95_low: 0.06405705561694272
+  improvement_ci95_high: 0.20110709655039805
+- reference_method_id: dataset_tf
+  candidate_method_id: calibrex_dense
+  metric: cross_mission_consistency
+  direction: lower
+  paired_count: 3
+  raw_delta_mean: 0.9494670406156
+  improvement_mean: -0.9494670406156
+  improvement_ci95_low: -1.518833449466176
+  improvement_ci95_high: -0.6553337383339957
+reference_method_id: dataset_tf
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- The dataset tf is a single value, so its consistency is 0 by construction.
+- Same-time scans are about 10 ms apart; motion between them is not corrected.
+provenance:
+  generator: tools/build_grand_tour_lidar_lidar_audit.py
+  generator_version: 0.6.5
+  generated_at: '2026-11-24T08:06:42.988990+00:00'
+  command: python tools/build_grand_tour_lidar_lidar_audit.py 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+  source_artifacts: {}
+  data_verified: true

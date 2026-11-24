@@ -49,7 +49,9 @@ and what it does not claim.
 Five pairs have only refuted audits:
 
 - **`lidar-lidar`**: 2 of 4 gates
-  ([NTU VIRAL LiDAR-LiDAR](ntu_viral_lidar_lidar.md#pre-registered-audit-refuted)).
+  ([NTU VIRAL LiDAR-LiDAR](ntu_viral_lidar_lidar.md#pre-registered-audit-refuted)) and 2 of 6
+  ([GrandTour LiDAR-LiDAR](grand_tour_lidar_lidar.md#result-refuted-2-of-6-gates)). Both
+  fail on cross-recording consistency.
 - **`camera-camera`**: 4 of 6 gates
   ([Hilti camera SOTA audits](hilti_camera_sota.md#camera-camera-refuted-4-of-6-gates)).
   - Accuracy against Kalibr held: every scored pair was within 0.33 deg.
@@ -101,7 +103,7 @@ pair has a native method but no audited claim yet.
 | `imu-lidar` | supported | 2 | 1 | 0 | yes |
 | `imu-vehicle` | no_claim | 0 | 0 | 0 | yes |
 | `ins-lidar` | refuted | 0 | 2 | 0 | yes |
-| `lidar-lidar` | refuted | 0 | 1 | 0 | yes |
+| `lidar-lidar` | refuted | 0 | 2 | 0 | yes |
 | `lidar-vehicle` | supported | 1 | 0 | 0 | yes |
 | `lidar-wheel_odometry` | refuted | 0 | 1 | 0 | yes |
 
@@ -122,6 +124,7 @@ pair has a native method but no audited claim yet.
 | `imu-lidar` | targetless_imu_lidar | rotation, time_offset | supported | 4/4 | `mid360-imu-lidar-rotation-vs-li-init-v1` |
 | `ins-lidar` | trajectory_hand_eye_per_axis | rotation | refuted | 6/8 | `ins-lidar-rotation-kitti-boreas-v1` |
 | `ins-lidar` | trajectory_hand_eye_per_judged_axis | rotation | refuted | 7/8 | `ins-lidar-rotation-kitti-boreas-v2` |
+| `lidar-lidar` | targetless_lidar_lidar | rotation, translation | refuted | 2/6 | `grand-tour-lidar-lidar-v1` |
 | `lidar-lidar` | targetless_lidar_lidar | rotation, translation | refuted | 2/4 | `ntu-lidar-lidar-v1` |
 | `lidar-vehicle` | targetless_lidar_vehicle | rotation | supported | 3/3 | `kitti-lidar-vehicle-v1` |
 | `lidar-wheel_odometry` | targetless_lidar_wheel_odometry | rotation, lever_arm | refuted | 4/6 | `nclt-lidar-wheel-odometry-v1` |

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **GrandTour lidar-lidar audit v1: refuted, 2 of 6 gates.** Pre-registered, four unseen
+  missions, Hesai XT-32 → MID360 on ANYmal. See the
+  [audit page](docs/benchmarks/grand_tour_lidar_lidar.md).
+  - Achieved: same-time scans align within 35 mm on every mission (the dataset tf: 9–22 cm),
+    and the L1-like sparse target stays within 0.25 deg of dense.
+  - Not achieved: cross-mission consistency (1.52; z spreads 2.2 cm while the jackknife
+    says 1–3 mm); one dense run warned; the sparse target was inconclusive (pitch) on 2 of
+    4 missions and up to 2.4 cm from dense where it passed.
+  - New tools: `tools/grand_tour_lidar_lidar_evaluate.py`,
+    `tools/build_grand_tour_lidar_lidar_audit.py`, and `--sparse` emulation in the Zarr
+    converter.
+  - The development grid on the dev mission found that accumulating L1-like scans lowers the
+    held-out residual but does not move the estimate closer to the dense one.
 - `calibrex lidar-lidar ros2 --target-motion reference_trajectory` places every target point
   at the reference trajectory, interpolated at the point's capture time. It also
   accumulates `--target-accumulate-scans` target scans per sample. `--target-time-offset`
