@@ -34,7 +34,7 @@
 No dataset and no ROS installation are needed:
 
 ```bash
-python -m pip install "git+https://github.com/rsasaki0109/Calibrex.git"   # the demo is newer than the v0.6.4 wheel
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.5/calibrex-0.6.5-py3-none-any.whl"
 calibrex demo check
 ```
 
@@ -61,9 +61,6 @@ calibrex check my_bag/ --max-duration-s 120 --html check.html   # the first 120 
 calibrex check my_bag/ --max-duration-s 120 --tf fixed.urdf     # re-check another calibration: seconds, from the cache
 ```
 
-- **Install from the repository for this section**, as the demo above does. The v0.6.4
-  wheel is older: it has no `--threads`, shows no time left for a pair, and fails late on
-  a bag folder that holds only the `.mcap` or `.db3` file without its `metadata.yaml`.
 - **The calibration** is read from the bag's `/tf_static`. Many bags have none, and then
   `check` needs `--tf` with the calibration you already use: the robot's URDF, a Kalibr
   `camchain-imucam.yaml`, or the FAST-LIO / FAST-LIVO config (`--tf` can be repeated).
@@ -140,7 +137,7 @@ calibrex check my_bag/ --max-duration-s 120 --tf fixed.urdf     # re-check anoth
 </p>
 
 ```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.4/calibrex-0.6.4-py3-none-any.whl"
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.5/calibrex-0.6.5-py3-none-any.whl"
 
 calibrex estimate my_bag/ --output est/ --html est.html    # 1. no calibration yet: measure it, export frames.yaml / static transforms / URDF
 calibrex check other_bag/ --tf est/frames.yaml --html check.html   # 2. is the deployed calibration still right on another recording?
@@ -570,7 +567,7 @@ bundle:
 
 ```bash
 python -m pip install \
-  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.4/calibrex-0.6.4-py3-none-any.whl"
+  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.5/calibrex-0.6.5-py3-none-any.whl"
 
 calibrex demo kitti-lidar-camera-evidence \
   --output-dir outputs/kitti-lidar-camera-evidence \
@@ -620,7 +617,7 @@ Run the same evidence gates on every calibration change:
 
 ```yaml
 - uses: actions/checkout@v5
-- uses: rsasaki0109/Calibrex@v0.6.4
+- uses: rsasaki0109/Calibrex@v0.6.5
   with:
     candidate: calibration/candidate.yaml
     baseline: calibration/baseline.yaml
@@ -879,11 +876,11 @@ not silently ranked together.
 ## Install
 
 The supported no-source install is the versioned wheel attached to the
-[v0.6.4 GitHub Release](https://github.com/rsasaki0109/Calibrex/releases/tag/v0.6.4):
+[v0.6.5 GitHub Release](https://github.com/rsasaki0109/Calibrex/releases/tag/v0.6.5):
 
 ```bash
 python -m pip install \
-  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.4/calibrex-0.6.4-py3-none-any.whl"
+  "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.5/calibrex-0.6.5-py3-none-any.whl"
 ```
 
 The repository is newer than that wheel. `calibrex demo check`, `--threads`, the progress
