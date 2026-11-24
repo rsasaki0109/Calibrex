@@ -1,24 +1,21 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
-
-from calibrex.data.livox_ros2 import LivoxStreamProfile, iter_livox_points
-from calibrex.data.ros_cdr_writer import encode_pointcloud2
-from calibrex.data.rosbag2_writer import Rosbag2Writer
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from tools.grand_tour_zarr_to_rosbag2 import (
     FIELDS,
     POINT_DTYPE,
     pack_scan,
     transform_matrix,
 )
+
+from calibrex.data.livox_ros2 import LivoxStreamProfile, iter_livox_points
+from calibrex.data.ros_cdr_writer import encode_pointcloud2
+from calibrex.data.rosbag2_writer import Rosbag2Writer
 
 
 def test_transform_matrix_reads_a_grand_tour_attribute() -> None:
@@ -62,3 +59,17 @@ def test_converted_scans_decode_with_absolute_point_times(
     assert np.allclose(xyz, points)
     assert offsets is not None and np.allclose(offsets, [0.0, 0.05, 0.099], atol=1e-6)
     assert json.dumps(FIELDS)  # plain data, recorded in conversion.json
+
+
+def test_thin_scan_crops_range_and_keeps_capture_order() -> None:
+    from tools.grand_tour_zarr_to_rosbag2 import thin_scan
+
+    rng = np.random.default_rng(0)
+    points = np.column_stack([np.linspace(1.0, 40.0, 1000), np.zeros(1000), np.zeros(1000)])
+    times = np.arange(1000, dtype=np.float64)
+    kept, kept_times = thin_scan(points, times, 100, 20.0, rng)
+    assert len(kept) == 100
+    assert np.all(np.linalg.norm(kept, axis=1) <= 20.0)
+    assert np.all(np.diff(kept_times) > 0)
+    few, _ = thin_scan(points[:50], times[:50], 100, None, rng)
+    assert len(few) == 50

@@ -72,13 +72,43 @@ def pack_scan(points: np.ndarray, times: np.ndarray) -> bytes:
     return packed.tobytes()
 
 
+def thin_scan(
+    points: np.ndarray,
+    times: np.ndarray,
+    max_points: int,
+    max_range_m: float | None,
+    rng: np.random.Generator,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Emulate a sparser LiDAR: crop by range, then keep a random ``max_points`` subset.
+
+    The kept points stay in capture order. A Unitree L1 measures about 21,600 points per
+    second (about 2,000 per 10 Hz scan) and reaches 10-15 m on dark surfaces.
+    """
+
+    keep = np.isfinite(points).all(axis=1)
+    if max_range_m is not None:
+        keep &= np.linalg.norm(np.where(np.isfinite(points), points, 0.0), axis=1) <= max_range_m
+    indices = np.flatnonzero(keep)
+    if len(indices) > max_points:
+        indices = np.sort(rng.choice(indices, max_points, replace=False))
+    return points[indices], times[indices]
+
+
 def convert(
-    mission_data: Path, groups: list[str], output: Path, max_seconds: float | None
+    mission_data: Path,
+    groups: list[str],
+    output: Path,
+    max_seconds: float | None,
+    *,
+    sparse: dict[str, tuple[int, float | None]] | None = None,
+    seed: int = 0,
 ) -> dict[str, Any]:
     import zarr
 
     root = zarr.open_group(str(mission_data), mode="r")
     summary: dict[str, Any] = {"mission_data": str(mission_data), "groups": {}}
+    sparse = sparse or {}
+    rng = np.random.default_rng(seed)
     with Rosbag2Writer(output) as writer:
         for name in groups:
             group = root[name]
@@ -104,10 +134,15 @@ def convert(
                     index = start + row
                     count = int(valid[index])
                     stamp_ns = round(float(stamps[index]) * 1.0e9)
+                    scan_points = points[row, :count].astype(np.float64)
+                    scan_times = times[row, :count]
+                    if name in sparse:
+                        scan_points, scan_times = thin_scan(
+                            scan_points, scan_times, sparse[name][0], sparse[name][1], rng
+                        )
                     payload = encode_pointcloud2(
                         frame_id=frame_id, timestamp_ns=stamp_ns, fields=FIELDS,
-                        point_step=POINT_DTYPE.itemsize,
-                        data=pack_scan(points[row, :count].astype(np.float64), times[row, :count]),
+                        point_step=POINT_DTYPE.itemsize, data=pack_scan(scan_points, scan_times),
                     )  # fmt: skip
                     writer.write(topic, stamp_ns, payload)
                     written += 1
@@ -116,6 +151,9 @@ def convert(
                 "first_stamp_s": float(stamps[0]), "last_stamp_s": float(stamps[limit - 1]),
                 "description": str(group.attrs.get("description", "")),
                 "T_box_lidar": transform.tolist(),
+                **({"emulated_sparse": {"max_points": sparse[name][0],
+                                        "max_range_m": sparse[name][1], "seed": seed}}
+                   if name in sparse else {}),
             }  # fmt: skip
     (output.parent / "conversion.json").write_text(json.dumps(summary, indent=1), encoding="utf-8")
     return summary
@@ -131,8 +169,28 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--groups", nargs="+", default=["hesai_points", "livox_points"])
     parser.add_argument("--output", type=Path, required=True, help="rosbag2 directory to create")
     parser.add_argument("--max-seconds", type=float)
+    parser.add_argument(
+        "--sparse",
+        nargs=3,
+        action="append",
+        default=[],
+        metavar=("GROUP", "MAX_POINTS", "MAX_RANGE_M"),
+        help="emulate a sparser LiDAR on GROUP (MAX_RANGE_M 'none' keeps every range)",
+    )
+    parser.add_argument("--seed", type=int, default=0, help="random seed of --sparse")
     args = parser.parse_args(argv)
-    summary = convert(args.mission_data, args.groups, args.output, args.max_seconds)
+    sparse = {
+        group: (int(points), None if limit == "none" else float(limit))
+        for group, points, limit in args.sparse
+    }
+    summary = convert(
+        args.mission_data,
+        args.groups,
+        args.output,
+        args.max_seconds,
+        sparse=sparse,
+        seed=args.seed,
+    )
     print(json.dumps({name: item["scans"] for name, item in summary["groups"].items()}))
     return 0
 

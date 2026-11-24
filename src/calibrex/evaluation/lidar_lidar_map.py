@@ -321,7 +321,9 @@ def collect_map_samples(
             continue
         if nearest < half or nearest >= len(scans) - half:
             continue
-        target = preprocess_scan(points[np.isfinite(points).all(axis=1)], opts.preprocess)
+        target = preprocess_scan(
+            points[np.isfinite(points).all(axis=1)], opts.target_preprocess or opts.preprocess
+        )
         if len(target) < opts.min_target_points:
             continue
         samples.append(
