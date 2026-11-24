@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import hashlib
 import math
-from collections.abc import Sequence
+from collections.abc import Collection, Iterator, Sequence
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any, Literal, TypeAlias
@@ -503,6 +503,7 @@ def build_trajectory_samples(
     options: LidarLidarMapOptions | None = None,
     *,
     time_offset_s: float | None = None,
+    times_s: Collection[float] | None = None,
 ) -> list[MapSample]:
     """One sample per ``sample_every_scans`` target scans, each point at its own pose.
 
@@ -511,39 +512,21 @@ def build_trajectory_samples(
     widened by ``map_half_window_scans`` on each side.  Samples whose points fall
     outside the trajectory, or that keep fewer than ``min_target_points``, are skipped.
     The sample's ``time_s`` and ``block`` stay on the target clock, so blocks do not
-    move with the offset.
+    move with the offset.  ``times_s`` keeps only the samples with those ``time_s``.
     """
 
     opts = options or LidarLidarMapOptions()
     offset = opts.target_time_offset_s if time_offset_s is None else time_offset_s
-    half = opts.map_half_window_scans
-    times = trajectory.times_s
     first = trajectory.first_time_s
     samples: list[MapSample] = []
-    count = opts.target_accumulate_scans
-    for start in range(0, len(targets) - count + 1, opts.sample_every_scans):
-        group = targets[start : start + count]
-        parts = [scan.points for scan in group if len(scan.points)]
-        if not parts:
+    for middle, points, capture, low, high in _trajectory_windows(
+        trajectory, targets, opts, offset
+    ):
+        if times_s is not None and middle not in times_s:
             continue
-        points = np.concatenate(parts)
-        if len(points) < opts.min_target_points:
-            continue
-        capture = np.concatenate(
-            [
-                scan.time_s + (scan.offsets_s if scan.offsets_s is not None
-                               else np.zeros(len(scan.points)))
-                for scan in group if len(scan.points)
-            ]
-        ) + offset  # fmt: skip
         poses = trajectory.interpolate(capture)
         if not np.isfinite(poses[:, 0, 0]).all():
             continue
-        low = int(np.searchsorted(times, capture.min(), side="right")) - 1 - half
-        high = int(np.searchsorted(times, capture.max(), side="left")) + half
-        if low < 0 or high >= len(times):
-            continue
-        middle = float(group[len(group) // 2].time_s)
         reference_pose = trajectory.interpolate(np.array([middle + offset]))[0]
         if not np.isfinite(reference_pose).all():
             reference_pose = poses[len(poses) // 2]
@@ -558,6 +541,41 @@ def build_trajectory_samples(
             )
         )
     return samples
+
+
+def _trajectory_windows(
+    trajectory: ReferenceTrajectory,
+    targets: Sequence[TargetScan],
+    opts: LidarLidarMapOptions,
+    offset: float,
+) -> Iterator[tuple[float, FloatArray, FloatArray, int, int]]:
+    """``(time_s, points, capture times, first and last map scan)`` of each valid sample."""
+
+    half = opts.map_half_window_scans
+    times = trajectory.times_s
+    count = opts.target_accumulate_scans
+    for start in range(0, len(targets) - count + 1, opts.sample_every_scans):
+        group = [scan for scan in targets[start : start + count] if len(scan.points)]
+        if not group:
+            continue
+        points = np.concatenate([scan.points for scan in group])
+        if len(points) < opts.min_target_points:
+            continue
+        capture = np.concatenate(
+            [
+                scan.time_s + (scan.offsets_s if scan.offsets_s is not None
+                               else np.zeros(len(scan.points)))
+                for scan in group
+            ]
+        ) + offset  # fmt: skip
+        if capture.min() < times[0] or capture.max() > times[-1]:
+            continue
+        low = int(np.searchsorted(times, capture.min(), side="right")) - 1 - half
+        high = int(np.searchsorted(times, capture.max(), side="left")) + half
+        if low < 0 or high >= len(times):
+            continue
+        middle = float(targets[start + len(targets[start : start + count]) // 2].time_s)
+        yield middle, points, capture, low, high
 
 
 @dataclass(frozen=True)
@@ -598,20 +616,30 @@ def estimate_time_offset(
         raise ValueError("time offset search half width and step must be positive")
     steps = round(half_width_s / step_s)
     candidates = center_s + step_s * np.arange(-steps, steps + 1)
-    built = [build_trajectory_samples(trajectory, targets, opts, time_offset_s=float(value))
-             for value in candidates]  # fmt: skip
-    keys = [{sample.time_s for sample in samples} for samples in built]
+    # Sample times valid at every candidate offset (cheap: no maps are built here).
+    keys = [
+        {window[0] for window in _trajectory_windows(trajectory, targets, opts, float(value))}
+        for value in candidates
+    ]
     common = set.intersection(*keys) if keys else set()
-    blocks = sorted({sample.block for sample in built[0] if sample.time_s in common})
+    first = trajectory.first_time_s
+
+    def block_of(time_s: float) -> int:
+        return int((time_s - first) // opts.block_duration_s)
+
+    blocks = sorted({block_of(time_s) for time_s in common})
     holdout_blocks = {
         block for position, block in enumerate(blocks) if position % opts.holdout_every == 1
     }
     train_blocks = [block for block in blocks if block not in holdout_blocks]
+    train_times = {time_s for time_s in common if block_of(time_s) not in holdout_blocks}
     costs = np.full((len(candidates), len(train_blocks)), np.nan)
     points = np.zeros(len(train_blocks))
-    for row, samples in enumerate(built):
-        train = [sample for sample in samples
-                 if sample.time_s in common and sample.block not in holdout_blocks]  # fmt: skip
+    for row, value in enumerate(candidates):
+        # One candidate's samples at a time: the maps and per-point poses are large.
+        train = build_trajectory_samples(
+            trajectory, targets, opts, time_offset_s=float(value), times_s=train_times
+        )
         fit = solve_map_extrinsic(train, initial, opts.solver)
         if fit.transform is None:
             continue

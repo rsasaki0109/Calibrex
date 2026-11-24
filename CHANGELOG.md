@@ -13,6 +13,15 @@
     0.1 deg and 1 cm.
   - The 37 ms clock lag was recovered within 6 ms.
   - No real Go2 recording has been scored yet.
+- First real-data lidar-lidar development on GrandTour (ANYmal + Boxi, MIT license), mission
+  2024-11-02-17-43-10: Hesai XT-32 → MID360 and Hesai → VLP-16 pass in both target modes.
+  - The MID360 clock offset is −7 ± 12 ms.
+  - The dataset's static tf misaligns same-time scans by 13–28 cm, where the fitted
+    extrinsics leave 1.4–3.3 cm. The tf is therefore not usable as an audit reference yet.
+  - See the [development note](docs/benchmarks/grand_tour_lidar_lidar_dev.md),
+    `tools/grand_tour_zarr_to_rosbag2.py` and `tools/grand_tour_same_time_alignment.py`.
+  - Estimating the clock offset now builds one candidate offset's samples at a time; on
+    the full mission, building all of them at once exhausted memory.
 - README and docs install with `pip install calibrex` (published on PyPI since 0.6.5); the
   release wheel stays available on the GitHub Release.
 

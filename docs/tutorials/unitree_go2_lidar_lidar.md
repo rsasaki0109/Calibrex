@@ -10,6 +10,9 @@ captured.
     This mode is tested only on a synthetic Go2 scene
     (`tests/unit/test_lidar_lidar_trajectory.py`). No Go2 recording has been scored, and
     lidar-lidar has no SOTA claim (the NTU VIRAL audit was refuted).
+    On real data, the mode has run on a legged robot with an upside-down MID360
+    ([GrandTour development](../benchmarks/grand_tour_lidar_lidar_dev.md)). The MID360 is
+    ten times denser than an L1, so that run says nothing about accumulation.
 
 ## Why the L1 needs more than the default
 
