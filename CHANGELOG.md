@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- `calibrex lidar-lidar ros2 --target-motion reference_trajectory` places every target point
+  at the reference trajectory, interpolated at the point's capture time. It also
+  accumulates `--target-accumulate-scans` target scans per sample. `--target-time-offset`
+  applies a clock offset, given in seconds or as `receive-time`. `--time-offset-search`
+  estimates that offset by a profile over train blocks only, and the new optional
+  `time_offset` field records the result. `--preset unitree-go2-l1` sets these for the
+  Go2's built-in L1. See the [Go2 tutorial](docs/tutorials/unitree_go2_lidar_lidar.md).
+  - On a synthetic Go2 scene, an inverted L1 at 300 points per scan came back within
+    0.1 deg and 1 cm.
+  - The 37 ms clock lag was recovered within 6 ms.
+  - No real Go2 recording has been scored yet.
 - README and docs install with `pip install calibrex` (published on PyPI since 0.6.5); the
   release wheel stays available on the GitHub Release.
 

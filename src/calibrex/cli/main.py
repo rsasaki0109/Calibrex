@@ -1617,6 +1617,48 @@ def _build_parser() -> argparse.ArgumentParser:
         "initial value and the reference compared against",
     )
     lidar_lidar_ros2.add_argument("--max-seconds", type=float)
+    lidar_lidar_ros2.add_argument(
+        "--preset",
+        choices=("unitree-go2-l1",),
+        help="target-LiDAR settings for a known platform. unitree-go2-l1: the Go2's built-in "
+        "L1 (/utlidar/cloud) as the target, placed per point along the reference "
+        "trajectory, 10 scans accumulated per sample, 5 cm voxels, 0.5 m minimum range "
+        "(drops the robot's own legs), per-point 'time' offsets; explicit flags override it",
+    )
+    lidar_lidar_ros2.add_argument(
+        "--point-time-encoding", choices=("offset_s", "absolute_ns", "absolute_s"),
+        help="encoding of the reference per-point time (default offset_s)",
+    )
+    lidar_lidar_ros2.add_argument(
+        "--target-point-time-field",
+        help="target per-point time field, when it differs from the reference's",
+    )
+    lidar_lidar_ros2.add_argument(
+        "--target-point-time-encoding", choices=("offset_s", "absolute_ns", "absolute_s"),
+    )
+    lidar_lidar_ros2.add_argument(
+        "--target-motion", choices=("rigid_nearest", "reference_trajectory"),
+        help="rigid_nearest (default): each target scan is a snapshot at the nearest "
+        "reference pose; reference_trajectory: each target point at the reference "
+        "trajectory interpolated at its capture time",
+    )
+    lidar_lidar_ros2.add_argument(
+        "--target-accumulate-scans", type=_positive_int,
+        help="consecutive target scans per sample (reference_trajectory only)",
+    )
+    lidar_lidar_ros2.add_argument("--target-voxel-size", type=float, help="target voxel (m)")
+    lidar_lidar_ros2.add_argument("--target-min-range", type=float, help="target min range (m)")
+    lidar_lidar_ros2.add_argument("--target-max-range", type=float, help="target max range (m)")
+    lidar_lidar_ros2.add_argument(
+        "--target-time-offset",
+        help="t_reference = t_target + offset, in seconds, or 'receive-time' for a coarse "
+        "value from header stamps against bag receive times (a LiDAR on its own clock); "
+        "centre of --time-offset-search",
+    )
+    lidar_lidar_ros2.add_argument(
+        "--time-offset-search", type=float, nargs=2, metavar=("HALF_WIDTH_S", "STEP_S"),
+        help="estimate the clock offset by a train-block profile over this window",
+    )
     lidar_lidar_ros2.add_argument("--registration-backend", choices=("cpu", "cuda"), default="cpu")
     lidar_lidar_ros2.add_argument(
         "--registration-query-workers", type=_positive_int, default=1,
@@ -8292,6 +8334,7 @@ def _cmd_lidar_lidar_ros2(args: argparse.Namespace) -> int:
             options, solver=replace(options.solver, query_workers=args.registration_query_workers),
         )
     try:
+        options, target_time = _lidar_lidar_target_options(args, options, command)
         reference_transform = None
         reference = None
         if args.body_transforms:
@@ -8323,6 +8366,10 @@ def _cmd_lidar_lidar_ros2(args: argparse.Namespace) -> int:
             backend=args.registration_backend,
             odometry_backend=args.odometry_backend,
             options=options,
+            time_offset_search=(
+                None if args.time_offset_search is None else tuple(args.time_offset_search)
+            ),
+            **target_time,
         )
         artifact.save(args.output)
     except (OSError, ValueError) as exc:
@@ -8337,6 +8384,78 @@ def _cmd_lidar_lidar_ros2(args: argparse.Namespace) -> int:
         args.json,
     )
     return 1 if artifact.policy_status == "fail" else 0
+
+
+def _lidar_lidar_target_options(
+    args: argparse.Namespace, options: Any, command: list[str]
+) -> tuple[Any, dict[str, Any]]:
+    """Apply --preset and the target flags to LidarLidarMapOptions; extend ``command``."""
+
+    from dataclasses import replace
+
+    from calibrex.evaluation.lidar_lidar_map import receive_time_clock_offset
+
+    motion = None
+    accumulate = None
+    voxel = min_range = max_range = None
+    target_field = args.target_point_time_field
+    target_encoding = args.target_point_time_encoding
+    if args.preset == "unitree-go2-l1":
+        command += ["--preset", args.preset]
+        motion, accumulate = "reference_trajectory", 10
+        voxel, min_range, max_range = 0.05, 0.5, 30.0
+        target_field = target_field or "time"
+        target_encoding = target_encoding or "offset_s"
+    for flag, value in (
+        ("--target-motion", args.target_motion),
+        ("--target-accumulate-scans", args.target_accumulate_scans),
+        ("--target-voxel-size", args.target_voxel_size),
+        ("--target-min-range", args.target_min_range),
+        ("--target-max-range", args.target_max_range),
+        ("--point-time-encoding", args.point_time_encoding),
+        ("--target-point-time-field", args.target_point_time_field),
+        ("--target-point-time-encoding", args.target_point_time_encoding),
+    ):
+        if value is not None:
+            command += [flag, str(value)]
+    motion = args.target_motion or motion or "rigid_nearest"
+    accumulate = args.target_accumulate_scans or accumulate or 1
+    preprocess = options.preprocess
+    target_preprocess = replace(
+        preprocess,
+        voxel_size_m=args.target_voxel_size or voxel or preprocess.voxel_size_m,
+        min_range_m=(
+            args.target_min_range if args.target_min_range is not None
+            else min_range if min_range is not None else preprocess.min_range_m
+        ),
+        max_range_m=args.target_max_range or max_range or preprocess.max_range_m,
+    )
+    offset = 0.0
+    if args.target_time_offset is not None:
+        if args.target_time_offset == "receive-time":
+            offset = receive_time_clock_offset(
+                args.bag, reference_topic=args.reference_topic, target_topic=args.target_topic
+            )
+        else:
+            offset = float(args.target_time_offset)
+        command += ["--target-time-offset", args.target_time_offset]
+    if args.time_offset_search is not None:
+        command += ["--time-offset-search", *(str(value) for value in args.time_offset_search)]
+    options = replace(
+        options,
+        target_motion=motion,
+        target_accumulate_scans=accumulate,
+        target_time_offset_s=offset,
+        target_preprocess=None if target_preprocess == preprocess else target_preprocess,
+    )
+    target_time: dict[str, Any] = {}
+    if target_field is not None:
+        target_time["target_point_time_field"] = target_field
+    if target_encoding is not None:
+        target_time["target_point_time_encoding"] = target_encoding
+    if args.point_time_encoding is not None:
+        target_time["point_time_encoding"] = args.point_time_encoding
+    return options, target_time
 
 
 def _cmd_lidar_vehicle_kitti(args: argparse.Namespace) -> int:

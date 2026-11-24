@@ -10,6 +10,14 @@ jackknife.  Shifting each rotation axis by 1 deg and each translation axis by
 5 cm must raise the held-out chi-square by at least 9.  A reference transform,
 if given, is compared only after the fit, both as a per-DoF difference and as
 the held-out chi-square it would cost.
+
+With ``target_motion="reference_trajectory"`` every target point is placed by
+the reference trajectory interpolated at its own capture time, shifted by the
+target-to-reference clock offset, and ``target_accumulate_scans`` consecutive
+target scans form one sample.  That deskews the target along the reference
+trajectory and densifies a sparse target LiDAR (the Unitree L1 of a Go2).  The
+clock offset can be given or estimated by a profile search over train blocks
+only (:func:`estimate_time_offset`); held-out blocks never choose it.
 """
 
 from __future__ import annotations
@@ -17,7 +25,7 @@ from __future__ import annotations
 import hashlib
 import math
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any, Literal, TypeAlias
 
@@ -33,6 +41,8 @@ from calibrex.core.lidar_lidar_extrinsic import (
     LidarLidarPolicyStatus,
     LidarLidarProvenance,
     LidarLidarSamples,
+    LidarLidarTimeOffset,
+    LidarLidarTimeOffsetProfilePoint,
     LidarLidarTransform,
 )
 from calibrex.core.progress import emit_stage
@@ -65,6 +75,16 @@ LIMITATIONS: tuple[str, ...] = (
     "adds noise to every sample.",
     "The clock offset between the two LiDARs is not estimated; both clouds are "
     "matched at their header times.",
+    "The reference transform, if given, is a comparison, not ground truth.",
+)
+
+TRAJECTORY_LIMITATIONS: tuple[str, ...] = (
+    "The reference LiDAR's odometry supplies the map and the trajectory every target "
+    "point is placed by; its drift over the map window adds noise to every sample.",
+    "Target points are placed by the reference trajectory interpolated at their capture "
+    "times (linear in translation, geodesic in rotation between reference scans); motion "
+    "faster than the reference scan rate, such as gait vibration above half that rate, "
+    "is not resolved.",
     "The reference transform, if given, is a comparison, not ground truth.",
 )
 
@@ -109,6 +129,30 @@ class LidarLidarMapOptions:
         )
     )
     solver: MapSampleOptions = field(default_factory=lambda: MapSampleOptions(iterations=30))
+    # "rigid_nearest": each target scan is one rigid snapshot at the nearest reference
+    # pose.  "reference_trajectory": every target point is placed by the reference
+    # trajectory interpolated at its capture time plus ``target_time_offset_s``.
+    target_motion: Literal["rigid_nearest", "reference_trajectory"] = "rigid_nearest"
+    # Consecutive target scans per sample (reference_trajectory only).
+    target_accumulate_scans: int = 1
+    # t_reference = t_target + offset: the target clock's lag behind the reference.
+    target_time_offset_s: float = 0.0
+    # Target preprocessing; None reuses ``preprocess``.  A sparse target (L1) keeps
+    # more of its points with a finer voxel.
+    target_preprocess: ScanOdometryOptions | None = None
+
+    def __post_init__(self) -> None:
+        if self.target_accumulate_scans < 1:
+            raise ValueError("target_accumulate_scans must be at least 1")
+        if self.target_motion == "rigid_nearest" and (
+            self.target_accumulate_scans != 1 or self.target_time_offset_s != 0.0
+        ):
+            raise ValueError(
+                "target accumulation and a target time offset need "
+                "target_motion='reference_trajectory'"
+            )
+        if not math.isfinite(self.target_time_offset_s):
+            raise ValueError("target_time_offset_s must be finite")
 
 
 @dataclass(frozen=True)
@@ -294,6 +338,324 @@ def collect_map_samples(
     return samples, len(scans)
 
 
+@dataclass(frozen=True)
+class ReferenceTrajectory:
+    """The reference LiDAR's odometry: poses at scan times and scans in the odometry frame."""
+
+    times_s: FloatArray  # (S,) increasing reference header times
+    poses: FloatArray  # (S, 4, 4) T_odom_reference at those times
+    scans: tuple[NDArray[np.float32], ...]  # preprocessed scans in the odometry frame
+    first_time_s: float
+
+    def __post_init__(self) -> None:
+        if len(self.times_s) != len(self.poses) or len(self.times_s) != len(self.scans):
+            raise ValueError("reference times, poses, and scans must have one entry per scan")
+        if len(self.times_s) > 1 and np.any(np.diff(self.times_s) <= 0.0):
+            raise ValueError("reference scan times must increase strictly")
+
+    def interpolate(self, query_s: FloatArray) -> FloatArray:
+        """``T_odom_reference`` at each query time; NaN outside the trajectory.
+
+        Translation is linear and rotation geodesic between the two bracketing scans.
+        """
+
+        query = np.asarray(query_s, dtype=np.float64).reshape(-1)
+        out = np.full((len(query), 4, 4), np.nan)
+        times = self.times_s
+        inside = (query >= times[0]) & (query <= times[-1])
+        if len(times) < 2 or not inside.any():
+            return out
+        q = query[inside]
+        lower = np.clip(np.searchsorted(times, q, side="right") - 1, 0, len(times) - 2)
+        alpha = (q - times[lower]) / (times[lower + 1] - times[lower])
+        start = self.poses[lower]
+        end = self.poses[lower + 1]
+        relative = Rotation.from_matrix(
+            np.einsum("nji,njk->nik", start[:, :3, :3], end[:, :3, :3])
+        ).as_rotvec()
+        rotation = np.einsum(
+            "nij,njk->nik",
+            start[:, :3, :3],
+            Rotation.from_rotvec(relative * alpha[:, None]).as_matrix(),
+        )
+        block = np.zeros((len(q), 4, 4))
+        block[:, :3, :3] = rotation
+        block[:, :3, 3] = start[:, :3, 3] + alpha[:, None] * (end[:, :3, 3] - start[:, :3, 3])
+        block[:, 3, 3] = 1.0
+        out[inside] = block
+        return out
+
+
+@dataclass(frozen=True)
+class TargetScan:
+    """One preprocessed target scan with its per-point capture times."""
+
+    time_s: float  # header time on the target clock
+    points: FloatArray  # (N, 3) in the target LiDAR frame
+    offsets_s: FloatArray | None  # (N,) seconds after ``time_s``, or None (all at time_s)
+
+
+def preprocess_timed_scan(
+    points: FloatArray, offsets_s: FloatArray | None, options: ScanOdometryOptions
+) -> tuple[FloatArray, FloatArray | None]:
+    """Crop by range and voxel-average points, averaging their capture times too."""
+
+    xyz = np.asarray(points, dtype=np.float64)[:, :3]
+    finite = np.isfinite(xyz).all(axis=1)
+    if offsets_s is not None:
+        finite &= np.isfinite(offsets_s)
+    xyz = xyz[finite]
+    times = None if offsets_s is None else np.asarray(offsets_s, dtype=np.float64)[finite]
+    ranges = np.sqrt(np.einsum("ij,ij->i", xyz, xyz))
+    keep = (ranges >= options.min_range_m) & (ranges <= options.max_range_m)
+    xyz = xyz[keep]
+    times = None if times is None else times[keep]
+    if xyz.size == 0:
+        return xyz.reshape(0, 3), None if times is None else times
+    keys = np.floor(xyz / options.voxel_size_m).astype(np.int64)
+    _, inverse, counts = np.unique(keys, axis=0, return_inverse=True, return_counts=True)
+    inverse = inverse.reshape(-1)
+    sums = np.stack(
+        [np.bincount(inverse, weights=xyz[:, axis], minlength=counts.size) for axis in range(3)],
+        axis=1,
+    )
+    averaged = None
+    if times is not None:
+        averaged = np.bincount(inverse, weights=times, minlength=counts.size) / counts
+    return sums / counts[:, None], averaged
+
+
+def read_reference_trajectory(
+    bag: str | Path,
+    *,
+    reference_topic: str,
+    point_time_field: str | None,
+    options: LidarLidarMapOptions | None = None,
+    max_seconds: float | None = None,
+    point_time_encoding: PointTimeEncoding = "offset_s",
+    odometry_backend: OdometryBackend = "cpu",
+    _odometry_execution: dict[str, Any] | None = None,
+) -> ReferenceTrajectory:
+    """Run the reference LiDAR odometry and keep its poses and map scans."""
+
+    opts = options or LidarLidarMapOptions()
+    if opts.deskew == "none":
+        point_time_field = None
+    emit_stage(f"reference LiDAR odometry + map ({reference_topic})")
+    odometry = IncrementalScanOdometry(opts.odometry, backend=odometry_backend)
+    if _odometry_execution is not None:
+        _odometry_execution["odometry_execution"] = odometry.execution_backend
+        _odometry_execution["odometry_options"] = asdict(opts.odometry)
+    profile = LivoxStreamProfile(
+        "lidar", reference_topic, "", point_time_field, point_time_encoding, "mps2"
+    )
+    scans: list[NDArray[np.float32]] = []
+    times: list[float] = []
+    for time_s, points, offsets in iter_livox_points(bag, profile, max_seconds=max_seconds):
+        if times and time_s <= times[-1]:
+            continue  # a repeated or out-of-order stamp cannot be interpolated
+        finite = np.isfinite(points).all(axis=1)
+        use_time = offsets is not None and opts.deskew != "none"
+        odometry.add(
+            points[finite], time_s, offsets[finite] if use_time and offsets is not None else None
+        )
+        pose = odometry.poses[-1]
+        local = preprocess_scan(points[finite], opts.preprocess)
+        scans.append((local @ pose[:3, :3].T + pose[:3, 3]).astype(np.float32))
+        times.append(time_s)
+    if not times:
+        raise ValueError(f"{bag} has no scans on {reference_topic}")
+    return ReferenceTrajectory(
+        times_s=np.asarray(times, dtype=np.float64),
+        poses=np.asarray(odometry.poses[: len(times)], dtype=np.float64),
+        scans=tuple(scans),
+        first_time_s=times[0],
+    )
+
+
+def read_target_scans(
+    bag: str | Path,
+    *,
+    target_topic: str,
+    point_time_field: str | None,
+    options: LidarLidarMapOptions | None = None,
+    max_seconds: float | None = None,
+    point_time_encoding: PointTimeEncoding = "offset_s",
+) -> list[TargetScan]:
+    """Read and preprocess every target scan, keeping per-point capture times."""
+
+    opts = options or LidarLidarMapOptions()
+    preprocess = opts.target_preprocess or opts.preprocess
+    emit_stage(f"target scans ({target_topic})")
+    profile = LivoxStreamProfile(
+        "lidar", target_topic, "", point_time_field, point_time_encoding, "mps2"
+    )
+    scans: list[TargetScan] = []
+    for time_s, points, offsets in iter_livox_points(bag, profile, max_seconds=max_seconds):
+        local, local_offsets = preprocess_timed_scan(points, offsets, preprocess)
+        scans.append(TargetScan(float(time_s), local, local_offsets))
+    return scans
+
+
+def build_trajectory_samples(
+    trajectory: ReferenceTrajectory,
+    targets: Sequence[TargetScan],
+    options: LidarLidarMapOptions | None = None,
+    *,
+    time_offset_s: float | None = None,
+) -> list[MapSample]:
+    """One sample per ``sample_every_scans`` target scans, each point at its own pose.
+
+    A sample accumulates ``target_accumulate_scans`` consecutive target scans.  Its
+    map holds the reference scans spanning those points' (offset) capture times,
+    widened by ``map_half_window_scans`` on each side.  Samples whose points fall
+    outside the trajectory, or that keep fewer than ``min_target_points``, are skipped.
+    The sample's ``time_s`` and ``block`` stay on the target clock, so blocks do not
+    move with the offset.
+    """
+
+    opts = options or LidarLidarMapOptions()
+    offset = opts.target_time_offset_s if time_offset_s is None else time_offset_s
+    half = opts.map_half_window_scans
+    times = trajectory.times_s
+    first = trajectory.first_time_s
+    samples: list[MapSample] = []
+    count = opts.target_accumulate_scans
+    for start in range(0, len(targets) - count + 1, opts.sample_every_scans):
+        group = targets[start : start + count]
+        parts = [scan.points for scan in group if len(scan.points)]
+        if not parts:
+            continue
+        points = np.concatenate(parts)
+        if len(points) < opts.min_target_points:
+            continue
+        capture = np.concatenate(
+            [
+                scan.time_s + (scan.offsets_s if scan.offsets_s is not None
+                               else np.zeros(len(scan.points)))
+                for scan in group if len(scan.points)
+            ]
+        ) + offset  # fmt: skip
+        poses = trajectory.interpolate(capture)
+        if not np.isfinite(poses[:, 0, 0]).all():
+            continue
+        low = int(np.searchsorted(times, capture.min(), side="right")) - 1 - half
+        high = int(np.searchsorted(times, capture.max(), side="left")) + half
+        if low < 0 or high >= len(times):
+            continue
+        middle = float(group[len(group) // 2].time_s)
+        reference_pose = trajectory.interpolate(np.array([middle + offset]))[0]
+        if not np.isfinite(reference_pose).all():
+            reference_pose = poses[len(poses) // 2]
+        samples.append(
+            MapSample(
+                time_s=middle,
+                block=int((middle - first) // opts.block_duration_s),
+                reference_pose=reference_pose,
+                target_points=points,
+                map_points=np.concatenate(trajectory.scans[low : high + 1]).astype(np.float64),
+                point_poses=poses,
+            )
+        )
+    return samples
+
+
+@dataclass(frozen=True)
+class TimeOffsetEstimate:
+    """Profile search result for the target-to-reference clock offset."""
+
+    value_s: float
+    std_jackknife_s: float | None
+    at_search_edge: bool
+    candidates_s: tuple[float, ...]
+    train_cost_per_point: tuple[float, ...]
+    common_samples: int
+
+
+def estimate_time_offset(
+    trajectory: ReferenceTrajectory,
+    targets: Sequence[TargetScan],
+    initial: FloatArray,
+    options: LidarLidarMapOptions | None = None,
+    *,
+    half_width_s: float = 0.1,
+    step_s: float = 0.01,
+    center_s: float = 0.0,
+) -> TimeOffsetEstimate:
+    """Choose the clock offset that best fits the train blocks.
+
+    For every candidate offset on the grid ``center ± half_width`` the extrinsic
+    is refit on the train blocks (the same every-``holdout_every`` rule as
+    :func:`evaluate_lidar_lidar_map`, on target-clock blocks) and scored by its
+    clipped chi-square at the fixed Huber scale, over the samples every candidate
+    shares.  A parabola through the best grid point and its neighbours refines the
+    minimum; a block jackknife of that refinement gives the std.  Held-out blocks
+    are never read here.
+    """
+
+    opts = options or LidarLidarMapOptions()
+    if half_width_s <= 0.0 or step_s <= 0.0:
+        raise ValueError("time offset search half width and step must be positive")
+    steps = round(half_width_s / step_s)
+    candidates = center_s + step_s * np.arange(-steps, steps + 1)
+    built = [build_trajectory_samples(trajectory, targets, opts, time_offset_s=float(value))
+             for value in candidates]  # fmt: skip
+    keys = [{sample.time_s for sample in samples} for samples in built]
+    common = set.intersection(*keys) if keys else set()
+    blocks = sorted({sample.block for sample in built[0] if sample.time_s in common})
+    holdout_blocks = {
+        block for position, block in enumerate(blocks) if position % opts.holdout_every == 1
+    }
+    train_blocks = [block for block in blocks if block not in holdout_blocks]
+    costs = np.full((len(candidates), len(train_blocks)), np.nan)
+    points = np.zeros(len(train_blocks))
+    for row, samples in enumerate(built):
+        train = [sample for sample in samples
+                 if sample.time_s in common and sample.block not in holdout_blocks]  # fmt: skip
+        fit = solve_map_extrinsic(train, initial, opts.solver)
+        if fit.transform is None:
+            continue
+        for column, block in enumerate(train_blocks):
+            members = [sample for sample in train if sample.block == block]
+            cost, _, _ = chi_square(members, fit.transform, opts.solver.huber_m, opts.solver)
+            costs[row, column] = cost
+            points[column] = sum(len(sample.target_points) for sample in members)
+    if not np.isfinite(costs).all() or len(train_blocks) == 0 or points.sum() == 0:
+        raise ValueError("too few shared train samples to estimate the time offset")
+    total = costs.sum(axis=1) / points.sum()
+    value, edge = _parabolic_minimum(candidates, total)
+    jackknife = None
+    groups = min(opts.jackknife_groups, len(train_blocks))
+    if groups >= 3:
+        estimates = []
+        for members in np.array_split(np.arange(len(train_blocks)), groups):
+            keep = np.setdiff1d(np.arange(len(train_blocks)), members)
+            estimates.append(
+                _parabolic_minimum(candidates, costs[:, keep].sum(axis=1) / points[keep].sum())[0]
+            )
+        array = np.asarray(estimates)
+        jackknife = float(np.sqrt((groups - 1) / groups * np.sum((array - array.mean()) ** 2)))
+    return TimeOffsetEstimate(
+        value_s=value,
+        std_jackknife_s=jackknife,
+        at_search_edge=edge,
+        candidates_s=tuple(float(item) for item in candidates),
+        train_cost_per_point=tuple(float(item) for item in total),
+        common_samples=len(common),
+    )
+
+
+def _parabolic_minimum(candidates: FloatArray, costs: FloatArray) -> tuple[float, bool]:
+    best = int(np.argmin(costs))
+    if best == 0 or best == len(costs) - 1:
+        return float(candidates[best]), True
+    left, middle, right = costs[best - 1 : best + 2]
+    curvature = left - 2.0 * middle + right
+    step = candidates[best + 1] - candidates[best]
+    shift = 0.0 if curvature <= 0.0 else 0.5 * (left - right) / curvature
+    return float(candidates[best] + np.clip(shift, -0.5, 0.5) * step), False
+
+
 def run_ros2_lidar_lidar_map(
     bag: str | Path,
     *,
@@ -313,27 +675,92 @@ def run_ros2_lidar_lidar_map(
     command: list[str] | None = None,
     backend: MapBackend = "cpu",
     odometry_backend: OdometryBackend = "cpu",
+    time_offset_search: tuple[float, float] | None = None,
 ) -> LidarLidarExtrinsicArtifact:
-    """Calibrate ``T_reference_target`` for two LiDARs recorded in one ROS 2 bag."""
+    """Calibrate ``T_reference_target`` for two LiDARs recorded in one ROS 2 bag.
+
+    ``time_offset_search`` is ``(half_width_s, step_s)`` around
+    ``options.target_time_offset_s``; it needs ``target_motion="reference_trajectory"``.
+    """
 
     opts = options or LidarLidarMapOptions()
     odometry_execution: dict[str, Any] = {}
-    samples, reference_scans = collect_map_samples(
-        bag,
-        reference_topic=reference_topic,
-        target_topic=target_topic,
-        point_time_field=point_time_field,
-        options=opts,
-        max_seconds=max_seconds,
-        point_time_encoding=point_time_encoding,
-        target_point_time_field=target_point_time_field,
-        target_point_time_encoding=target_point_time_encoding,
-        odometry_backend=odometry_backend,
-        _odometry_execution=odometry_execution,
-    )
+    time_offset: LidarLidarTimeOffset | None = None
+    if time_offset_search is not None and opts.target_motion != "reference_trajectory":
+        raise ValueError("a time offset search needs target_motion='reference_trajectory'")
+    if opts.target_motion == "rigid_nearest":
+        samples, reference_scans = collect_map_samples(
+            bag,
+            reference_topic=reference_topic,
+            target_topic=target_topic,
+            point_time_field=point_time_field,
+            options=opts,
+            max_seconds=max_seconds,
+            point_time_encoding=point_time_encoding,
+            target_point_time_field=target_point_time_field,
+            target_point_time_encoding=target_point_time_encoding,
+            odometry_backend=odometry_backend,
+            _odometry_execution=odometry_execution,
+        )
+    else:
+        trajectory = read_reference_trajectory(
+            bag,
+            reference_topic=reference_topic,
+            point_time_field=point_time_field,
+            options=opts,
+            max_seconds=max_seconds,
+            point_time_encoding=point_time_encoding,
+            odometry_backend=odometry_backend,
+            _odometry_execution=odometry_execution,
+        )
+        same_time = target_point_time_field is None and target_point_time_encoding is None
+        targets = read_target_scans(
+            bag,
+            target_topic=target_topic,
+            point_time_field=point_time_field if same_time else target_point_time_field,
+            options=opts,
+            max_seconds=max_seconds,
+            point_time_encoding=target_point_time_encoding or point_time_encoding,
+        )
+        reference_scans = len(trajectory.times_s)
+        if time_offset_search is not None:
+            half_width, step = time_offset_search
+            emit_stage("target clock offset profile (train blocks)")
+            estimate = estimate_time_offset(
+                trajectory, targets, initial, opts, half_width_s=half_width, step_s=step,
+                center_s=opts.target_time_offset_s,
+            )
+            time_offset = LidarLidarTimeOffset(
+                value_s=estimate.value_s,
+                source="estimated",
+                std_jackknife_s=estimate.std_jackknife_s,
+                at_search_edge=estimate.at_search_edge,
+                search_center_s=opts.target_time_offset_s,
+                search_half_width_s=half_width,
+                search_step_s=step,
+                profile=[
+                    LidarLidarTimeOffsetProfilePoint(offset_s=offset, train_cost_per_point=cost)
+                    for offset, cost in zip(
+                        estimate.candidates_s, estimate.train_cost_per_point, strict=True
+                    )
+                ],
+            )
+            opts = replace(opts, target_time_offset_s=estimate.value_s)
+        else:
+            time_offset = LidarLidarTimeOffset(value_s=opts.target_time_offset_s, source="given")
+        samples = build_trajectory_samples(trajectory, targets, opts)
     evaluation = evaluate_lidar_lidar_map(
         samples, initial, opts, reference_transform=reference_transform, backend=backend
     )
+    policy_status = evaluation.policy_status
+    policy_reasons = list(evaluation.policy_reasons)
+    if time_offset is not None and time_offset.at_search_edge:
+        policy_reasons.append(
+            "the clock offset profile is lowest at the edge of its search window "
+            f"({time_offset.value_s:+.3f} s); widen or move the search"
+        )
+        if policy_status == "pass":
+            policy_status = "warn"
     digest, scope = bag_input_digest([bag])
     result = evaluation.result
     transform = None
@@ -348,8 +775,8 @@ def run_ros2_lidar_lidar_map(
         )
     return LidarLidarExtrinsicArtifact(
         solver_status=result.status,
-        policy_status=evaluation.policy_status,
-        policy_reasons=list(evaluation.policy_reasons),
+        policy_status=policy_status,
+        policy_reasons=policy_reasons,
         calibrated_dofs=[item.name for item in evaluation.records if item.status == "estimated"],
         transform=transform,
         dofs=list(evaluation.records),
@@ -364,6 +791,7 @@ def run_ros2_lidar_lidar_map(
             train_correspondences=result.correspondences,
             holdout_correspondences=evaluation.holdout_correspondences,
         ),
+        time_offset=time_offset,
         train_blocks=list(evaluation.train_blocks),
         holdout_blocks=list(evaluation.holdout_blocks),
         jackknife_fits=evaluation.jackknife_fits,
@@ -385,13 +813,20 @@ def run_ros2_lidar_lidar_map(
             **({"registration_query_workers": opts.solver.query_workers}
                if opts.solver.query_workers != 1 else {}),
             **({"deskew": "none"} if opts.deskew == "none" else {}),
+            **({"target_motion": opts.target_motion,
+                "target_accumulate_scans": opts.target_accumulate_scans,
+                "target_voxel_size_m": (opts.target_preprocess or opts.preprocess).voxel_size_m}
+               if opts.target_motion == "reference_trajectory" else {}),
             **({"registration_backend": "cuda", "registration_execution": result.execution_backend}
                if backend == "cuda" else {}),
             **({"odometry_backend": "cuda", **odometry_execution}
                if odometry_backend == "cuda" else {}),
         },
         reference=reference,
-        limitations=[*LIMITATIONS, *(RIGID_SCAN_LIMITATIONS if opts.deskew == "none" else ())],
+        limitations=[
+            *(LIMITATIONS if opts.target_motion == "rigid_nearest" else TRAJECTORY_LIMITATIONS),
+            *(RIGID_SCAN_LIMITATIONS if opts.deskew == "none" else ()),
+        ],
         provenance=LidarLidarProvenance(
             generator=__name__,
             generator_version=__version__,
@@ -597,3 +1032,37 @@ def read_transform(path: str | Path) -> FloatArray:
     if matrix.shape != (4, 4) or not np.allclose(matrix[3], [0.0, 0.0, 0.0, 1.0]):
         raise ValueError(f"{path} does not hold a homogeneous 4x4 transform")
     return matrix
+
+
+def receive_time_clock_offset(
+    bag: str | Path, *, reference_topic: str, target_topic: str, max_messages: int = 2000
+) -> float:
+    """Coarse ``t_reference - t_target`` from header stamps against bag receive times.
+
+    Each topic's median ``header - receive`` is its clock's offset from the
+    recorder's; their difference is a coarse target-to-reference offset, good
+    to the transport jitter (milliseconds to tens of milliseconds).  It catches
+    a LiDAR stamped by its own clock, such as the Go2 L1 on the robot's RTC.
+    Use it as the centre of :func:`estimate_time_offset`, never as the answer.
+    """
+
+    import struct
+
+    from calibrex.data.rosbag2 import iter_messages
+
+    lags: dict[str, list[float]] = {reference_topic: [], target_topic: []}
+    for connection, timestamp_ns, payload in iter_messages(
+        bag, topics={reference_topic, target_topic}
+    ):
+        bucket = lags[connection.topic]
+        if len(bucket) >= max_messages:
+            if all(len(values) >= max_messages for values in lags.values()):
+                break
+            continue
+        endian = "<" if payload[1] == 1 else ">"
+        seconds, nanoseconds = struct.unpack_from(endian + "iI", payload, 4)
+        bucket.append(seconds + nanoseconds * 1.0e-9 - timestamp_ns * 1.0e-9)
+    for topic, values in lags.items():
+        if not values:
+            raise ValueError(f"{bag} has no messages on {topic}")
+    return float(np.median(lags[reference_topic]) - np.median(lags[target_topic]))

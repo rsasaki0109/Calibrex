@@ -13,6 +13,12 @@ motion to be accurate and fails when one odometry is weak (a 16-beam LiDAR
 turned on its side, for example), every sample constrains all six degrees of
 freedom directly from the scene, and the LiDARs need only a small overlap in
 what they see over a few seconds.
+
+A sample may also give every target point its own reference pose
+(``point_poses``): the reference trajectory evaluated at that point's capture
+time.  This accumulates several sparse target scans into one sample and
+deskews them along the reference trajectory, which a sparse, non-repetitive
+LiDAR on a shaking platform (the Unitree L1 on a Go2's head) needs.
 """
 
 from __future__ import annotations
@@ -51,6 +57,11 @@ def _map_runtime(
         return None
     if backend != "cuda":
         raise ValueError("map registration backend must be cpu or cuda")
+    if any(sample.point_poses is not None for sample in samples):
+        raise ValueError(
+            "CUDA map registration does not support per-point reference poses "
+            "(target accumulation or target deskew); use the cpu backend"
+        )
     try:
         from calibrex.solvers.cuda_lidar_map_adapter import CudaMapRuntime
     except ImportError as exc:
@@ -118,6 +129,9 @@ class MapSample:
     reference_pose: FloatArray  # T_odom_reference at the sample time
     target_points: FloatArray  # (N, 3) in the target LiDAR frame
     map_points: FloatArray  # (M, 3) in the odometry frame
+    # (N, 4, 4) T_odom_reference at each target point's capture time, or None to use
+    # ``reference_pose`` for every point.
+    point_poses: FloatArray | None = None
     _tree: cKDTree | None = None
     _normals: FloatArray | None = None
     _planar: NDArray[np.bool_] | None = None
@@ -145,10 +159,32 @@ class MapSample:
     ) -> tuple[FloatArray, FloatArray, FloatArray]:
         """Point-to-plane residuals, their normals, and the transformed points."""
 
+        residual, normals, points, _ = self.residuals_with_poses(extrinsic, options)
+        return residual, normals, points
+
+    def world_points(self, extrinsic: FloatArray) -> FloatArray:
+        """Target points in the odometry frame through ``P X`` (per point if given)."""
+
+        if self.point_poses is None:
+            transform = self.reference_pose @ extrinsic
+            return np.asarray(self.target_points @ transform[:3, :3].T + transform[:3, 3])
+        in_reference = self.target_points @ extrinsic[:3, :3].T + extrinsic[:3, 3]
+        poses = self.point_poses
+        return np.asarray(
+            np.einsum("nij,nj->ni", poses[:, :3, :3], in_reference) + poses[:, :3, 3]
+        )
+
+    def residuals_with_poses(
+        self, extrinsic: FloatArray, options: MapSampleOptions
+    ) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray]:
+        """As :meth:`residuals`, plus the reference pose(s) of the kept points.
+
+        The poses are ``(4, 4)`` without ``point_poses`` and ``(K, 4, 4)`` with.
+        """
+
         if self._tree is None:
             self._tree = cKDTree(self.map_points)
-        transform = self.reference_pose @ extrinsic
-        world = self.target_points @ transform[:3, :3].T + transform[:3, 3]
+        world = self.world_points(extrinsic)
         distances, indices = self._tree.query(
             world, distance_upper_bound=options.max_correspondence_m,
             workers=query_workers(options.query_workers),
@@ -163,7 +199,8 @@ class MapSample:
         normals = normals[indices[valid]]
         targets = self.map_points[indices[valid]]
         residual = np.einsum("ij,ij->i", world[valid] - targets, normals)
-        return residual, normals, self.target_points[valid]
+        poses = self.reference_pose if self.point_poses is None else self.point_poses[valid]
+        return residual, normals, self.target_points[valid], poses
 
 
 _NATIVE_MAP_RESIDUALS = MapSample.residuals
@@ -216,10 +253,14 @@ def solve_map_extrinsic(
         stacked: list[FloatArray] = []
         count = 0
         for sample in (samples if runtime is None else ()):
-            residual, normals, points = sample.residuals(extrinsic, opts)
+            if sample.point_poses is None:
+                residual, normals, points = sample.residuals(extrinsic, opts)
+                poses = sample.reference_pose
+            else:
+                residual, normals, points, poses = sample.residuals_with_poses(extrinsic, opts)
             if len(residual) == 0:
                 continue
-            jacobian = _jacobian(sample.reference_pose, extrinsic, normals, points)
+            jacobian = _jacobian(poses, extrinsic, normals, points)
             weight = np.minimum(1.0, opts.huber_m / np.maximum(np.abs(residual), 1e-12))
             hessian += jacobian.T @ (jacobian * weight[:, None])
             gradient += jacobian.T @ (weight * residual)
@@ -313,10 +354,16 @@ def perturb_extrinsic(extrinsic: FloatArray, dof: str, amount: float) -> FloatAr
 def _jacobian(
     pose: FloatArray, extrinsic: FloatArray, normals: FloatArray, points: FloatArray
 ) -> FloatArray:
-    """d(residual)/d(w, v) for the left perturbation of ``X``."""
+    """d(residual)/d(w, v) for the left perturbation of ``X``.
+
+    ``pose`` is one ``(4, 4)`` reference pose or one per point, ``(N, 4, 4)``.
+    """
 
     # q = P (Exp(w) X p + v) with p_ref = X p the point in the reference frame.
     in_reference = points @ extrinsic[:3, :3].T + extrinsic[:3, 3]
-    normals_in_reference = normals @ pose[:3, :3]
+    if pose.ndim == 3:
+        normals_in_reference = np.einsum("nk,nkj->nj", normals, pose[:, :3, :3])
+    else:
+        normals_in_reference = normals @ pose[:3, :3]
     rotation_part = np.cross(in_reference, normals_in_reference)
     return np.column_stack([rotation_part, normals_in_reference])

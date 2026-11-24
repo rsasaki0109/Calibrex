@@ -94,6 +94,26 @@ class LidarLidarSamples(StrictModel):
     holdout_correspondences: int = Field(ge=0)
 
 
+class LidarLidarTimeOffsetProfilePoint(StrictModel):
+    """Train-block cost of one candidate clock offset."""
+
+    offset_s: float
+    train_cost_per_point: float
+
+
+class LidarLidarTimeOffset(StrictModel):
+    """The target-to-reference clock offset (``t_reference = t_target + value_s``)."""
+
+    value_s: float
+    source: Literal["given", "estimated"]
+    std_jackknife_s: float | None = Field(default=None, ge=0.0)
+    at_search_edge: bool | None = None
+    search_center_s: float | None = None
+    search_half_width_s: float | None = Field(default=None, gt=0.0)
+    search_step_s: float | None = Field(default=None, gt=0.0)
+    profile: list[LidarLidarTimeOffsetProfilePoint] = Field(default_factory=list)
+
+
 class LidarLidarExtrinsicArtifact(StrictModel):
     """Evidence for one LiDAR-LiDAR extrinsic calibration run."""
 
@@ -117,6 +137,10 @@ class LidarLidarExtrinsicArtifact(StrictModel):
         ),
     )
     samples: LidarLidarSamples
+    time_offset: LidarLidarTimeOffset | None = Field(
+        default=None,
+        description="Clock offset applied to target point times (reference_trajectory only).",
+    )
     train_blocks: list[int] = Field(default_factory=list)
     holdout_blocks: list[int] = Field(default_factory=list)
     jackknife_fits: int = Field(ge=0)
