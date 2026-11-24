@@ -348,3 +348,28 @@ def test_run_ros2_trajectory_path_writes_a_valid_artifact(
     from calibrex.core.lidar_lidar_extrinsic import load_lidar_lidar_extrinsic
 
     assert load_lidar_lidar_extrinsic(path).time_offset == artifact.time_offset
+
+
+def test_cli_map_half_window_reaches_the_options(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    initial = tmp_path / "initial.yaml"
+    initial.write_text("T: [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]\n")
+    captured: dict[str, Any] = {}
+
+    def fake_run(bag: Any, **kwargs: Any) -> Any:
+        captured.update(kwargs)
+        raise ValueError("stop")
+
+    monkeypatch.setattr("calibrex.evaluation.lidar_lidar_map.run_ros2_lidar_lidar_map", fake_run)
+    arguments = [
+        "lidar-lidar", "ros2", "bag", "--reference-topic", "/a", "--target-topic", "/b",
+        "--initial", str(initial), "--dataset-family", "x", "--dataset-license", "y",
+        "--output", str(tmp_path / "out.yaml"),
+    ]  # fmt: skip
+    assert main([*arguments, "--map-half-window-scans", "0"]) != 0
+    assert captured["options"].map_half_window_scans == 0
+    assert "--map-half-window-scans" in captured["command"]
+    captured.clear()
+    assert main([*arguments, "--map-half-window-scans", "-1"]) != 0
+    assert captured == {}

@@ -1650,6 +1650,11 @@ def _build_parser() -> argparse.ArgumentParser:
     lidar_lidar_ros2.add_argument("--target-min-range", type=float, help="target min range (m)")
     lidar_lidar_ros2.add_argument("--target-max-range", type=float, help="target max range (m)")
     lidar_lidar_ros2.add_argument(
+        "--map-half-window-scans", type=int,
+        help="reference scans on each side of a sample's map (default 5); 0 maps each target "
+        "scan onto the nearest reference scan alone, so the reference odometry cancels",
+    )
+    lidar_lidar_ros2.add_argument(
         "--target-time-offset",
         help="t_reference = t_target + offset, in seconds, or 'receive-time' for a coarse "
         "value from header stamps against bag receive times (a LiDAR on its own clock); "
@@ -8412,6 +8417,7 @@ def _lidar_lidar_target_options(
         ("--target-voxel-size", args.target_voxel_size),
         ("--target-min-range", args.target_min_range),
         ("--target-max-range", args.target_max_range),
+        ("--map-half-window-scans", args.map_half_window_scans),
         ("--point-time-encoding", args.point_time_encoding),
         ("--target-point-time-field", args.target_point_time_field),
         ("--target-point-time-encoding", args.target_point_time_encoding),
@@ -8441,6 +8447,10 @@ def _lidar_lidar_target_options(
         command += ["--target-time-offset", args.target_time_offset]
     if args.time_offset_search is not None:
         command += ["--time-offset-search", *(str(value) for value in args.time_offset_search)]
+    if args.map_half_window_scans is not None:
+        if args.map_half_window_scans < 0:
+            raise ValueError("--map-half-window-scans must be >= 0")
+        options = replace(options, map_half_window_scans=args.map_half_window_scans)
     options = replace(
         options,
         target_motion=motion,
