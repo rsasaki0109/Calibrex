@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 0.6.5 - 2026-11-24
+
+Highlights:
+
+- **Published on PyPI.** `pip install calibrex` works from this release on; the wheel and
+  sdist are also attached to the GitHub release. A `Publish to PyPI` workflow uploads them
+  with trusted publishing.
+- Intrinsics: guided checkerboard (mono/stereo) and targetless rotation calibration,
+  fisheye lenses, `--intrinsics` for `check` and `estimate`, `--rolling-shutter`.
+- camera-focal holds out 2 s blocks; too little turning is inconclusive.
+- The README and install page use the release wheel again for `calibrex demo check`.
+
 - camera-focal holds out and jackknifes 2 s blocks instead of 10 s tracking windows
   (a 40 s recording had four, too few groups) and floors the ratio std at 0.2 %: on
   RobotNativeEngine's simulated rig the jackknife said 0.03 % while parts of the recording

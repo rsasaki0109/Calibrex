@@ -11,7 +11,7 @@ no-source install is the versioned wheel attached to the GitHub release.
 ## Install
 
 ```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.4/calibrex-0.6.4-py3-none-any.whl"
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.5/calibrex-0.6.5-py3-none-any.whl"
 ```
 
 The repository is newer than that wheel. `calibrex demo check`, `--threads`, the progress

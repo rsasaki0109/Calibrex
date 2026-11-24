@@ -14,7 +14,7 @@ LiDAR–camera combination using a rosbag — no ROS installation required.
 ## Prerequisites
 
 ```bash
-python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.4/calibrex-0.6.4-py3-none-any.whl"
+python -m pip install "https://github.com/rsasaki0109/Calibrex/releases/download/v0.6.5/calibrex-0.6.5-py3-none-any.whl"
 calibrex doctor          # checks environment and optional dependencies
 ```
 

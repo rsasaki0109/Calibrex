@@ -166,6 +166,8 @@ python3 tools/local_release_smoke.py
 
 The tag workflow creates a draft GitHub prerelease. After reviewing the draft,
 `CHANGELOG.md`, wheel smoke results, license boundaries, and public dataset
-notes, publishing the GitHub release triggers the PyPI trusted-publishing
-workflow. The `pypi` GitHub environment and PyPI trusted publisher must be
-configured before publishing the first release.
+notes, publish the release, then run the `Publish to PyPI` workflow with the tag
+(`publish-pypi.yml`; publishing through the GitHub UI also triggers it). It uploads the
+release's wheel and sdist with PyPI trusted publishing. Before the first upload, add a
+trusted publisher for `calibrex` on PyPI (owner `rsasaki0109`, repository `Calibrex`,
+workflow `publish-pypi.yml`, environment `pypi`) and create the `pypi` GitHub environment.
