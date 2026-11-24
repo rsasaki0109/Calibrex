@@ -1,0 +1,218 @@
+schema_version: slac.lidar_lidar_extrinsic/v0.1
+method: map_registration/v0.1
+solver_status: converged
+policy_status: pass
+policy_reasons:
+- every DoF is estimated and held-out blocks detect every control
+calibrated_dofs:
+- roll
+- pitch
+- yaw
+- x
+- y
+- z
+transform:
+  parent_frame: /hesai_points
+  child_frame: /livox_points
+  translation_m:
+  - 0.000934856270023091
+  - -0.002359496507599355
+  - 0.10627203224396187
+  rotation_quat_xyzw:
+  - 0.7079333156982099
+  - -0.7062785137405166
+  - 0.0004786975298533289
+  - -0.0009232560318031165
+dofs:
+- name: roll
+  unit: deg
+  value: -179.88635974245392
+  std_analytic: 0.0005371908345701123
+  std_jackknife: 0.017268575313554566
+  std_reported: 0.017268575313554566
+  status: estimated
+  reference_value: 179.24889803983
+  error_to_reference: -0.45692333068377045
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 912704.697064288
+    detected: true
+- name: pitch
+  unit: deg
+  value: 0.03588892909925475
+  std_analytic: 0.0005514379786720898
+  std_jackknife: 0.016222851626257518
+  std_reported: 0.016222851626257518
+  status: estimated
+  reference_value: 0.4973857492109115
+  error_to_reference: -0.8671574644258971
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 763368.3447115757
+    detected: true
+- name: yaw
+  unit: deg
+  value: -89.86587823766055
+  std_analytic: 0.0009320561892274425
+  std_jackknife: 0.031472924946909564
+  std_reported: 0.031472924946909564
+  status: estimated
+  reference_value: -89.52997880096859
+  error_to_reference: -0.3399154914415124
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 236092.02314215526
+    detected: true
+- name: x
+  unit: m
+  value: 0.000934856270023091
+  std_analytic: 8.346068548514096e-05
+  std_jackknife: 0.002630282097947997
+  std_reported: 0.002630282097947997
+  status: estimated
+  reference_value: 0.25192350096581645
+  error_to_reference: -0.25098864469579335
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    holdout_delta_chi2: 156693.37945416942
+    detected: true
+- name: y
+  unit: m
+  value: -0.002359496507599355
+  std_analytic: 0.00012349302337920349
+  std_jackknife: 0.004622982502110695
+  std_reported: 0.004622982502110695
+  status: estimated
+  reference_value: 0.2610449622317245
+  error_to_reference: -0.2634044587393239
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    holdout_delta_chi2: 35403.56762615219
+    detected: true
+- name: z
+  unit: m
+  value: 0.10627203224396187
+  std_analytic: 4.2291640316642745e-05
+  std_jackknife: 0.001710209696596873
+  std_reported: 0.001710209696596873
+  status: estimated
+  reference_value: -0.11914185598113969
+  error_to_reference: 0.22541388822510156
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    holdout_delta_chi2: 497871.58354806155
+    detected: true
+residual_sigma_m: 0.030169996497308917
+holdout_median_residual_m: 0.01993545710419968
+reference_holdout_delta_chi2: 6518885.4375141375
+samples:
+  reference_scans: 1840
+  samples: 182
+  train_samples: 122
+  holdout_samples: 60
+  train_correspondences: 843706
+  holdout_correspondences: 370022
+time_offset:
+  value_s: 0.0
+  source: given
+  profile: []
+train_blocks:
+- 0
+- 2
+- 3
+- 5
+- 6
+- 8
+- 9
+- 11
+- 12
+- 14
+- 15
+- 17
+- 18
+holdout_blocks:
+- 1
+- 4
+- 7
+- 10
+- 13
+- 16
+jackknife_fits: 8
+options:
+  sample_every_scans: 10
+  map_half_window_scans: 5
+  block_duration_s: 10.0
+  holdout_every: 3
+  jackknife_groups: 8
+  rotation_control_deg: 1.0
+  translation_control_m: 0.05
+  detection_delta_chi2: 9.0
+  observable_rotation_std_deg: 0.1
+  observable_translation_std_m: 0.02
+  voxel_size_m: 0.2
+  max_correspondence_m: 0.5
+  huber_m: 0.05
+  iterations: 30
+  registration_query_workers: 4
+  target_motion: reference_trajectory
+  target_accumulate_scans: 10
+  target_voxel_size_m: 0.05
+reference: inv(T_box_hesai_points.yaml) @ T_box_livox_points.yaml
+limitations:
+- The reference LiDAR's odometry supplies the map and the trajectory every target
+  point is placed by; its drift over the map window adds noise to every sample.
+- Target points are placed by the reference trajectory interpolated at their capture
+  times (linear in translation, geodesic in rotation between reference scans); motion
+  faster than the reference scan rate, such as gait vibration above half that rate,
+  is not resolved.
+- The reference transform, if given, is a comparison, not ground truth.
+provenance:
+  generator: calibrex.evaluation.lidar_lidar_map
+  generator_version: 0.6.5
+  git_commit: ef7b342d
+  command:
+  - calibrex
+  - lidar-lidar
+  - ros2
+  - /tmp/claude-0/-home-user-Calibrex/3c3a9d24-c626-53dd-a0f2-d50e126bdfca/scratchpad/gt/eval/2024-11-03-07-52-45/sparse/bag
+  - --reference-topic
+  - /hesai_points
+  - --target-topic
+  - /livox_points
+  - --point-time-field
+  - time
+  - --registration-query-workers
+  - '4'
+  - --target-motion
+  - reference_trajectory
+  - --target-accumulate-scans
+  - '10'
+  - --target-voxel-size
+  - '0.05'
+  - --target-min-range
+  - '0.5'
+  - --point-time-encoding
+  - absolute_s
+  - --target-point-time-field
+  - time
+  - --target-point-time-encoding
+  - absolute_ns
+  - --body-transforms
+  - /tmp/claude-0/-home-user-Calibrex/3c3a9d24-c626-53dd-a0f2-d50e126bdfca/scratchpad/gt/eval/2024-11-03-07-52-45/dense/T_box_hesai_points.yaml
+  - /tmp/claude-0/-home-user-Calibrex/3c3a9d24-c626-53dd-a0f2-d50e126bdfca/scratchpad/gt/eval/2024-11-03-07-52-45/dense/T_box_livox_points.yaml
+  dataset_family: grand_tour
+  sequence_ids:
+  - bag
+  reference_topic: /hesai_points
+  target_topic: /livox_points
+  input_sha256: 813301fbe3b97a01bdab54b95f2e965ca9dd1fded79a4d392a0a633bc82eb36c
+  input_digest_scope: bag metadata.yaml in full; bag databases by size and first 64
+    MiB
+  dataset_license: MIT
+  created_at: '2026-11-24T05:50:38.057066+00:00'
