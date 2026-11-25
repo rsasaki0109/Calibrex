@@ -1,0 +1,179 @@
+{
+  "provenance": {
+    "split": "evaluation",
+    "commit": "3112f7dfcd7246ba56d6251099e14183d08ba62b",
+    "source_sha256": "2f163516cca84a8da32c00e72b7d8f3368a29b3a0090005bb7bb9a91e4b5e3b9",
+    "reference_sha256": "3a0c0285f4d0a3a1678053b2e5912e3e250e78ac09bd009f6d7d8bba669d5703",
+    "python": "3.12.14",
+    "numpy": "2.5.2",
+    "scipy": "1.18.0",
+    "opencv": "4.14.0"
+  },
+  "bag": {
+    "url": "https://cdn2.vision.in.tum.de/tumvi/calibrated/512_16/dataset-room5_512_16.bag",
+    "size_bytes": 2998956689,
+    "etag": "b2c07291-56a11a591bcf8"
+  },
+  "window": {
+    "start_seconds": 18,
+    "duration_seconds": 10,
+    "rig_position_diameter_m": 0.30419245074709605,
+    "rig_rotation_vector_span_deg": [
+      87.81877148096504,
+      103.23507799563608,
+      97.66891915431819
+    ]
+  },
+  "cameras": {
+    "cam0": {
+      "command": [
+        "/workspace/calibrex/.venv/bin/python",
+        "-c",
+        "import sys; from calibrex.cli.main import main; sys.exit(main())",
+        "intrinsics",
+        "rotate",
+        "--bag",
+        "/dev/shm/calibrex-tumvi.lzi7bNN8/dataset-room5_512_16.bag",
+        "--topic",
+        "/cam0/image_raw",
+        "--distortion",
+        "equidistant",
+        "--seconds",
+        "10",
+        "--camera-name",
+        "cam0",
+        "--output",
+        "/workspace/scratch/tumvi/eval/room5_cam0_camchain.yaml",
+        "--json",
+        "--start-seconds",
+        "18"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "estimate": {
+        "distortion_coeffs": [
+          -0.014175963320805228,
+          0.003946184998907787,
+          0.022058851794024274,
+          -0.012418463732892916
+        ],
+        "intrinsics": [
+          219.99347446199337,
+          219.37975083070395,
+          258.0559494663094,
+          252.05447199851992
+        ],
+        "keyframes": 138,
+        "median_px": 1.4780020428229783,
+        "readout_s": null,
+        "readout_std_s": null,
+        "rms_px": 3.08423043160955,
+        "rotation_span_deg": {
+          "pan": 85.92008305801988,
+          "roll": 99.49720542233185,
+          "tilt": 72.59939054829024
+        },
+        "std": {
+          "cx": 0.6492819493235878,
+          "cy": 0.6509540211136695,
+          "fx": 0.6570856442574721,
+          "fy": 0.6570842676568516,
+          "k1": 0.006220766069627955,
+          "k2": 0.01021613992019487,
+          "k3": 0.00652444921344481,
+          "k4": 0.0014027798288939373
+        },
+        "warnings": [
+          "tracked features miss a pure rotation by 1.48 px (median): the scene moved, or the features are tracked poorly (motion blur, low texture); a translation of the camera does not show here",
+          "the camera must turn about its lens: a lens offset L from the rotation centre at scene distance D biases the focal length by about +0.8 L/D (5 cm at 4 m: +1 %), which the residuals do not show"
+        ]
+      },
+      "errors": {
+        "fx_pct": 15.192810071326225,
+        "fy_pct": 14.874562428155658,
+        "cx_px": 3.124243406954662,
+        "cy_px": -4.842970901130485,
+        "k1": -0.01765835272305457,
+        "k2": 0.0032311501536915616,
+        "k3": 0.024112087935894894,
+        "k4": -0.012621400468811028
+      },
+      "status": "fail"
+    },
+    "cam1": {
+      "command": [
+        "/workspace/calibrex/.venv/bin/python",
+        "-c",
+        "import sys; from calibrex.cli.main import main; sys.exit(main())",
+        "intrinsics",
+        "rotate",
+        "--bag",
+        "/dev/shm/calibrex-tumvi.lzi7bNN8/dataset-room5_512_16.bag",
+        "--topic",
+        "/cam1/image_raw",
+        "--distortion",
+        "equidistant",
+        "--seconds",
+        "10",
+        "--camera-name",
+        "cam1",
+        "--output",
+        "/workspace/scratch/tumvi/eval/room5_cam1_camchain.yaml",
+        "--json",
+        "--start-seconds",
+        "18"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "estimate": {
+        "distortion_coeffs": [
+          -0.03850771879719641,
+          0.007365682461422986,
+          0.02135046281118355,
+          -0.010587847544264645
+        ],
+        "intrinsics": [
+          212.72464734292026,
+          215.9124234276689,
+          250.00275620907914,
+          251.65942517239597
+        ],
+        "keyframes": 136,
+        "median_px": 1.1441982165037754,
+        "readout_s": null,
+        "readout_std_s": null,
+        "rms_px": 2.827701348506344,
+        "rotation_span_deg": {
+          "pan": 90.31596543863445,
+          "roll": 98.66416429043993,
+          "tilt": 76.07643825128558
+        },
+        "std": {
+          "cx": 3.839960719815539e-05,
+          "cy": 0.0,
+          "fx": 0.0,
+          "fy": 0.001914290519016389,
+          "k1": 0.002155795864968188,
+          "k2": 0.002118120300826033,
+          "k3": 0.0005549224875431304,
+          "k4": 2.014302124882957e-10
+        },
+        "warnings": [
+          "tracked features miss a pure rotation by 1.14 px (median): the scene moved, or the features are tracked poorly (motion blur, low texture); a translation of the camera does not show here",
+          "the camera must turn about its lens: a lens offset L from the rotation centre at scene distance D biases the focal length by about +0.8 L/D (5 cm at 4 m: +1 %), which the residuals do not show"
+        ]
+      },
+      "errors": {
+        "fx_pct": 11.700273255661276,
+        "fy_pct": 13.378874724485934,
+        "cx_px": -2.5967409592806803,
+        "cy_px": -3.2578054739738604,
+        "k1": -0.04190803587624069,
+        "k2": 0.005599404307953155,
+        "k3": 0.024013588508999612,
+        "k4": -0.010917799286657748
+      },
+      "status": "fail"
+    }
+  }
+}
