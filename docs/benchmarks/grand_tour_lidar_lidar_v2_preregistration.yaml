@@ -1,0 +1,177 @@
+# Frozen GrandTour LiDAR-LiDAR v2 protocol
+frozen_code_commit: 2471ae6659c0c3d9ec75aca3843f4b20d94685bd
+execution: The two freeze commits are pushed to the named branch and verified before downloading evaluation
+  archives. Run once from the pre-registration commit, with identical src, tools, pyproject.toml and uv.lock
+  to the frozen code commit. No PR or merge is required.
+claim: On four previously unread GrandTour missions on distinct days, the dense estimate supplies judged
+  rotation and aligns same-time full-density scans within 55 mm. Its largest rotation deviation relative
+  to the chordal mean of other missions is within 1.5 times the combined reported uncertainty after applying
+  the all-day empirical floor. For the L1-like target, each mission supplies valid held-out evidence with
+  every estimated axis detecting its known-bad control, and at least half of axes are estimated across
+  the missions.
+scope:
+  modalities:
+  - lidar
+  - lidar
+  quantities:
+  - rotation
+  - translation
+  category: targetless_lidar_lidar
+dataset:
+  name: GrandTour
+  source: https://huggingface.co/datasets/leggedrobotics/grand_tour_dataset
+  revision: af6b6dd6f91696f8ec8c98134e195514834911b2
+  license: MIT
+  rig: anymal-d-boxi
+exposure: Only file manifest metadata (path, size and LFS SHA-256) informed v2 mission selection. Previously
+  inspected static tf metadata is allowed. No sensor data from the selected missions have entered the
+  method, the selection, or the thresholds.
+recordings:
+  selection_rule: Exclude all dates containing a spent GrandTour mission. Require the three tar files
+    with LFS SHA-256 and size in the pinned tree. Pick the smallest total bytes across the three files
+    on each eligible date, breaking ties by mission ID. Take the four least expensive date winners by
+    the same ranking and execute chronologically.
+  development_only:
+  - 2024-11-02-17-43-10
+  - 2024-11-03-07-52-45
+  - 2024-11-04-13-07-13
+  - 2024-11-11-12-42-47
+  - 2024-11-14-13-45-37
+  evaluation:
+  - mission: 2024-10-01-11-29-55
+    sha256:
+      hesai_points.tar: 8e9b6ae1cb48b3453a400bd8b82c98d7df1c6dccbfbd817409d8a6c4f281deb3
+      livox_points.tar: 44702391b3d6e1187e229f181468c0c48b929c16918956dee365b01c48c021f9
+      tf.tar: 7c08ea883dabe77695dfdc5093e1512f9bd5ad642918e386cb0748a2b695d491
+    size_bytes:
+      hesai_points.tar: 1678919680
+      livox_points.tar: 493885440
+      tf.tar: 30720
+  - mission: 2024-11-15-12-06-03
+    sha256:
+      hesai_points.tar: 535bac9d2f93e60fb5a7e23ee04984aa78bcc7b19341a29e3a741f1898baf8ae
+      livox_points.tar: 2529f34fb97efa5b0b932074151509cf47b2fdc720b856adf6413af95f844b29
+      tf.tar: fdcfdc8b73e024ce9d0cd42b2578319236c5b6b4bc5bef97b2763f6538d7bb0d
+    size_bytes:
+      hesai_points.tar: 1333186560
+      livox_points.tar: 369561600
+      tf.tar: 30720
+  - mission: 2024-11-18-17-31-36
+    sha256:
+      hesai_points.tar: 37acaa9a1e1005d34cb961ac3142c13b1e1388f6fb65b388b9e1f8fd728391e2
+      livox_points.tar: f21d0c2cac6b563a7201e3765e278c09a5891c968febae951433a92cc56defe6
+      tf.tar: acea9b4db15df77919b6e87e60ee2953f3250386eb9a946adecd55ad7729238f
+    size_bytes:
+      hesai_points.tar: 1694003200
+      livox_points.tar: 480481280
+      tf.tar: 30720
+  - mission: 2024-12-03-13-26-40
+    sha256:
+      hesai_points.tar: df268d2f7d1f8b38fe00719a364e3a9ffdd1cbf7ad931428d7ff9005038a2d47
+      livox_points.tar: 31a88786beb892a5426ba5b4ab8ba5544530129c9be512af5507e9dc092931e7
+      tf.tar: 8f7dcc2a40d39a4277b95e4c751d13807fca79d95d6a61ade70d0fa9511e4b0d
+    size_bytes:
+      hesai_points.tar: 1396439040
+      livox_points.tar: 444508160
+      tf.tar: 30720
+methods:
+  calibrex_dense:
+    kind: calibrex
+    flags:
+    - --map-half-window-scans
+    - 0
+    - --window-sensitivity
+    - 5
+  calibrex_sparse:
+    kind: calibrex
+    flags:
+    - --preset
+    - unitree-go2-l1
+emulated_sparse_target:
+  max_points: 2000
+  max_range_m: 20.0
+  seed: 0
+same_time_fractions:
+- 0.1
+- 0.3
+- 0.5
+- 0.7
+- 0.9
+sensor_input: Direct Zarr replay of the converter point mask, point time conventions (Hesai absolute seconds,
+  Livox absolute nanoseconds) and seeded Livox subset. Reference odometry and registration are CPU, with
+  Calibrex defaults and four registration query workers. Each fit starts from the released static transforms.
+rotation_floor_deg:
+- 0.16
+- 0.03
+- 0.4
+metric_definitions:
+  same_time_median_m: Dense candidate median of the five raw full-density point-to-plane medians against
+    the nearest Hesai scans. The dataset tf can be reported as a comparison, separate from the gates.
+  rotation_ratio: For each mission and each Hesai reference-frame rotation axis take the absolute component
+    of log(R_i R_peer_mean^T), in degrees. The mean is the chordal SO(3) mean. Divide by sqrt(s_i^2 +
+    sum(s_j^2)/(n-1)^2) with s = max(std_reported, [0.16, 0.03, 0.40] degrees) componentwise. The maximum
+    across axes is the mission score. This is an empirical tolerance on rotation reproducibility, including
+    potential mount changes.
+  estimated_fraction: Of six axes, the fraction estimated with a detected held-out perturbation. Score
+    the mean across the four missions. The perturbations are 1 degree and 5 cm at delta chi-square >=
+    9 under the fixed solver defaults.
+failure_policy: Dense requires a finite same-time median and three estimated rotation axes with detected
+  controls and at least 100 held-out correspondences, and the fit may not have policy status fail. A missing
+  valid dense rotation prevents computing peer means and fails dense completeness. Sparse accepts pass
+  or inconclusive with a transform, at least 100 held-out correspondences and detected controls on every
+  estimated axis. A dropped axis contributes zero to the six-axis denominator. Missing or invalid evidence
+  in either method fails that method and mission.
+rerun_policy: For transport only, curl retries transient errors at most twice under the same URL. Each
+  download is checked against the frozen SHA-256. A failed integrity check or processing error makes the
+  corresponding evidence unavailable, with no retry of a sensor fit or same-time calculation. Missing
+  evidence is a failure. Every step is captured in runs.json.
+requirements:
+- - dense-complete
+  - dense
+  - failure_rate
+  - null
+  - less_equal
+  - 0.0
+- - dense-same-time
+  - dense
+  - metric_maximum
+  - same_time_median_m
+  - less_equal
+  - 0.055
+- - dense-rotation-reproducibility
+  - dense
+  - metric_maximum
+  - rotation_ratio
+  - less_equal
+  - 1.5
+- - sparse-honesty
+  - sparse
+  - failure_rate
+  - null
+  - less_equal
+  - 0.0
+- - sparse-axis-coverage
+  - sparse
+  - metric_mean
+  - estimated_fraction
+  - greater_equal
+  - 0.5
+thresholds_from_development:
+  basis: Post hoc analysis of five spent missions. Same-time and sparse coverage use committed v1 outputs
+    on four of the spent missions and the spent 11-02 development result. Dense rotation uses the five
+    window-zero artifacts and the all-five empirical floor from Task A. These proxies are fixed before
+    evaluating the final recipe.
+  same_time_worst_m: 0.033603608229635165
+  same_time_rounding_m: 0.005
+  rotation_ratio_worst: 0.874884
+  rotation_ratio_rounding: 0.25
+  sparse_coverage_rate: 0.9
+  coverage_rounding: 0.25
+  rule: Error gates multiply the worst development value by 1.5 and round up; coverage divides the observed
+    rate by 1.5 and rounds down. Completion and detection on claimed axes are logical conditions.
+environment:
+  numpy: 2.5.2
+  scipy: 1.18.0
+  zarr: 2.18.7
+  numcodecs: 0.15.2
+  openblas_num_threads: 1

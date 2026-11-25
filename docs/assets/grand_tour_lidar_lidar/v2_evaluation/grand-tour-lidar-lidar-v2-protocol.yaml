@@ -1,0 +1,101 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: grand-tour-lidar-lidar-v2
+scope:
+  modalities:
+  - lidar
+  - lidar
+  quantities:
+  - rotation
+  - translation
+  category: targetless_lidar_lidar
+claim_text: On four previously unread GrandTour missions on distinct days, the dense
+  estimate supplies judged rotation and aligns same-time full-density scans within
+  55 mm. Its largest rotation deviation relative to the chordal mean of other missions
+  is within 1.5 times the combined reported uncertainty after applying the all-day
+  empirical floor. For the L1-like target, each mission supplies valid held-out evidence
+  with every estimated axis detecting its known-bad control, and at least half of
+  axes are estimated across the missions.
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: dense-complete
+  phase: audit
+  description: dense complete
+  dataset_family: grand_tour
+  independent_rig: true
+  rig_id: anymal-d-boxi
+  evidence_path: grand-tour-lidar-lidar-v2-dense-benchmark.yaml
+  evidence_sha256: 81d9726ffce8b2555157110e00407eda22ce76b7fb2e8b384c25f86246847dba
+  method_id: calibrex_dense
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: dense-same-time
+  phase: audit
+  description: dense same time
+  dataset_family: grand_tour
+  independent_rig: false
+  rig_id: anymal-d-boxi
+  evidence_path: grand-tour-lidar-lidar-v2-dense-benchmark.yaml
+  evidence_sha256: 81d9726ffce8b2555157110e00407eda22ce76b7fb2e8b384c25f86246847dba
+  method_id: calibrex_dense
+  metric: same_time_median_m
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.055
+  required: true
+- requirement_id: dense-rotation-reproducibility
+  phase: audit
+  description: dense rotation reproducibility
+  dataset_family: grand_tour
+  independent_rig: false
+  rig_id: anymal-d-boxi
+  evidence_path: grand-tour-lidar-lidar-v2-dense-benchmark.yaml
+  evidence_sha256: 81d9726ffce8b2555157110e00407eda22ce76b7fb2e8b384c25f86246847dba
+  method_id: calibrex_dense
+  metric: rotation_ratio
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 1.5
+  required: true
+- requirement_id: sparse-honesty
+  phase: audit
+  description: sparse honesty
+  dataset_family: grand_tour
+  independent_rig: false
+  rig_id: anymal-d-boxi
+  evidence_path: grand-tour-lidar-lidar-v2-sparse-benchmark.yaml
+  evidence_sha256: 5dfc6a74173ef31c22664bd439234a4d1d6d65acea8a72900798554d1284daf1
+  method_id: calibrex_sparse
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: sparse-axis-coverage
+  phase: audit
+  description: sparse axis coverage
+  dataset_family: grand_tour
+  independent_rig: false
+  rig_id: anymal-d-boxi
+  evidence_path: grand-tour-lidar-lidar-v2-sparse-benchmark.yaml
+  evidence_sha256: 5dfc6a74173ef31c22664bd439234a4d1d6d65acea8a72900798554d1284daf1
+  method_id: calibrex_sparse
+  metric: estimated_fraction
+  statistic: metric_mean
+  comparison: greater_equal
+  threshold: 0.5
+  required: true
+provenance:
+  generator: /workspace/work/Calibrex/tools/build_grand_tour_lidar_lidar_v2_audit.py
+  generator_version: 0.6.5
+  command:
+  - python
+  - -m
+  - tools.build_grand_tour_lidar_lidar_v2_audit
+  - docs/assets/grand_tour_lidar_lidar/v2_evaluation
+  source_sha256:
+    preregistration: ebcab6aca58cf91f12a9da05bc5d408b92bf875b95d253a85e92667b51f355b0
+    scores: 17f0164a3180cc571b15da823ccc8217cc657d347e263743c3bbf06942a908b3
+    runs: d8289402ac7f414e50ee8896c362572a6bd14e9d6cba2f8d6194d7379b69a8d5
+  created_at: '2026-11-25T08:48:40.630691+00:00'

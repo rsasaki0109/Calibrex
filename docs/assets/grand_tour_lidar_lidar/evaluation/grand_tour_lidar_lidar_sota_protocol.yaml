@@ -1,0 +1,113 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: grand-tour-lidar-lidar-v1
+scope:
+  modalities:
+  - lidar
+  - lidar
+  quantities:
+  - rotation
+  - translation
+  category: targetless_lidar_lidar
+claim_text: On four GrandTour missions (ANYmal D with the Boxi payload, four recording
+  days) not used to develop the method, Calibrex's LiDAR-LiDAR extrinsic from a Hesai
+  XT-32 to a Livox MID360 passes its own held-out evidence on every mission, reproduces
+  across missions within 0.3 deg and 3 cm, and aligns single same-time scans to within
+  35 mm (median point-to-plane). With the MID360 thinned to an L1-like 2,000 points
+  per scan within 20 m, the per-point-trajectory mode with 10 accumulated scans also
+  passes on every mission and stays within 0.25 deg and 1 cm of the dense estimate
+  of the same mission.
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: dense-pass-every-mission
+  phase: audit
+  description: calibrex_dense passes (all six DoFs, every control) on every mission
+  dataset_family: grand_tour
+  independent_rig: true
+  rig_id: anymal-d-boxi
+  evidence_path: grand_tour_lidar_lidar_dense_benchmark.yaml
+  evidence_sha256: fe3c23cc81d04f91387f9b6c64b1edc976c0d5a0956e249b43712958bbfc4a2c
+  method_id: calibrex_dense
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: dense-cross-mission-consistency
+  phase: audit
+  description: calibrex_dense cross-mission consistency <= 1.0 on every mission (0.3
+    deg / 3 cm)
+  dataset_family: grand_tour
+  independent_rig: false
+  evidence_path: grand_tour_lidar_lidar_dense_benchmark.yaml
+  evidence_sha256: fe3c23cc81d04f91387f9b6c64b1edc976c0d5a0956e249b43712958bbfc4a2c
+  method_id: calibrex_dense
+  metric: cross_mission_consistency
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 1.0
+  required: true
+- requirement_id: dense-same-time-alignment
+  phase: audit
+  description: calibrex_dense same-time median point-to-plane <= 0.035 m on every
+    mission
+  dataset_family: grand_tour
+  independent_rig: false
+  evidence_path: grand_tour_lidar_lidar_dense_benchmark.yaml
+  evidence_sha256: fe3c23cc81d04f91387f9b6c64b1edc976c0d5a0956e249b43712958bbfc4a2c
+  method_id: calibrex_dense
+  metric: same_time_median_m
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.035
+  required: true
+- requirement_id: sparse-pass-every-mission
+  phase: audit
+  description: calibrex_sparse passes on every mission
+  dataset_family: grand_tour
+  independent_rig: false
+  evidence_path: grand_tour_lidar_lidar_sparse_benchmark.yaml
+  evidence_sha256: d4162d24185a944804b06282c1ac2f4ccdbd4fefff99a697f372c3856527aa8a
+  method_id: calibrex_sparse
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: sparse-rotation-to-dense
+  phase: audit
+  description: calibrex_sparse rotation to the mission's dense estimate <= 0.25 deg
+    on every mission
+  dataset_family: grand_tour
+  independent_rig: false
+  evidence_path: grand_tour_lidar_lidar_sparse_benchmark.yaml
+  evidence_sha256: d4162d24185a944804b06282c1ac2f4ccdbd4fefff99a697f372c3856527aa8a
+  method_id: calibrex_sparse
+  metric: rotation_to_dense_deg
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.25
+  required: true
+- requirement_id: sparse-translation-to-dense
+  phase: audit
+  description: calibrex_sparse translation to the mission's dense estimate <= 0.01
+    m on every mission
+  dataset_family: grand_tour
+  independent_rig: false
+  evidence_path: grand_tour_lidar_lidar_sparse_benchmark.yaml
+  evidence_sha256: d4162d24185a944804b06282c1ac2f4ccdbd4fefff99a697f372c3856527aa8a
+  method_id: calibrex_sparse
+  metric: translation_to_dense_m
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.01
+  required: true
+provenance:
+  generator: tools/build_grand_tour_lidar_lidar_audit.py
+  generator_version: 0.6.5
+  command:
+  - python
+  - tools/build_grand_tour_lidar_lidar_audit.py
+  - docs/assets/grand_tour_lidar_lidar/evaluation
+  source_sha256:
+    preregistration: 2384cf06a63ea95c0f3b01c23c10e31bf2f97f01d2c2ac12df0ea6a4f5ea31af
+    scores: 6439076189ec8deaa8e45d4956790aaa9a24fc2c09e1c2a1cc73d255b0ea1bce
+  created_at: '2026-11-24T08:06:43.024338+00:00'

@@ -1,0 +1,129 @@
+{
+ "mission_data": "/tmp/claude-0/-home-user-Calibrex/3c3a9d24-c626-53dd-a0f2-d50e126bdfca/scratchpad/gt/eval/2024-11-14-13-45-37/data",
+ "reference": "hesai_points",
+ "target": "livox_points",
+ "artifact": "docs/assets/grand_tour_lidar_lidar/evaluation/2024-11-14-13-45-37_calibrex_sparse.yaml",
+ "tf_reference": "hesai_lidar",
+ "tf_target": "livox_lidar",
+ "candidates": {
+  "estimate": [
+   [
+    0.002371001312443786,
+    -0.9999954279093768,
+    0.0018768359328338005,
+    -0.005008717508328996
+   ],
+   [
+    -0.9999964339698488,
+    -0.0023686887325881554,
+    0.0012334347464830087,
+    -0.0030465476510329968
+   ],
+   [
+    -0.00122898346698055,
+    -0.0018797537153830005,
+    -0.9999974780596235,
+    0.1267883544081994
+   ],
+   [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ]
+  ],
+  "dataset_tf": [
+   [
+    0.008203016368235436,
+    -0.999879497179686,
+    -0.0131795918814253,
+    0.2519235009658164
+   ],
+   [
+    -0.9999286736187867,
+    -0.008316413317974695,
+    0.008572336000127245,
+    0.2610449622317246
+   ],
+   [
+    -0.008680909942910707,
+    0.013108332816307466,
+    -0.9998763990680749,
+    -0.11914185598113966
+   ],
+   [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ]
+  ]
+ },
+ "rows": [
+  {
+   "target_index": 302,
+   "reference_index": 302,
+   "time_gap_s": -0.017246246337890625,
+   "estimate": {
+    "matched_fraction": 0.4820042342978123,
+    "median_point_to_plane_m": 0.03517102132975987
+   },
+   "dataset_tf": {
+    "matched_fraction": 0.4076687838155728,
+    "median_point_to_plane_m": 0.21337553118515643
+   }
+  },
+  {
+   "target_index": 908,
+   "reference_index": 908,
+   "time_gap_s": -0.017528057098388672,
+   "estimate": {
+    "matched_fraction": 0.5414100985221675,
+    "median_point_to_plane_m": 0.028837860719603575
+   },
+   "dataset_tf": {
+    "matched_fraction": 0.4393472906403941,
+    "median_point_to_plane_m": 0.13848571128337012
+   }
+  },
+  {
+   "target_index": 1514,
+   "reference_index": 1514,
+   "time_gap_s": -0.01761484146118164,
+   "estimate": {
+    "matched_fraction": 0.4777628032345013,
+    "median_point_to_plane_m": 0.043075693247874705
+   },
+   "dataset_tf": {
+    "matched_fraction": 0.40279649595687333,
+    "median_point_to_plane_m": 0.17596999172792066
+   }
+  },
+  {
+   "target_index": 2120,
+   "reference_index": 2120,
+   "time_gap_s": -0.0168454647064209,
+   "estimate": {
+    "matched_fraction": 0.32773972602739726,
+    "median_point_to_plane_m": 0.04347680213954237
+   },
+   "dataset_tf": {
+    "matched_fraction": 0.30539383561643835,
+    "median_point_to_plane_m": 0.23606493546344798
+   }
+  },
+  {
+   "target_index": 2726,
+   "reference_index": 2726,
+   "time_gap_s": -0.01674365997314453,
+   "estimate": {
+    "matched_fraction": 0.42696090189493885,
+    "median_point_to_plane_m": 0.030401350482351885
+   },
+   "dataset_tf": {
+    "matched_fraction": 0.3641160949868074,
+    "median_point_to_plane_m": 0.2307675998927325
+   }
+  }
+ ]
+}

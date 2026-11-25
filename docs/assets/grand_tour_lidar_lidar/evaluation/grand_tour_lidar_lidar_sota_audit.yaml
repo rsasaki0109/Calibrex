@@ -1,0 +1,90 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: grand-tour-lidar-lidar-v1
+protocol_id: grand-tour-lidar-lidar-v1
+scope:
+  modalities:
+  - lidar
+  - lidar
+  quantities:
+  - rotation
+  - translation
+  category: targetless_lidar_lidar
+claim_text: On four GrandTour missions (ANYmal D with the Boxi payload, four recording
+  days) not used to develop the method, Calibrex's LiDAR-LiDAR extrinsic from a Hesai
+  XT-32 to a Livox MID360 passes its own held-out evidence on every mission, reproduces
+  across missions within 0.3 deg and 3 cm, and aligns single same-time scans to within
+  35 mm (median point-to-plane). With the MID360 thinned to an L1-like 2,000 points
+  per scan within 20 m, the per-point-trajectory mode with 10 accumulated scans also
+  passes on every mission and stays within 0.25 deg and 1 cm of the dense estimate
+  of the same mission.
+verdict: refuted
+achieved_dataset_families:
+- grand_tour
+achieved_independent_rig_count: 0
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: dense-pass-every-mission
+  required: true
+  status: contradicted
+  observed_value: 0.25
+  threshold: 0.0
+  reason: observed 0.25 does not meet less_equal 0
+  evidence_path: docs/assets/grand_tour_lidar_lidar/evaluation/grand_tour_lidar_lidar_dense_benchmark.yaml
+  evidence_sha256: fe3c23cc81d04f91387f9b6c64b1edc976c0d5a0956e249b43712958bbfc4a2c
+- requirement_id: dense-cross-mission-consistency
+  required: true
+  status: contradicted
+  observed_value: 1.5188334494661757
+  threshold: 1.0
+  reason: observed 1.51883344947 does not meet less_equal 1
+  evidence_path: docs/assets/grand_tour_lidar_lidar/evaluation/grand_tour_lidar_lidar_dense_benchmark.yaml
+  evidence_sha256: fe3c23cc81d04f91387f9b6c64b1edc976c0d5a0956e249b43712958bbfc4a2c
+- requirement_id: dense-same-time-alignment
+  required: true
+  status: achieved
+  observed_value: 0.027426044964882143
+  threshold: 0.035
+  reason: observed 0.0274260449649 meets less_equal 0.035
+  evidence_path: docs/assets/grand_tour_lidar_lidar/evaluation/grand_tour_lidar_lidar_dense_benchmark.yaml
+  evidence_sha256: fe3c23cc81d04f91387f9b6c64b1edc976c0d5a0956e249b43712958bbfc4a2c
+- requirement_id: sparse-pass-every-mission
+  required: true
+  status: contradicted
+  observed_value: 0.5
+  threshold: 0.0
+  reason: observed 0.5 does not meet less_equal 0
+  evidence_path: docs/assets/grand_tour_lidar_lidar/evaluation/grand_tour_lidar_lidar_sparse_benchmark.yaml
+  evidence_sha256: d4162d24185a944804b06282c1ac2f4ccdbd4fefff99a697f372c3856527aa8a
+- requirement_id: sparse-rotation-to-dense
+  required: true
+  status: achieved
+  observed_value: 0.10087819103218824
+  threshold: 0.25
+  reason: observed 0.100878191032 meets less_equal 0.25
+  evidence_path: docs/assets/grand_tour_lidar_lidar/evaluation/grand_tour_lidar_lidar_sparse_benchmark.yaml
+  evidence_sha256: d4162d24185a944804b06282c1ac2f4ccdbd4fefff99a697f372c3856527aa8a
+- requirement_id: sparse-translation-to-dense
+  required: true
+  status: contradicted
+  observed_value: 0.023973681934908675
+  threshold: 0.01
+  reason: observed 0.0239736819349 does not meet less_equal 0.01
+  evidence_path: docs/assets/grand_tour_lidar_lidar/evaluation/grand_tour_lidar_lidar_sparse_benchmark.yaml
+  evidence_sha256: d4162d24185a944804b06282c1ac2f4ccdbd4fefff99a697f372c3856527aa8a
+summary: At least one frozen required numerical or integrity gate is contradicted;
+  the declared SOTA claim is not supported.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.6.5
+  git_commit: aa73e9ab
+  command: []
+  source_sha256:
+    protocol: 03508a5efcde624a822f44a1aa62e01523b2478187e3fa2e824413626bcb1a1d
+    dense-pass-every-mission: fe3c23cc81d04f91387f9b6c64b1edc976c0d5a0956e249b43712958bbfc4a2c
+    dense-cross-mission-consistency: fe3c23cc81d04f91387f9b6c64b1edc976c0d5a0956e249b43712958bbfc4a2c
+    dense-same-time-alignment: fe3c23cc81d04f91387f9b6c64b1edc976c0d5a0956e249b43712958bbfc4a2c
+    sparse-pass-every-mission: d4162d24185a944804b06282c1ac2f4ccdbd4fefff99a697f372c3856527aa8a
+    sparse-rotation-to-dense: d4162d24185a944804b06282c1ac2f4ccdbd4fefff99a697f372c3856527aa8a
+    sparse-translation-to-dense: d4162d24185a944804b06282c1ac2f4ccdbd4fefff99a697f372c3856527aa8a
+  created_at: '2026-11-24T08:06:43.044495+00:00'

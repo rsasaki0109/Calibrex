@@ -7,6 +7,50 @@
 - The preregistered TUM-VI rotation-intrinsics audit passed 0 of 10 evaluation cases.
   Both focal lengths were high in every case, by 11.70% to 46.14% against Kalibr.
 
+- **GrandTour LiDAR-LiDAR audit v2 — refuted, 4/5 gates.** Four previously unread missions. [Frozen audit and results](docs/benchmarks/grand_tour_lidar_lidar_v2.md).
+
+- `calibrex lidar-lidar ros2 --window-sensitivity HALF_WINDOW` refits on the same train
+  blocks with another map half window and adds each DoF's shift to its reported std (new
+  optional `std_systematic`). `--map-half-window-scans` sets the map window; 0 registers each
+  target scan to the nearest reference scan alone, so the reference odometry cancels.
+  `--preset unitree-go2-l1` turns `--window-sensitivity 0` on.
+  - Post hoc on the spent GrandTour missions: the ±5-scan map biased translation by up to
+    2 cm; window 0 passed on all five missions, with the z scatter down from 1.6 to 0.6 cm.
+  - The systematic term covers the translation scatter (worst z from 9.3 to 2.3 standard
+    errors) but not the ~0.1 deg rotation scatter.
+- **GrandTour lidar-lidar audit v1: refuted, 2 of 6 gates.** Pre-registered, four unseen
+  missions, Hesai XT-32 → MID360 on ANYmal. See the
+  [audit page](docs/benchmarks/grand_tour_lidar_lidar.md).
+  - Achieved: same-time scans align within 35 mm on every mission (the dataset tf: 9–22 cm),
+    and the L1-like sparse target stays within 0.25 deg of dense.
+  - Not achieved: cross-mission consistency (1.52; z spreads 2.2 cm while the jackknife
+    says 1–3 mm); one dense run warned; the sparse target was inconclusive (pitch) on 2 of
+    4 missions and up to 2.4 cm from dense where it passed.
+  - New tools: `tools/grand_tour_lidar_lidar_evaluate.py`,
+    `tools/build_grand_tour_lidar_lidar_audit.py`, and `--sparse` emulation in the Zarr
+    converter.
+  - The development grid on the dev mission found that accumulating L1-like scans lowers the
+    held-out residual but does not move the estimate closer to the dense one.
+- `calibrex lidar-lidar ros2 --target-motion reference_trajectory` places every target point
+  at the reference trajectory, interpolated at the point's capture time. It also
+  accumulates `--target-accumulate-scans` target scans per sample. `--target-time-offset`
+  applies a clock offset, given in seconds or as `receive-time`. `--time-offset-search`
+  estimates that offset by a profile over train blocks only, and the new optional
+  `time_offset` field records the result. `--preset unitree-go2-l1` sets these for the
+  Go2's built-in L1. See the [Go2 tutorial](docs/tutorials/unitree_go2_lidar_lidar.md).
+  - On a synthetic Go2 scene, an inverted L1 at 300 points per scan came back within
+    0.1 deg and 1 cm.
+  - The 37 ms clock lag was recovered within 6 ms.
+  - No real Go2 recording has been scored yet.
+- First real-data lidar-lidar development on GrandTour (ANYmal + Boxi, MIT license), mission
+  2024-11-02-17-43-10: Hesai XT-32 → MID360 and Hesai → VLP-16 pass in both target modes.
+  - The MID360 clock offset is −7 ± 12 ms.
+  - The dataset's static tf misaligns same-time scans by 13–28 cm, where the fitted
+    extrinsics leave 1.4–3.3 cm. The tf is therefore not usable as an audit reference yet.
+  - See the [development note](docs/benchmarks/grand_tour_lidar_lidar_dev.md),
+    `tools/grand_tour_zarr_to_rosbag2.py` and `tools/grand_tour_same_time_alignment.py`.
+  - Estimating the clock offset now builds one candidate offset's samples at a time; on
+    the full mission, building all of them at once exhausted memory.
 - README and docs install with `pip install calibrex` (published on PyPI since 0.6.5); the
   release wheel stays available on the GitHub Release.
 

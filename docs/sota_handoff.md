@@ -38,7 +38,7 @@ pre-registered audit marks `supported`. Five things follow from that:
 | `camera-imu` | supported | Hilti v3 per-axis verdicts (7/7); v1 (6/7) and v2 (5/7) refuted; TUM-VI check audit v1 refuted (4/5: passed 4 of 30 2 deg turns, all about an unchecked pitch); v2 with `--fail-on partial` supported (5/5: flagged all 30, failed 28 on the turned axis; Kalibr fully passed 8 of 10) | [Hilti camera-IMU](benchmarks/hilti_camera_imu.md) |
 | `camera-lidar` | refuted | KITTI check v1 (5/9), v2 (8/9) | [v2](benchmarks/kitti_camera_lidar_v2_check.md), [v1](benchmarks/kitti_camera_lidar_check.md) |
 | `camera-camera` | refuted | Hilti (4/6): accurate, but a 1 deg turn was flagged in only 70 % of trials | [Hilti camera SOTA](benchmarks/hilti_camera_sota.md) |
-| `lidar-lidar` | refuted | NTU VIRAL (2/4): accurate, but does not beat scan-to-scan; cross-recording consistency 1.143 against 1.0 | [NTU VIRAL](benchmarks/ntu_viral_lidar_lidar.md) |
+| `lidar-lidar` | refuted | NTU VIRAL (2/4): accurate, but does not beat scan-to-scan; cross-recording consistency 1.143 against 1.0. GrandTour v1 (2/6): same-time alignment within 35 mm on all 4 missions (the dataset tf: 9-22 cm); cross-mission consistency 1.52 (z spreads 2.2 cm, one mission's yaw 0.4 deg); one dense run warned; the L1-like sparse target was inconclusive (pitch) on 2 of 4 and 4.5 cm from dense GrandTour v2 refuted, 4/5 gates. | [NTU VIRAL](benchmarks/ntu_viral_lidar_lidar.md), [GrandTour](benchmarks/grand_tour_lidar_lidar.md), [GrandTour v2](benchmarks/grand_tour_lidar_lidar_v2.md) |
 | `ins-lidar` | refuted | KITTI + Boreas rotation v1 (6/8); one recording has no observable rotation. v2, gated per judged axis, 7 KITTI + 3 Boreas recordings (7/8): all 17 estimated axes within 0.373 deg and all 17 controls detected, but only 9 of 21 KITTI axes estimated (57 % unobserved against 50 %); reached under a transport amendment written before any result was read | [v1](benchmarks/ins_lidar_rotation_v1.md), [v2](benchmarks/ins_lidar_rotation_v2.md) |
 | `camera-lidar` (checkerboard) | refuted | KITTI calibration recordings (0/5 days): no estimate on any day (stereo time bound, board fragments) | [board camera-LiDAR](benchmarks/board_camera_lidar.md#result-both-claims-refuted-no-estimate-on-any-day) |
 | `lidar-wheel_odometry` | refuted | NCLT, 5 unseen sessions: accuracy 0/5 (roll and pitch 0.1-2.4 deg off; yaw within 0.43 deg); check honesty supported (never failed NCLT's calibration) | [LiDAR-wheel odometry](benchmarks/lidar_wheel_odometry.md#result-accuracy-refuted-05-sessions-check-honesty-supported) |
@@ -184,6 +184,10 @@ The camera-imu v3 audit did exactly this with the camera-camera runs.
 | KITTI raw + Boreas | `ins-lidar` evaluation v2 (refuted) | KITTI 2011_09_30 0028, 0033, 0034 and 2011_10_03 0027, 0034, 0042, 0047; Boreas 2020-12-18-13-44, 2021-01-15-12-17, 2021-01-19-15-08 (first 600 scans and the INS reference, read once by the frozen runner; [pre-registration](benchmarks/ins_lidar_rotation_v2_preregistration.yaml), [amendment 1](benchmarks/ins_lidar_rotation_v2_amendment_1.yaml)). v1's four evaluation recordings were its development data. No eligible KITTI recording is left for `ins-lidar` |
 | Snail-Radar (Huai et al.) | `radar-imu` roll/pitch development | 20230921/data4, 20231019/data2, 20240113/data5 (Eagle `pcl`, X36D IMU, tf_static and their INS reference rows) |
 | Snail-Radar (Huai et al.) | `imu-lidar` development | 20230921/data4, 20231019/data2, 20240113/data5 (XT32, X36D, MTi-3, first 300 s) |
+| GrandTour (Hugging Face `leggedrobotics/grand_tour_dataset`) | `lidar-lidar` development | 2024-11-02-17-43-10 (`hesai_points`, `livox_points`, `tf`; chosen as the smallest `hesai_points.tar` + `livox_points.tar` among missions with Hesai, Livox and Velodyne points; [development note](benchmarks/grand_tour_lidar_lidar_dev.md)). Every other mission's sensor data is unread; their `metadata/tf.yaml` was read for 13 missions |
+| GrandTour | `lidar-lidar` evaluation v1 | 2024-11-03-07-52-45, 2024-11-04-13-07-13, 2024-11-11-12-42-47, 2024-11-14-13-45-37 (`hesai_points`, `livox_points`, `tf`, read once by the frozen harness; [pre-registration](benchmarks/grand_tour_lidar_lidar_preregistration.yaml)) |
+| GrandTour | `lidar-lidar` post hoc rotation-scatter analysis | The five spent missions listed above. Read `livox_imu`, `cpt7_imu` and `stim320_imu` for the gyro-only cross-check ([Task A](research/lidar_lidar_rotation_scatter.md)). |
+| GrandTour | `lidar-lidar` evaluation v2 (refuted) | 2024-10-01-11-29-55, 2024-11-15-12-06-03, 2024-11-18-17-31-36, 2024-12-03-13-26-40 (pinned in the v2 pre-registration, archive verification 12/12; [evaluation records](benchmarks/grand_tour_lidar_lidar_v2.md)). |
 | Snail-Radar (Huai et al.) | `imu-lidar` evaluation (refuted) | the 30 sequences scored in [snail_lidar_imu.md](benchmarks/snail_lidar_imu.md) (XT32, X36D, MTi-3 and tf_static of the first 300 s, read once by the frozen harness; [pre-registration](benchmarks/snail_lidar_imu_preregistration.yaml)); 20231109/data3 and 20240123/data3 were planned but not read; 20230921/data5 (the authors' fitting sequence) and the sequences under 300 s are unread; post hoc, the IMU files of eight of the 30 were read again for the [gyro cross-check](benchmarks/snail_lidar_imu.md#post-hoc-the-two-imus-gyros-agree-with-check) |
 
 The v2 camera-lidar runs also read the Velodyne and OXTS of the first 600 frames of its
@@ -654,7 +658,9 @@ reads.
 
 - **camera-camera** needs better 1 deg detection on Hilti before a new round.
 - **lidar-lidar** needs cross-recording consistency, and a comparison with scan-to-scan
-  that the method wins.
+  that the method wins. GrandTour v1 failed consistency again: the block jackknife (2-3 mm
+  in z) understates the scatter between missions (2.2 cm), so the reported std is not yet
+  an honest cross-recording uncertainty. Look there first.
 - **camera-imu check (TUM-VI)**: v1 passed a 2 deg turn whenever the turned axis was
   unchecked. `--fail-on partial` (v2, supported) flags such a pass. The remaining unseen
   TUM-VI sequences (magistrale1, 2, 4, 6 and outdoors1-8) are 11-31 GB each.

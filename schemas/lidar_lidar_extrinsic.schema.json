@@ -116,6 +116,20 @@
           "title": "Std Reported",
           "type": "number"
         },
+        "std_systematic": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Shift of this DoF when the extrinsic is refit on the same train blocks with a different map window (the map-window sensitivity): a bias the jackknife misses.",
+          "title": "Std Systematic"
+        },
         "unit": {
           "enum": [
             "deg",
@@ -267,6 +281,120 @@
         "holdout_correspondences"
       ],
       "title": "LidarLidarSamples",
+      "type": "object"
+    },
+    "LidarLidarTimeOffset": {
+      "additionalProperties": false,
+      "description": "The target-to-reference clock offset (``t_reference = t_target + value_s``).",
+      "properties": {
+        "at_search_edge": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "At Search Edge"
+        },
+        "profile": {
+          "items": {
+            "$ref": "#/$defs/LidarLidarTimeOffsetProfilePoint"
+          },
+          "title": "Profile",
+          "type": "array"
+        },
+        "search_center_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Search Center S"
+        },
+        "search_half_width_s": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Search Half Width S"
+        },
+        "search_step_s": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Search Step S"
+        },
+        "source": {
+          "enum": [
+            "given",
+            "estimated"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "std_jackknife_s": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Std Jackknife S"
+        },
+        "value_s": {
+          "title": "Value S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "value_s",
+        "source"
+      ],
+      "title": "LidarLidarTimeOffset",
+      "type": "object"
+    },
+    "LidarLidarTimeOffsetProfilePoint": {
+      "additionalProperties": false,
+      "description": "Train-block cost of one candidate clock offset.",
+      "properties": {
+        "offset_s": {
+          "title": "Offset S",
+          "type": "number"
+        },
+        "train_cost_per_point": {
+          "title": "Train Cost Per Point",
+          "type": "number"
+        }
+      },
+      "required": [
+        "offset_s",
+        "train_cost_per_point"
+      ],
+      "title": "LidarLidarTimeOffsetProfilePoint",
       "type": "object"
     },
     "LidarLidarTransform": {
@@ -452,6 +580,18 @@
       ],
       "title": "Solver Status",
       "type": "string"
+    },
+    "time_offset": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LidarLidarTimeOffset"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Clock offset applied to target point times (reference_trajectory only)."
     },
     "train_blocks": {
       "items": {

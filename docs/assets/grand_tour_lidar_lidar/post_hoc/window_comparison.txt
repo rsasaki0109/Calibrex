@@ -1,0 +1,23 @@
+== window 5: deviation from the all-mission mean (deg x3, cm x3), consistency vs others, verdict, max jackknife
+  dev                    [-0.062  0.009 -0.044  0.274 -0.134 -1.039] cons 0.45 pass jk rot 0.030 deg tr 2.5 mm
+  2024-11-03-07-52-45    [-0.064  0.025 -0.11   0.109  0.393 -0.658] cons 0.54 pass jk rot 0.026 deg tr 2.7 mm
+  2024-11-04-13-07-13    [ 0.137 -0.028  0.329  0.181 -0.564  0.269] cons 1.49 pass jk rot 0.030 deg tr 3.6 mm
+  2024-11-11-12-42-47    [ 1.000e-03 -1.500e-02 -1.400e-01 -6.220e-01 -4.050e-01  1.585e+00] cons 0.73 pass jk rot 0.039 deg tr 9.9 mm
+  2024-11-14-13-45-37    [-0.012  0.008 -0.036  0.058  0.709 -0.157] cons 0.30 warn jk rot 0.023 deg tr 3.9 mm
+== window 0: deviation from the all-mission mean (deg x3, cm x3), consistency vs others, verdict, max jackknife
+  dev                    [-0.065 -0.009 -0.026 -0.146 -0.194 -0.592] cons 0.29 pass jk rot 0.021 deg tr 2.1 mm
+  2024-11-03-07-52-45    [-0.045  0.013 -0.097 -0.116  0.169 -0.481] cons 0.45 pass jk rot 0.022 deg tr 4.4 mm
+  2024-11-04-13-07-13    [ 0.125 -0.017  0.313  0.217 -0.813  0.344] cons 1.41 pass jk rot 0.013 deg tr 4.1 mm
+  2024-11-11-12-42-47    [-0.004 -0.006 -0.157  0.125  0.587  0.284] cons 0.65 pass jk rot 0.044 deg tr 5.0 mm
+  2024-11-14-13-45-37    [-0.011  0.02  -0.034 -0.081  0.252  0.445] cons 0.22 pass jk rot 0.012 deg tr 1.5 mm
+== window 5 minus window 0 per mission (deg x3, cm x3)
+  dev                    [ 0.007  0.012 -0.01   0.328 -0.549  0.223]
+  2024-11-03-07-52-45    [-0.016  0.006 -0.006  0.132 -0.384  0.493]
+  2024-11-04-13-07-13    [ 0.015 -0.017  0.025 -0.129 -0.359  0.594]
+  2024-11-11-12-42-47    [ 0.008 -0.016  0.025 -0.84  -1.6    1.97 ]
+  2024-11-14-13-45-37    [ 0.003 -0.018  0.006  0.046 -0.151  0.067]
+== coverage: |deviation from mean of others| / sqrt(std_i^2 + mean(std_others^2)/n), per DoF
+  w5 reported         max z per DoF [12.9  1.4 12.8  1.2  1.9  9.3]  share |z|<=3: 0.70  excluding 11-04: 0.71
+  w5 reported+window  max z per DoF [10.5  1.4 12.8  0.9  1.5  2.3]  share |z|<=3: 0.80  excluding 11-04: 0.83
+  w0 reported         max z per DoF [17.7  1.9 20.9  1.   2.3 11.1]  share |z|<=3: 0.67  excluding 11-04: 0.71
+  w0 reported+window  max z per DoF [ 9.6  1.1 13.9  0.8  1.7  1.3]  share |z|<=3: 0.80  excluding 11-04: 0.83

@@ -1,0 +1,207 @@
+schema_version: slac.lidar_lidar_extrinsic/v0.1
+method: map_registration/v0.1
+solver_status: converged
+policy_status: pass
+policy_reasons:
+- every DoF is estimated and held-out blocks detect every control
+calibrated_dofs:
+- roll
+- pitch
+- yaw
+- x
+- y
+- z
+transform:
+  parent_frame: /hesai_points
+  child_frame: /velodyne_points
+  translation_m:
+  - 0.007841217708775619
+  - 0.6951059216603697
+  - -0.11025126690149639
+  rotation_quat_xyzw:
+  - 0.0013538017156361141
+  - -0.0009537985222388667
+  - 0.6988310641669638
+  - 0.7152848392385809
+dofs:
+- name: roll
+  unit: deg
+  value: 0.03458504172482347
+  std_analytic: 0.0016998427577404817
+  std_jackknife: 0.019291081886707105
+  std_reported: 0.019291081886707105
+  status: estimated
+  reference_value: -0.03795186993835723
+  error_to_reference: -0.4885544410102723
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 136514.78588740202
+    detected: true
+- name: pitch
+  unit: deg
+  value: -0.1865916350894766
+  std_analytic: 0.001869891886218967
+  std_jackknife: 0.015012317842863424
+  std_reported: 0.015012317842863424
+  status: estimated
+  reference_value: -0.6757599320193446
+  error_to_reference: 0.07667665598905558
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 92332.49294466153
+    detected: true
+- name: yaw
+  unit: deg
+  value: 88.66668758168478
+  std_analytic: 0.0016513819588876472
+  std_jackknife: 0.04371382625397597
+  std_reported: 0.04371382625397597
+  status: estimated
+  reference_value: 90.36314988989183
+  error_to_reference: -1.6959059081679362
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 98094.01775806118
+    detected: true
+- name: x
+  unit: m
+  value: 0.007841217708775619
+  std_analytic: 0.00015662018095627986
+  std_jackknife: 0.0025419602327380873
+  std_reported: 0.0025419602327380873
+  status: estimated
+  reference_value: 0.33742219456411304
+  error_to_reference: -0.32958097685533744
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    holdout_delta_chi2: 38068.96296952898
+    detected: true
+- name: y
+  unit: m
+  value: 0.6951059216603697
+  std_analytic: 0.00017275732294768785
+  std_jackknife: 0.006188833346839713
+  std_reported: 0.006188833346839713
+  status: estimated
+  reference_value: 0.196433648632524
+  error_to_reference: 0.49867227302784567
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    holdout_delta_chi2: 29970.10321350908
+    detected: true
+- name: z
+  unit: m
+  value: -0.11025126690149639
+  std_analytic: 0.00013866644859186273
+  std_jackknife: 0.0010911153551663299
+  std_reported: 0.0010911153551663299
+  status: estimated
+  reference_value: -0.4488073881068655
+  error_to_reference: 0.3385561212053691
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    holdout_delta_chi2: 63543.764564943966
+    detected: true
+residual_sigma_m: 0.03249904508968737
+holdout_median_residual_m: 0.024177039531562725
+reference_holdout_delta_chi2: 1438834.1045380495
+samples:
+  reference_scans: 2259
+  samples: 225
+  train_samples: 150
+  holdout_samples: 75
+  train_correspondences: 165526
+  holdout_correspondences: 84036
+train_blocks:
+- 0
+- 2
+- 3
+- 5
+- 6
+- 8
+- 9
+- 11
+- 12
+- 14
+- 15
+- 17
+- 18
+- 20
+- 21
+holdout_blocks:
+- 1
+- 4
+- 7
+- 10
+- 13
+- 16
+- 19
+- 22
+jackknife_fits: 8
+options:
+  sample_every_scans: 10
+  map_half_window_scans: 5
+  block_duration_s: 10.0
+  holdout_every: 3
+  jackknife_groups: 8
+  rotation_control_deg: 1.0
+  translation_control_m: 0.05
+  detection_delta_chi2: 9.0
+  observable_rotation_std_deg: 0.1
+  observable_translation_std_m: 0.02
+  voxel_size_m: 0.2
+  max_correspondence_m: 0.5
+  huber_m: 0.05
+  iterations: 30
+  registration_query_workers: 4
+reference: inv(T_base_hesai.yaml) @ T_base_velodyne.yaml
+limitations:
+- The reference LiDAR's odometry supplies the map; its drift over the map window adds
+  noise to every sample.
+- The clock offset between the two LiDARs is not estimated; both clouds are matched
+  at their header times.
+- The reference transform, if given, is a comparison, not ground truth.
+provenance:
+  generator: calibrex.evaluation.lidar_lidar_map
+  generator_version: 0.6.5
+  git_commit: d19d02ca
+  command:
+  - calibrex
+  - lidar-lidar
+  - ros2
+  - WORK/velo/bag
+  - --reference-topic
+  - /hesai_points
+  - --target-topic
+  - /velodyne_points
+  - --point-time-field
+  - time
+  - --registration-query-workers
+  - '4'
+  - --target-motion
+  - rigid_nearest
+  - --point-time-encoding
+  - absolute_s
+  - --target-point-time-field
+  - time
+  - --target-point-time-encoding
+  - offset_s
+  - --body-transforms
+  - WORK/velo/T_base_hesai.yaml
+  - WORK/velo/T_base_velodyne.yaml
+  dataset_family: grand_tour
+  sequence_ids:
+  - bag
+  reference_topic: /hesai_points
+  target_topic: /velodyne_points
+  input_sha256: 6e5d0f265500dd98a23f55bc519877af603b598d2b43a4e974ca974597902327
+  input_digest_scope: bag metadata.yaml in full; bag databases by size and first 64
+    MiB
+  dataset_license: MIT
+  created_at: '2026-11-24T03:40:10.690231+00:00'

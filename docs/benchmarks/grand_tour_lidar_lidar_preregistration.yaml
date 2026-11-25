@@ -1,0 +1,152 @@
+# Pre-registration of the GrandTour LiDAR-LiDAR audit (v1).
+#
+# Written on 2026-11-24, before any lidar-lidar method has read the sensor data of the
+# evaluation missions below. Their selection used metadata only (Hugging Face file sizes,
+# dates, SHA-256 values). The harness (tools/grand_tour_lidar_lidar_evaluate.py), the
+# converter (tools/grand_tour_zarr_to_rosbag2.py), the same-time check
+# (tools/grand_tour_same_time_alignment.py) and the scorer and audit builder
+# (tools/build_grand_tour_lidar_lidar_audit.py) were developed on the development mission
+# only. The audit protocol pins this file's SHA-256. No threshold, metric, mission, method
+# or requirement listed here may change.
+frozen_code_commit: 26145ec53c0357cb6311b8f09773cc5002986825
+execution: >-
+  The evaluation runs once from the commit that adds this file, pushed to the branch
+  claude/nifty-hypatia-6nsmas before any evaluation data is downloaded, after checking that
+  `git diff 26145ec53c0357cb6311b8f09773cc5002986825 HEAD -- src tools` is empty. It does
+  not wait for a merge to main: the push records the time of the pre-registration.
+claim: >-
+  On four GrandTour missions (ANYmal D with the Boxi payload, four recording days) not used
+  to develop the method, Calibrex's LiDAR-LiDAR extrinsic from a Hesai XT-32 to a Livox
+  MID360 passes its own held-out evidence on every mission, reproduces across missions
+  within 0.3 deg and 3 cm, and aligns single same-time scans to within 35 mm (median
+  point-to-plane). With the MID360 thinned to an L1-like 2,000 points per scan within 20 m,
+  the per-point-trajectory mode with 10 accumulated scans also passes on every mission and
+  stays within 0.25 deg and 1 cm of the dense estimate of the same mission.
+scope:
+  modalities: [lidar, lidar]
+  quantities: [rotation, translation]
+  category: targetless_lidar_lidar
+dataset:
+  name: GrandTour
+  source: https://huggingface.co/datasets/leggedrobotics/grand_tour_dataset
+  revision: af6b6dd6f91696f8ec8c98134e195514834911b2
+  license: MIT
+  rig: anymal-d-boxi (one rig; the static tf is identical in every mission's metadata)
+recordings:
+  selection_rule: >-
+    Among missions after the development date (2024-11-02) that have hesai_points.tar
+    and livox_points.tar, the first four recording dates; on each date the mission with
+    the smallest hesai_points.tar + livox_points.tar.
+  development_only: [2024-11-02-17-43-10]
+  evaluation:
+    - mission: 2024-11-03-07-52-45
+      sha256:
+        hesai_points.tar: 1f3899dbfeaf1c72fa82fb250e242527dbb0b58c306c5a7bcc98c52d32018d6b
+        livox_points.tar: 66e7c588665939d0d51219d6c1026cf3fd0879fe79d1e4cdf5b6370d9cf95d24
+        tf.tar: b6f6ce6e6ae842eb9b3aaf735458066aba88a40720789abac03c0f471e7ab250
+    - mission: 2024-11-04-13-07-13
+      sha256:
+        hesai_points.tar: a00f1c307918b9d63ebfbda7da3dacd6fc209c458c8a6ed8d0a40b8ea584472d
+        livox_points.tar: f94ef8657fc1ae5982f4270b3dfc0070531e223f033b125c39324a70e0370635
+        tf.tar: 01acf556c3fa848804f1d331106d2f987ad945603f2d9b7e1269432b4a839c7f
+    - mission: 2024-11-11-12-42-47
+      sha256:
+        hesai_points.tar: 36f15dafad57ed6a931c2a5b1c44aaf2d490e97698de2a9b745d37bf399a4c98
+        livox_points.tar: 68fb43e2f65acf3aa6842721438603e07cb8ef125eed20691bd2aa03381cd776
+        tf.tar: 7a41b46abc699f24551929079f5401659495b4dd9fd150fd85dfe35cea4e5243
+    - mission: 2024-11-14-13-45-37
+      sha256:
+        hesai_points.tar: 5b9facd4ac92a7b7e6cb2135aad98ef3bee41fb4c267c05e45fcb9eb74beb5f2
+        livox_points.tar: eaae1bcbe16048ec2136fd35ff04fec76ae9c7a0f1389671d0b6f0322715db08
+        tf.tar: cab72193f4cd4c94f5ad8c608813c35278224ed5f91dbc43f8aa1947b2bc818d
+emulated_sparse_target:
+  max_points: 2000
+  max_range_m: 20.0
+  seed: 0
+  note: >-
+    A random subset of each MID360 scan within 20 m, in capture order: an L1-like point
+    rate (21,600 points/s at 10 Hz) and range, not a Unitree L1.
+methods:
+  calibrex_dense:
+    kind: calibrex
+    bag: dense
+    flags: []
+  calibrex_sparse:
+    kind: calibrex
+    bag: sparse
+    flags: [--target-motion, reference_trajectory, --target-accumulate-scans, 10,
+            --target-voxel-size, 0.05, --target-min-range, 0.5]
+  sparse_rigid:
+    kind: calibrex
+    bag: sparse
+    flags: [--target-motion, rigid_nearest, --target-voxel-size, 0.05,
+            --target-min-range, 0.5]
+  dataset_tf:
+    kind: reference
+    note: inv(T_box_hesai) T_box_livox from the static tf. Reported, not gated.
+common_flags: >-
+  --reference-topic /hesai_points --target-topic /livox_points --point-time-field time
+  --point-time-encoding absolute_s --target-point-time-field time
+  --target-point-time-encoding absolute_ns --body-transforms T_box_hesai_points.yaml
+  T_box_livox_points.yaml --registration-query-workers 4 (every run starts from the tf)
+same_time_check:
+  fractions: [0.1, 0.3, 0.5, 0.7, 0.9]
+  metric: >-
+    median over these Livox scans (index = floor(fraction * scans)) of the median
+    |point-to-plane| distance of the full-density Livox scan, moved by the estimate,
+    against the Hesai scan nearest in time (planar neighbourhoods, 0.5 m gate)
+scoring:
+  consistency: >-
+    per mission, max(rotation / 0.3 deg, translation / 3 cm) between calibrex_dense on that
+    mission and the chordal mean of calibrex_dense on the other missions
+  sparse_to_dense: >-
+    geodesic rotation (deg) and Euclidean translation (m) between a sparse method's
+    estimate and calibrex_dense on the same mission
+failure_policy: >-
+  A Calibrex trial fails when its run gives no estimate or a verdict other than pass. A
+  sparse trial also fails when its mission has no dense estimate.
+rerun_policy:
+  max_attempts: 3
+  rule: >-
+    A step that exits with an error (download, conversion, an out-of-memory kill) is rerun
+    with the same command, up to three attempts in all; every attempt is kept in runs.json.
+    A method still without an artifact fails that mission. A calibrex exit code of 1 is a
+    failing verdict, a result, and is never rerun.
+requirements:
+  - id: dense-pass-every-mission
+    rule: calibrex_dense failure rate == 0 over the four missions
+  - id: dense-cross-mission-consistency
+    rule: calibrex_dense consistency <= 1.0 on every mission
+  - id: dense-same-time-alignment
+    rule: calibrex_dense same-time median <= 0.035 m on every mission
+  - id: sparse-pass-every-mission
+    rule: calibrex_sparse failure rate == 0 over the four missions
+  - id: sparse-rotation-to-dense
+    rule: calibrex_sparse rotation to the dense estimate <= 0.25 deg on every mission
+  - id: sparse-translation-to-dense
+    rule: calibrex_sparse translation to the dense estimate <= 0.01 m on every mission
+thresholds_from_development:
+  rule: >-
+    error gates are 1.5 times the worst development value, rounded up to the next 0.25 deg,
+    the next 1 cm, or the next 5 mm (same-time); consistency keeps the NTU VIRAL audit's
+    0.3 deg / 3 cm bound of 1.0, which one development mission cannot calibrate
+  same_time_dense_m: 0.0202
+  sparse_rotation_to_dense_deg_worst: 0.072
+  sparse_translation_to_dense_m_worst: 0.0057
+coverage:
+  minimum_dataset_families: 1
+  minimum_independent_rigs: 1
+development_results_seen:
+  mission: 2024-11-02-17-43-10
+  dense_verdict: pass
+  dense_jackknife_std: {rotation_deg_max: 0.030, translation_m_max: 0.0025}
+  dataset_tf_same_time_m: 0.199
+  sparse_grid: >-
+    2,000 and 1,000 points per scan; rigid_nearest and reference_trajectory with 1, 5 and
+    10 accumulated scans: all eight pass, all within 0.072 deg and 5.7 mm of the dense
+    estimate. Accumulation lowered the held-out median residual (19.4 to 15.3 mm) but did
+    not move the estimate closer to the dense one, so the claim does not gate a margin over
+    sparse_rigid; sparse_rigid is reported only.
+  note: >-
+    The dataset tf is rejected by every development run and is 0.2 m off in same-time
+    scans, so it is not used as an accuracy reference (see the development note).

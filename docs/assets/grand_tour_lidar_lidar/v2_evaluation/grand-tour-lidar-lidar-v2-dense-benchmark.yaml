@@ -1,0 +1,266 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: grand-tour-lidar-lidar-v2-dense
+title: GrandTour LiDAR-LiDAR v2 dense
+protocol:
+  protocol_id: grand-tour-lidar-lidar-v2
+  dataset_id: grand_tour_evaluation_missions_v2
+  dataset_source_sha256: c5be992e61409f8630f63d58910cd6d98397b0f2afc97e0590e8f3a5feaf6751
+  data_license: MIT
+  split_policy: one split per frozen mission
+  splits:
+  - split_id: 2024-10-01-11-29-55
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: a8796f7cf53bcbba5ec3242ccf1ba0bd7410962e85efa619f384ae7e73fbc4a7
+    holdout_ids_sha256: a8796f7cf53bcbba5ec3242ccf1ba0bd7410962e85efa619f384ae7e73fbc4a7
+  - split_id: 2024-11-15-12-06-03
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: b557a0b8d461820d783448138cc9d6403a446838edab1693943003e63d97d8aa
+    holdout_ids_sha256: b557a0b8d461820d783448138cc9d6403a446838edab1693943003e63d97d8aa
+  - split_id: 2024-11-18-17-31-36
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 003ec9105b4fca4a7170180d6cab94100f932482420ee2b7dc0b5ecbbae48b7a
+    holdout_ids_sha256: 003ec9105b4fca4a7170180d6cab94100f932482420ee2b7dc0b5ecbbae48b7a
+  - split_id: 2024-12-03-13-26-40
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 0022efd4e1cebe147e481237e7645ac9189d530523ef27e4581186f2c6306742
+    holdout_ids_sha256: 0022efd4e1cebe147e481237e7645ac9189d530523ef27e4581186f2c6306742
+  initial_estimate_policy: seed from dataset static tf
+  tuning_policy: frozen before accessing evaluation sensor data
+  failure_policy: Dense requires a finite same-time median and three estimated rotation
+    axes with detected controls and at least 100 held-out correspondences, and the
+    fit may not have policy status fail. A missing valid dense rotation prevents computing
+    peer means and fails dense completeness. Sparse accepts pass or inconclusive with
+    a transform, at least 100 held-out correspondences and detected controls on every
+    estimated axis. A dropped axis contributes zero to the six-axis denominator. Missing
+    or invalid evidence in either method fails that method and mission.
+metrics:
+- name: same_time_median_m
+  label: Same-time median
+  unit: m
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: median full-density point-to-plane residual
+- name: rotation_ratio
+  label: Largest standardized rotation deviation
+  unit: ratio
+  display_scale: 1.0
+  direction: lower
+  primary: false
+  interpretation: leave-one-mission-out deviation divided by combined uncertainty
+methods:
+- method_id: calibrex_dense
+  label: Calibrex GrandTour v2 dense
+  implementation: calibrex_native
+  tool_name: calibrex
+- method_id: frozen_gate_targets
+  label: Fixed protocol gate targets
+  implementation: imported
+  tool_name: preregistration
+trials:
+- method_id: calibrex_dense
+  split_id: 2024-10-01-11-29-55
+  status: success
+  metrics:
+    same_time_median_m: 0.025013741613005985
+    rotation_ratio: 0.18703758570964282
+  provenance:
+    command: grand-tour-lidar-lidar-v2 2024-10-01-11-29-55 calibrex_dense
+    config_sha256: ebcab6aca58cf91f12a9da05bc5d408b92bf875b95d253a85e92667b51f355b0
+    input_sha256: a53c54c0c49692a75f1bd87758f27b39dfd82886794f073121bd43b86e85682d
+    notes: []
+- method_id: frozen_gate_targets
+  split_id: 2024-10-01-11-29-55
+  status: success
+  metrics:
+    same_time_median_m: 0.055
+    rotation_ratio: 1.5
+  provenance:
+    command: grand-tour-lidar-lidar-v2 2024-10-01-11-29-55 calibrex_dense
+    config_sha256: ebcab6aca58cf91f12a9da05bc5d408b92bf875b95d253a85e92667b51f355b0
+    input_sha256: a53c54c0c49692a75f1bd87758f27b39dfd82886794f073121bd43b86e85682d
+    notes: []
+- method_id: calibrex_dense
+  split_id: 2024-11-15-12-06-03
+  status: success
+  metrics:
+    same_time_median_m: 0.0254767618144658
+    rotation_ratio: 0.18718247357031192
+  provenance:
+    command: grand-tour-lidar-lidar-v2 2024-11-15-12-06-03 calibrex_dense
+    config_sha256: ebcab6aca58cf91f12a9da05bc5d408b92bf875b95d253a85e92667b51f355b0
+    input_sha256: 7a2b5638545db77bd2533dcba0fce37d94eeb6afa13a3452f51b30bfcae8f78f
+    notes: []
+- method_id: frozen_gate_targets
+  split_id: 2024-11-15-12-06-03
+  status: success
+  metrics:
+    same_time_median_m: 0.055
+    rotation_ratio: 1.5
+  provenance:
+    command: grand-tour-lidar-lidar-v2 2024-11-15-12-06-03 calibrex_dense
+    config_sha256: ebcab6aca58cf91f12a9da05bc5d408b92bf875b95d253a85e92667b51f355b0
+    input_sha256: 7a2b5638545db77bd2533dcba0fce37d94eeb6afa13a3452f51b30bfcae8f78f
+    notes: []
+- method_id: calibrex_dense
+  split_id: 2024-11-18-17-31-36
+  status: success
+  metrics:
+    same_time_median_m: 0.017732874775117525
+    rotation_ratio: 0.07341457187399297
+  provenance:
+    command: grand-tour-lidar-lidar-v2 2024-11-18-17-31-36 calibrex_dense
+    config_sha256: ebcab6aca58cf91f12a9da05bc5d408b92bf875b95d253a85e92667b51f355b0
+    input_sha256: 9e55918a4e35448d9fc4d424e66cee39b82fe292395ccde0eb394fc5ea85fc24
+    notes: []
+- method_id: frozen_gate_targets
+  split_id: 2024-11-18-17-31-36
+  status: success
+  metrics:
+    same_time_median_m: 0.055
+    rotation_ratio: 1.5
+  provenance:
+    command: grand-tour-lidar-lidar-v2 2024-11-18-17-31-36 calibrex_dense
+    config_sha256: ebcab6aca58cf91f12a9da05bc5d408b92bf875b95d253a85e92667b51f355b0
+    input_sha256: 9e55918a4e35448d9fc4d424e66cee39b82fe292395ccde0eb394fc5ea85fc24
+    notes: []
+- method_id: calibrex_dense
+  split_id: 2024-12-03-13-26-40
+  status: success
+  metrics:
+    same_time_median_m: 0.028413001052030547
+    rotation_ratio: 0.0784984230208265
+  provenance:
+    command: grand-tour-lidar-lidar-v2 2024-12-03-13-26-40 calibrex_dense
+    config_sha256: ebcab6aca58cf91f12a9da05bc5d408b92bf875b95d253a85e92667b51f355b0
+    input_sha256: a02ae7dfda6411a47038a069bfb6bc203779fcb8fb5e68d8c12370f3f6501ea9
+    notes: []
+- method_id: frozen_gate_targets
+  split_id: 2024-12-03-13-26-40
+  status: success
+  metrics:
+    same_time_median_m: 0.055
+    rotation_ratio: 1.5
+  provenance:
+    command: grand-tour-lidar-lidar-v2 2024-12-03-13-26-40 calibrex_dense
+    config_sha256: ebcab6aca58cf91f12a9da05bc5d408b92bf875b95d253a85e92667b51f355b0
+    input_sha256: a02ae7dfda6411a47038a069bfb6bc203779fcb8fb5e68d8c12370f3f6501ea9
+    notes: []
+method_summaries:
+  calibrex_dense:
+    method_id: calibrex_dense
+    trial_count: 4
+    success_count: 4
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      same_time_median_m:
+        metric: same_time_median_m
+        distribution:
+          count: 4
+          mean: 0.024159094813654965
+          median: 0.025245251713735893
+          standard_deviation: 0.003932514772548782
+          minimum: 0.017732874775117525
+          maximum: 0.028413001052030547
+          p90: 0.027532129280761125
+          p95: 0.027972565166395832
+          mean_ci95_low: 0.019668846534954595
+          mean_ci95_high: 0.027563186192274408
+        rank: 1
+      rotation_ratio:
+        metric: rotation_ratio
+        distribution:
+          count: 4
+          mean: 0.13153326354369355
+          median: 0.13276800436523467
+          standard_deviation: 0.05560584723383827
+          minimum: 0.07341457187399297
+          maximum: 0.18718247357031192
+          p90: 0.18713900721211119
+          p95: 0.18716074039121156
+          mean_ci95_low: 0.07595649744740973
+          mean_ci95_high: 0.18711002963997736
+        rank: 1
+  frozen_gate_targets:
+    method_id: frozen_gate_targets
+    trial_count: 4
+    success_count: 4
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      same_time_median_m:
+        metric: same_time_median_m
+        distribution:
+          count: 4
+          mean: 0.055
+          median: 0.055
+          standard_deviation: 0.0
+          minimum: 0.055
+          maximum: 0.055
+          p90: 0.05500000000000001
+          p95: 0.055
+          mean_ci95_low: 0.055
+          mean_ci95_high: 0.055
+        rank: 2
+      rotation_ratio:
+        metric: rotation_ratio
+        distribution:
+          count: 4
+          mean: 1.5
+          median: 1.5
+          standard_deviation: 0.0
+          minimum: 1.5
+          maximum: 1.5
+          p90: 1.5
+          p95: 1.5
+          mean_ci95_low: 1.5
+          mean_ci95_high: 1.5
+        rank: 2
+paired_comparisons:
+- reference_method_id: frozen_gate_targets
+  candidate_method_id: calibrex_dense
+  metric: same_time_median_m
+  direction: lower
+  paired_count: 4
+  raw_delta_mean: -0.030840905186345035
+  improvement_mean: 0.030840905186345035
+  improvement_ci95_low: 0.027436813807725592
+  improvement_ci95_high: 0.0353311534650454
+- reference_method_id: frozen_gate_targets
+  candidate_method_id: calibrex_dense
+  metric: rotation_ratio
+  direction: lower
+  paired_count: 4
+  raw_delta_mean: -1.3684667364563063
+  improvement_mean: 1.3684667364563063
+  improvement_ci95_low: 1.3128899703600228
+  improvement_ci95_high: 1.4240435025525904
+reference_method_id: frozen_gate_targets
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- Fixed gate targets are constants supplied to the benchmark schema.
+provenance:
+  generator: /workspace/work/Calibrex/tools/build_grand_tour_lidar_lidar_v2_audit.py
+  generator_version: 0.6.5
+  generated_at: '2026-11-25T08:48:40.617380+00:00'
+  command: python -m tools.build_grand_tour_lidar_lidar_v2_audit docs/assets/grand_tour_lidar_lidar/v2_evaluation
+  source_artifacts: {}
+  data_verified: true

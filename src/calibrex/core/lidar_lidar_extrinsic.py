@@ -59,6 +59,14 @@ class LidarLidarDofRecord(StrictModel):
     value: float
     std_analytic: float = Field(ge=0.0)
     std_jackknife: float | None = Field(default=None, ge=0.0)
+    std_systematic: float | None = Field(
+        default=None,
+        ge=0.0,
+        description=(
+            "Shift of this DoF when the extrinsic is refit on the same train blocks with a "
+            "different map window (the map-window sensitivity): a bias the jackknife misses."
+        ),
+    )
     std_reported: float = Field(ge=0.0)
     status: Literal["estimated", "unobservable"]
     reference_value: float | None = None
@@ -69,8 +77,11 @@ class LidarLidarDofRecord(StrictModel):
     def check_reported_std(self) -> LidarLidarDofRecord:
         """Never report less uncertainty than either estimate provides."""
 
-        if self.std_reported + 1e-15 < max(self.std_analytic, self.std_jackknife or 0.0):
-            raise ValueError("std_reported must be the larger of the analytic and jackknife std")
+        floor = max(self.std_analytic, self.std_jackknife or 0.0, self.std_systematic or 0.0)
+        if self.std_reported + 1e-15 < floor:
+            raise ValueError(
+                "std_reported must be the largest of the analytic, jackknife and systematic std"
+            )
         return self
 
 
@@ -92,6 +103,26 @@ class LidarLidarSamples(StrictModel):
     holdout_samples: int = Field(ge=0)
     train_correspondences: int = Field(ge=0)
     holdout_correspondences: int = Field(ge=0)
+
+
+class LidarLidarTimeOffsetProfilePoint(StrictModel):
+    """Train-block cost of one candidate clock offset."""
+
+    offset_s: float
+    train_cost_per_point: float
+
+
+class LidarLidarTimeOffset(StrictModel):
+    """The target-to-reference clock offset (``t_reference = t_target + value_s``)."""
+
+    value_s: float
+    source: Literal["given", "estimated"]
+    std_jackknife_s: float | None = Field(default=None, ge=0.0)
+    at_search_edge: bool | None = None
+    search_center_s: float | None = None
+    search_half_width_s: float | None = Field(default=None, gt=0.0)
+    search_step_s: float | None = Field(default=None, gt=0.0)
+    profile: list[LidarLidarTimeOffsetProfilePoint] = Field(default_factory=list)
 
 
 class LidarLidarExtrinsicArtifact(StrictModel):
@@ -117,6 +148,10 @@ class LidarLidarExtrinsicArtifact(StrictModel):
         ),
     )
     samples: LidarLidarSamples
+    time_offset: LidarLidarTimeOffset | None = Field(
+        default=None,
+        description="Clock offset applied to target point times (reference_trajectory only).",
+    )
     train_blocks: list[int] = Field(default_factory=list)
     holdout_blocks: list[int] = Field(default_factory=list)
     jackknife_fits: int = Field(ge=0)
