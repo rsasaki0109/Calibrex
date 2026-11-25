@@ -1,4 +1,4 @@
-"""Grey frames with times from a ROS 2 bag, a video file or a live camera.
+"""Grey frames with times from a ROS bag, a video file or a live camera.
 
 Each source yields ``(time in s, grey image)`` so the intrinsics commands read them alike.
 The video and camera readers need OpenCV.
@@ -28,13 +28,56 @@ def _opencv() -> Any:
 
 
 def bag_frames(
-    bag: str | Path, topic: str, *, stride: int = 1, max_seconds: float | None = None
+    bag: str | Path,
+    topic: str,
+    *,
+    stride: int = 1,
+    max_seconds: float | None = None,
+    start_seconds: float = 0.0,
 ) -> Iterator[GrayFrame]:
-    """Every ``stride``-th image of a ROS 2 bag topic (``Image`` or ``CompressedImage``)."""
+    """Read a bag topic within a window relative to its first image stamp."""
+
+    if Path(bag).suffix.lower() == ".bag" and Path(bag).is_file():
+        yield from _ros1_bag_frames(bag, topic, stride, max_seconds, start_seconds)
+        return
 
     from calibrex.data.ros2_camera_imu import iter_gray_images
 
-    yield from iter_gray_images(bag, topic, stride=stride, max_seconds=max_seconds)
+    yield from iter_gray_images(
+        bag, topic, stride=stride, max_seconds=max_seconds, start_seconds=start_seconds
+    )
+
+
+def _ros1_bag_frames(
+    bag: str | Path,
+    topic: str,
+    stride: int,
+    max_seconds: float | None,
+    start_seconds: float,
+) -> Iterator[GrayFrame]:
+    from calibrex.data.ros2_camera_imu import to_gray
+    from calibrex.data.rosbag1 import read_image_messages
+
+    first: int | None = None
+    for index, image in enumerate(read_image_messages(bag, topic=topic, include_data=True)):
+        first = image.timestamp_ns if first is None else first
+        elapsed = (image.timestamp_ns - first) * 1e-9
+        if max_seconds is not None and elapsed > start_seconds + max_seconds:
+            return
+        if elapsed < start_seconds or index % stride:
+            continue
+        assert image.data is not None
+        yield (
+            image.timestamp_ns * 1e-9,
+            to_gray(
+                bytes(image.data),
+                height=image.height,
+                width=image.width,
+                step=image.step,
+                encoding=image.encoding,
+                is_bigendian=image.is_bigendian,
+            ),
+        )
 
 
 def _grey(image: NDArray[np.uint8]) -> NDArray[np.uint8]:

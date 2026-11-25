@@ -88,7 +88,9 @@ def _read_ros2_imu(
     )
 
 
-def to_gray(data: bytes, *, height: int, width: int, step: int, encoding: str) -> GrayImage:
+def to_gray(
+    data: bytes, *, height: int, width: int, step: int, encoding: str, is_bigendian: bool = False
+) -> GrayImage:
     """Convert raw ``sensor_msgs/Image`` bytes to an 8-bit gray image."""
 
     if encoding not in _CHANNELS:
@@ -98,7 +100,8 @@ def to_gray(data: bytes, *, height: int, width: int, step: int, encoding: str) -
     rows = np.frombuffer(data, dtype=np.uint8).reshape(height, step)
     pixels = rows[:, : width * channels * depth]
     if encoding == "mono16":
-        return np.asarray(pixels.view("<u2").reshape(height, width) >> 8, dtype=np.uint8)
+        values = pixels.view(">u2" if is_bigendian else "<u2").reshape(height, width)
+        return np.asarray(values >> 8, dtype=np.uint8)
     image = pixels.reshape(height, width, channels)
     if channels == 1:
         return np.ascontiguousarray(image[:, :, 0])
@@ -169,8 +172,9 @@ def iter_gray_images(
     *,
     stride: int = 1,
     max_seconds: float | None = None,
+    start_seconds: float = 0.0,
 ) -> Iterator[tuple[float, GrayImage]]:
-    """Yield ``(header time in s, gray image)`` for every ``stride``-th image."""
+    """Yield every stride-th gray image in a window relative to the first stamp."""
 
     first: float | None = None
     messages = iter_messages(bag_dir, topics={topic})
@@ -182,8 +186,11 @@ def iter_gray_images(
         emit_tick(index + 1)
         time_s = stamp_ns * 1.0e-9
         first = time_s if first is None else first
-        if max_seconds is not None and time_s - first > max_seconds:
+        elapsed = time_s - first
+        if max_seconds is not None and elapsed > start_seconds + max_seconds:
             return
+        if start_seconds and elapsed < start_seconds:
+            continue
         _stamp, _frame, gray = decode_gray_message(
             connection.message_type, topic, timestamp_ns, payload
         )

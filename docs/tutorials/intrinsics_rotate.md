@@ -11,13 +11,17 @@ with `--distortion equidistant` for fisheye lenses), like
 
 ## Run it
 
-From a ROS 2 bag, a video, or a live camera (recorded for `--seconds`, default 20):
+From a ROS bag, a video, or a live camera (recorded for `--seconds`, default 20):
 
 ```bash
 calibrex intrinsics rotate --bag my_bag --topic /camera/image_raw
 calibrex intrinsics rotate --video turning.mp4
 calibrex intrinsics rotate --camera 0 --resolution 1280x720 --seconds 20
 ```
+
+For a ROS 1 `.bag` with raw `sensor_msgs/Image` messages or a ROS 2 bag, use
+`--start-seconds 12 --seconds 10` to use the interval from 12 to 22 seconds after
+the topic's first image stamp.
 
 With a live camera a window guides the turning (below) and the calibration starts as soon
 as the turns are enough; `--no-window` records for `--seconds` without it.
@@ -155,6 +159,90 @@ The focal length comes out too long by about 0.8 times the offset over the dista
 0.5 % (enough to start a camera-LiDAR or camera-IMU calibration), turn the camera about its
 lens, or keep the offset under about 1/150 of the scene distance. When the focal length
 must be known to 0.1 %, use a checkerboard ([`calibrex intrinsics guide`](intrinsics_guide.md)).
+
+## Real-data results (TUM-VI)
+
+The [TUM-VI dataset](https://cvg.cit.tum.de/data/datasets/visual-inertial-dataset)
+provides these 512 × 512 global-shutter fisheye recordings. The audit estimates
+each camera independently with `--distortion equidistant`. It uses OptiTrack rig
+poses to choose a 10 s window with rotation about at least two axes and the
+smallest measured rig displacement. Only the image stream enters the fit. The
+[published Kalibr camchain](../assets/tumvi_camera_focal/camchain.yaml) supplies
+the reference values for scoring.
+
+The [pre-registration](../benchmarks/tumvi_intrinsics_rotate_preregistration.yaml)
+was committed as `3112f7df` after development on `room1`. It requires both
+absolute focal errors to be at most 5% and both absolute principal-point errors
+to be at most 5 px. At least five of the ten evaluation cases must pass.
+Inconclusive estimates contribute zero passes. The distortion coefficients are
+reported as signed differences. The earlier camera-focal and camera-IMU checks
+had used the evaluation recordings.
+
+In the table, focal errors are percentages of the reference focal lengths.
+Principal-point and coefficient errors are estimate minus reference.
+The development verdicts apply the evaluation gates retrospectively.
+
+| Split | Sequence | Camera | Δfx (%) | Δfy (%) | Δcx (px) | Δcy (px) | Δk1 | Δk2 | Δk3 | Δk4 | Verdict |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Development | room1 | cam0 | +23.88 | +22.12 | +0.26 | -2.74 | -0.0408 | -0.0039 | +0.0018 | -0.0027 | fail |
+| Development | room1 | cam1 | +22.58 | +21.24 | -0.44 | -1.89 | -0.0410 | -0.0005 | +0.0008 | -0.0026 | fail |
+| Evaluation | room2 | cam0 | +28.66 | +28.48 | +3.01 | +0.84 | -0.0518 | -0.0026 | +0.0062 | -0.0032 | fail |
+| Evaluation | room2 | cam1 | +33.99 | +29.32 | +5.88 | +1.34 | -0.0517 | -0.0015 | +0.0071 | -0.0061 | fail |
+| Evaluation | room3 | cam0 | +17.92 | +17.81 | +2.38 | -1.88 | -0.0291 | +0.0052 | -0.0027 | -0.0024 | fail |
+| Evaluation | room3 | cam1 | +14.58 | +13.91 | +1.40 | -6.14 | -0.0525 | +0.0269 | -0.0177 | +0.0020 | fail |
+| Evaluation | room4 | cam0 | +34.61 | +35.19 | +3.96 | -2.99 | -0.0099 | -0.0071 | +0.0077 | -0.0155 | fail |
+| Evaluation | room4 | cam1 | +30.65 | +32.71 | +3.22 | -0.63 | -0.0167 | -0.0063 | -0.0028 | -0.0077 | fail |
+| Evaluation | room5 | cam0 | +15.19 | +14.87 | +3.12 | -4.84 | -0.0177 | +0.0032 | +0.0241 | -0.0126 | fail |
+| Evaluation | room5 | cam1 | +11.70 | +13.38 | -2.60 | -3.26 | -0.0419 | +0.0056 | +0.0240 | -0.0109 | fail |
+| Evaluation | room6 | cam0 | +36.49 | +36.95 | +10.98 | -0.53 | -0.1020 | -0.0152 | +0.0337 | -0.0091 | fail |
+| Evaluation | room6 | cam1 | +45.71 | +46.14 | +12.20 | +8.31 | -0.1716 | +0.1103 | -0.0736 | +0.0218 | fail |
+
+**Zero of ten evaluation cases passed.** All ten produced finite estimates and
+failed the focal gate. Focal estimates were +11.70% to +46.14% above Kalibr.
+Four cases also exceeded the principal-point gate. The full estimates, exact
+errors, commands, and provenance are in the
+[development JSON](../assets/tumvi_intrinsics_rotate/development/room1.json) and
+the evaluation JSONs ([room2](../assets/tumvi_intrinsics_rotate/evaluation/room2.json),
+[room3](../assets/tumvi_intrinsics_rotate/evaluation/room3.json),
+[room4](../assets/tumvi_intrinsics_rotate/evaluation/room4.json),
+[room5](../assets/tumvi_intrinsics_rotate/evaluation/room5.json),
+[room6](../assets/tumvi_intrinsics_rotate/evaluation/room6.json)).
+
+| Sequence | Window (s) | Rig displacement (m) | Median transfer, cam0 / cam1 (px) |
+| --- | ---: | ---: | ---: |
+| room1 | 20–30 | 0.987 | 2.13 / 2.00 |
+| room2 | 134–144 | 1.453 | 3.19 / 3.26 |
+| room3 | 128–138 | 0.622 | 2.97 / 2.63 |
+| room4 | 100–110 | 1.049 | 4.67 / 3.83 |
+| room5 | 18–28 | 0.304 | 1.48 / 1.14 |
+| room6 | 110–120 | 1.460 | 3.54 / 3.46 |
+
+
+### What limited agreement
+
+- **Translation and parallax.** The qualifying windows still span 0.304–1.460 m
+  of OptiTrack rig translation. These are the smallest measured displacements
+  among windows that met the rotation requirement. The optical centers also
+  move as the rig turns. The solver fits a rotation-only model, so it can absorb
+  part of the parallax into the intrinsics. Even `room5`, with the smallest
+  measured displacement, produces focal errors of +11.70% to +15.19%.
+- **Tracking and image quality.** Every case exceeds the existing 1 px median
+  transfer warning threshold. The highest median is 4.67 px on `room4/cam0`.
+  These residuals measure disagreement with the fitted model. The audit did
+  not independently measure the contribution from exposure changes, motion blur,
+  or tracking loss.
+- **Fisheye periphery.** The current inverse model caps rays at 1.45 rad
+  (83.1°) from the optical axis. Evaluating the reference equidistant polynomial
+  at that angle puts about 13% of the full 512 × 512 raster beyond the cap for
+  each camera. This is a raster fraction and includes any pixels outside the
+  usable image circle. The audit did not measure how many tracked features lie in
+  that area or isolate its effect on the fit.
+
+The ROS 1 reader and the bag window option were the only changes to the CLI
+path. The estimator settings stayed at their normal defaults. A controlled
+follow-up can turn a global-shutter fisheye around its lens on a tripod, repeat
+the turn with a measured offset, and compare central and peripheral tracks.
+That would separate the effects of parallax and the fisheye angle cap.
 
 ## How it works
 

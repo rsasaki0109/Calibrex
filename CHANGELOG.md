@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `calibrex intrinsics rotate` accepts raw ROS 1 bag images and can select a bag interval
+  with `--start-seconds` and `--seconds`.
+- The preregistered TUM-VI rotation-intrinsics audit passed 0 of 10 evaluation cases.
+  Both focal lengths were high in every case, by 11.70% to 46.14% against Kalibr.
+
 - README and docs install with `pip install calibrex` (published on PyPI since 0.6.5); the
   release wheel stays available on the GitHub Release.
 
