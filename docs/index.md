@@ -169,7 +169,7 @@ pre-registered audit marks `supported`. Refuted audits are listed too.
 | `imu-lidar` | <span class="cx-pill supported">supported</span> | Livox MID360 against LI-Init: rotation and clock offset, and the full extrinsic in a second round (the first round was refuted) |
 | `lidar-vehicle` | <span class="cx-pill supported">supported</span> | KITTI motion-only rotation against calib_imu_to_velo, eight unseen drives |
 | `camera-imu` | <span class="cx-pill supported">supported</span> | Hilti 2022 forward cameras against Kalibr: every judged axis within 1 deg, five unseen recordings (third round; the first two were refuted) |
-| `lidar-lidar` | <span class="cx-pill refuted">refuted</span> | NTU VIRAL, 2/4 gates; GrandTour, 2/6 gates |
+| `lidar-lidar` | <span class="cx-pill refuted">refuted</span> | NTU VIRAL, 2/4 gates; GrandTour, 2/6 gates; [GrandTour v2, refuted, 4/5 gates](benchmarks/grand_tour_lidar_lidar_v2.md) |
 | `camera-camera` | <span class="cx-pill refuted">refuted</span> | Hilti 2022 against Kalibr, 4/6 gates |
 | `camera-lidar` | <span class="cx-pill refuted">refuted</span> | KITTI check verdicts: v2 8/9 gates on 18 unseen drives of four days (no calibration flagged; one turned-run axis 1.503 deg off, gate 1.5), v1 5/9 |
 | `ins-lidar` | <span class="cx-pill refuted">refuted</span> | [KITTI + Boreas, 6/8 gates](benchmarks/ins_lidar_rotation_v1.md): estimated axes agree, but one recording has no observable rotation; [v2, 7/8 gates](benchmarks/ins_lidar_rotation_v2.md): all 17 estimated axes agree, but under half of KITTI's axes are estimated |

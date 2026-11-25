@@ -1,0 +1,2532 @@
+{
+  "analysis": "Post hoc Task A on spent GrandTour missions",
+  "calibrex_commit": "f8f44d66520195874d507d4c4fa4d736f6e74b68",
+  "dataset": "leggedrobotics/grand_tour_dataset",
+  "dataset_revision": "af6b6dd6f91696f8ec8c98134e195514834911b2",
+  "scan_stride": 30,
+  "map_half_window_scans": 0,
+  "target_accumulate_scans": 1,
+  "block_duration_s": 10,
+  "solver_max_iterations": 15,
+  "clock_search_half_width_s": 0.02,
+  "clock_search_step_s": 0.002,
+  "missions": {
+    "2024-11-02-17-43-10": {
+      "rigid_constant_velocity_rpy_deg": [
+        -179.9033761767223,
+        -0.02709406401314987,
+        -89.87163773811827
+      ],
+      "trajectory_constant_velocity_rpy_deg": [
+        -179.91155329932567,
+        -0.04347851389717803,
+        -89.75854514019512
+      ],
+      "clock": {
+        "livox_to_hesai_offset_s": -0.011935454845024276,
+        "jackknife_std_s": 0.007609399474361962,
+        "at_search_edge": false,
+        "refit_rpy_deg": [
+          -179.9112082131074,
+          -0.032086330367232116,
+          -89.80220148361191
+        ]
+      },
+      "rigid_none_rpy_deg": [
+        -179.90337880600362,
+        -0.027099512509966218,
+        -89.87163603935814
+      ],
+      "trajectory_none_rpy_deg": [
+        -179.90259120872736,
+        -0.031078037287753026,
+        -89.75855990141801
+      ],
+      "ring_range": {
+        "all": {
+          "shared_train_scans": 28,
+          "rpy_deg": [
+            -179.91900427255766,
+            -0.03130907654826295,
+            -89.88041799504089
+          ]
+        },
+        "ring_low": {
+          "shared_train_scans": 28,
+          "rpy_deg": [
+            -179.57103703517066,
+            0.24050742110496146,
+            -89.97644532484874
+          ]
+        },
+        "ring_mid": {
+          "shared_train_scans": 28,
+          "rpy_deg": [
+            -179.93621848433938,
+            0.016206090373689648,
+            -89.86583759425314
+          ]
+        },
+        "ring_high": {
+          "shared_train_scans": 28,
+          "rpy_deg": [
+            -179.91350638609657,
+            -0.020133067203634947,
+            -89.67459240676486
+          ]
+        },
+        "range_near": {
+          "shared_train_scans": 28,
+          "rpy_deg": [
+            -179.92062883231782,
+            -0.031300751038306325,
+            -89.81382998912673
+          ]
+        },
+        "range_mid": {
+          "shared_train_scans": 28,
+          "rpy_deg": [
+            -179.92396488013662,
+            -0.029893104913288168,
+            -89.9070211638053
+          ]
+        },
+        "range_far": {
+          "shared_train_scans": 28,
+          "rpy_deg": [
+            179.945145828332,
+            -0.22947355855971432,
+            -90.01744469958106
+          ]
+        }
+      },
+      "train_blocks": [
+        {
+          "block": 0,
+          "normal_second_moment_eigenvalues": [
+            0.2465063421931441,
+            0.3534578120916753,
+            0.40003584571518247
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.9054963021562,
+            -0.027737567129673582,
+            -89.86658576163913
+          ]
+        },
+        {
+          "block": 2,
+          "normal_second_moment_eigenvalues": [
+            0.1680684263422821,
+            0.37311550580556807,
+            0.45881606785214857
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.90632644114675,
+            -0.028879255009437613,
+            -89.88197318392737
+          ]
+        },
+        {
+          "block": 3,
+          "normal_second_moment_eigenvalues": [
+            0.15136825572871626,
+            0.37747352122143685,
+            0.47115822304984606
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.90564977835072,
+            -0.031255478307676346,
+            -89.87869561324908
+          ]
+        },
+        {
+          "block": 5,
+          "normal_second_moment_eigenvalues": [
+            0.19288961540512323,
+            0.3781213267594708,
+            0.42898905783540303
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.90685765481987,
+            -0.024686697380420175,
+            -89.86694181080225
+          ]
+        },
+        {
+          "block": 6,
+          "normal_second_moment_eigenvalues": [
+            0.2365352121353725,
+            0.2823167512429739,
+            0.4811480366216459
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.89242794338875,
+            -0.020921126336213784,
+            -89.8816450210416
+          ]
+        },
+        {
+          "block": 8,
+          "normal_second_moment_eigenvalues": [
+            0.13953052089700257,
+            0.38557791095547406,
+            0.47489156814750955
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.90270259346534,
+            -0.03139210327797267,
+            -89.87424996644053
+          ]
+        },
+        {
+          "block": 9,
+          "normal_second_moment_eigenvalues": [
+            0.2030912793030093,
+            0.3395877047135583,
+            0.45732101598341124
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.89969900353486,
+            -0.025371088331957215,
+            -89.86787363425881
+          ]
+        },
+        {
+          "block": 11,
+          "normal_second_moment_eigenvalues": [
+            0.1822796610434447,
+            0.37855408932500584,
+            0.4391662496315334
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.89807131483573,
+            -0.02221167036794105,
+            -89.87082372402757
+          ]
+        },
+        {
+          "block": 12,
+          "normal_second_moment_eigenvalues": [
+            0.2075901489319038,
+            0.3259522744324655,
+            0.46645757663561355
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.9017556736574,
+            -0.02465838159272947,
+            -89.86687393111609
+          ]
+        },
+        {
+          "block": 14,
+          "normal_second_moment_eigenvalues": [
+            0.22615396318524986,
+            0.311635177596607,
+            0.46221085921811966
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.9095468330959,
+            -0.03066753440973803,
+            -89.88936669211031
+          ]
+        },
+        {
+          "block": 15,
+          "normal_second_moment_eigenvalues": [
+            0.23580282280295328,
+            0.2811570075134141,
+            0.48304016968360475
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.89471317868706,
+            -0.029959537389268386,
+            -89.85930880558385
+          ]
+        },
+        {
+          "block": 17,
+          "normal_second_moment_eigenvalues": [
+            0.2144942279615295,
+            0.36449385160773273,
+            0.42101192043071506
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.9066219609086,
+            -0.026801658604691997,
+            -89.86619174675909
+          ]
+        },
+        {
+          "block": 18,
+          "normal_second_moment_eigenvalues": [
+            0.21016350674382653,
+            0.36850967886749075,
+            0.42132681438866476
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.90728626558382,
+            -0.026892591626386884,
+            -89.86936715617605
+          ]
+        },
+        {
+          "block": 20,
+          "normal_second_moment_eigenvalues": [
+            0.22287299110468475,
+            0.3589254019079381,
+            0.41820160698735853
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.9074654171511,
+            -0.027430215640794578,
+            -89.86931557980542
+          ]
+        },
+        {
+          "block": 21,
+          "normal_second_moment_eigenvalues": [
+            0.2149860195498706,
+            0.35812280112364003,
+            0.42689117932647347
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.9062935128136,
+            -0.027039967186724967,
+            -89.8695919562994
+          ]
+        }
+      ],
+      "input_sha256": {
+        "cpt7_imu.tar": "36b0bc93d0b0f3bae67c168c77e67334eb7c54a8f8fe19db0bfcdc28595326cc",
+        "hesai_points.tar": "08b5c35687148a115791f818ac49dbd45798e7fca9f1a6eebd2813399e634de5",
+        "livox_imu.tar": "c79a3385882633e79e39ec563d83b3f88a1bab133f6009354d603d3c8510e4ee",
+        "livox_points.tar": "00d8583743c020364bd31239b44ce0115d5eec9488fd422c242e7ae8eb371504",
+        "stim320_imu.tar": "910a6107f84bfb69a1c0fc6a8dcc626162b6c85a7c3d8a18f863bb1d62c7edcc"
+      },
+      "gyro_fit": [
+        {
+          "input": "livox_imu",
+          "reference": "cpt7_imu",
+          "low_pass_hz": 1,
+          "reference_sampling_lag_ms": -5.0,
+          "reference_from_input_rpy_deg": [
+            0.1423,
+            -0.0947,
+            0.225
+          ],
+          "residual_rms_rad_s": 0.00187,
+          "input_axis_scale": [
+            0.9941,
+            1.0022,
+            1.0006
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "cpt7_imu",
+          "low_pass_hz": 2,
+          "reference_sampling_lag_ms": -4.11,
+          "reference_from_input_rpy_deg": [
+            0.14,
+            -0.1163,
+            0.2923
+          ],
+          "residual_rms_rad_s": 0.00264,
+          "input_axis_scale": [
+            1.0001,
+            1.0047,
+            1.0005
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "cpt7_imu",
+          "low_pass_hz": 4,
+          "reference_sampling_lag_ms": -4.29,
+          "reference_from_input_rpy_deg": [
+            0.1377,
+            -0.1128,
+            0.2316
+          ],
+          "residual_rms_rad_s": 0.00392,
+          "input_axis_scale": [
+            0.9962,
+            0.9975,
+            1.0005
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 1,
+          "reference_sampling_lag_ms": -4.38,
+          "reference_from_input_rpy_deg": [
+            -179.8385,
+            0.0998,
+            -0.2764
+          ],
+          "residual_rms_rad_s": 0.00247,
+          "input_axis_scale": [
+            0.9893,
+            1.0014,
+            0.9999
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 2,
+          "reference_sampling_lag_ms": -2.05,
+          "reference_from_input_rpy_deg": [
+            -179.8665,
+            0.1013,
+            0.1481
+          ],
+          "residual_rms_rad_s": 0.00382,
+          "input_axis_scale": [
+            0.9829,
+            1.0123,
+            1.0004
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 4,
+          "reference_sampling_lag_ms": -2.49,
+          "reference_from_input_rpy_deg": [
+            -179.8795,
+            0.1037,
+            -0.1473
+          ],
+          "residual_rms_rad_s": 0.00548,
+          "input_axis_scale": [
+            0.984,
+            0.9848,
+            1.0009
+          ]
+        },
+        {
+          "input": "cpt7_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 1,
+          "reference_sampling_lag_ms": 0.62,
+          "reference_from_input_rpy_deg": [
+            -179.9893,
+            0.0062,
+            0.0468
+          ],
+          "residual_rms_rad_s": 0.00164,
+          "input_axis_scale": [
+            0.9946,
+            0.9962,
+            0.9992
+          ]
+        },
+        {
+          "input": "cpt7_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 2,
+          "reference_sampling_lag_ms": 2.26,
+          "reference_from_input_rpy_deg": [
+            179.9883,
+            -0.0173,
+            0.394
+          ],
+          "residual_rms_rad_s": 0.00266,
+          "input_axis_scale": [
+            0.9796,
+            1.006,
+            0.9995
+          ]
+        },
+        {
+          "input": "cpt7_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 4,
+          "reference_sampling_lag_ms": 1.8,
+          "reference_from_input_rpy_deg": [
+            179.9827,
+            -0.0097,
+            0.0587
+          ],
+          "residual_rms_rad_s": 0.00406,
+          "input_axis_scale": [
+            0.9832,
+            0.9856,
+            0.9997
+          ]
+        }
+      ]
+    },
+    "2024-11-03-07-52-45": {
+      "rigid_constant_velocity_rpy_deg": [
+        -179.88657774199726,
+        0.01071476607400928,
+        -89.95566911135562
+      ],
+      "trajectory_constant_velocity_rpy_deg": [
+        -179.90069435877405,
+        -0.011790778784032684,
+        -89.89363338132542
+      ],
+      "clock": {
+        "livox_to_hesai_offset_s": -0.02,
+        "jackknife_std_s": 0.0013589263528427258,
+        "at_search_edge": true,
+        "refit_rpy_deg": [
+          -179.90264549006747,
+          -0.007686561919063049,
+          -89.92236375903417
+        ]
+      },
+      "ring_range": {
+        "all": {
+          "shared_train_scans": 43,
+          "rpy_deg": [
+            -179.88657332819693,
+            0.01070333629823212,
+            -89.95567970641014
+          ]
+        },
+        "ring_low": {
+          "shared_train_scans": 43,
+          "rpy_deg": [
+            179.9511056772944,
+            0.24720205001958062,
+            -89.92330620182258
+          ]
+        },
+        "ring_mid": {
+          "shared_train_scans": 43,
+          "rpy_deg": [
+            -179.8988979003253,
+            0.056569099635447366,
+            -89.94417745486435
+          ]
+        },
+        "ring_high": {
+          "shared_train_scans": 43,
+          "rpy_deg": [
+            -179.86033996263475,
+            -0.028929472231774837,
+            -89.63543454706523
+          ]
+        },
+        "range_near": {
+          "shared_train_scans": 43,
+          "rpy_deg": [
+            -179.87068017875802,
+            0.023274603188766008,
+            -89.8799068240258
+          ]
+        },
+        "range_mid": {
+          "shared_train_scans": 43,
+          "rpy_deg": [
+            -179.8852574815001,
+            0.03534355883323369,
+            -89.9768431773996
+          ]
+        },
+        "range_far": {
+          "shared_train_scans": 43,
+          "rpy_deg": [
+            -179.91939549330854,
+            0.007522915729614857,
+            -89.91495973056695
+          ]
+        }
+      },
+      "train_blocks": [
+        {
+          "block": -1,
+          "normal_second_moment_eigenvalues": [
+            0.1949557425544301,
+            0.27106594733607514,
+            0.5339783101094945
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.88665769649103,
+            0.010773490854472148,
+            -89.95534743288978
+          ]
+        },
+        {
+          "block": 1,
+          "normal_second_moment_eigenvalues": [
+            0.09626488781732342,
+            0.34974474623373886,
+            0.5539903659489371
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.88649197824145,
+            0.0208050001492328,
+            -89.95481087522057
+          ]
+        },
+        {
+          "block": 2,
+          "normal_second_moment_eigenvalues": [
+            0.07167682128735901,
+            0.3216534872901955,
+            0.6066696914224444
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8865760324477,
+            0.011804465920837245,
+            -89.9557696239479
+          ]
+        },
+        {
+          "block": 4,
+          "normal_second_moment_eigenvalues": [
+            0.06206072207031341,
+            0.28117871261996624,
+            0.6567605653097174
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.88550166385468,
+            -0.0007754002107841438,
+            -89.953852782684
+          ]
+        },
+        {
+          "block": 5,
+          "normal_second_moment_eigenvalues": [
+            0.07674543254746777,
+            0.24796966103238277,
+            0.6752849064201467
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8894657474678,
+            0.009219574338015237,
+            -89.9546305866546
+          ]
+        },
+        {
+          "block": 7,
+          "normal_second_moment_eigenvalues": [
+            0.11515065887557713,
+            0.2727144437323381,
+            0.612134897392078
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8967110312921,
+            0.009163892932823978,
+            -89.94390007272293
+          ]
+        },
+        {
+          "block": 8,
+          "normal_second_moment_eigenvalues": [
+            0.11204660207205148,
+            0.2770003742311739,
+            0.6109530236967687
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.88731787719405,
+            0.009911929863637144,
+            -89.9651363654006
+          ]
+        },
+        {
+          "block": 10,
+          "normal_second_moment_eigenvalues": [
+            0.10900674946014,
+            0.26938610935124907,
+            0.6216071411886005
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.89327401191318,
+            0.012749877350173541,
+            -89.9644902437617
+          ]
+        },
+        {
+          "block": 11,
+          "normal_second_moment_eigenvalues": [
+            0.14999549146899444,
+            0.2101515054670143,
+            0.6398530030639783
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8793027673578,
+            0.011831400771441519,
+            -89.97171329994659
+          ]
+        },
+        {
+          "block": 13,
+          "normal_second_moment_eigenvalues": [
+            0.08615809514706328,
+            0.2523145685872472,
+            0.6615273362656783
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.88302590194382,
+            0.01276312916921696,
+            -89.951217718819
+          ]
+        },
+        {
+          "block": 14,
+          "normal_second_moment_eigenvalues": [
+            0.06366353136940012,
+            0.24620980337596918,
+            0.6901266652546214
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.88335631144045,
+            0.010904905718120663,
+            -89.94847464693515
+          ]
+        },
+        {
+          "block": 16,
+          "normal_second_moment_eigenvalues": [
+            0.06846475083509655,
+            0.25100162721227787,
+            0.6805336219526119
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.88393897543142,
+            0.010615260167300368,
+            -89.95403176224971
+          ]
+        },
+        {
+          "block": 17,
+          "normal_second_moment_eigenvalues": [
+            0.06974145053166433,
+            0.2543790381758147,
+            0.6758795112925058
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.88242847655195,
+            0.010043237800370492,
+            -89.95178989619444
+          ]
+        }
+      ],
+      "input_sha256": {
+        "cpt7_imu.tar": "21b425b0903ec813d72f10b4ee4d717a57fec3fd001f08d0ef1111433852b5e6",
+        "hesai_points.tar": "1f3899dbfeaf1c72fa82fb250e242527dbb0b58c306c5a7bcc98c52d32018d6b",
+        "livox_imu.tar": "9ae53c3b6d563f3c0244584d372ab9448c849d887b071f6f907ca9bc4ace917d",
+        "livox_points.tar": "66e7c588665939d0d51219d6c1026cf3fd0879fe79d1e4cdf5b6370d9cf95d24",
+        "stim320_imu.tar": "2a206828e9615e0342f88eedd9d3dfd4b49ae11c97adbd146581c850372399f2"
+      },
+      "gyro_fit": [
+        {
+          "input": "livox_imu",
+          "reference": "cpt7_imu",
+          "low_pass_hz": 1,
+          "reference_sampling_lag_ms": -3.96,
+          "reference_from_input_rpy_deg": [
+            0.1384,
+            -0.143,
+            0.4051
+          ],
+          "residual_rms_rad_s": 0.00216,
+          "input_axis_scale": [
+            0.9874,
+            1.0026,
+            1.0005
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "cpt7_imu",
+          "low_pass_hz": 2,
+          "reference_sampling_lag_ms": -4.29,
+          "reference_from_input_rpy_deg": [
+            0.1303,
+            -0.1562,
+            0.3398
+          ],
+          "residual_rms_rad_s": 0.00265,
+          "input_axis_scale": [
+            0.9916,
+            1.0006,
+            1.0
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "cpt7_imu",
+          "low_pass_hz": 4,
+          "reference_sampling_lag_ms": -4.38,
+          "reference_from_input_rpy_deg": [
+            0.152,
+            -0.1891,
+            0.3116
+          ],
+          "residual_rms_rad_s": 0.0037,
+          "input_axis_scale": [
+            0.9861,
+            0.9991,
+            0.9994
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 1,
+          "reference_sampling_lag_ms": -5.37,
+          "reference_from_input_rpy_deg": [
+            -179.8329,
+            0.0036,
+            -0.1971
+          ],
+          "residual_rms_rad_s": 0.00372,
+          "input_axis_scale": [
+            0.9783,
+            0.9956,
+            0.999
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 2,
+          "reference_sampling_lag_ms": -4.76,
+          "reference_from_input_rpy_deg": [
+            -179.8001,
+            0.0552,
+            -1.0098
+          ],
+          "residual_rms_rad_s": 0.00451,
+          "input_axis_scale": [
+            0.9938,
+            0.9988,
+            0.9991
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 4,
+          "reference_sampling_lag_ms": -4.45,
+          "reference_from_input_rpy_deg": [
+            -179.8322,
+            0.1462,
+            -0.8485
+          ],
+          "residual_rms_rad_s": 0.00611,
+          "input_axis_scale": [
+            1.0075,
+            0.9751,
+            1.0002
+          ]
+        },
+        {
+          "input": "cpt7_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 1,
+          "reference_sampling_lag_ms": -0.98,
+          "reference_from_input_rpy_deg": [
+            -179.9974,
+            0.0718,
+            0.0501
+          ],
+          "residual_rms_rad_s": 0.00245,
+          "input_axis_scale": [
+            1.0128,
+            1.0041,
+            1.0011
+          ]
+        },
+        {
+          "input": "cpt7_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 2,
+          "reference_sampling_lag_ms": -1.3,
+          "reference_from_input_rpy_deg": [
+            179.9793,
+            0.0325,
+            0.8883
+          ],
+          "residual_rms_rad_s": 0.00355,
+          "input_axis_scale": [
+            0.9978,
+            1.0078,
+            1.0002
+          ]
+        },
+        {
+          "input": "cpt7_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 4,
+          "reference_sampling_lag_ms": -1.69,
+          "reference_from_input_rpy_deg": [
+            179.9923,
+            -0.0534,
+            0.89
+          ],
+          "residual_rms_rad_s": 0.00517,
+          "input_axis_scale": [
+            0.9906,
+            1.0268,
+            0.999
+          ]
+        }
+      ]
+    },
+    "2024-11-04-13-07-13": {
+      "ring_range": {
+        "all": {
+          "shared_train_scans": 76,
+          "rpy_deg": [
+            -179.86334980533596,
+            0.18884529802174074,
+            -89.55014282723414
+          ]
+        },
+        "ring_low": {
+          "shared_train_scans": 76,
+          "rpy_deg": [
+            179.8803997130058,
+            0.43768177681442766,
+            -89.56756376401873
+          ]
+        },
+        "ring_mid": {
+          "shared_train_scans": 76,
+          "rpy_deg": [
+            -179.88541318228647,
+            0.21970619620764925,
+            -89.56288700572749
+          ]
+        },
+        "ring_high": {
+          "shared_train_scans": 76,
+          "rpy_deg": [
+            -179.84765609267896,
+            0.12263649010926149,
+            -89.42916340455083
+          ]
+        },
+        "range_near": {
+          "shared_train_scans": 76,
+          "rpy_deg": [
+            -179.87050143144714,
+            0.20653076164335227,
+            -89.47591750581024
+          ]
+        },
+        "range_mid": {
+          "shared_train_scans": 76,
+          "rpy_deg": [
+            -179.8484822881819,
+            0.15471349361318157,
+            -89.55829275483511
+          ]
+        },
+        "range_far": {
+          "shared_train_scans": 76,
+          "rpy_deg": [
+            -179.85650219385366,
+            0.15620082658022427,
+            -89.58081560283114
+          ]
+        }
+      },
+      "rigid_constant_velocity_rpy_deg": [
+        -179.8633432436647,
+        0.18885260610517984,
+        -89.55015526187508
+      ],
+      "trajectory_constant_velocity_rpy_deg": [
+        -179.87125552844043,
+        0.18442324166663307,
+        -89.60732437562284
+      ],
+      "clock": {
+        "livox_to_hesai_offset_s": -0.02,
+        "jackknife_std_s": 0.0028050592796597966,
+        "at_search_edge": true,
+        "refit_rpy_deg": [
+          -179.886475260292,
+          0.1949412554970581,
+          -89.57074854419008
+        ]
+      },
+      "train_blocks": [
+        {
+          "block": 0,
+          "normal_second_moment_eigenvalues": [
+            0.14658883317170254,
+            0.18770380753066,
+            0.6657073592976375
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.85909412191543,
+            0.188568984865182,
+            -89.55290086300035
+          ]
+        },
+        {
+          "block": 2,
+          "normal_second_moment_eigenvalues": [
+            0.17325342973553093,
+            0.245928691986457,
+            0.5808178782780173
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.860175422528,
+            0.18519149948778582,
+            -89.54373360283013
+          ]
+        },
+        {
+          "block": 3,
+          "normal_second_moment_eigenvalues": [
+            0.1548394820469577,
+            0.22352886336616543,
+            0.6216316545868862
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.86686621728663,
+            0.19467638831308584,
+            -89.5535876175209
+          ]
+        },
+        {
+          "block": 5,
+          "normal_second_moment_eigenvalues": [
+            0.20844091785263766,
+            0.2693665278138647,
+            0.5221925543335058
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.86389537186892,
+            0.18889764851421234,
+            -89.5475437984959
+          ]
+        },
+        {
+          "block": 6,
+          "normal_second_moment_eigenvalues": [
+            0.18977689749096557,
+            0.22356007008526577,
+            0.5866630324237802
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.86522133512685,
+            0.1883648053291626,
+            -89.55059785510699
+          ]
+        },
+        {
+          "block": 8,
+          "normal_second_moment_eigenvalues": [
+            0.19215536516732065,
+            0.21131700980547086,
+            0.5965276250272205
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.86299645534038,
+            0.18762067743334365,
+            -89.55690185996318
+          ]
+        },
+        {
+          "block": 9,
+          "normal_second_moment_eigenvalues": [
+            0.1745783703694996,
+            0.21742229939336977,
+            0.6079993302371499
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8645332023433,
+            0.19222647691880446,
+            -89.55331894794483
+          ]
+        },
+        {
+          "block": 11,
+          "normal_second_moment_eigenvalues": [
+            0.20164590641500735,
+            0.2562366327072483,
+            0.5421174608777612
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.86881604037788,
+            0.19002622118578685,
+            -89.5541831786191
+          ]
+        },
+        {
+          "block": 12,
+          "normal_second_moment_eigenvalues": [
+            0.2025868268767623,
+            0.23569992639986712,
+            0.5617132467233877
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.86484212154696,
+            0.18448693878607336,
+            -89.54625672256697
+          ]
+        },
+        {
+          "block": 14,
+          "normal_second_moment_eigenvalues": [
+            0.21095183799141326,
+            0.2435419080779604,
+            0.5455062539306448
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.86355319325594,
+            0.18817111604162953,
+            -89.5558729033909
+          ]
+        },
+        {
+          "block": 15,
+          "normal_second_moment_eigenvalues": [
+            0.19714416472027707,
+            0.25455566663047646,
+            0.5483001686492632
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.86435226696986,
+            0.18903806966016623,
+            -89.55189078983047
+          ]
+        },
+        {
+          "block": 17,
+          "normal_second_moment_eigenvalues": [
+            0.17763804082306683,
+            0.22286736349682723,
+            0.599494595680117
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8644405744666,
+            0.18755406854770718,
+            -89.54878163675646
+          ]
+        },
+        {
+          "block": 18,
+          "normal_second_moment_eigenvalues": [
+            0.1801531687849065,
+            0.23682121971143116,
+            0.5830256115036698
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.86620101622623,
+            0.19081404614702482,
+            -89.55121171776379
+          ]
+        },
+        {
+          "block": 20,
+          "normal_second_moment_eigenvalues": [
+            0.22423915140299752,
+            0.23753043954724612,
+            0.5382304090497673
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8632246946555,
+            0.1908665454094328,
+            -89.54669084458499
+          ]
+        },
+        {
+          "block": 21,
+          "normal_second_moment_eigenvalues": [
+            0.16982816682665186,
+            0.20571882030256328,
+            0.6244530128707999
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.85430845212383,
+            0.1921106329739024,
+            -89.54574427914582
+          ]
+        },
+        {
+          "block": 23,
+          "normal_second_moment_eigenvalues": [
+            0.21205604966532296,
+            0.26837580107579945,
+            0.5195681492588904
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8636094818053,
+            0.19038809863020495,
+            -89.54844374170547
+          ]
+        },
+        {
+          "block": 24,
+          "normal_second_moment_eigenvalues": [
+            0.19260461476272267,
+            0.2261708573482606,
+            0.5812245278890333
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.85840776118982,
+            0.1874923919618595,
+            -89.5502239656125
+          ]
+        },
+        {
+          "block": 26,
+          "normal_second_moment_eigenvalues": [
+            0.12330638462085518,
+            0.21946568778028816,
+            0.6572279275988713
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.86758596981036,
+            0.1840043476635639,
+            -89.54992093965454
+          ]
+        },
+        {
+          "block": 27,
+          "normal_second_moment_eigenvalues": [
+            0.11596800660436472,
+            0.21090710907092994,
+            0.6731248843247197
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.86199155986162,
+            0.18715260642186957,
+            -89.54732081820269
+          ]
+        },
+        {
+          "block": 29,
+          "normal_second_moment_eigenvalues": [
+            0.11870808506593346,
+            0.20242439860948522,
+            0.6788675163245979
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.85888039525463,
+            0.18951932275137365,
+            -89.54872825186162
+          ]
+        },
+        {
+          "block": 30,
+          "normal_second_moment_eigenvalues": [
+            0.12044709374676116,
+            0.20496802149410306,
+            0.6745848847591556
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.86238105582754,
+            0.18913994757661926,
+            -89.54683372777444
+          ]
+        },
+        {
+          "block": 32,
+          "normal_second_moment_eigenvalues": [
+            0.1337032039925904,
+            0.22761697599397232,
+            0.638679820013448
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.86946422333335,
+            0.1913120313597836,
+            -89.55345854984324
+          ]
+        }
+      ],
+      "input_sha256": {
+        "cpt7_imu.tar": "6948f2bc516a22fa24bcd0acf20039821883b6a7007b9a267de830381acfa4ab",
+        "hesai_points.tar": "a00f1c307918b9d63ebfbda7da3dacd6fc209c458c8a6ed8d0a40b8ea584472d",
+        "livox_imu.tar": "853fbe797bd32136ab513ce6c28ce748906bf283eef2ef5c49862b53e54353ac",
+        "livox_points.tar": "f94ef8657fc1ae5982f4270b3dfc0070531e223f033b125c39324a70e0370635",
+        "stim320_imu.tar": "d2a0e3ddd64de289994624d649cdf7eb600f557db07b0774a89ccb0e54169fc3"
+      },
+      "gyro_fit": [
+        {
+          "input": "livox_imu",
+          "reference": "cpt7_imu",
+          "low_pass_hz": 1,
+          "reference_sampling_lag_ms": -4.56,
+          "reference_from_input_rpy_deg": [
+            0.1031,
+            -0.1353,
+            -0.0312
+          ],
+          "residual_rms_rad_s": 0.00258,
+          "input_axis_scale": [
+            0.9945,
+            1.0015,
+            1.0007
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "cpt7_imu",
+          "low_pass_hz": 2,
+          "reference_sampling_lag_ms": -4.16,
+          "reference_from_input_rpy_deg": [
+            0.1009,
+            -0.1846,
+            -0.1474
+          ],
+          "residual_rms_rad_s": 0.00368,
+          "input_axis_scale": [
+            0.9932,
+            0.9995,
+            1.0001
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "cpt7_imu",
+          "low_pass_hz": 4,
+          "reference_sampling_lag_ms": -4.28,
+          "reference_from_input_rpy_deg": [
+            0.0787,
+            -0.252,
+            -0.3298
+          ],
+          "residual_rms_rad_s": 0.00536,
+          "input_axis_scale": [
+            0.9882,
+            0.9973,
+            0.9998
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 1,
+          "reference_sampling_lag_ms": -4.62,
+          "reference_from_input_rpy_deg": [
+            -179.7362,
+            0.1599,
+            0.2615
+          ],
+          "residual_rms_rad_s": 0.00505,
+          "input_axis_scale": [
+            0.9472,
+            0.9923,
+            0.9984
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 2,
+          "reference_sampling_lag_ms": -7.12,
+          "reference_from_input_rpy_deg": [
+            -179.7557,
+            0.1529,
+            0.3947
+          ],
+          "residual_rms_rad_s": 0.00747,
+          "input_axis_scale": [
+            0.9781,
+            0.986,
+            0.9964
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 4,
+          "reference_sampling_lag_ms": -4.53,
+          "reference_from_input_rpy_deg": [
+            -179.908,
+            0.1141,
+            0.2175
+          ],
+          "residual_rms_rad_s": 0.01076,
+          "input_axis_scale": [
+            0.9765,
+            0.972,
+            0.9949
+          ]
+        },
+        {
+          "input": "cpt7_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 1,
+          "reference_sampling_lag_ms": 1.18,
+          "reference_from_input_rpy_deg": [
+            -179.9351,
+            0.0257,
+            0.0307
+          ],
+          "residual_rms_rad_s": 0.00265,
+          "input_axis_scale": [
+            1.0002,
+            1.0037,
+            1.0007
+          ]
+        },
+        {
+          "input": "cpt7_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 2,
+          "reference_sampling_lag_ms": 0.15,
+          "reference_from_input_rpy_deg": [
+            -179.9697,
+            -0.0472,
+            0.0981
+          ],
+          "residual_rms_rad_s": 0.00397,
+          "input_axis_scale": [
+            0.9973,
+            1.006,
+            0.9998
+          ]
+        },
+        {
+          "input": "cpt7_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 4,
+          "reference_sampling_lag_ms": -0.23,
+          "reference_from_input_rpy_deg": [
+            -179.9231,
+            -0.0655,
+            -0.0009
+          ],
+          "residual_rms_rad_s": 0.00602,
+          "input_axis_scale": [
+            0.9975,
+            1.0082,
+            0.9988
+          ]
+        }
+      ]
+    },
+    "2024-11-11-12-42-47": {
+      "ring_range": {
+        "all": {
+          "shared_train_scans": 93,
+          "rpy_deg": [
+            -179.89773548698147,
+            0.061122983999541955,
+            -90.0198523377554
+          ]
+        },
+        "ring_low": {
+          "shared_train_scans": 93,
+          "rpy_deg": [
+            -179.77196423491384,
+            0.02353055066999122,
+            -90.06922655890192
+          ]
+        },
+        "ring_mid": {
+          "shared_train_scans": 93,
+          "rpy_deg": [
+            -179.9003629285208,
+            0.07742440752062923,
+            -90.05420324001923
+          ]
+        },
+        "ring_high": {
+          "shared_train_scans": 93,
+          "rpy_deg": [
+            -179.9099100411313,
+            0.035521606095835066,
+            -89.9336337963861
+          ]
+        },
+        "range_near": {
+          "shared_train_scans": 93,
+          "rpy_deg": [
+            -179.8561345583856,
+            0.09978464645535172,
+            -89.95921551399807
+          ]
+        },
+        "range_mid": {
+          "shared_train_scans": 93,
+          "rpy_deg": [
+            -179.89832465366723,
+            0.0437552805828833,
+            -90.02089185298664
+          ]
+        },
+        "range_far": {
+          "shared_train_scans": 93,
+          "rpy_deg": [
+            -179.88130011989094,
+            0.010525248518900876,
+            -90.02721984536295
+          ]
+        }
+      },
+      "rigid_constant_velocity_rpy_deg": [
+        -179.89673619467425,
+        0.06096853057005032,
+        -90.01925094008294
+      ],
+      "trajectory_constant_velocity_rpy_deg": [
+        -179.84982769579426,
+        0.016878810743115376,
+        -90.11067107478196
+      ],
+      "clock": {
+        "livox_to_hesai_offset_s": 0.02,
+        "jackknife_std_s": 0.030959725187431047,
+        "at_search_edge": true,
+        "refit_rpy_deg": [
+          -179.85033263741985,
+          0.02670662479484199,
+          -90.15546531530104
+        ]
+      },
+      "train_blocks": [
+        {
+          "block": -1,
+          "normal_second_moment_eigenvalues": [
+            0.11474185657033735,
+            0.21430305509259598,
+            0.6709550883370665
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.89702194779485,
+            0.061487269166600564,
+            -90.01998019738217
+          ]
+        },
+        {
+          "block": 1,
+          "normal_second_moment_eigenvalues": [
+            0.04379257497739974,
+            0.4038066206306683,
+            0.5524008043919307
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.89369452705836,
+            0.05484294617510337,
+            -90.02016875601345
+          ]
+        },
+        {
+          "block": 2,
+          "normal_second_moment_eigenvalues": [
+            0.13370532360080253,
+            0.21997200524230356,
+            0.6463226711568829
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.89153512104843,
+            0.058415257246151805,
+            -90.0255842534986
+          ]
+        },
+        {
+          "block": 4,
+          "normal_second_moment_eigenvalues": [
+            0.04394270564590661,
+            0.3214202290509731,
+            0.6346370653031023
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8972313688764,
+            0.06031077509725811,
+            -90.01426745939962
+          ]
+        },
+        {
+          "block": 5,
+          "normal_second_moment_eigenvalues": [
+            0.15904852219992552,
+            0.23529578019317554,
+            0.6056556976068826
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8846451392467,
+            0.05933602914373219,
+            -90.01791707732939
+          ]
+        },
+        {
+          "block": 7,
+          "normal_second_moment_eigenvalues": [
+            0.10696307986870175,
+            0.1314885800187672,
+            0.7615483401125047
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.89224556559117,
+            0.061478238384724215,
+            -90.01732919028646
+          ]
+        },
+        {
+          "block": 8,
+          "normal_second_moment_eigenvalues": [
+            0.038431484357679284,
+            0.08954244849788676,
+            0.8720260671443999
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.89554546735005,
+            0.05543281509771959,
+            -90.01218160575432
+          ]
+        },
+        {
+          "block": 10,
+          "normal_second_moment_eigenvalues": [
+            0.03755617206296967,
+            0.07890278210109535,
+            0.8835410458359086
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.89850349950535,
+            0.05657163997191327,
+            -90.01830908026487
+          ]
+        },
+        {
+          "block": 11,
+          "normal_second_moment_eigenvalues": [
+            0.06445691236913217,
+            0.10899422788890316,
+            0.826548859741939
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8997080418621,
+            0.060437749383967995,
+            -90.01748423392219
+          ]
+        },
+        {
+          "block": 13,
+          "normal_second_moment_eigenvalues": [
+            0.04201058660152941,
+            0.1000545736805039,
+            0.8579348397179414
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8950657350601,
+            0.05403032504075831,
+            -90.02474795169755
+          ]
+        },
+        {
+          "block": 14,
+          "normal_second_moment_eigenvalues": [
+            0.044002417611299215,
+            0.0778005628716666,
+            0.8781970195170075
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.91169393451474,
+            0.07894076581953065,
+            -90.00456254921342
+          ]
+        },
+        {
+          "block": 16,
+          "normal_second_moment_eigenvalues": [
+            0.06753271148734524,
+            0.20012966664688997,
+            0.7323376218657537
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.89762134693825,
+            0.06574528565007158,
+            -90.02308338868475
+          ]
+        },
+        {
+          "block": 17,
+          "normal_second_moment_eigenvalues": [
+            0.04578331898823405,
+            0.0857219753972779,
+            0.8684947056144734
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8903124587995,
+            0.05915975834978376,
+            -90.0205322195502
+          ]
+        },
+        {
+          "block": 19,
+          "normal_second_moment_eigenvalues": [
+            0.03453810399812979,
+            0.05524224939822482,
+            0.9102196466036243
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8936613278005,
+            0.05148947589228206,
+            -90.00984274028039
+          ]
+        },
+        {
+          "block": 20,
+          "normal_second_moment_eigenvalues": [
+            0.04676192494780636,
+            0.06302433330230113,
+            0.8902137417498597
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.89577665526224,
+            0.06018969377862213,
+            -90.01859774399105
+          ]
+        },
+        {
+          "block": 22,
+          "normal_second_moment_eigenvalues": [
+            0.05286152349035846,
+            0.05987539273265098,
+            0.8872630837769557
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.9100354716184,
+            0.06998852972269168,
+            -90.01229100646766
+          ]
+        },
+        {
+          "block": 23,
+          "normal_second_moment_eigenvalues": [
+            0.029051728025268796,
+            0.06391805166681006,
+            0.907030220307879
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.90440052454534,
+            0.0639885025344099,
+            -90.02122426319596
+          ]
+        },
+        {
+          "block": 25,
+          "normal_second_moment_eigenvalues": [
+            0.04485645104291033,
+            0.06274878226891073,
+            0.8923947666881389
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8993999385406,
+            0.06551118226788809,
+            -90.01814596910116
+          ]
+        },
+        {
+          "block": 26,
+          "normal_second_moment_eigenvalues": [
+            0.054978857161081585,
+            0.08725080374398024,
+            0.8577703390949034
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.87680782551092,
+            0.04927541157197435,
+            -90.00701816155548
+          ]
+        },
+        {
+          "block": 28,
+          "normal_second_moment_eigenvalues": [
+            0.03799150581450037,
+            0.041665611714693705,
+            0.9203428824707753
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.91637298887355,
+            0.07677634033370928,
+            -90.03644156972604
+          ]
+        },
+        {
+          "block": 29,
+          "normal_second_moment_eigenvalues": [
+            0.059327006127742526,
+            0.09776179018995386,
+            0.8429112036822745
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8933884882695,
+            0.05835781123159095,
+            -90.02330823539893
+          ]
+        },
+        {
+          "block": 31,
+          "normal_second_moment_eigenvalues": [
+            0.04390819680736061,
+            0.07559577871908017,
+            0.8804960244735404
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.89340331514896,
+            0.05114875573802956,
+            -90.02786553227772
+          ]
+        },
+        {
+          "block": 32,
+          "normal_second_moment_eigenvalues": [
+            0.050717635738537895,
+            0.06654761525340759,
+            0.8827347490080415
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.89627828630393,
+            0.06135024064111426,
+            -90.02032212547434
+          ]
+        },
+        {
+          "block": 34,
+          "normal_second_moment_eigenvalues": [
+            0.038366700297464584,
+            0.08569053240411041,
+            0.8759427672984119
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.88980738665305,
+            0.0665868820763032,
+            -90.03150275887671
+          ]
+        },
+        {
+          "block": 35,
+          "normal_second_moment_eigenvalues": [
+            0.03799497020791111,
+            0.1112753228201003,
+            0.8507297069719795
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.89953526995802,
+            0.06363557344793354,
+            -90.02239076892884
+          ]
+        },
+        {
+          "block": 37,
+          "normal_second_moment_eigenvalues": [
+            0.07877848151410444,
+            0.21790610712727493,
+            0.7033154113585949
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.8979522428993,
+            0.05999341970951386,
+            -90.01815505891867
+          ]
+        },
+        {
+          "block": 38,
+          "normal_second_moment_eigenvalues": [
+            0.04496338262779087,
+            0.11244871699945327,
+            0.8425879003727287
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.896930262256,
+            0.06328707969425906,
+            -90.00639819780227
+          ]
+        },
+        {
+          "block": 40,
+          "normal_second_moment_eigenvalues": [
+            0.058209359139585436,
+            0.14899192187529642,
+            0.7927987189850931
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.9040508815135,
+            0.059140642849760984,
+            -90.03666094638756
+          ]
+        }
+      ],
+      "input_sha256": {
+        "cpt7_imu.tar": "97d1755f2920e7e803c5523627c59683a41a09ce41e8415c49aea4683273b5da",
+        "hesai_points.tar": "36f15dafad57ed6a931c2a5b1c44aaf2d490e97698de2a9b745d37bf399a4c98",
+        "livox_imu.tar": "bfd1e39c3410cfe97b8b3016504de1ce3465b0dbccd91b5e2ecb362e2a2f651f",
+        "livox_points.tar": "68fb43e2f65acf3aa6842721438603e07cb8ef125eed20691bd2aa03381cd776",
+        "stim320_imu.tar": "3769182f70851a77671faa2a3d446f00290d5795c91db31bdd0858f5ebb4c48c"
+      },
+      "gyro_fit": [
+        {
+          "input": "livox_imu",
+          "reference": "cpt7_imu",
+          "low_pass_hz": 1,
+          "reference_sampling_lag_ms": -4.41,
+          "reference_from_input_rpy_deg": [
+            0.1022,
+            -0.0516,
+            0.344
+          ],
+          "residual_rms_rad_s": 0.00269,
+          "input_axis_scale": [
+            0.9975,
+            0.9995,
+            0.9993
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "cpt7_imu",
+          "low_pass_hz": 2,
+          "reference_sampling_lag_ms": -4.73,
+          "reference_from_input_rpy_deg": [
+            0.0955,
+            -0.0875,
+            0.2949
+          ],
+          "residual_rms_rad_s": 0.00379,
+          "input_axis_scale": [
+            0.9942,
+            0.998,
+            0.9981
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "cpt7_imu",
+          "low_pass_hz": 4,
+          "reference_sampling_lag_ms": -4.44,
+          "reference_from_input_rpy_deg": [
+            0.0827,
+            -0.1212,
+            0.257
+          ],
+          "residual_rms_rad_s": 0.00522,
+          "input_axis_scale": [
+            0.9916,
+            0.9951,
+            0.9975
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 1,
+          "reference_sampling_lag_ms": -4.97,
+          "reference_from_input_rpy_deg": [
+            -179.8128,
+            0.109,
+            -0.1787
+          ],
+          "residual_rms_rad_s": 0.00544,
+          "input_axis_scale": [
+            0.9998,
+            1.0007,
+            1.0007
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 2,
+          "reference_sampling_lag_ms": -4.08,
+          "reference_from_input_rpy_deg": [
+            -179.8691,
+            -0.0082,
+            -0.0908
+          ],
+          "residual_rms_rad_s": 0.00841,
+          "input_axis_scale": [
+            1.0137,
+            1.0034,
+            0.9984
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 4,
+          "reference_sampling_lag_ms": -6.3,
+          "reference_from_input_rpy_deg": [
+            -179.8533,
+            0.0173,
+            -0.0846
+          ],
+          "residual_rms_rad_s": 0.01168,
+          "input_axis_scale": [
+            1.0073,
+            1.007,
+            0.9974
+          ]
+        },
+        {
+          "input": "cpt7_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 1,
+          "reference_sampling_lag_ms": -1.51,
+          "reference_from_input_rpy_deg": [
+            179.9818,
+            0.051,
+            -0.0108
+          ],
+          "residual_rms_rad_s": 0.00411,
+          "input_axis_scale": [
+            0.9972,
+            0.9991,
+            0.9996
+          ]
+        },
+        {
+          "input": "cpt7_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 2,
+          "reference_sampling_lag_ms": -1.04,
+          "reference_from_input_rpy_deg": [
+            -179.9741,
+            0.0924,
+            -0.2679
+          ],
+          "residual_rms_rad_s": 0.00604,
+          "input_axis_scale": [
+            0.998,
+            1.0022,
+            1.0019
+          ]
+        },
+        {
+          "input": "cpt7_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 4,
+          "reference_sampling_lag_ms": -1.92,
+          "reference_from_input_rpy_deg": [
+            -179.9601,
+            0.1041,
+            -0.1493
+          ],
+          "residual_rms_rad_s": 0.00882,
+          "input_axis_scale": [
+            0.999,
+            0.993,
+            1.0026
+          ]
+        }
+      ]
+    },
+    "2024-11-14-13-45-37": {
+      "ring_range": {
+        "all": {
+          "shared_train_scans": 71,
+          "rpy_deg": [
+            -179.91044828999893,
+            0.034540873429943164,
+            -89.88983693084352
+          ]
+        },
+        "ring_low": {
+          "shared_train_scans": 71,
+          "rpy_deg": [
+            -179.52183346312185,
+            0.049185461327070926,
+            -89.93259509207925
+          ]
+        },
+        "ring_mid": {
+          "shared_train_scans": 71,
+          "rpy_deg": [
+            -179.9080681765622,
+            0.039674192454543004,
+            -89.88171616656415
+          ]
+        },
+        "ring_high": {
+          "shared_train_scans": 71,
+          "rpy_deg": [
+            -179.94496988911484,
+            0.05941143133710165,
+            -89.80965200131185
+          ]
+        },
+        "range_near": {
+          "shared_train_scans": 71,
+          "rpy_deg": [
+            -179.92469683051846,
+            0.04277139863558456,
+            -89.79974013444414
+          ]
+        },
+        "range_mid": {
+          "shared_train_scans": 71,
+          "rpy_deg": [
+            -179.89122373576373,
+            0.04955821481714891,
+            -89.88454750237514
+          ]
+        },
+        "range_far": {
+          "shared_train_scans": 71,
+          "rpy_deg": [
+            -179.91357719907236,
+            0.012270909176230216,
+            -89.90814983715663
+          ]
+        }
+      },
+      "rigid_constant_velocity_rpy_deg": [
+        -179.91044747720312,
+        0.034545299431124846,
+        -89.88982571166102
+      ],
+      "trajectory_constant_velocity_rpy_deg": [
+        -179.902887870686,
+        0.011042630676370848,
+        -89.89941086762182
+      ],
+      "clock": {
+        "livox_to_hesai_offset_s": -0.02,
+        "jackknife_std_s": 0.0,
+        "at_search_edge": true,
+        "refit_rpy_deg": [
+          -179.9069364936391,
+          0.014798404602370386,
+          -89.87608254870055
+        ]
+      },
+      "train_blocks": [
+        {
+          "block": -1,
+          "normal_second_moment_eigenvalues": [
+            0.13285456157920958,
+            0.15459925397109092,
+            0.7125461844496994
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.91090808912352,
+            0.03473858174360833,
+            -89.89003348468222
+          ]
+        },
+        {
+          "block": 1,
+          "normal_second_moment_eigenvalues": [
+            0.12031128272104015,
+            0.16021168999032773,
+            0.7194770272886313
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.91522284653004,
+            0.032387842361698005,
+            -89.88853836041842
+          ]
+        },
+        {
+          "block": 2,
+          "normal_second_moment_eigenvalues": [
+            0.1288852544697876,
+            0.20441021976165874,
+            0.6667045257685518
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.9095049886761,
+            0.034072121152192936,
+            -89.88709995416372
+          ]
+        },
+        {
+          "block": 4,
+          "normal_second_moment_eigenvalues": [
+            0.1618960875719443,
+            0.17019342717535577,
+            0.6679104852526889
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.9093522486374,
+            0.03801939918325192,
+            -89.89104284223683
+          ]
+        },
+        {
+          "block": 5,
+          "normal_second_moment_eigenvalues": [
+            0.13339512058430858,
+            0.2450413305126942,
+            0.6215635489029812
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.91190726168543,
+            0.03724649656226605,
+            -89.89045898745431
+          ]
+        },
+        {
+          "block": 7,
+          "normal_second_moment_eigenvalues": [
+            0.12217113382318998,
+            0.2071661080609752,
+            0.6706627581158262
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.9102926773033,
+            0.03633217226478038,
+            -89.88396388443097
+          ]
+        },
+        {
+          "block": 8,
+          "normal_second_moment_eigenvalues": [
+            0.15389826102644685,
+            0.17265196486615397,
+            0.6734497741073918
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.9094275834056,
+            0.039089749086219046,
+            -89.8943213339962
+          ]
+        },
+        {
+          "block": 10,
+          "normal_second_moment_eigenvalues": [
+            0.14468435697739684,
+            0.22010344958330214,
+            0.635212193439298
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.9084856051627,
+            0.029662380348906375,
+            -89.88460288290608
+          ]
+        },
+        {
+          "block": 11,
+          "normal_second_moment_eigenvalues": [
+            0.14808956599211082,
+            0.1786699323393421,
+            0.6732405016685514
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.90868299143202,
+            0.0344930336603605,
+            -89.89024202082139
+          ]
+        },
+        {
+          "block": 13,
+          "normal_second_moment_eigenvalues": [
+            0.10286239478893569,
+            0.15185312416524807,
+            0.7452844810458299
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.91047597011425,
+            0.03302073159941216,
+            -89.89636190352786
+          ]
+        },
+        {
+          "block": 14,
+          "normal_second_moment_eigenvalues": [
+            0.09246340409776352,
+            0.16840036835968547,
+            0.7391362275425619
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.9103793092286,
+            0.03771894121502764,
+            -89.88989843341618
+          ]
+        },
+        {
+          "block": 16,
+          "normal_second_moment_eigenvalues": [
+            0.06839191724458588,
+            0.23220034830211578,
+            0.6994077344533085
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.91357627687515,
+            0.03302417984186529,
+            -89.88430845938326
+          ]
+        },
+        {
+          "block": 17,
+          "normal_second_moment_eigenvalues": [
+            0.04861507564327026,
+            0.22148996844165367,
+            0.7298949559150876
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.9115699464096,
+            0.03516760977929878,
+            -89.90889145186657
+          ]
+        },
+        {
+          "block": 19,
+          "normal_second_moment_eigenvalues": [
+            0.05014891479061221,
+            0.22703621332549306,
+            0.7228148718839065
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.90478786499511,
+            0.03625189510638729,
+            -89.8836490774417
+          ]
+        },
+        {
+          "block": 20,
+          "normal_second_moment_eigenvalues": [
+            0.09274203358594685,
+            0.17027835979621847,
+            0.7369796066178442
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.91517479848306,
+            0.03512081928292409,
+            -89.88734512848661
+          ]
+        },
+        {
+          "block": 22,
+          "normal_second_moment_eigenvalues": [
+            0.06354268067433193,
+            0.19667851190022678,
+            0.7397788074254424
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.90914831609558,
+            0.03593907450278438,
+            -89.88979148582405
+          ]
+        },
+        {
+          "block": 23,
+          "normal_second_moment_eigenvalues": [
+            0.09534871600109648,
+            0.16217875925119726,
+            0.7424725247477149
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.90918726803568,
+            0.03413718303718938,
+            -89.88631654433654
+          ]
+        },
+        {
+          "block": 25,
+          "normal_second_moment_eigenvalues": [
+            0.15444675651319337,
+            0.15972764786450427,
+            0.6858255956223135
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.90980656887544,
+            0.03490706764394696,
+            -89.88940145859598
+          ]
+        },
+        {
+          "block": 26,
+          "normal_second_moment_eigenvalues": [
+            0.11574165270535165,
+            0.14702416370854118,
+            0.7372341835861116
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.9107373496985,
+            0.03047908770212522,
+            -89.8910789299938
+          ]
+        },
+        {
+          "block": 28,
+          "normal_second_moment_eigenvalues": [
+            0.11377473348413497,
+            0.1452308328029151,
+            0.7409944337129527
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.91069457923336,
+            0.032467289362101526,
+            -89.88952970718846
+          ]
+        },
+        {
+          "block": 29,
+          "normal_second_moment_eigenvalues": [
+            0.11566811911373283,
+            0.14659622526981073,
+            0.7377356556164566
+          ],
+          "leave_block_out_rpy_deg": [
+            -179.91007759767194,
+            0.030940483795317605,
+            -89.88919796837128
+          ]
+        }
+      ],
+      "input_sha256": {
+        "cpt7_imu.tar": "c0de2741a4e144173c34f7f9b8b25c686f15f4bd53f0138cd8aaa81b00195854",
+        "hesai_points.tar": "5b9facd4ac92a7b7e6cb2135aad98ef3bee41fb4c267c05e45fcb9eb74beb5f2",
+        "livox_imu.tar": "5e75d1006eed24245cc82d51a346294985b785a0860d5e984c0f89f169ef9055",
+        "livox_points.tar": "eaae1bcbe16048ec2136fd35ff04fec76ae9c7a0f1389671d0b6f0322715db08",
+        "stim320_imu.tar": "aeb54aef5f369c88ee05f5b377359b74f212e4984921cd8f3adad2ee10fcbea9"
+      },
+      "gyro_fit": [
+        {
+          "input": "livox_imu",
+          "reference": "cpt7_imu",
+          "low_pass_hz": 1,
+          "reference_sampling_lag_ms": -4.78,
+          "reference_from_input_rpy_deg": [
+            0.1163,
+            -0.0212,
+            0.1054
+          ],
+          "residual_rms_rad_s": 0.00226,
+          "input_axis_scale": [
+            0.9957,
+            1.0007,
+            1.0009
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "cpt7_imu",
+          "low_pass_hz": 2,
+          "reference_sampling_lag_ms": -4.8,
+          "reference_from_input_rpy_deg": [
+            0.1197,
+            -0.0298,
+            0.073
+          ],
+          "residual_rms_rad_s": 0.00322,
+          "input_axis_scale": [
+            0.9967,
+            1.0007,
+            1.0006
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "cpt7_imu",
+          "low_pass_hz": 4,
+          "reference_sampling_lag_ms": -4.54,
+          "reference_from_input_rpy_deg": [
+            0.0969,
+            -0.0481,
+            0.0244
+          ],
+          "residual_rms_rad_s": 0.00459,
+          "input_axis_scale": [
+            0.9933,
+            1.0015,
+            1.0
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 1,
+          "reference_sampling_lag_ms": -5.04,
+          "reference_from_input_rpy_deg": [
+            -179.8788,
+            0.1386,
+            -0.3945
+          ],
+          "residual_rms_rad_s": 0.00296,
+          "input_axis_scale": [
+            0.9956,
+            1.0049,
+            1.0022
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 2,
+          "reference_sampling_lag_ms": 1.02,
+          "reference_from_input_rpy_deg": [
+            -179.9136,
+            0.2241,
+            -0.3696
+          ],
+          "residual_rms_rad_s": 0.00487,
+          "input_axis_scale": [
+            0.9886,
+            1.0003,
+            1.005
+          ]
+        },
+        {
+          "input": "livox_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 4,
+          "reference_sampling_lag_ms": -2.53,
+          "reference_from_input_rpy_deg": [
+            -179.8659,
+            0.3079,
+            -0.8585
+          ],
+          "residual_rms_rad_s": 0.00709,
+          "input_axis_scale": [
+            0.9893,
+            0.9866,
+            1.0052
+          ]
+        },
+        {
+          "input": "cpt7_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 1,
+          "reference_sampling_lag_ms": 0.12,
+          "reference_from_input_rpy_deg": [
+            -179.9405,
+            -0.0168,
+            0.0974
+          ],
+          "residual_rms_rad_s": 0.00213,
+          "input_axis_scale": [
+            0.9994,
+            0.9973,
+            0.999
+          ]
+        },
+        {
+          "input": "cpt7_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 2,
+          "reference_sampling_lag_ms": -5.55,
+          "reference_from_input_rpy_deg": [
+            -179.9275,
+            -0.0994,
+            0.211
+          ],
+          "residual_rms_rad_s": 0.00405,
+          "input_axis_scale": [
+            0.9988,
+            1.0001,
+            0.9945
+          ]
+        },
+        {
+          "input": "cpt7_imu",
+          "reference": "stim320_imu",
+          "low_pass_hz": 4,
+          "reference_sampling_lag_ms": -1.94,
+          "reference_from_input_rpy_deg": [
+            179.9935,
+            -0.1813,
+            0.6834
+          ],
+          "residual_rms_rad_s": 0.00593,
+          "input_axis_scale": [
+            0.9975,
+            1.0106,
+            0.993
+          ]
+        }
+      ]
+    }
+  }
+}

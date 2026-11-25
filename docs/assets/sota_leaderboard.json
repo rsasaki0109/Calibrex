@@ -453,6 +453,35 @@
     },
     {
       "achieved_dataset_families": [
+        "grand_tour"
+      ],
+      "achieved_independent_rig_count": 1,
+      "audit_id": "grand-tour-lidar-lidar-v2",
+      "audit_path": "docs/assets/grand_tour_lidar_lidar/v2_evaluation/grand-tour-lidar-lidar-v2-audit.yaml",
+      "audit_schema_version": "slac.sota_audit_result/v0.1",
+      "audit_sha256": "43715f88bdc7291b89ed1ef8a573a7a367bb74bbdeec7144225e800ef2cd71ef",
+      "claim_text": "On four previously unread GrandTour missions on distinct days, the dense estimate supplies judged rotation and aligns same-time full-density scans within 55 mm. Its largest rotation deviation relative to the chordal mean of other missions is within 1.5 times the combined reported uncertainty after applying the all-day empirical floor. For the L1-like target, each mission supplies valid held-out evidence with every estimated axis detecting its known-bad control, and at least half of axes are estimated across the missions.",
+      "pair_id": "lidar-lidar",
+      "protocol_id": "grand-tour-lidar-lidar-v2",
+      "requirement_counts": {
+        "achieved": 4,
+        "contradicted": 1
+      },
+      "scope": {
+        "category": "targetless_lidar_lidar",
+        "modalities": [
+          "lidar",
+          "lidar"
+        ],
+        "quantities": [
+          "rotation",
+          "translation"
+        ]
+      },
+      "verdict": "refuted"
+    },
+    {
+      "achieved_dataset_families": [
         "ntu_viral"
       ],
       "achieved_independent_rig_count": 1,
@@ -605,7 +634,7 @@
     {
       "incomplete_claims": 0,
       "pair_id": "lidar-lidar",
-      "refuted_claims": 2,
+      "refuted_claims": 3,
       "standing": "refuted",
       "supported_claims": 0,
       "target": true
@@ -651,6 +680,7 @@
       "docs/assets/tumvi_camera_imu/audit/tumvi-camera-imu-check-v1_sota_audit.yaml",
       "docs/assets/tumvi_camera_imu_v2/audit/tumvi-camera-imu-check-v2_sota_audit.yaml",
       "docs/assets/grand_tour_lidar_lidar/evaluation/grand_tour_lidar_lidar_sota_audit.yaml",
+      "docs/assets/grand_tour_lidar_lidar/v2_evaluation/grand-tour-lidar-lidar-v2-audit.yaml",
       "--output",
       "docs/assets/sota_leaderboard.json",
       "--target-pair",
@@ -676,10 +706,10 @@
       "--target-pair",
       "lidar-wheel_odometry"
     ],
-    "created_at": "2026-11-24T08:07:05.806289+00:00",
+    "created_at": "2026-11-25T08:48:40.923646+00:00",
     "generator": "calibrex.evaluation.sota_leaderboard",
     "generator_version": "0.6.5",
-    "git_commit": "aa73e9ab"
+    "git_commit": "1eee59f2"
   },
   "schema_version": "slac.sota_leaderboard/v0.1"
 }

@@ -1,0 +1,80 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: grand-tour-lidar-lidar-v2
+protocol_id: grand-tour-lidar-lidar-v2
+scope:
+  modalities:
+  - lidar
+  - lidar
+  quantities:
+  - rotation
+  - translation
+  category: targetless_lidar_lidar
+claim_text: On four previously unread GrandTour missions on distinct days, the dense
+  estimate supplies judged rotation and aligns same-time full-density scans within
+  55 mm. Its largest rotation deviation relative to the chordal mean of other missions
+  is within 1.5 times the combined reported uncertainty after applying the all-day
+  empirical floor. For the L1-like target, each mission supplies valid held-out evidence
+  with every estimated axis detecting its known-bad control, and at least half of
+  axes are estimated across the missions.
+verdict: refuted
+achieved_dataset_families:
+- grand_tour
+achieved_independent_rig_count: 1
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: dense-complete
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/grand_tour_lidar_lidar/v2_evaluation/grand-tour-lidar-lidar-v2-dense-benchmark.yaml
+  evidence_sha256: 81d9726ffce8b2555157110e00407eda22ce76b7fb2e8b384c25f86246847dba
+- requirement_id: dense-same-time
+  required: true
+  status: achieved
+  observed_value: 0.028413001052030547
+  threshold: 0.055
+  reason: observed 0.028413001052 meets less_equal 0.055
+  evidence_path: docs/assets/grand_tour_lidar_lidar/v2_evaluation/grand-tour-lidar-lidar-v2-dense-benchmark.yaml
+  evidence_sha256: 81d9726ffce8b2555157110e00407eda22ce76b7fb2e8b384c25f86246847dba
+- requirement_id: dense-rotation-reproducibility
+  required: true
+  status: achieved
+  observed_value: 0.18718247357031192
+  threshold: 1.5
+  reason: observed 0.18718247357 meets less_equal 1.5
+  evidence_path: docs/assets/grand_tour_lidar_lidar/v2_evaluation/grand-tour-lidar-lidar-v2-dense-benchmark.yaml
+  evidence_sha256: 81d9726ffce8b2555157110e00407eda22ce76b7fb2e8b384c25f86246847dba
+- requirement_id: sparse-honesty
+  required: true
+  status: contradicted
+  observed_value: 0.75
+  threshold: 0.0
+  reason: observed 0.75 does not meet less_equal 0
+  evidence_path: docs/assets/grand_tour_lidar_lidar/v2_evaluation/grand-tour-lidar-lidar-v2-sparse-benchmark.yaml
+  evidence_sha256: 5dfc6a74173ef31c22664bd439234a4d1d6d65acea8a72900798554d1284daf1
+- requirement_id: sparse-axis-coverage
+  required: true
+  status: achieved
+  observed_value: 1.0
+  threshold: 0.5
+  reason: observed 1 meets greater_equal 0.5
+  evidence_path: docs/assets/grand_tour_lidar_lidar/v2_evaluation/grand-tour-lidar-lidar-v2-sparse-benchmark.yaml
+  evidence_sha256: 5dfc6a74173ef31c22664bd439234a4d1d6d65acea8a72900798554d1284daf1
+summary: At least one frozen required numerical or integrity gate is contradicted;
+  the declared SOTA claim is not supported.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.6.5
+  git_commit: 1eee59f2
+  command: []
+  source_sha256:
+    protocol: 3251288df3853bdd520fc1f73331fd48f6fa14f7caf0a24438070b606add41c8
+    dense-complete: 81d9726ffce8b2555157110e00407eda22ce76b7fb2e8b384c25f86246847dba
+    dense-same-time: 81d9726ffce8b2555157110e00407eda22ce76b7fb2e8b384c25f86246847dba
+    dense-rotation-reproducibility: 81d9726ffce8b2555157110e00407eda22ce76b7fb2e8b384c25f86246847dba
+    sparse-honesty: 5dfc6a74173ef31c22664bd439234a4d1d6d65acea8a72900798554d1284daf1
+    sparse-axis-coverage: 5dfc6a74173ef31c22664bd439234a4d1d6d65acea8a72900798554d1284daf1
+  created_at: '2026-11-25T08:48:40.646866+00:00'

@@ -1,0 +1,577 @@
+{
+  "preregistration": "docs/benchmarks/grand_tour_lidar_lidar_v2_preregistration.yaml",
+  "preregistration_sha256": "ebcab6aca58cf91f12a9da05bc5d408b92bf875b95d253a85e92667b51f355b0",
+  "git_head": "1eee59f23c498bf74f87401400fc0869c0e4af92",
+  "started_at": "2026-11-25T07:15:36Z",
+  "steps": [
+    {
+      "step": "2024-10-01-11-29-55:download:hesai_points.tar",
+      "attempt": 1,
+      "command": [
+        "curl",
+        "-fsSL",
+        "--retry",
+        "2",
+        "-o",
+        "/workspace/work/grandtour-v2-input/2024-10-01-11-29-55/hesai_points.tar",
+        "https://huggingface.co/datasets/leggedrobotics/grand_tour_dataset/resolve/af6b6dd6f91696f8ec8c98134e195514834911b2/2024-10-01-11-29-55/data/hesai_points.tar?download=true"
+      ],
+      "exit_code": 0,
+      "seconds": 145.7,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-10-01-11-29-55:verify:hesai_points.tar",
+      "sha256": "8e9b6ae1cb48b3453a400bd8b82c98d7df1c6dccbfbd817409d8a6c4f281deb3",
+      "pinned": "8e9b6ae1cb48b3453a400bd8b82c98d7df1c6dccbfbd817409d8a6c4f281deb3"
+    },
+    {
+      "step": "2024-10-01-11-29-55:download:livox_points.tar",
+      "attempt": 1,
+      "command": [
+        "curl",
+        "-fsSL",
+        "--retry",
+        "2",
+        "-o",
+        "/workspace/work/grandtour-v2-input/2024-10-01-11-29-55/livox_points.tar",
+        "https://huggingface.co/datasets/leggedrobotics/grand_tour_dataset/resolve/af6b6dd6f91696f8ec8c98134e195514834911b2/2024-10-01-11-29-55/data/livox_points.tar?download=true"
+      ],
+      "exit_code": 0,
+      "seconds": 47.6,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-10-01-11-29-55:verify:livox_points.tar",
+      "sha256": "44702391b3d6e1187e229f181468c0c48b929c16918956dee365b01c48c021f9",
+      "pinned": "44702391b3d6e1187e229f181468c0c48b929c16918956dee365b01c48c021f9"
+    },
+    {
+      "step": "2024-10-01-11-29-55:download:tf.tar",
+      "attempt": 1,
+      "command": [
+        "curl",
+        "-fsSL",
+        "--retry",
+        "2",
+        "-o",
+        "/workspace/work/grandtour-v2-input/2024-10-01-11-29-55/tf.tar",
+        "https://huggingface.co/datasets/leggedrobotics/grand_tour_dataset/resolve/af6b6dd6f91696f8ec8c98134e195514834911b2/2024-10-01-11-29-55/data/tf.tar?download=true"
+      ],
+      "exit_code": 0,
+      "seconds": 0.7,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-10-01-11-29-55:verify:tf.tar",
+      "sha256": "7c08ea883dabe77695dfdc5093e1512f9bd5ad642918e386cb0748a2b695d491",
+      "pinned": "7c08ea883dabe77695dfdc5093e1512f9bd5ad642918e386cb0748a2b695d491"
+    },
+    {
+      "step": "2024-10-01-11-29-55:calibrex_dense",
+      "attempt": 1,
+      "command": [
+        "/workspace/work/Calibrex/.venv/bin/python",
+        "-m",
+        "tools.grand_tour_lidar_lidar_v2_evaluate",
+        "fit",
+        "/workspace/work/grandtour-v2-input/2024-10-01-11-29-55/data",
+        "calibrex_dense",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-10-01-11-29-55_calibrex_dense.yaml",
+        "a53c54c0c49692a75f1bd87758f27b39dfd82886794f073121bd43b86e85682d"
+      ],
+      "exit_code": 0,
+      "seconds": 517.3,
+      "stdout_tail": "{\n  \"artifact\": \"docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-10-01-11-29-55_calibrex_dense.yaml\",\n  \"calibrated_dofs\": [\n    \"roll\",\n    \"pitch\",\n    \"yaw\",\n    \"x\",\n    \"y\",\n    \"z\"\n  ],\n  \"reasons\": [\n    \"every DoF is estimated and held-out blocks detect every control\"\n  ],\n  \"status\": \"pass\"\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-10-01-11-29-55:calibrex_dense:same_time",
+      "attempt": 1,
+      "command": [
+        "/workspace/work/Calibrex/.venv/bin/python",
+        "/workspace/work/Calibrex/tools/grand_tour_same_time_alignment.py",
+        "--mission-data",
+        "/workspace/work/grandtour-v2-input/2024-10-01-11-29-55/data",
+        "--reference",
+        "hesai_points",
+        "--target",
+        "livox_points",
+        "--artifact",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-10-01-11-29-55_calibrex_dense.yaml",
+        "--tf-reference",
+        "hesai_lidar",
+        "--tf-target",
+        "livox_lidar",
+        "--frames",
+        "346",
+        "1040",
+        "1734",
+        "2427",
+        "3121",
+        "--output",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-10-01-11-29-55_calibrex_dense_same_time.json"
+      ],
+      "exit_code": 0,
+      "seconds": 3.8,
+      "stdout_tail": "livox_points 346: estimate matched 0.43 median 25.0 mm | dataset_tf matched 0.38 median 187.3 mm\nlivox_points 1040: estimate matched 0.38 median 21.3 mm | dataset_tf matched 0.30 median 193.1 mm\nlivox_points 1734: estimate matched 0.35 median 33.0 mm | dataset_tf matched 0.33 median 201.3 mm\nlivox_points 2427: estimate matched 0.48 median 27.9 mm | dataset_tf matched 0.42 median 176.3 mm\nlivox_points 3121: estimate matched 0.91 median 13.6 mm | dataset_tf matched 0.82 median 204.1 mm\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-10-01-11-29-55:calibrex_sparse",
+      "attempt": 1,
+      "command": [
+        "/workspace/work/Calibrex/.venv/bin/python",
+        "-m",
+        "tools.grand_tour_lidar_lidar_v2_evaluate",
+        "fit",
+        "/workspace/work/grandtour-v2-input/2024-10-01-11-29-55/data",
+        "calibrex_sparse",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-10-01-11-29-55_calibrex_sparse.yaml",
+        "a53c54c0c49692a75f1bd87758f27b39dfd82886794f073121bd43b86e85682d"
+      ],
+      "exit_code": -9,
+      "seconds": 859.9,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-11-15-12-06-03:download:hesai_points.tar",
+      "attempt": 1,
+      "command": [
+        "curl",
+        "-fsSL",
+        "--retry",
+        "2",
+        "-o",
+        "/workspace/work/grandtour-v2-input/2024-11-15-12-06-03/hesai_points.tar",
+        "https://huggingface.co/datasets/leggedrobotics/grand_tour_dataset/resolve/af6b6dd6f91696f8ec8c98134e195514834911b2/2024-11-15-12-06-03/data/hesai_points.tar?download=true"
+      ],
+      "exit_code": 0,
+      "seconds": 112.7,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-11-15-12-06-03:verify:hesai_points.tar",
+      "sha256": "535bac9d2f93e60fb5a7e23ee04984aa78bcc7b19341a29e3a741f1898baf8ae",
+      "pinned": "535bac9d2f93e60fb5a7e23ee04984aa78bcc7b19341a29e3a741f1898baf8ae"
+    },
+    {
+      "step": "2024-11-15-12-06-03:download:livox_points.tar",
+      "attempt": 1,
+      "command": [
+        "curl",
+        "-fsSL",
+        "--retry",
+        "2",
+        "-o",
+        "/workspace/work/grandtour-v2-input/2024-11-15-12-06-03/livox_points.tar",
+        "https://huggingface.co/datasets/leggedrobotics/grand_tour_dataset/resolve/af6b6dd6f91696f8ec8c98134e195514834911b2/2024-11-15-12-06-03/data/livox_points.tar?download=true"
+      ],
+      "exit_code": 0,
+      "seconds": 34.2,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-11-15-12-06-03:verify:livox_points.tar",
+      "sha256": "2529f34fb97efa5b0b932074151509cf47b2fdc720b856adf6413af95f844b29",
+      "pinned": "2529f34fb97efa5b0b932074151509cf47b2fdc720b856adf6413af95f844b29"
+    },
+    {
+      "step": "2024-11-15-12-06-03:download:tf.tar",
+      "attempt": 1,
+      "command": [
+        "curl",
+        "-fsSL",
+        "--retry",
+        "2",
+        "-o",
+        "/workspace/work/grandtour-v2-input/2024-11-15-12-06-03/tf.tar",
+        "https://huggingface.co/datasets/leggedrobotics/grand_tour_dataset/resolve/af6b6dd6f91696f8ec8c98134e195514834911b2/2024-11-15-12-06-03/data/tf.tar?download=true"
+      ],
+      "exit_code": 0,
+      "seconds": 0.8,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-11-15-12-06-03:verify:tf.tar",
+      "sha256": "fdcfdc8b73e024ce9d0cd42b2578319236c5b6b4bc5bef97b2763f6538d7bb0d",
+      "pinned": "fdcfdc8b73e024ce9d0cd42b2578319236c5b6b4bc5bef97b2763f6538d7bb0d"
+    },
+    {
+      "step": "2024-11-15-12-06-03:calibrex_dense",
+      "attempt": 1,
+      "command": [
+        "/workspace/work/Calibrex/.venv/bin/python",
+        "-m",
+        "tools.grand_tour_lidar_lidar_v2_evaluate",
+        "fit",
+        "/workspace/work/grandtour-v2-input/2024-11-15-12-06-03/data",
+        "calibrex_dense",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-11-15-12-06-03_calibrex_dense.yaml",
+        "7a2b5638545db77bd2533dcba0fce37d94eeb6afa13a3452f51b30bfcae8f78f"
+      ],
+      "exit_code": 0,
+      "seconds": 595.4,
+      "stdout_tail": "{\n  \"artifact\": \"docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-11-15-12-06-03_calibrex_dense.yaml\",\n  \"calibrated_dofs\": [\n    \"roll\",\n    \"pitch\",\n    \"yaw\",\n    \"x\",\n    \"y\",\n    \"z\"\n  ],\n  \"reasons\": [\n    \"every DoF is estimated and held-out blocks detect every control\"\n  ],\n  \"status\": \"pass\"\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-11-15-12-06-03:calibrex_dense:same_time",
+      "attempt": 1,
+      "command": [
+        "/workspace/work/Calibrex/.venv/bin/python",
+        "/workspace/work/Calibrex/tools/grand_tour_same_time_alignment.py",
+        "--mission-data",
+        "/workspace/work/grandtour-v2-input/2024-11-15-12-06-03/data",
+        "--reference",
+        "hesai_points",
+        "--target",
+        "livox_points",
+        "--artifact",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-11-15-12-06-03_calibrex_dense.yaml",
+        "--tf-reference",
+        "hesai_lidar",
+        "--tf-target",
+        "livox_lidar",
+        "--frames",
+        "222",
+        "666",
+        "1111",
+        "1556",
+        "2000",
+        "--output",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-11-15-12-06-03_calibrex_dense_same_time.json"
+      ],
+      "exit_code": 0,
+      "seconds": 4.3,
+      "stdout_tail": "livox_points 222: estimate matched 0.50 median 24.3 mm | dataset_tf matched 0.48 median 206.5 mm\nlivox_points 666: estimate matched 0.66 median 25.5 mm | dataset_tf matched 0.60 median 189.0 mm\nlivox_points 1111: estimate matched 0.41 median 32.7 mm | dataset_tf matched 0.36 median 147.8 mm\nlivox_points 1556: estimate matched 0.66 median 31.1 mm | dataset_tf matched 0.52 median 190.7 mm\nlivox_points 2000: estimate matched 0.80 median 20.2 mm | dataset_tf matched 0.74 median 236.6 mm\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-11-15-12-06-03:calibrex_sparse",
+      "attempt": 1,
+      "command": [
+        "/workspace/work/Calibrex/.venv/bin/python",
+        "-m",
+        "tools.grand_tour_lidar_lidar_v2_evaluate",
+        "fit",
+        "/workspace/work/grandtour-v2-input/2024-11-15-12-06-03/data",
+        "calibrex_sparse",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-11-15-12-06-03_calibrex_sparse.yaml",
+        "7a2b5638545db77bd2533dcba0fce37d94eeb6afa13a3452f51b30bfcae8f78f"
+      ],
+      "exit_code": -9,
+      "seconds": 841.1,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-11-18-17-31-36:download:hesai_points.tar",
+      "attempt": 1,
+      "command": [
+        "curl",
+        "-fsSL",
+        "--retry",
+        "2",
+        "-o",
+        "/workspace/work/grandtour-v2-input/2024-11-18-17-31-36/hesai_points.tar",
+        "https://huggingface.co/datasets/leggedrobotics/grand_tour_dataset/resolve/af6b6dd6f91696f8ec8c98134e195514834911b2/2024-11-18-17-31-36/data/hesai_points.tar?download=true"
+      ],
+      "exit_code": 0,
+      "seconds": 146.2,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-11-18-17-31-36:verify:hesai_points.tar",
+      "sha256": "37acaa9a1e1005d34cb961ac3142c13b1e1388f6fb65b388b9e1f8fd728391e2",
+      "pinned": "37acaa9a1e1005d34cb961ac3142c13b1e1388f6fb65b388b9e1f8fd728391e2"
+    },
+    {
+      "step": "2024-11-18-17-31-36:download:livox_points.tar",
+      "attempt": 1,
+      "command": [
+        "curl",
+        "-fsSL",
+        "--retry",
+        "2",
+        "-o",
+        "/workspace/work/grandtour-v2-input/2024-11-18-17-31-36/livox_points.tar",
+        "https://huggingface.co/datasets/leggedrobotics/grand_tour_dataset/resolve/af6b6dd6f91696f8ec8c98134e195514834911b2/2024-11-18-17-31-36/data/livox_points.tar?download=true"
+      ],
+      "exit_code": 0,
+      "seconds": 38.2,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-11-18-17-31-36:verify:livox_points.tar",
+      "sha256": "f21d0c2cac6b563a7201e3765e278c09a5891c968febae951433a92cc56defe6",
+      "pinned": "f21d0c2cac6b563a7201e3765e278c09a5891c968febae951433a92cc56defe6"
+    },
+    {
+      "step": "2024-11-18-17-31-36:download:tf.tar",
+      "attempt": 1,
+      "command": [
+        "curl",
+        "-fsSL",
+        "--retry",
+        "2",
+        "-o",
+        "/workspace/work/grandtour-v2-input/2024-11-18-17-31-36/tf.tar",
+        "https://huggingface.co/datasets/leggedrobotics/grand_tour_dataset/resolve/af6b6dd6f91696f8ec8c98134e195514834911b2/2024-11-18-17-31-36/data/tf.tar?download=true"
+      ],
+      "exit_code": 0,
+      "seconds": 0.8,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-11-18-17-31-36:verify:tf.tar",
+      "sha256": "acea9b4db15df77919b6e87e60ee2953f3250386eb9a946adecd55ad7729238f",
+      "pinned": "acea9b4db15df77919b6e87e60ee2953f3250386eb9a946adecd55ad7729238f"
+    },
+    {
+      "step": "2024-11-18-17-31-36:calibrex_dense",
+      "attempt": 1,
+      "command": [
+        "/workspace/work/Calibrex/.venv/bin/python",
+        "-m",
+        "tools.grand_tour_lidar_lidar_v2_evaluate",
+        "fit",
+        "/workspace/work/grandtour-v2-input/2024-11-18-17-31-36/data",
+        "calibrex_dense",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-11-18-17-31-36_calibrex_dense.yaml",
+        "9e55918a4e35448d9fc4d424e66cee39b82fe292395ccde0eb394fc5ea85fc24"
+      ],
+      "exit_code": 0,
+      "seconds": 257.8,
+      "stdout_tail": "{\n  \"artifact\": \"docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-11-18-17-31-36_calibrex_dense.yaml\",\n  \"calibrated_dofs\": [\n    \"roll\",\n    \"pitch\",\n    \"yaw\",\n    \"x\",\n    \"y\",\n    \"z\"\n  ],\n  \"reasons\": [\n    \"every DoF is estimated and held-out blocks detect every control\"\n  ],\n  \"status\": \"pass\"\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-11-18-17-31-36:calibrex_dense:same_time",
+      "attempt": 1,
+      "command": [
+        "/workspace/work/Calibrex/.venv/bin/python",
+        "/workspace/work/Calibrex/tools/grand_tour_same_time_alignment.py",
+        "--mission-data",
+        "/workspace/work/grandtour-v2-input/2024-11-18-17-31-36/data",
+        "--reference",
+        "hesai_points",
+        "--target",
+        "livox_points",
+        "--artifact",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-11-18-17-31-36_calibrex_dense.yaml",
+        "--tf-reference",
+        "hesai_lidar",
+        "--tf-target",
+        "livox_lidar",
+        "--frames",
+        "334",
+        "1004",
+        "1674",
+        "2344",
+        "3014",
+        "--output",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-11-18-17-31-36_calibrex_dense_same_time.json"
+      ],
+      "exit_code": 0,
+      "seconds": 3.8,
+      "stdout_tail": "livox_points 334: estimate matched 0.57 median 26.5 mm | dataset_tf matched 0.40 median 237.8 mm\nlivox_points 1004: estimate matched 0.55 median 14.9 mm | dataset_tf matched 0.48 median 80.4 mm\nlivox_points 1674: estimate matched 0.62 median 15.0 mm | dataset_tf matched 0.53 median 213.7 mm\nlivox_points 2344: estimate matched 0.62 median 21.0 mm | dataset_tf matched 0.50 median 234.4 mm\nlivox_points 3014: estimate matched 0.56 median 17.7 mm | dataset_tf matched 0.48 median 219.9 mm\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-11-18-17-31-36:calibrex_sparse",
+      "attempt": 1,
+      "command": [
+        "/workspace/work/Calibrex/.venv/bin/python",
+        "-m",
+        "tools.grand_tour_lidar_lidar_v2_evaluate",
+        "fit",
+        "/workspace/work/grandtour-v2-input/2024-11-18-17-31-36/data",
+        "calibrex_sparse",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-11-18-17-31-36_calibrex_sparse.yaml",
+        "9e55918a4e35448d9fc4d424e66cee39b82fe292395ccde0eb394fc5ea85fc24"
+      ],
+      "exit_code": 0,
+      "seconds": 542.3,
+      "stdout_tail": "{\n  \"artifact\": \"docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-11-18-17-31-36_calibrex_sparse.yaml\",\n  \"calibrated_dofs\": [\n    \"roll\",\n    \"pitch\",\n    \"yaw\",\n    \"x\",\n    \"y\",\n    \"z\"\n  ],\n  \"reasons\": [\n    \"every DoF is estimated and held-out blocks detect every control\"\n  ],\n  \"status\": \"pass\"\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-11-18-17-31-36:calibrex_sparse:same_time",
+      "attempt": 1,
+      "command": [
+        "/workspace/work/Calibrex/.venv/bin/python",
+        "/workspace/work/Calibrex/tools/grand_tour_same_time_alignment.py",
+        "--mission-data",
+        "/workspace/work/grandtour-v2-input/2024-11-18-17-31-36/data",
+        "--reference",
+        "hesai_points",
+        "--target",
+        "livox_points",
+        "--artifact",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-11-18-17-31-36_calibrex_sparse.yaml",
+        "--tf-reference",
+        "hesai_lidar",
+        "--tf-target",
+        "livox_lidar",
+        "--frames",
+        "334",
+        "1004",
+        "1674",
+        "2344",
+        "3014",
+        "--output",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-11-18-17-31-36_calibrex_sparse_same_time.json"
+      ],
+      "exit_code": 0,
+      "seconds": 4.5,
+      "stdout_tail": "livox_points 334: estimate matched 0.57 median 27.5 mm | dataset_tf matched 0.40 median 237.8 mm\nlivox_points 1004: estimate matched 0.56 median 15.1 mm | dataset_tf matched 0.48 median 80.4 mm\nlivox_points 1674: estimate matched 0.62 median 16.3 mm | dataset_tf matched 0.53 median 213.7 mm\nlivox_points 2344: estimate matched 0.63 median 22.4 mm | dataset_tf matched 0.50 median 234.4 mm\nlivox_points 3014: estimate matched 0.57 median 18.7 mm | dataset_tf matched 0.48 median 219.9 mm\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-12-03-13-26-40:download:hesai_points.tar",
+      "attempt": 1,
+      "command": [
+        "curl",
+        "-fsSL",
+        "--retry",
+        "2",
+        "-o",
+        "/workspace/work/grandtour-v2-input/2024-12-03-13-26-40/hesai_points.tar",
+        "https://huggingface.co/datasets/leggedrobotics/grand_tour_dataset/resolve/af6b6dd6f91696f8ec8c98134e195514834911b2/2024-12-03-13-26-40/data/hesai_points.tar?download=true"
+      ],
+      "exit_code": 0,
+      "seconds": 113.8,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-12-03-13-26-40:verify:hesai_points.tar",
+      "sha256": "df268d2f7d1f8b38fe00719a364e3a9ffdd1cbf7ad931428d7ff9005038a2d47",
+      "pinned": "df268d2f7d1f8b38fe00719a364e3a9ffdd1cbf7ad931428d7ff9005038a2d47"
+    },
+    {
+      "step": "2024-12-03-13-26-40:download:livox_points.tar",
+      "attempt": 1,
+      "command": [
+        "curl",
+        "-fsSL",
+        "--retry",
+        "2",
+        "-o",
+        "/workspace/work/grandtour-v2-input/2024-12-03-13-26-40/livox_points.tar",
+        "https://huggingface.co/datasets/leggedrobotics/grand_tour_dataset/resolve/af6b6dd6f91696f8ec8c98134e195514834911b2/2024-12-03-13-26-40/data/livox_points.tar?download=true"
+      ],
+      "exit_code": 0,
+      "seconds": 41.3,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-12-03-13-26-40:verify:livox_points.tar",
+      "sha256": "31a88786beb892a5426ba5b4ab8ba5544530129c9be512af5507e9dc092931e7",
+      "pinned": "31a88786beb892a5426ba5b4ab8ba5544530129c9be512af5507e9dc092931e7"
+    },
+    {
+      "step": "2024-12-03-13-26-40:download:tf.tar",
+      "attempt": 1,
+      "command": [
+        "curl",
+        "-fsSL",
+        "--retry",
+        "2",
+        "-o",
+        "/workspace/work/grandtour-v2-input/2024-12-03-13-26-40/tf.tar",
+        "https://huggingface.co/datasets/leggedrobotics/grand_tour_dataset/resolve/af6b6dd6f91696f8ec8c98134e195514834911b2/2024-12-03-13-26-40/data/tf.tar?download=true"
+      ],
+      "exit_code": 0,
+      "seconds": 0.6,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-12-03-13-26-40:verify:tf.tar",
+      "sha256": "8f7dcc2a40d39a4277b95e4c751d13807fca79d95d6a61ade70d0fa9511e4b0d",
+      "pinned": "8f7dcc2a40d39a4277b95e4c751d13807fca79d95d6a61ade70d0fa9511e4b0d"
+    },
+    {
+      "step": "2024-12-03-13-26-40:calibrex_dense",
+      "attempt": 1,
+      "command": [
+        "/workspace/work/Calibrex/.venv/bin/python",
+        "-m",
+        "tools.grand_tour_lidar_lidar_v2_evaluate",
+        "fit",
+        "/workspace/work/grandtour-v2-input/2024-12-03-13-26-40/data",
+        "calibrex_dense",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-12-03-13-26-40_calibrex_dense.yaml",
+        "a02ae7dfda6411a47038a069bfb6bc203779fcb8fb5e68d8c12370f3f6501ea9"
+      ],
+      "exit_code": 0,
+      "seconds": 459.6,
+      "stdout_tail": "{\n  \"artifact\": \"docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-12-03-13-26-40_calibrex_dense.yaml\",\n  \"calibrated_dofs\": [\n    \"roll\",\n    \"pitch\",\n    \"yaw\",\n    \"x\",\n    \"y\",\n    \"z\"\n  ],\n  \"reasons\": [\n    \"every DoF is estimated and held-out blocks detect every control\"\n  ],\n  \"status\": \"pass\"\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-12-03-13-26-40:calibrex_dense:same_time",
+      "attempt": 1,
+      "command": [
+        "/workspace/work/Calibrex/.venv/bin/python",
+        "/workspace/work/Calibrex/tools/grand_tour_same_time_alignment.py",
+        "--mission-data",
+        "/workspace/work/grandtour-v2-input/2024-12-03-13-26-40/data",
+        "--reference",
+        "hesai_points",
+        "--target",
+        "livox_points",
+        "--artifact",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-12-03-13-26-40_calibrex_dense.yaml",
+        "--tf-reference",
+        "hesai_lidar",
+        "--tf-target",
+        "livox_lidar",
+        "--frames",
+        "284",
+        "852",
+        "1421",
+        "1990",
+        "2558",
+        "--output",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-12-03-13-26-40_calibrex_dense_same_time.json"
+      ],
+      "exit_code": 0,
+      "seconds": 3.8,
+      "stdout_tail": "livox_points 284: estimate matched 0.55 median 28.4 mm | dataset_tf matched 0.49 median 202.1 mm\nlivox_points 852: estimate matched 0.47 median 24.1 mm | dataset_tf matched 0.45 median 200.8 mm\nlivox_points 1421: estimate matched 0.47 median 35.1 mm | dataset_tf matched 0.38 median 229.5 mm\nlivox_points 1990: estimate matched 0.46 median 33.3 mm | dataset_tf matched 0.41 median 215.7 mm\nlivox_points 2558: estimate matched 0.81 median 24.4 mm | dataset_tf matched 0.69 median 188.8 mm\n",
+      "stderr_tail": ""
+    },
+    {
+      "step": "2024-12-03-13-26-40:calibrex_sparse",
+      "attempt": 1,
+      "command": [
+        "/workspace/work/Calibrex/.venv/bin/python",
+        "-m",
+        "tools.grand_tour_lidar_lidar_v2_evaluate",
+        "fit",
+        "/workspace/work/grandtour-v2-input/2024-12-03-13-26-40/data",
+        "calibrex_sparse",
+        "docs/assets/grand_tour_lidar_lidar/v2_evaluation/2024-12-03-13-26-40_calibrex_sparse.yaml",
+        "a02ae7dfda6411a47038a069bfb6bc203779fcb8fb5e68d8c12370f3f6501ea9"
+      ],
+      "exit_code": -9,
+      "seconds": 784.6,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    }
+  ],
+  "finished_at": "2026-11-25T08:48:36Z"
+}

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **GrandTour LiDAR-LiDAR audit v2 — refuted, 4/5 gates.** Four previously unread missions. [Frozen audit and results](docs/benchmarks/grand_tour_lidar_lidar_v2.md).
+
 - `calibrex lidar-lidar ros2 --window-sensitivity HALF_WINDOW` refits on the same train
   blocks with another map half window and adds each DoF's shift to its reported std (new
   optional `std_systematic`). `--map-half-window-scans` sets the map window; 0 registers each

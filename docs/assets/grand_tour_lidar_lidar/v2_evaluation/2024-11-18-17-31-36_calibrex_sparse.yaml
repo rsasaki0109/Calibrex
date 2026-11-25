@@ -1,0 +1,235 @@
+schema_version: slac.lidar_lidar_extrinsic/v0.1
+method: map_registration/v0.1
+solver_status: converged
+policy_status: pass
+policy_reasons:
+- every DoF is estimated and held-out blocks detect every control
+calibrated_dofs:
+- roll
+- pitch
+- yaw
+- x
+- y
+- z
+transform:
+  parent_frame: /hesai_points
+  child_frame: /livox_points
+  translation_m:
+  - -0.004463304192998037
+  - 0.005381871939968458
+  - 0.11467355293887159
+  rotation_quat_xyzw:
+  - 0.7072144635482792
+  - -0.7069978176920567
+  - -0.00010511985653513437
+  - -0.001333145380220802
+dofs:
+- name: roll
+  unit: deg
+  value: -179.90047695383524
+  std_analytic: 0.0008287610915580372
+  std_jackknife: 0.04593875364446715
+  std_systematic: 0.006373473241920352
+  std_reported: 0.04593875364446715
+  status: estimated
+  reference_value: 179.24889803983
+  error_to_reference: -0.37723112361391503
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 374363.14411721006
+    detected: true
+- name: pitch
+  unit: deg
+  value: 0.11652516076896563
+  std_analytic: 0.0008076930164585306
+  std_jackknife: 0.05740119775258926
+  std_systematic: 0.01975036744355048
+  std_reported: 0.05740119775258926
+  status: estimated
+  reference_value: 0.4973857492109115
+  error_to_reference: -0.8522297459548611
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 331929.4620575197
+    detected: true
+- name: yaw
+  unit: deg
+  value: -89.98234429986383
+  std_analytic: 0.0009633802562082338
+  std_jackknife: 0.030005083312205885
+  std_systematic: 0.023698069823516237
+  std_reported: 0.030005083312205885
+  status: estimated
+  reference_value: -89.52997880096859
+  error_to_reference: -0.4569126354210972
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 311916.1765029393
+    detected: true
+- name: x
+  unit: m
+  value: -0.004463304192998037
+  std_analytic: 4.4052045105167185e-05
+  std_jackknife: 0.0008125455054606809
+  std_systematic: 0.0020579449489160472
+  std_reported: 0.0020579449489160472
+  status: estimated
+  reference_value: 0.25192350096581645
+  error_to_reference: -0.2563868051588145
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    holdout_delta_chi2: 278505.9597550966
+    detected: true
+- name: y
+  unit: m
+  value: 0.005381871939968458
+  std_analytic: 7.16433869396063e-05
+  std_jackknife: 0.0034551957406387538
+  std_systematic: 0.005268825077004384
+  std_reported: 0.005268825077004384
+  status: estimated
+  reference_value: 0.2610449622317245
+  error_to_reference: -0.25566309029175605
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    holdout_delta_chi2: 244085.25685728714
+    detected: true
+- name: z
+  unit: m
+  value: 0.11467355293887159
+  std_analytic: 4.42294863445083e-05
+  std_jackknife: 0.0028411318080048768
+  std_systematic: 8.978307171395028e-05
+  std_reported: 0.0028411318080048768
+  status: estimated
+  reference_value: -0.11914185598113969
+  error_to_reference: 0.2338154089200113
+  known_bad_control:
+    amount: 0.05
+    unit: m
+    holdout_delta_chi2: 578628.6531295516
+    detected: true
+residual_sigma_m: 0.03211833211005054
+holdout_median_residual_m: 0.024284899133385315
+reference_holdout_delta_chi2: 9588643.90830708
+samples:
+  reference_scans: 3343
+  samples: 332
+  train_samples: 222
+  holdout_samples: 110
+  train_correspondences: 1546412
+  holdout_correspondences: 673109
+time_offset:
+  value_s: 0.0
+  source: given
+  profile: []
+train_blocks:
+- 0
+- 2
+- 3
+- 5
+- 6
+- 8
+- 9
+- 11
+- 12
+- 14
+- 15
+- 17
+- 18
+- 20
+- 21
+- 23
+- 24
+- 26
+- 27
+- 29
+- 30
+- 32
+- 33
+holdout_blocks:
+- 1
+- 4
+- 7
+- 10
+- 13
+- 16
+- 19
+- 22
+- 25
+- 28
+- 31
+jackknife_fits: 8
+options:
+  sample_every_scans: 10
+  map_half_window_scans: 5
+  block_duration_s: 10.0
+  holdout_every: 3
+  jackknife_groups: 8
+  rotation_control_deg: 1.0
+  translation_control_m: 0.05
+  detection_delta_chi2: 9.0
+  observable_rotation_std_deg: 0.1
+  observable_translation_std_m: 0.02
+  voxel_size_m: 0.2
+  max_correspondence_m: 0.5
+  huber_m: 0.05
+  iterations: 30
+  registration_query_workers: 4
+  sensitivity_half_window_scans: 0
+  target_motion: reference_trajectory
+  target_accumulate_scans: 10
+  target_voxel_size_m: 0.05
+reference: inv(T_box_hesai_points.yaml) @ T_box_livox_points.yaml
+limitations:
+- The reference LiDAR's odometry supplies the map and the trajectory every target
+  point is placed by; its drift over the map window adds noise to every sample.
+- Target points are placed by the reference trajectory interpolated at their capture
+  times (linear in translation, geodesic in rotation between reference scans); motion
+  faster than the reference scan rate, such as gait vibration above half that rate,
+  is not resolved.
+- The reference transform, if given, is a comparison, not ground truth.
+provenance:
+  generator: calibrex.evaluation.lidar_lidar_map
+  generator_version: 0.6.5
+  git_commit: 1eee59f2
+  command:
+  - calibrex
+  - lidar-lidar
+  - ros2
+  - /workspace/work/grandtour-v2-input/2024-11-18-17-31-36
+  - --reference-topic
+  - /hesai_points
+  - --target-topic
+  - /livox_points
+  - --point-time-field
+  - time
+  - --registration-query-workers
+  - '4'
+  - --preset
+  - unitree-go2-l1
+  - --window-sensitivity
+  - '0'
+  - --point-time-encoding
+  - absolute_s
+  - --target-point-time-field
+  - time
+  - --target-point-time-encoding
+  - absolute_ns
+  - --body-transforms
+  - /workspace/work/grandtour-v2-input/2024-11-18-17-31-36/data/T_box_hesai_points.yaml
+  - /workspace/work/grandtour-v2-input/2024-11-18-17-31-36/data/T_box_livox_points.yaml
+  dataset_family: grand_tour
+  sequence_ids:
+  - 2024-11-18-17-31-36
+  reference_topic: /hesai_points
+  target_topic: /livox_points
+  input_sha256: c17b7f2a6b96c53bb1e6769866a7376d5971a9b9e46c159a43c352a4560bca9b
+  input_digest_scope: pinned_zarr_archives
+  dataset_license: MIT
+  created_at: '2026-11-25T08:25:03.069374+00:00'
