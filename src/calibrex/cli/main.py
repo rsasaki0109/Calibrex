@@ -98,6 +98,18 @@ def _positive_float(value: str) -> float:
     return number
 
 
+def _nonnegative_float(value: str) -> float:
+    """Parse an argparse value as a nonnegative finite number."""
+
+    try:
+        number = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"invalid nonnegative number: {value!r}") from exc
+    if not 0.0 <= number < float("inf"):
+        raise argparse.ArgumentTypeError(f"expected a nonnegative number, got {value!r}")
+    return number
+
+
 def _camera_lidar_far_control_t(value: str) -> float:
     """Parse a finite adoption margin that cannot weaken the ordinary control."""
 
@@ -1550,6 +1562,11 @@ def _build_parser() -> argparse.ArgumentParser:
         type=_positive_float,
         help="use at most this many seconds (--camera: at most 60 with the guide window, "
         "exactly this long with --no-window, default 20)",
+    )
+    intrinsics_rotate.add_argument(
+        "--start-seconds",
+        type=_nonnegative_float,
+        help="--bag: skip this many seconds from the topic's first image (default 0)",
     )
     intrinsics_rotate.add_argument(
         "--rolling-shutter",
@@ -8513,22 +8530,29 @@ def _rotate_sources(args: argparse.Namespace) -> tuple[Any, Any, Any]:
     )
 
     stride, seconds = args.stride, args.seconds
+    start = args.start_seconds or 0.0
+    if args.start_seconds is not None and args.bag is None:
+        raise CalibrexError("--start-seconds needs --bag")
     if args.bag is not None:
         if not args.topic:
             raise CalibrexError("--bag needs --topic (the image topic)")
 
+        def bag_reader(topic: str, frame_stride: int = 1) -> Any:
+            return bag_frames(
+                args.bag, topic, stride=frame_stride, max_seconds=seconds, start_seconds=start
+            )
+
         def left_bag() -> Any:
-            return bag_frames(args.bag, args.topic, stride=stride, max_seconds=seconds)
+            return bag_reader(args.topic, stride)
 
         if not args.right_topic:
             return left_bag, None, None
 
         def right_bag() -> Any:
-            return bag_frames(args.bag, args.right_topic, stride=stride, max_seconds=seconds)
+            return bag_reader(args.right_topic, stride)
 
         return left_bag, right_bag, lambda: paired_frames(
-            bag_frames(args.bag, args.topic, max_seconds=seconds),
-            bag_frames(args.bag, args.right_topic, max_seconds=seconds),
+            bag_reader(args.topic), bag_reader(args.right_topic)
         )
     if args.video is not None and args.guide:
         frames = video_frames(args.video, stride=1, max_seconds=seconds)
