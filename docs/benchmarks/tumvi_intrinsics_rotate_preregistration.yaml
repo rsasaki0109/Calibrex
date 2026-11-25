@@ -1,0 +1,90 @@
+# Fixed after the room1 development run and before downloading or reading any
+# evaluation bag for intrinsics rotate. This is an agreement audit against the
+# published Kalibr estimate, not a ground-truth or state-of-the-art claim.
+claims:
+  tumvi-rotate-agreement:
+    text: >-
+      On TUM-VI room2-room6, at least five of the ten sequence-camera cases agree
+      with the published Kalibr reference within 5 percent on each focal length
+      and 5 pixels on each principal-point coordinate.
+    gates:
+      max_focal_error_pct: 5
+      max_principal_error_px: 5
+    min_passing_cases: 5
+  source_of_gates: >-
+    On room1 the worst absolute focal error was 23.8793 percent and the worst
+    principal-point coordinate error was 2.7400 px. Multiply by 1.5 and round up
+    to a quarter percentage point or a whole pixel respectively, subject to a
+    practical ceiling of 5 percent focal error and 10 px principal-point error.
+    The focal gate is capped rather than promoting the room1 bias into a target.
+    The five-case minimum requires at least half the intended cases to pass.
+sessions:
+  development_spent: [room1]
+  development:
+    room1: {bag: calibrated/512_16/dataset-room1_512_16.bag, size_bytes: 2971525053, etag: b11ddfbd-56a1196d83910}
+  evaluation:
+    room2: {bag: calibrated/512_16/dataset-room2_512_16.bag, size_bytes: 3035570964, etag: b4ef2314-56a11992ff3a9}
+    room3: {bag: calibrated/512_16/dataset-room3_512_16.bag, size_bytes: 2971328666, etag: b11ae09a-56a119e3a1b83}
+    room4: {bag: calibrated/512_16/dataset-room4_512_16.bag, size_bytes: 2346890121, etag: 8be2b389-56a11a2682bd9}
+    room5: {bag: calibrated/512_16/dataset-room5_512_16.bag, size_bytes: 2998956689, etag: b2c07291-56a11a591bcf8}
+    room6: {bag: calibrated/512_16/dataset-room6_512_16.bag, size_bytes: 2776625052, etag: a57fef9c-56a11a948d850}
+  host: https://cdn2.vision.in.tum.de/tumvi
+  exposure: >-
+    room2-room6 were previously read by the independent camera-focal and
+    camera-IMU checks. For this estimator only room1 images and OptiTrack poses
+    were read before this commit. Evaluation bag pins come from the focal audit.
+reference:
+  camchain: docs/assets/tumvi_camera_focal/camchain.yaml
+  camchain_sha256: 3a0c0285f4d0a3a1678053b2e5912e3e250e78ac09bd009f6d7d8bba669d5703
+  source: dso/camchain.yaml in the TUM-VI dataset-calib-cam1_512_16 export
+  use: scoring only
+method:
+  command: calibrex intrinsics rotate --bag BAG --topic TOPIC --distortion equidistant --seconds 10
+  cameras: [cam0, cam1]
+  duration_s: 10
+  step_s: 2
+  pose_topic: /vrpn_client/raw_transform
+  pose_sample_hz: 10
+  max_pose_sample_delay_s: 0.1
+  min_rotation_span_deg: 20
+  min_rotation_axes: 2
+  window: >-
+    Scan 10 s windows from the first cam0 image stamp at 2 s steps. For each
+    10 Hz grid time take the first OptiTrack sample at or after that time, at most
+    0.1 s later. Require at least 20 deg span on two components of the rotation
+    vectors relative to the first sample of the window. Among qualifying
+    windows take the smallest maximum pairwise rig-position displacement,
+    breaking ties by earliest start. Use that start for each synchronized camera.
+  image_input: original raw topic, converted from mono16 by taking the high byte
+  case: one sequence and one camera, estimated independently from images alone
+  errors: >-
+    Signed focal error is 100 * (estimate / reference - 1). Principal point and
+    equidistant k1-k4 errors are estimate minus reference. Coefficient
+    differences are reported for diagnosis.
+  inconclusive: >-
+    Missing qualifying window, failed CLI, or nonfinite parameter errors are
+    inconclusive and contribute zero passes. Finite estimates are scored even
+    when the CLI issues quality warnings. A transport failure stops the batch
+    and makes the overall evaluation incomplete.
+run_recipe:
+  command: >-
+    python tools/tumvi_intrinsics_rotate_audit.py evaluation
+    --work-dir WORK --output-dir RUNS
+  transport: >-
+    Fetch six contiguous ranges per bag with If-Match on the pinned ETag.
+    Verify ETag, Content-Range, and each segment length before assembly.
+    Verify the assembled file length and delete the bag and temporary ranges
+    after each sequence. Stop on a download failure, with no automatic retries.
+  results: RUNS/SEQ.json and RUNS/SEQ_CAM_camchain.yaml
+  base_commit: 0aa6378dcac8ecab1d640f8692b4108f84eaf912
+  environment: {python: '3.12.14', numpy: '2.5.2', scipy: '1.18.0', opencv: '4.14.0'}
+invalidates:
+  - estimator or harness source different from frozen_source_sha256
+  - reading evaluation images or poses for this estimator before this document is committed
+  - retrying an estimation or changing a gate after evaluation starts
+analysis_plan: >-
+  Report all signed errors and outcomes alongside the pose selection and
+  image transfer residuals. Record the number of passing, failing, inconclusive
+  and unavailable cases. Diagnose translation, tracking, and lens-model limits
+  without altering the frozen results.
+frozen_source_sha256: 2f163516cca84a8da32c00e72b7d8f3368a29b3a0090005bb7bb9a91e4b5e3b9
